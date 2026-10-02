@@ -13,8 +13,14 @@ config/*.local.json
 data/
 tmp/
 
-# 仅在本地维护的开发文档
+# 仅在本地维护的开发材料
 /docs/
+AGENTS.md
+/tests/
+/scripts/
+/.github/
+/src/cli/ui/assets/
+/tsconfig.dev.json
 
 # 额外运行数据、凭据与系统临时文件
 .my-bangumi-assistant/
@@ -30,5 +36,8 @@ tmp/
 Thumbs.db
 Desktop.ini
 /.idea/
+/.vscode/
+/.codex/
+.nyc_output/
 *.swp
 *.swo

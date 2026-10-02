@@ -15,7 +15,6 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/src/cli/main.js",
-    "test": "npm run build && node --test dist/tests/unit/*.test.js dist/tests/integration/*.test.js dist/tests/e2e/*.test.js",
     "bgm": "node node_modules/@aronnaxlin/bgm-cli/src/cli.js"
   },
   "dependencies": {
