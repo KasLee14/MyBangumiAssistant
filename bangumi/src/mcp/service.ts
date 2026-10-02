@@ -104,6 +104,30 @@ export class BangumiMcpService {
     if (item.data.length !== expected) throw new AppError('INCOMPLETE_DATA', '分页缺少记录，不能认定结果完整。');
     return { ...item, data: item.data, total: item.total, limit, offset };
   }
+  /** 搜索接口每次最多20条；补齐工具请求范围，不放宽双端分页契约。 */
+  private async searchSubjects(args: ObjectValue, body: ObjectValue, signal?: AbortSignal): Promise<ObjectValue> {
+    const limit = Number(args.limit); const offset = Number(args.offset);
+    const data: unknown[] = []; const seen = new Set<number>(); let total: number | undefined;
+    for (let batch = 0; batch < Math.ceil(limit / 20); batch++) {
+      signal?.throwIfAborted();
+      const batchLimit = Math.min(20, limit - data.length); const batchOffset = offset + data.length;
+      const page = this.page(await this.transport.public('/v0/search/subjects', {
+        method: 'POST', query: { limit: batchLimit, offset: batchOffset }, body,
+      }, signal), batchLimit, batchOffset);
+      signal?.throwIfAborted();
+      if (total !== undefined && total !== page.total) throw new AppError('INCOMPLETE_DATA', '搜索总数在分页读取期间变化。');
+      total = page.total;
+      // 每页先核对作品身份及筛选范围，异常页不能推动下一次读取。
+      subjectPage(page, { ...args, limit: batchLimit, offset: batchOffset });
+      for (const raw of page.data) {
+        const id = positive(obj(raw).id);
+        if (seen.has(id)) throw new AppError('INCOMPLETE_DATA', '搜索分页记录重复。');
+        seen.add(id); data.push(raw);
+      }
+      if (data.length === limit || offset + data.length >= total) return { data, total, limit, offset };
+    }
+    throw new AppError('INCOMPLETE_DATA', '搜索分页未补齐请求范围。');
+  }
   private async allAccount(path: string, accountId: number, query: ObjectValue = {}, signal?: AbortSignal): Promise<unknown[]> {
     const all: unknown[] = []; const seen = new Set<number>(); let total: number | undefined;
     for (let offset = 0; offset < 10000; offset += 100) {
@@ -215,7 +239,9 @@ export class BangumiMcpService {
     if (['search_subjects', 'search_characters', 'search_persons'].includes(name)) {
       const entity = name.slice('search_'.length); const filter = entity === 'subjects' ? searchFilter(args)
         : entity === 'characters' ? compact({ nsfw: args.nsfw_filter }) : compact({ career: args.career_filter });
-      return publicCall(`/v0/search/${entity}`, { method: 'POST', query: { limit, offset }, body: compact({ keyword: args.keyword, sort: args.sort, filter }) });
+      const body = compact({ keyword: args.keyword, sort: args.sort, filter });
+      if (name === 'search_subjects') return this.searchSubjects(args, body, signal);
+      return publicCall(`/v0/search/${entity}`, { method: 'POST', query: { limit, offset }, body });
     }
     if (name === 'browse_subjects') return publicCall('/v0/subjects', { query: compact({ type: args.subject_type, cat: args.cat, series: args.series, platform: args.platform, sort: args.sort, year: args.year, month: args.month, limit, offset }) });
     if (name === 'get_subject_details') return ratedSubject(await publicCall(`/v0/subjects/${id('subject_id')}`));
