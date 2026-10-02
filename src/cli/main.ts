@@ -21,11 +21,11 @@ import { mediaType, pageLimit, pageOffset, positiveId, MEDIA_LABELS, type Subjec
 import type { Message } from '../core/types.js';
 import { join } from 'node:path';
 import { access } from 'node:fs/promises';
-import { OAuthSessionStore } from '../storage/oauth-session.js';
-import { login } from '../adapters/bangumi-oauth/login.js';
-import { activeSession } from '../adapters/bangumi-oauth/session.js';
-import { OAuthTransport } from '../adapters/bangumi-oauth/transport.js';
-import { parseOAuthConfig } from '../config/oauth.js';
+import { AccountSessionStore } from '../storage/account-session.js';
+import { login } from '../adapters/bangumi-login/login.js';
+import { activeSession } from '../adapters/bangumi-login/session.js';
+import { AccountTransport } from '../adapters/bangumi-login/transport.js';
+import { terminalLoginPrompt } from './login-input.js';
 import { APP_NAME, APP_VERSION } from './version.js';
 import { CollectionReader } from '../core/collection-reader.js';
 import { collectionQuery, collectionStatus } from '../domain/collection-library.js';
@@ -45,9 +45,9 @@ const HELP = `${APP_NAME} ${APP_VERSION} —— 查询、收藏与原生进度
   episodes <条目ID> --all [--json]     完整章节（最多2000项）
   progress <条目ID> [--json]           原生进度能力与个人记录
   preview <条目ID> '<字段JSON>' [--json] 收藏变更预览，不写入
-  login [--force]                     默认浏览器 OAuth 授权（可复用已有登录）
+  login [--force] [--manual]          本地邮箱、隐藏密码与浏览器人机验证
   login-status                       仅查看本机登录元数据，不验证网站
-  logout                             清除本机 OAuth 凭据，不注销网站其他会话
+  logout                             清除本机登录凭据，不注销网站其他会话
   auth-check                         在线只读验证 Bangumi 认证
   sessions                           列出已保存会话 ID
   config                             查看有效配置，不包含密钥
@@ -65,7 +65,7 @@ function parse(argv: string[]): { command: string; positional: string[]; flags: 
     collections: ['type','status','limit','offset','json'], 'collection-summary': ['type','json'],
     ask: ['model', 'resume', 'json'], chat: ['model', 'resume', 'plain'], search: ['type','limit','json'],
     subject: ['json'], collection: ['json'], episodes: ['limit','offset','all','json'], progress: ['json'], preview: ['json'], 'preview-delete':['json'], 'auth-check': [],
-    login:['force'], 'login-status':[], logout:[],
+    login:['force','manual'], 'login-status':[], logout:[],
     sessions: [], config: [], doctor: [], '--help': [], '--version': [],
   };
   if (!Object.hasOwn(allowed, command)) throw new AppError('INVALID_INPUT', '未知命令，使用 --help 查看。');
@@ -74,7 +74,7 @@ function parse(argv: string[]): { command: string; positional: string[]; flags: 
     if (!value.startsWith('--')) { positional.push(value); continue; }
     const name = value.slice(2);
     if (!allowed[command]!.includes(name) || name in flags) throw new AppError('INVALID_INPUT', '命令包含未知或重复选项。');
-    if (name === 'json' || name === 'all' || name === 'force' || name === 'plain') flags[name] = true;
+    if (name === 'json' || name === 'all' || name === 'force' || name === 'plain' || name === 'manual') flags[name] = true;
     else {
       const next = argv[++i];
       if (!next || next.startsWith('--')) throw new AppError('INVALID_INPUT', `--${name} 缺少参数。`);
@@ -103,43 +103,46 @@ export async function main(argv: string[]): Promise<void> {
   if (positional.length !== expected) throw new AppError('INVALID_INPUT', `此命令需要 ${expected} 个位置参数，多字问题请用引号包裹。`);
   const paths = pathsFor(); const config = await loadConfig(paths);
   const proxy = config.proxyPolicy ?? config.proxy;
-  const store=new OAuthSessionStore(join(paths.root,'auth'));
+  const store=new AccountSessionStore(join(paths.root,'auth'));
   if (command === 'config') { dump({ configPath: paths.config, ...config }); return; }
   if (command === 'doctor') {
     dump({ node: process.version, userDirectory: paths.root, bgmConfigDirectory: paths.bgm,
-      authentication:'oauth',savedOAuthSession:await access(store.file).then(()=>true,()=>false), collectionDeletionAvailable:false,
-      oauth: { ...parseOAuthConfig(config.oauth), clientIdPresent: Boolean(process.env[parseOAuthConfig(config.oauth).clientIdEnv]), clientSecretPresent: Boolean(process.env[parseOAuthConfig(config.oauth).clientSecretEnv]) },
+      authentication:'password-session',savedAccountSession:await access(store.file).then(()=>true,()=>false), collectionDeletionAvailable:false,
+      login: { applicationCredentialsRequired:false,verificationService:'https://oauth-backend-jet.vercel.app',manualVerificationAvailable:true },
       models: Object.entries(config.models).map(([name, value]) => ({ name, model: value.model, baseUrl: value.baseUrl,
         apiKeyEnv: value.apiKeyEnv, credentialPresent: Boolean(process.env[value.apiKeyEnv]) })),
       proxy: config.proxy, proxyPolicy: config.proxyPolicy, proxyDescription: proxySummary(proxy), networkChecked: false, bangumiAuthenticationChecked: false, mode: 'authorized-writes' }); return;
   }
   if (command === 'sessions') { dump(await SessionLog.list(paths.sessions)); return; }
   const controller = new AbortController(); const cancel = (): void => controller.abort();
-  process.on('SIGINT', cancel);
+  if(command !== 'chat')process.on('SIGINT', cancel);
   let model: ChatCompletionsModel | undefined;
   try {
     await ensurePaths(paths);
     if(command === 'logout') { await store.clear(); dump({localAuthenticationCleared:true,serverSessionRevoked:false}); return; }
     if(command === 'login-status') {
-      try { const saved=await store.load(); dump(saved ? {saved:true,source:'oauth',accountId:saved.accountId,username:saved.username,savedAt:saved.savedAt,expiresAt:saved.expiresAt,expired:saved.expiresAt <= Date.now(),refreshAvailable:Boolean(saved.refreshToken),networkChecked:false} : {saved:false,source:'oauth',networkChecked:false}); }
+      try { const saved=await store.load(); dump(saved ? {saved:true,source:'password-session',accountId:saved.accountId,username:saved.username,savedAt:saved.savedAt,expiresAt:saved.expiresAt,expired:saved.expiresAt <= Date.now(),networkChecked:false} : {saved:false,source:'password-session',networkChecked:false}); }
       catch(error) { dump({saved:false,error:safeError(error).code,networkChecked:false}); }
       return;
     }
     if(command === 'login') {
-      if(!stdin.isTTY) throw new AppError('INVALID_INPUT','login 需要交互终端和用户在默认浏览器完成 OAuth 授权。');
+      if(!stdin.isTTY) throw new AppError('INVALID_INPUT','login 需要交互终端输入邮箱和隐藏密码，并在浏览器完成人机验证。');
       if(!flags.force) {
-        const saved=await activeSession(store,proxy,config.requestTimeoutMs,controller.signal).catch(error => { if (controller.signal.aborted) throw error; return null; });
+        const saved=await activeSession(store).catch(error => { if (controller.signal.aborted) throw error; return null; });
         if(saved) {
-          const api = new OAuthTransport(saved,proxy,config.requestTimeoutMs);
+          const api = new AccountTransport(saved,proxy,config.requestTimeoutMs);
           try { const user = await api.json('/p1/me',{auth:true},controller.signal) as {id?:number};
-            if (user.id !== saved.accountId) throw new AppError('ACCOUNT_CHANGED','OAuth 账户改变，请重新授权。');
-            dump({saved:true,accountId:saved.accountId,username:saved.username,networkChecked:true,message:'OAuth 登录有效；重新授权或切换账户请用 login --force。'}); return;
+            if (user.id !== saved.accountId) throw new AppError('ACCOUNT_CHANGED','登录账户改变，请重新登录。');
+            dump({saved:true,accountId:saved.accountId,username:saved.username,networkChecked:true,message:'登录有效；重新登录或切换账户请用 login --force。'}); return;
+          } catch(error) {
+            if(controller.signal.aborted || safeError(error).code !== 'BGM_HTTP_401')throw error;
+            process.stderr.write('网站会话已失效，请重新输入邮箱和密码登录。\n');
           } finally { await api.close(); }
         }
       }
-      dump({authenticated:true,user:await login(store,{config:parseOAuthConfig(config.oauth),proxy,requestTimeoutMs:config.requestTimeoutMs,signal:controller.signal,notice:message=>process.stderr.write(`${message}\n`)}),source:'oauth'}); return;
+      dump({authenticated:true,user:await login(store,{proxy,requestTimeoutMs:config.requestTimeoutMs,signal:controller.signal,prompt:terminalLoginPrompt(),manual:Boolean(flags.manual),notice:message=>process.stderr.write(`${message}\n`)}),source:'password-session'}); return;
     }
-    // 只为日志/模型裁剪注册本地 Token；不读取旧网页登录 Cookie。
+    // 只为日志/模型裁剪注册本应用会话；不读取旧 OAuth 或网页登录凭据。
     if (command !== 'chat') await store.load().catch(error => { if (!['search', 'subject', 'episodes'].includes(command)) throw error; });
     const runnerOptions = { configDir: paths.bgm, authDir:join(paths.root,'auth'),timeoutMs: config.requestTimeoutMs, proxy, signal: controller.signal };
     const readClient = new BgmReadClient(createBgmRunner(runnerOptions));
@@ -150,8 +153,8 @@ export async function main(argv: string[]): Promise<void> {
       const chat = new ChatController({ config, paths, client, signal: controller.signal,
         createModel: name => new ChatCompletionsModel(config.models[name]!, config.requestTimeoutMs, proxy),
         loadLogin: async () => { const saved = await store.load(); return saved ? { accountId: saved.accountId, username: saved.username } : null; },
-        login: async (signal, notice) => {
-          const user = await login(store, { config:parseOAuthConfig(config.oauth), proxy, requestTimeoutMs:config.requestTimeoutMs, signal, notice });
+        login: async (signal, notice, prompt, manual) => {
+          const user = await login(store, { proxy, requestTimeoutMs:config.requestTimeoutMs, signal, notice, prompt, manual });
           return { id: user.id, username: user.username };
         },
       }, selectedModel(config, typeof flags.model === 'string' ? flags.model : undefined), typeof flags.resume === 'string' ? flags.resume : undefined);

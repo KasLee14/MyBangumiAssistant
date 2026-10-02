@@ -1,9 +1,4 @@
 {
-  "oauth": {
-    "clientIdEnv": "BANGUMI_OAUTH_CLIENT_ID",
-    "clientSecretEnv": "BANGUMI_OAUTH_CLIENT_SECRET",
-    "redirectUri": "http://127.0.0.1:43835/oauth/callback"
-  },
   "activeModel": "deepseek",
   "models": {
     "deepseek": {

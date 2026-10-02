@@ -25,6 +25,8 @@ export function ChatApp({controller}: {controller:ChatController}) {
   const {columns,rows} = useWindowSize(); const width = Math.max(12,columns ?? 80); const height = Math.max(12,rows ?? 24);
   const {exit,waitUntilRenderFlush} = useApp();
   const editor = useRef(new PromptEditor()).current;
+  const credential = useRef({ id:0, value:'' }).current;
+  if(credential.id !== (state.credentialPrompt?.id ?? 0)) {credential.id=state.credentialPrompt?.id ?? 0;credential.value='';}
   const [,redraw] = useState(0); const [menu,setMenu] = useState<Menu|null>(null);
   const [details,setDetails] = useState(false); const [confirmation,setConfirmation] = useState(0);
   const [candidateIndex,setCandidateIndex] = useState(0); const [dismissedCandidate,setDismissedCandidate] = useState('');
@@ -81,13 +83,24 @@ export function ChatApp({controller}: {controller:ChatController}) {
     }
     editor.set(value); const submitted = editor.submit(); change(); execute(submitted);
   };
-  const paste = (text:string) => { if (!editor.insert(text)) controller.notify('粘贴后超过8000字，未插入，请缩短内容。'); setMenu(null); change(); };
+  const paste = (text:string) => {
+    if(state.credentialPrompt) {if(!/[\x00-\x1f\x7f]/.test(text) && credential.value.length+text.length <= 4000)credential.value+=text;redraw(value=>value+1);return;}
+    if (!editor.insert(text)) controller.notify('粘贴后超过8000字，未插入，请缩短内容。'); setMenu(null); change();
+  };
   usePaste(paste);
   const commandPanel = state.ready && !state.busy && !menu && /^\/[^\s]*$/.test(editor.text) && dismissed.current !== editor.text;
   const suggestions = commandPanel ? COMMANDS.filter(option => option.value.startsWith(editor.text)) : [];
   const commandIndex = Math.max(0,suggestions.findIndex(option => option.value === selectedCommand.current));
   useInput((input,key) => {
     if (key.eventType === 'release') return;
+    if(state.credentialPrompt) {
+      if(key.escape || key.ctrl && input==='c') {credential.value='';controller.cancel();redraw(value=>value+1);return;}
+      if(key.return) {if(credential.value){const value=credential.value;credential.value='';controller.submitLoginInput(state.credentialPrompt.id,value);}redraw(value=>value+1);return;}
+      if(key.backspace || key.delete) {credential.value=Array.from(credential.value).slice(0,-1).join('');}
+      else if(key.ctrl && input==='u')credential.value='';
+      else if(!key.ctrl && !key.meta && input && !/[\x00-\x1f\x7f]/.test(input) && credential.value.length+input.length<=4000)credential.value+=input;
+      redraw(value=>value+1);return;
+    }
     if (key.ctrl && input === 'c') {
       if (menu) { setMenu(null); return; }
       if (state.busy) { controller.cancel(); return; }
@@ -162,7 +175,8 @@ export function ChatApp({controller}: {controller:ChatController}) {
     {state.pending && !state.busy && !menu && <OperationView plan={state.pending} acknowledged={state.previewAcknowledged} selected={confirmation} />}
     <Text dimColor>{state.busy ? `${['◐','◓','◑','◒'][Math.floor(clock/200)%4]} ${state.status} · ${Math.max(0,Math.floor((clock-state.startedAt)/1000))}秒 · Esc 停止` : state.status}{state.focus ? ` · 当前作品：${displayText(state.focus)}` : ''}</Text>
     {state.unknownOperations > 0 && <Text color="yellow">有 {state.unknownOperations} 项结果未知，请先核对网站；不会自动重试。</Text>}
-    <Composer editor={editor} width={width} height={composerRows} busy={state.busy} />
+    {state.credentialPrompt ? <Box flexDirection="column"><Text>{state.credentialPrompt.kind==='email' ? 'Bangumi 登录邮箱：' : 'Bangumi 密码：'}{state.credentialPrompt.kind==='password' ? '•'.repeat(Math.min(40,Array.from(credential.value).length)) : displayText(credential.value)}▏</Text><Text dimColor>Enter 提交 · Esc 取消 · 输入不进入聊天记录</Text></Box>
+      : <Composer editor={editor} width={width} height={composerRows} busy={state.busy} />}
     <Text dimColor>{wrapText(headerDetails(state),width).join('\n')}</Text>
     <Text dimColor>{quitHint ? '再按一次 Ctrl+C 退出' : commandPanel ? '继续输入可筛选命令' : width < 50 ? 'Enter 发送 · / 命令 · Tab 选择' : 'Enter 发送 · Ctrl+J 换行 · / 命令 · Tab 选择作品'}</Text>
   </Box>;

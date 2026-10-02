@@ -15,6 +15,7 @@ import type { BangumiWriteClient } from '../adapters/bgm-cli/write-client.js';
 import { BgmOperationExecutor } from '../adapters/bgm-cli/executor.js';
 import { AppError, safeError } from '../domain/errors.js';
 import { displayText, toolLabel } from './ui/format.js';
+import type { LoginPrompt } from '../adapters/bangumi-login/login.js';
 
 export type LoginState =
   | { kind: 'checking' }
@@ -35,6 +36,7 @@ export type TranscriptItem =
   | { id: number; kind: 'candidates'; set: CandidateSet }
   | { id: number; kind: 'plan'; plan: OperationPlan };
 export interface ChatState extends HeaderInfo {
+  credentialPrompt: { id: number; kind: 'email' | 'password' } | null;
   ready: boolean; busy: boolean; cancelling: boolean; startedAt: number; status: string;
   items: readonly TranscriptItem[]; liveText: string; candidates: CandidateSet | null;
   pending: OperationPlan | null; previewAcknowledged: boolean; focus: string | null; unknownOperations: number;
@@ -45,13 +47,14 @@ export interface ChatDependencies {
   createModel(name: string): ClosableModel;
   /** 仅交给界面账户 ID 和用户名，不交给界面组件 Token 或保护后的凭据。 */
   loadLogin(): Promise<{ accountId: number; username: string } | null>;
-  /** 宿主执行默认浏览器 OAuth；核对并保存后仅返回账户 ID 和用户名。 */
-  login(signal: AbortSignal, notice: (message: string) => void): Promise<{ id: number; username: string }>;
+  /** 登录输入不走对话；保存会话后仅返回账户 ID 和用户名。 */
+  login(signal: AbortSignal, notice: (message: string) => void, prompt: LoginPrompt, manual: boolean): Promise<{ id: number; username: string }>;
   signal: AbortSignal;
 }
 export const CHAT_HELP = `可以直接输入作品名称、“第一项”“确认执行”或“取消”。
 /help       查看帮助
-/login      在默认浏览器 OAuth 授权 Bangumi（可使用已有登录）
+/login      本地邮箱、隐藏密码与浏览器人机验证
+/login --manual  使用本地验证码辅助页，不经上游托管服务
 /status     查看登录核实结果、模型、会话ID、当前作品及待处理操作
 /model      打开模型菜单；/model 名称 切换配置
 /sessions   打开历史会话菜单
@@ -83,13 +86,33 @@ export class ChatController {
   private readonly countedUnknown = new Set<string>();
   private readonly lifetime = new AbortController();
   private closed = false;
+  private inputSequence = 0;
+  private loginInput: { id:number; resolve:(value:string)=>void } | undefined;
+  private loginPromptHandler: LoginPrompt | undefined;
 
   constructor(private readonly deps: ChatDependencies, name: string, private readonly resumeId?: string) {
     if (!Object.hasOwn(deps.config.models, name)) throw new AppError('INVALID_INPUT', '指定的模型配置不存在。');
     this.state = { ready: false, modelName: name, modelLabel: deps.config.models[name]!.model, sessionId: '', login: { kind: 'checking' },
       busy: false, cancelling: false, startedAt: 0, status: '正在准备会话', items: [], liveText: '', candidates: null,
-      pending: null, previewAcknowledged: false, focus: null, unknownOperations: 0 };
+      pending: null, previewAcknowledged: false, focus: null, unknownOperations: 0, credentialPrompt: null };
   }
+  setLoginPrompt(handler:LoginPrompt):void { this.loginPromptHandler = handler; }
+  submitLoginInput(id:number,value:string):void {
+    if(this.loginInput?.id !== id)return;
+    const request=this.loginInput;this.loginInput=undefined;request.resolve(value);
+  }
+  private requestLoginInput:LoginPrompt = async (kind,signal)=>{
+    signal.throwIfAborted();const id=++this.inputSequence;
+    this.update({credentialPrompt:{id,kind},status:kind === 'email' ? '请输入 Bangumi 登录邮箱' : '请输入 Bangumi 密码（隐藏输入）'});
+    try {
+      if(this.loginPromptHandler)return await this.loginPromptHandler(kind,signal);
+      return await new Promise<string>((resolve,reject)=>{
+        const abort=()=>{this.loginInput=undefined;reject(new AppError('CANCELLED','登录已取消。'));};
+        this.loginInput={id,resolve:value=>{signal.removeEventListener('abort',abort);resolve(value);}};
+        signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
+      });
+    } finally {this.loginInput=undefined;this.update({credentialPrompt:null});}
+  };
   snapshot = (): ChatState => this.state;
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private update(patch: Partial<ChatState>): void { this.state = { ...this.state, ...patch }; for (const listener of this.listeners) listener(); }
@@ -146,7 +169,7 @@ export class ChatController {
     try { saved = await this.deps.loadLogin(); }
     catch (error) {
       const info = safeError(error);
-      this.update({ login: info.code === 'OAUTH_AUTH_INVALID' ? { kind: 'signed-out' } : { kind: 'unverified', message: info.message } }); return;
+      this.update({ login: info.code === 'BGM_AUTH_INVALID' ? { kind: 'signed-out' } : { kind: 'unverified', message: info.message } }); return;
     }
     if (!saved) { this.update({ login: { kind: 'signed-out' } }); return; }
     try {
@@ -155,7 +178,7 @@ export class ChatController {
       this.update({ login: { kind: 'signed-in', accountId: user.id, username: user.username } });
     } catch (error) {
       const info = safeError(error);
-      this.update({ login: /^(OAUTH_AUTH_|OAUTH_CONFIG_|BGM_AUTH|BGM_HTTP_401)/.test(info.code)
+      this.update({ login: /^(BGM_AUTH|BGM_HTTP_401)/.test(info.code)
         ? { kind: 'signed-out' } : { kind: 'unverified', accountId: saved.accountId, username: saved.username, message: info.message } });
     }
   }
@@ -180,7 +203,7 @@ export class ChatController {
     else if (event.type === 'tool/start') { this.flushText(); this.update({ status: toolLabel(event.name) }); }
     else {
       this.add({ kind: 'activity', name: event.name, ok: event.ok, detail: event.error?.message ?? '完成' });
-      if (event.error && /^(OAUTH_AUTH_|OAUTH_CONFIG_|BGM_AUTH|BGM_HTTP_401)/.test(event.error.code)) this.update({ login: { kind: 'signed-out' } });
+      if (event.error && /^(BGM_AUTH|BGM_HTTP_401)/.test(event.error.code)) this.update({ login: { kind: 'signed-out' } });
     }
   };
   private appendText = (text: string): void => {
@@ -214,7 +237,7 @@ export class ChatController {
         if (!saved) this.update({login:{kind:'signed-out'}});
         else if (this.state.login.kind === 'signed-out' || 'accountId' in this.state.login && this.state.login.accountId !== saved.accountId) await this.refreshLogin(signal);
       } catch(error) {
-        const info=safeError(error); this.update({login:info.code === 'OAUTH_AUTH_INVALID' ? {kind:'signed-out'} : {kind:'unverified',message:info.message}});
+        const info=safeError(error); this.update({login:info.code === 'BGM_AUTH_INVALID' ? {kind:'signed-out'} : {kind:'unverified',message:info.message}});
       }
       signal.throwIfAborted();
       this.add({ kind: 'user', text: input });
@@ -242,16 +265,16 @@ export class ChatController {
   }
   private async localCommand(input: string, signal: AbortSignal): Promise<boolean> {
     if (input === '/help') { this.notify(CHAT_HELP); return true; }
-    if (input === '/login') {
+    if (input === '/login' || input === '/login --manual') {
       this.commands.resetRequests();
-      this.update({ pending: null, previewAcknowledged: false, status: '正在打开 Bangumi 登录页面' });
-      this.notify('请在默认浏览器中授权 Bangumi；可重新登录或切换账号。旧预览和未完成修改已失效。Esc / Ctrl+C 取消登录。');
+      this.update({ pending: null, previewAcknowledged: false, status: '正在准备 Bangumi 邮箱登录' });
+      this.notify('接下来输入登录邮箱与隐藏密码，再在浏览器完成人机验证。登录输入不进入聊天或模型；旧预览和未完成修改已失效。Esc / Ctrl+C 取消。');
       try {
         const user = await this.deps.login(signal, message => {
-          this.update({ status: message.includes('已收到授权回调') ? '正在核实 OAuth 账户' : '等待 OAuth 授权回调' }); this.notify(message);
-        });
+          this.update({ status: message }); this.notify(message);
+        }, this.requestLoginInput, input.endsWith('--manual'));
         this.update({ login: { kind: 'signed-in', accountId: user.id, username: user.username } });
-        this.notify(`Bangumi 登录成功，当前用户：${user.id}。OAuth 与 API 账户已核实，本机登录已保存。`);
+        this.notify(`Bangumi 登录成功，当前用户：${user.id}。API 账户已核实，本机登录已加密保存。`);
         this.add({ kind: 'header', header: this.header(), compact: true });
       } catch (error) {
         const info = safeError(error);
@@ -265,14 +288,14 @@ export class ChatController {
       this.update({ status: '正在核实 Bangumi 登录状态' });
       await this.refreshLogin(signal);
       const { login, pending, unknownOperations } = this.state;
-      const account = login.kind === 'signed-in' ? `已登录（用户 ID：${login.accountId}；本次 OAuth API 核实通过）`
+      const account = login.kind === 'signed-in' ? `已登录（用户 ID：${login.accountId}；本次 API 会话核实通过）`
         : login.kind === 'signed-out' ? '未登录或登录已失效；输入 /login 登录'
           : login.kind === 'unverified' ? `待核实${login.accountId ? `（本机保存的用户 ID：${login.accountId}）` : ''}；${login.message}`
             : '正在核实';
       this.notify([
         '当前状态（/status）',
         `Bangumi 登录：${account}`,
-        '认证方式：OAuth（条目取消收藏暂未开放）',
+        '认证方式：邮箱登录的本机 p1 会话（条目取消收藏暂未开放）',
         `当前模型：${this.state.modelLabel}`,
         `模型配置：${this.state.modelName}（/model 切换）`,
         `应用代理：${proxySummary(this.deps.config.proxyPolicy ?? this.deps.config.proxy)}`,

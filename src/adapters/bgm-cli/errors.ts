@@ -2,8 +2,8 @@ import { AppError } from '../../domain/errors.js';
 
 /** bgm-cli 1.1.2 的 stderr 文本契约；不将原始错误或响应体送入日志、模型或终端。 */
 export function bgmProcessError(stderr: string): AppError {
-  const local = /^((?:OAUTH_[A-Z_]+|ACCOUNT_CHANGED|BGM_HTTP_\d{3}|INVALID_RESPONSE|INVALID_INPUT|BGM_NETWORK|BGM_TIMEOUT|CANCELLED)): /m.exec(stderr)?.[1];
-  if(local) return new AppError(local, local.startsWith('OAUTH_') || local === 'BGM_HTTP_401' ? 'OAuth 登录无效或未配置，请运行 npm start -- login，再用 auth-check 验证。' : 'Bangumi 查询未完成，请核对账户、权限或网络；未回显上游错误。');
+  const local = /^((?:BGM_AUTH_[A-Z_]+|ACCOUNT_CHANGED|BGM_HTTP_\d{3}|INVALID_RESPONSE|INVALID_INPUT|BGM_NETWORK|BGM_TIMEOUT|CANCELLED)): /m.exec(stderr)?.[1];
+  if(local) return new AppError(local, local.startsWith('BGM_AUTH_') || local === 'BGM_HTTP_401' ? '登录无效或尚未完成，请运行 npm start -- login，再用 auth-check 验证。' : 'Bangumi 查询未完成，请核对账户、权限或网络；未回显上游错误。');
   const status = /^Bangumi API error \((\d{3})\):/m.exec(stderr)?.[1];
   if (status === '401') return new AppError('BGM_AUTH_REQUIRED', 'Bangumi 未认证或认证已失效。请运行 npm start -- login，再用 auth-check 验证；不要在对话中发送凭据。');
   if (status === '403') return new AppError('BGM_FORBIDDEN', '当前 Bangumi 账户没有读取此资源的权限；重新登录也不保证获得权限。');

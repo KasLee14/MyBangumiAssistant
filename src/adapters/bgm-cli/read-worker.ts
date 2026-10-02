@@ -1,4 +1,4 @@
-/** 查询桥接保留上游输出形状，所有账户请求统一使用OAuth Token。 */
+/** 查询桥接保留上游输出形状，所有账户请求统一使用本应用加密保存的p1会话。 */
 import { unifiedUpstream } from './upstream.js';
 import { mediaType, object, pageLimit, pageOffset, positiveId, keyword } from '../../domain/bangumi.js';
 import { AppError, safeError } from '../../domain/errors.js';
@@ -18,7 +18,7 @@ async function main(): Promise<unknown> {
       const query=collectionQuery({limit:Number(values['--limit'] ?? 20),offset:Number(values['--offset'] ?? 0),
         ...(values['--type'] === undefined ? {} : {type:mediaType(values['--type'])}),
         ...(values['--status'] === undefined ? {} : {status:collectionStatus(values['--status'])})});
-      if(!session) throw new AppError('OAUTH_AUTH_REQUIRED','请先运行 login 或在 chat 中使用 /login。');
+      if(!session) throw new AppError('BGM_AUTH_REQUIRED','请先运行 login 或在 chat 中使用 /login。');
       const user=object(await client.getMe());
       if(user.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED','收藏查询账户与保存登录不一致。');
       const types={anime:2,book:1,music:3,game:4,real:6};
@@ -37,7 +37,7 @@ async function main(): Promise<unknown> {
       flags[key]=rest[++i]!;
     }
     if(resource === 'user' && command === 'me' && args.length === 2) {
-      const user=object(await client.getMe()); if(session && user.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED','OAuth 账户改变，请重新登录。'); return user;
+      const user=object(await client.getMe()); if(session && user.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED','登录账户改变，请重新登录。'); return user;
     }
     if(resource === 'subject' && command === 'get' && rest.every(arg=>arg === '--verbose')) return await client.getSubject(positiveId(target));
     if(resource === 'subject' && command === 'search') {
@@ -46,7 +46,7 @@ async function main(): Promise<unknown> {
     }
     if(resource === 'episode' && command === 'list') return await client.listEpisodes({subject_id:positiveId(target),limit:pageLimit(flags['--limit'] ?? 20),offset:pageOffset(flags['--offset'] ?? 0)});
     if(resource === 'collection' && command === 'get' && rest.length === 0) {
-      const user=object(await client.getMe()); if(session && user.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED','OAuth 账户改变。');
+      const user=object(await client.getMe()); if(session && user.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED','登录账户改变。');
       return {collection:await client.getUserCollection(String(user.username),positiveId(target))};
     }
     throw new AppError('INVALID_INPUT','不支持的查询入口。');

@@ -4,7 +4,6 @@ import { join, resolve } from 'node:path';
 import { AppError } from '../domain/errors.js';
 import { object } from '../domain/bangumi.js';
 import { environmentProxy, policyFor, readWindowsProxy, windowsProxy, type ProxyPolicy, type WindowsProxy } from './proxy.js';
-import { parseOAuthConfig, type OAuthConfig } from './oauth.js';
 
 export interface ModelConfig {
   baseUrl: string;
@@ -13,7 +12,6 @@ export interface ModelConfig {
   thinking: 'enabled' | 'disabled';
 }
 export interface AppConfig {
-  oauth?: OAuthConfig;
   activeModel: string;
   models: Record<string, ModelConfig>;
   proxy: string | null;
@@ -70,7 +68,6 @@ export function parseConfig(value: unknown, env: NodeJS.ProcessEnv = process.env
     : env.BANGUMI_AGENT_PROXY !== undefined ? policyFor(env.BANGUMI_AGENT_PROXY, 'app-env')
       : environmentProxy(env) ?? policyFor(null, 'direct');
   return {
-    ...(item.oauth === undefined ? {} : { oauth: parseOAuthConfig(item.oauth) }),
     activeModel, models, proxy: proxyPolicy.https, proxyPolicy,
     requestTimeoutMs: bounded(item.requestTimeoutMs, 60000, 1000, 300000, 'requestTimeoutMs'),
     maxSteps: bounded(item.maxSteps, 8, 1, 20, 'maxSteps'),
