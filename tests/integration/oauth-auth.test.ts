@@ -1,3 +1,4 @@
+import { offlineSubprocessEnv } from '../fixtures/subprocess-env.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -122,7 +123,7 @@ test('实际查询/写入桥接共享 OAuth Token；旧 Cookie 与旧 bgm-cli �
   if (process.platform !== 'win32') { t.skip('Windows credential store'); return; }
   const dir = await directory(t); const authDir = join(dir, 'auth'); await new OAuthSessionStore(authDir).save(session()); await writeFile(join(authDir, 'web-session.dpapi'), 'obsolete-cookie-file');
   const preload = new URL('../../../tests/fixtures/oauth-network-preload.mjs', import.meta.url).href;
-  const options = { configDir: join(dir, 'bgm-cli'), authDir, timeoutMs: 10000, proxy: null, env: { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, NODE_OPTIONS: `--import=${preload}`, BGM_PRIVATE_SESSION_ID: 'old-private-session', BGM_ACCESS_TOKEN: 'old-access-token', BANGUMI_WEB_COOKIE: 'old-cookie' } };
+  const options = { configDir: join(dir, 'bgm-cli'), authDir, timeoutMs: 10000, proxy: null, env: { ...offlineSubprocessEnv(), NODE_OPTIONS: `--import=${preload}`, BGM_PRIVATE_SESSION_ID: 'old-private-session', BGM_ACCESS_TOKEN: 'old-access-token', BANGUMI_WEB_COOKIE: 'old-cookie' } };
   const read = new BgmReadClient(createBgmRunner(options)); const client = new BgmWriteClient(read, createBgmRunner({ ...options, entry: fileURLToPath(new URL('../../src/adapters/bgm-cli/worker.js', import.meta.url)) }));
   assert.deepEqual(await client.currentUser(), { id: 7, username: 'fixture' }); assert.equal((await client.search('测试', 'anime')).data[0]!.id, 1);
   const subject = await client.subject(1); assert.equal((await client.collection(1)).rate, 7); assert.equal((await client.allEpisodes(1)).data[0]!.status, 2);
@@ -134,7 +135,7 @@ test('实际公开查询不被到期 Token 阻塞，个人查询仍要求 OAuth�
   const dir = await directory(t); const authDir = join(dir, 'auth'); const store = new OAuthSessionStore(authDir);
   await store.save({ ...session(), savedAt: Date.now() - 10000, expiresAt: Date.now() - 1 }); await writeFile(join(authDir, 'web-session.dpapi'), 'obsolete-cookie-file');
   const preload = new URL('../../../tests/fixtures/oauth-network-preload.mjs', import.meta.url).href;
-  const client = new BgmReadClient(createBgmRunner({ configDir: join(dir, 'bgm-cli'), authDir, timeoutMs: 10000, proxy: null, env: { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, NODE_OPTIONS: `--import=${preload}`, FIXTURE_ANONYMOUS: '1' } }));
+  const client = new BgmReadClient(createBgmRunner({ configDir: join(dir, 'bgm-cli'), authDir, timeoutMs: 10000, proxy: null, env: { ...offlineSubprocessEnv(), NODE_OPTIONS: `--import=${preload}`, FIXTURE_ANONYMOUS: '1' } }));
   assert.equal((await client.search('测试')).data[0]!.id, 1); await assert.rejects(client.currentUser(), { code: 'OAUTH_CONFIG_REQUIRED' });
   await store.clear(); assert.equal((await client.search('测试')).data[0]!.id, 1); await assert.rejects(client.currentUser(), { code: 'OAUTH_AUTH_REQUIRED' });
 });

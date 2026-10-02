@@ -1,3 +1,4 @@
+import { offlineSubprocessEnv } from '../fixtures/subprocess-env.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -11,7 +12,7 @@ test('真实chat入口普通文本回退：登录提示、连续多命令不丢�
   await writeFile(join(directory,'config.json'),JSON.stringify({activeModel:'fixture',models:{fixture:{baseUrl:'http://offline.invalid',model:'fixture-model',apiKeyEnv:'FIXTURE_API_KEY'}}}));
   const entry=fileURLToPath(new URL('../../src/cli/main.js',import.meta.url));
   const preload=new URL('../../../tests/fixtures/chat-cli-preload.mjs',import.meta.url).href;
-  const child=spawn(process.execPath,['--import',preload,entry,'chat','--plain'],{windowsHide:true,env:{...process.env,BANGUMI_AGENT_HOME:directory,FIXTURE_API_KEY:'fake-chat-credential'},stdio:['pipe','pipe','pipe']});
+  const child=spawn(process.execPath,['--import',preload,entry,'chat','--plain'],{windowsHide:true,env:{...offlineSubprocessEnv(),BANGUMI_AGENT_HOME:directory,FIXTURE_API_KEY:'fake-chat-credential'},stdio:['pipe','pipe','pipe']});
   let output='';let errors='';let submitted=false;
   child.stdout.setEncoding('utf8');child.stderr.setEncoding('utf8');
   child.stdout.on('data',(text:string)=>{output+=text;if(!submitted&&output.includes('MyBangumiAssistant')){submitted=true;child.stdin.end('/help\n搜索测试\n第二项\n/status\n/exit\n');}});

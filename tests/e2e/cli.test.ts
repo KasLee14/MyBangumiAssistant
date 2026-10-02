@@ -1,3 +1,4 @@
+import { offlineSubprocessEnv } from '../fixtures/subprocess-env.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -10,7 +11,7 @@ const entry = fileURLToPath(new URL('../../src/cli/main.js',import.meta.url));
 
 test('CLI 帮助、诊断、未知写命令和会话列表；不调用网络', async t => {
   const directory = await mkdtemp(join(tmpdir(),'bangumi-agent-cli-')); t.after(() => rm(directory,{ recursive: true, force: true }));
-  const env = { ...process.env, BANGUMI_AGENT_HOME: directory, ANTHROPIC_AUTH_TOKEN: 'fake-test-token', DEEPSEEK_API_KEY: '' };
+  const env = { ...offlineSubprocessEnv(), BANGUMI_AGENT_HOME: directory, ANTHROPIC_AUTH_TOKEN: 'fake-test-token', DEEPSEEK_API_KEY: '' };
   const run = (args: string[]) => spawnSync(process.execPath,[entry,...args],{ env, encoding:'utf8',windowsHide:true,timeout:5000 });
   const help = run(['--help']); assert.equal(help.status,0); assert.match(help.stdout,/只读/); assert.match(help.stdout,/^MyBangumiAssistant 0\.1\.0/);
   const doctor = run(['doctor']); assert.equal(doctor.status,0); assert.ok(!doctor.stdout.includes('fake-test-token')); assert.equal(JSON.parse(doctor.stdout).networkChecked,false);
@@ -31,7 +32,7 @@ test('CLI 帮助、诊断、未知写命令和会话列表；不调用网络', a
 test('CLI 分页、完整章节、个人进度与在线认证入口在假子进程下完整运行', async t => {
   const directory = await mkdtemp(join(tmpdir(),'bangumi-agent-cli-')); t.after(() => rm(directory,{ recursive: true, force: true }));
   const preload = new URL('../../../tests/fixtures/bgm-preload.mjs', import.meta.url).href;
-  const env = { ...process.env, BANGUMI_AGENT_HOME: directory };
+  const env = { ...offlineSubprocessEnv(), BANGUMI_AGENT_HOME: directory };
   const run = (args: string[]) => {
     const result = spawnSync(process.execPath,['--import', preload, entry, ...args],{ env, encoding:'utf8',windowsHide:true,timeout:5000 });
     assert.equal(result.status, 0, result.stderr); assert.ok(!result.stdout.includes('fake-file-secret')); return JSON.parse(result.stdout);
@@ -49,7 +50,7 @@ test('CLI 续会话、自然编号选择与复合自然语言实际执行器（�
   const directory = await mkdtemp(join(tmpdir(),'bangumi-agent-dialogue-cli-')); t.after(() => rm(directory,{ recursive: true, force: true }));
   const preload = new URL('../../../tests/fixtures/dialogue-preload.mjs', import.meta.url).href;
   await writeFile(join(directory,'config.json'), JSON.stringify({ activeModel:'fixture',models:{ fixture:{ baseUrl:'http://offline.invalid',model:'fixture-model',apiKeyEnv:'FIXTURE_API_KEY' } } }));
-  const env = { ...process.env, BANGUMI_AGENT_HOME:directory, FIXTURE_API_KEY:'fake-e2e-credential' };
+  const env = { ...offlineSubprocessEnv(), BANGUMI_AGENT_HOME:directory, FIXTURE_API_KEY:'fake-e2e-credential' };
   const spawn = (args: string[]) => spawnSync(process.execPath,['--import',preload,entry,...args],{ env,encoding:'utf8',windowsHide:true,timeout:10000 });
   const run = (args: string[]) => {
     const result = spawn(args); assert.equal(result.status,0,result.stderr); assert.ok(!result.stdout.includes('fake-e2e-credential')); return JSON.parse(result.stdout);
@@ -71,7 +72,7 @@ test('CLI 越界固定回退及语义分类、混合请求和能力不足均为�
   const directory = await mkdtemp(join(tmpdir(), 'bangumi-scope-cli-')); t.after(() => rm(directory, { recursive: true, force: true }));
   const preload = new URL('../../../tests/fixtures/dialogue-preload.mjs', import.meta.url).href;
   await writeFile(join(directory, 'config.json'), JSON.stringify({ activeModel: 'fixture', models: { fixture: { baseUrl: 'http://offline.invalid', model: 'fixture-model', apiKeyEnv: 'FIXTURE_API_KEY' } } }));
-  const env = { ...process.env, BANGUMI_AGENT_HOME: directory, FIXTURE_API_KEY: 'fake-scope-e2e-secret' };
+  const env = { ...offlineSubprocessEnv(), BANGUMI_AGENT_HOME: directory, FIXTURE_API_KEY: 'fake-scope-e2e-secret' };
   const run = (input: string, offline = true) => {
     const args = offline ? ['--import', preload, entry, 'ask', input, '--json'] : [entry, 'ask', input, '--json'];
     const result = spawnSync(process.execPath, args, { env: offline ? env : { ...env, FIXTURE_API_KEY: '' }, encoding: 'utf8', windowsHide: true, timeout: 10000 });

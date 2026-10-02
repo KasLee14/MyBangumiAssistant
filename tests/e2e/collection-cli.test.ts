@@ -1,3 +1,4 @@
+import { offlineSubprocessEnv } from '../fixtures/subprocess-env.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -14,7 +15,7 @@ const entry = fileURLToPath(new URL('../../src/cli/main.js', import.meta.url));
 test('独立收藏CLI：分页、媒体/状态筛选、五类汇总与中文展示，无模型请求', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'bgm-collection-cli-')); t.after(() => rm(dir, { recursive: true, force: true }));
   const preload = new URL('../../../tests/fixtures/bgm-preload.mjs', import.meta.url).href;
-  const run = (args: string[]) => spawnSync(process.execPath, ['--import', preload, entry, ...args], { env: { ...process.env, BANGUMI_AGENT_HOME: dir }, encoding: 'utf8', windowsHide: true, timeout: 10000 });
+  const run = (args: string[]) => spawnSync(process.execPath, ['--import', preload, entry, ...args], { env: { ...offlineSubprocessEnv(), BANGUMI_AGENT_HOME: dir }, encoding: 'utf8', windowsHide: true, timeout: 10000 });
   const json = (args: string[]) => { const result = run([...args, '--json']); assert.equal(result.status, 0, result.stderr); return JSON.parse(result.stdout); };
   const page = json(['collections', '--offset', '120']); assert.equal(page.data.length, 5); assert.equal(page.complete, false); assert.equal(page.nextOffset, null);
   const filtered = json(['collections', '--type', 'anime', '--status', 'completed']); assert.equal(filtered.total, 5); assert.ok(filtered.data.every((row: { type: string; status: string }) => row.type === 'anime' && row.status === 'completed'));
@@ -30,7 +31,7 @@ test('自然语言收藏汇总及列表通过分类和业务工具，日志只�
   await writeFile(join(dir, 'config.json'), JSON.stringify({ activeModel: 'fixture', models: { fixture: { baseUrl: 'http://offline.invalid', model: 'fixture-model', apiKeyEnv: 'FIXTURE_API_KEY' } } }));
   const preload = new URL('../../../tests/fixtures/dialogue-preload.mjs', import.meta.url).href;
   const run = (input: string) => {
-    const result = spawnSync(process.execPath, ['--import', preload, entry, 'ask', input, '--json'], { env: { ...process.env, BANGUMI_AGENT_HOME: dir, FIXTURE_API_KEY: 'offline-collection-model-secret' }, encoding: 'utf8', windowsHide: true, timeout: 10000 });
+    const result = spawnSync(process.execPath, ['--import', preload, entry, 'ask', input, '--json'], { env: { ...offlineSubprocessEnv(), BANGUMI_AGENT_HOME: dir, FIXTURE_API_KEY: 'offline-collection-model-secret' }, encoding: 'utf8', windowsHide: true, timeout: 10000 });
     assert.equal(result.status, 0, result.stderr); assert.ok(!result.stdout.includes('offline-collection-model-secret')); return JSON.parse(result.stdout);
   };
   const summary = run('我的五类收藏各有多少、看过多少、评分分布如何'); assert.equal(summary.boundary.code, 'IN_SCOPE'); assert.deepEqual(summary.plans, []);
@@ -46,7 +47,7 @@ test('实际OAuth收藏读取桥接及CLI：固定本人GET，包含私密，精
   await store.save(oauthSession({ version: 1, accountId: 7, username: 'fixture', clientId: 'offline-collection-client', config: DEFAULT_OAUTH,
     accessToken: 'offline-collection-token-123456', savedAt: now, expiresAt: now + 86400000 }));
   const preload = new URL('../../../tests/fixtures/collection-network-preload.mjs', import.meta.url).href;
-  const env = { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, NODE_OPTIONS: `--import=${preload}` };
+  const env = { ...offlineSubprocessEnv(), NODE_OPTIONS: `--import=${preload}` };
   const options = { configDir: join(dir, 'bgm'), authDir, timeoutMs: 10000, proxy: null, env };
   const client = new BgmReadClient(createBgmRunner(options));
   const page = await client.collections({ type: 'anime', status: 'completed' }); assert.equal(page.total, 5); assert.ok(page.data.some(row => row.private));

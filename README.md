@@ -30,8 +30,6 @@ npm start -- doctor
 
 已经取得源码时，从 `npm ci` 开始即可。`npm start` 使用构建产物，修改源码后需重新运行 `npm run build`。项目暂未发布 npm 包，不提供全局安装或 `npx` 安装方式。
 
-CLI 名称为 `MyBangumiAssistant`，npm 包名为 `my-bangumi-assistant`。本次改名保留现有源码目录、用户数据目录和 `BANGUMI_AGENT_*` 环境变量，已有配置、会话及登录数据仍使用原位置。
-
 ### 开始对话
 
 完成下方模型配置后运行：
@@ -290,6 +288,4 @@ npm start -- ask '第一项的详情' --resume '<会话ID>'
 - [bgm-cli](https://github.com/aronnaxlin/bgm-cli)：CLI 操作基础及数据转换。
 - [deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)：对话编排的架构参考。
 
-本项目采用 [AGPL-3.0-only](LICENSE)，上游 bgm-cli 同样采用该许可证。
-
-项目名称已改为 MyBangumiAssistant；为兼容已有配置，用户数据目录仍为 `%APPDATA%\BangumiAgent`，`BANGUMI_AGENT_HOME` 及旧命令入口 `bangumi-agent` 继续保留。
+本项目采用 [AGPL-3.0-only](LICENSE)
