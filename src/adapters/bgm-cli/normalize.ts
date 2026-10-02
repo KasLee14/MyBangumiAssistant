@@ -10,6 +10,20 @@ function finite(value: unknown): number | null {
 function text(value: unknown, max: number): string {
   return typeof value === 'string' ? value.slice(0, max) : '';
 }
+function subjectTags(value: unknown): { name: string; count: number | null }[] | null {
+  if (!Array.isArray(value) || value.length > 100) return null;
+  const tags: { name: string; count: number | null }[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const tag = raw as Record<string, unknown>;
+    if (typeof tag.name !== 'string' || !tag.name.trim() || tag.name.length > 100) return null;
+    tags.push({ name: tag.name, count: typeof tag.count === 'number' && Number.isSafeInteger(tag.count) && tag.count >= 0 ? tag.count : null });
+  }
+  return tags;
+}
+function publicTags(value: unknown): string[] | null {
+  return Array.isArray(value) && value.length <= 100 && value.every(tag => typeof tag === 'string' && !!tag.trim() && tag.length <= 100) ? [...value] : null;
+}
 
 export function subjectFrom(value: unknown): Subject {
   const item = object(value, '条目'); const id = positiveId(item.id);
@@ -23,6 +37,8 @@ export function subjectFrom(value: unknown): Subject {
     summary: text(item.summary, 5000), date: text(item.date, 50),
     score: finite(rating.score ?? item.score), rank: rank !== null && rank > 0 ? rank : null,
     ratingCount: typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : null,
+    tags: subjectTags(item.tags), metaTags: publicTags(item.meta_tags ?? item.metaTags),
+    platform: typeof item.platform === 'string' && item.platform.trim() && item.platform.length <= 100 ? item.platform : null,
     totalEpisodes: finite(item.total_episodes ?? item.eps ?? item.totalEpisodes), totalVolumes: finite(item.volumes ?? item.totalVolumes), url: `https://bgm.tv/subject/${id}`,
   };
 }

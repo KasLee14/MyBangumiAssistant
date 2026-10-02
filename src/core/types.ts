@@ -20,6 +20,7 @@ export interface LanguageModel {
 }
 export interface ToolRegistry {
   schemas(): ToolSchema[];
+  isReadOnly?(name: string): boolean;
   execute(name: string, args: unknown, options?: { signal: AbortSignal }): Promise<unknown>;
   beginTurn?(input: string, history: readonly Message[]): void;
   endTurn?(completed: boolean): void;
@@ -28,4 +29,6 @@ export interface ToolRegistry {
   observeAnswer?(content: string): void;
   /** 结构化追问已建立时结束本轮，等待真实用户回答。 */
   question?(): string | null;
+  /** 提交前重复无效调用的结构化停止原因，不代替写后回读。 */
+  stopped?(): string | null;
 }

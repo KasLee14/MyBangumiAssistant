@@ -52,6 +52,9 @@ export interface Subject {
   date: string;
   score: number | null;
   ratingCount?: number | null;
+  tags?: { name: string; count: number | null }[] | null;
+  metaTags?: string[] | null;
+  platform?: string | null;
   rank: number | null;
   totalEpisodes: number | null;
   totalVolumes?: number | null;

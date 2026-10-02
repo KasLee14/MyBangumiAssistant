@@ -4,6 +4,15 @@ export class AppError extends Error {
     this.name = 'AppError';
   }
 }
+export interface InputIssue { path: string; rule: string; hint: string; allowed?: readonly unknown[] }
+/** 仅本地固定契约生成的反馈；不包含原始参数值或服务端正文。 */
+export class SchemaInputError extends AppError {
+  readonly networkAttempted = false;
+  constructor(readonly issues: readonly InputIssue[]) {
+    super('INVALID_INPUT', issues.map(issue => `${issue.path || '/'}：${issue.hint}`).join('；'));
+  }
+}
+export interface SafeError { code: string; message: string; issues?: readonly InputIssue[]; networkAttempted?: false }
 const localSecrets = new Set<string>();
 /** 本地凭据也参与模型、日志和终端的统一裁剪，原值不进入配置或会话。 */
 export function registerCredentials(values: readonly string[]): void { for (const value of values) if (value) localSecrets.add(value); }
@@ -54,7 +63,8 @@ export function credentialValues(env: NodeJS.ProcessEnv = process.env): string[]
     .map(([, value]) => value!)];
 }
 
-export function safeError(error: unknown): { code: string; message: string } {
+export function safeError(error: unknown): SafeError {
+  if (error instanceof SchemaInputError) return { code: error.code, message: redact(error.message, credentialValues()), issues: error.issues, networkAttempted: false };
   if (error instanceof AppError) return { code: error.code, message: redact(error.message, credentialValues()) };
   if (error instanceof Error && error.name === 'AbortError') return { code: 'CANCELLED', message: '操作已取消。' };
   return { code: 'INTERNAL_ERROR', message: '操作失败；请检查配置、网络或输入。' };

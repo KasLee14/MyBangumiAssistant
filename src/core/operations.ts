@@ -10,12 +10,13 @@ export interface OperationPlan {
   state: 'pending' | 'authorized' | 'rejected' | 'invalidated' | 'executing' | 'finished';
   writeAvailable: boolean;
   results?: ActionResult[];
+  unchanged?: { subjectId: number; title: string }[];
   stopped?: string;
 }
 export interface ActionResult { subjectId: number; state: 'success' | 'failed' | 'unknown' | 'not_started'; fields?: { field: string; state: 'success' | 'failed' | 'unknown' }[]; relatedProgress?:{state:'retained'|'changed'|'unknown';before:unknown;after?:unknown} }
 export type ExecutionOutcome = { state: 'success' | 'failed' | 'unknown'; fields?: ActionResult['fields']; relatedProgress?:ActionResult['relatedProgress'] };
 export interface OperationExecutor {
-  /** 必须核对账户和当前字段；返回 false 表示现状改变，整个授权失效。 */
+  /** 核对现状或采用计划阶段已核实的绑定快照；返回 false 时整个授权失效。 */
   matchesCurrent(accountId: number, action: PlannedAction, signal: AbortSignal): Promise<boolean>;
   /** M4 适配器负责写入与回读验证；请求完成或退出码不能直接映射为 success。 */
   execute(accountId: number, action: PlannedAction, signal: AbortSignal): Promise<'success' | 'failed' | 'unknown' | ExecutionOutcome>;
@@ -25,15 +26,16 @@ export class OperationCoordinator {
   private readonly plans = new Map<string, OperationPlan>();
   private busy = false;
   constructor(private readonly journal: OperationJournal, private readonly executor?: OperationExecutor) {}
-  prepare(accountId: number, actions: PlannedAction[], intent: DirectIntent | null): OperationPlan {
+  prepare(accountId: number, actions: PlannedAction[], intent: DirectIntent | null, unchanged: { subjectId: number; title: string }[] = []): OperationPlan {
     positiveId(accountId);
     if (actions.some(action => action.kind === 'delete')) throw new AppError('UNSUPPORTED_OPERATION', '条目取消收藏暂未开放，请在 Bangumi 网站操作。');
     const decision = permissionFor(actions);
     const body = structuredClone(actions);
-    const direct = matchesDirectIntent(body, intent);
-    const reasons = [...decision.reasons, ...(!direct && !decision.requiresConfirmation ? ['尚无绑定最终对象与参数的明确用户授权'] : [])];
-    const plan: OperationPlan = { id: randomUUID(), digest: createHash('sha256').update(JSON.stringify({ accountId, actions: body })).digest('hex'),
+    const direct = unchanged.length === 0 && matchesDirectIntent(body, intent);
+    const reasons = [...decision.reasons, ...(unchanged.length && actions.length + unchanged.length > 1 ? ['多作品批量修改（含无需改动项）'] : []), ...(!direct && !decision.requiresConfirmation ? ['尚无绑定最终对象与参数的明确用户授权'] : [])];
+    const plan: OperationPlan = { id: randomUUID(), digest: createHash('sha256').update(JSON.stringify({ accountId, actions: body, ...(unchanged.length ? { unchanged } : {}) })).digest('hex'),
       accountId, actions: body, requiresConfirmation: !direct, reasons, state: direct ? 'authorized' : 'pending', writeAvailable: Boolean(this.executor) };
+    if (unchanged.length) plan.unchanged = structuredClone(unchanged);
     this.plans.set(plan.id, plan); return structuredClone(plan);
   }
   get(id: string): OperationPlan {

@@ -36,6 +36,7 @@ const schemas: ToolSchema[] = [
 export class ReadTools implements ToolRegistry {
   constructor(private readonly client: BangumiReadClient) {}
   schemas(): ToolSchema[] { return structuredClone(schemas); }
+  isReadOnly(name: string): boolean { return schemas.some(schema => schema.function.name === name); }
   async execute(name: string, value: unknown, options?: { signal: AbortSignal }): Promise<unknown> {
     const signal = options?.signal; signal?.throwIfAborted();
     const definition = schemas.find(item => item.function.name === name);

@@ -23,7 +23,7 @@ export function readTaskFrom(value: unknown, sourceText: string): ReadTask {
     || args.kind !== 'read' || args.sourceText !== sourceText || !['single', 'compare', 'browse'].includes(String(args.mode))
     || typeof args.goal !== 'string' || !args.goal.trim() || args.goal.length > 500) throw new AppError('INVALID_INPUT', '读取任务必须绑定真实原文及已声明字段，不能提供写入授权或执行代码。');
   if (args.targetName !== undefined && (typeof args.targetName !== 'string' || !args.targetName.trim() || args.targetName.length > 300
-    || !sourceText.normalize('NFKC').replace(/\s/g, '').includes(args.targetName.normalize('NFKC').replace(/\s/g, '')))) throw new AppError('INVALID_INPUT', '作品名称必须来自宿主持有的真实任务原文，不能自行改写对象。');
+    || !sourceText.normalize('NFKC').replace(/\s/g, '').toLowerCase().includes(args.targetName.normalize('NFKC').replace(/\s/g, '').toLowerCase()))) throw new AppError('INVALID_INPUT', '作品名称必须来自宿主持有的真实任务原文，不能自行改写对象。');
   const fields = args.requestedFields ?? [];
   if (!Array.isArray(fields) || fields.length > 20 || fields.some(field => typeof field !== 'string' || !field.trim() || field.length > 80)
     || new Set(fields).size !== fields.length) throw new AppError('INVALID_INPUT', '查询字段必须是有界且不重复的字符串清单。');

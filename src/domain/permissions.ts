@@ -11,7 +11,7 @@ export function assertSubjectMutationRequest(input: string): void {
     || /(?:只(?:是)?想|想要|想)(?:知道|了解)|几分|多少|是什么|什么情况/.test(outer)) {
     throw new AppError('AUTHORIZATION_REQUIRED', '查询、否定、假设或单纯选择不能生成修改预览；需要真实用户明确提出修改。');
   }
-  // 不用动作词白名单限制模型的自由表达提案；未被宿主完整句式独立核实的请求只能预览确认。
+  // 自由表达由模型理解；宿主绑定来源和对象后按简单修改策略或既有完整句式判断直接权限。
 }
 
 export type ChangeValue = string | number | boolean | null | string[] | number[];
@@ -26,7 +26,19 @@ export interface PlannedAction {
   /** MCP 的新增领域写入由宿主生成；从不把此字段注册到模型工具参数。 */
   mcp?: { tool: string; args: Record<string, unknown>; baseline: unknown; expected: unknown };
 }
-export interface DirectIntent { subjectId: number; patch: Record<string, ChangeValue>; progress?: { mode: string; number?: number; episodeId?: number }; mcp?: { tool: string; args: Record<string, unknown> } }
+export interface DirectIntent { subjectId: number; patch: Record<string, ChangeValue>; progress?: { mode: string; number?: number; episodeId?: number; status?: number }; episodeChanges?: FieldChange[]; mcp?: { tool: string; args: Record<string, unknown> } }
+
+/** 用户批准的简单修改策略；调用方必须先绑定真实请求来源、唯一对象及账户。 */
+export function simpleMutationIntent(action: PlannedAction, boundId: number | null | undefined): DirectIntent | null {
+  if (boundId !== action.subjectId || permissionFor([action]).requiresConfirmation) return null;
+  if (action.kind === 'collection' && action.changes.length === 1 && action.changes[0]!.field === 'status'
+    && [1, 2, 3, 4, 5].includes(Number(action.changes[0]!.after))) return { subjectId: action.subjectId, patch: { status: action.changes[0]!.after } };
+  if (action.kind !== 'progress' || action.changes.length !== 1) return null;
+  const change = action.changes[0]!;
+  const ep = action.baseline?.episodes?.find(ep => `episode:${ep.id}` === change.field);
+  if (!ep || ep.type !== 0 || ![1, 2, 3].includes(Number(change.after))) return null;
+  return { subjectId: action.subjectId, patch: {}, episodeChanges: structuredClone(action.changes) };
+}
 export interface PermissionDecision { requiresConfirmation: boolean; reasons: string[] }
 
 export function permissionFor(actions: readonly PlannedAction[]): PermissionDecision {
@@ -57,6 +69,8 @@ export function permissionFor(actions: readonly PlannedAction[]): PermissionDeci
 export function matchesDirectIntent(actions: readonly PlannedAction[], intent: DirectIntent | null): boolean {
   if (!intent || actions.length !== 1 || permissionFor(actions).requiresConfirmation) return false;
   const action = actions[0]!;
+  if (intent.episodeChanges) return action.subjectId === intent.subjectId && simpleMutationIntent(action, intent.subjectId) !== null
+    && JSON.stringify(action.changes) === JSON.stringify(intent.episodeChanges);
   if (action.kind === 'mcp') return Boolean(action.mcp && intent.mcp && action.subjectId === intent.subjectId
     && action.mcp.tool === intent.mcp.tool && JSON.stringify(action.mcp.args) === JSON.stringify(intent.mcp.args));
   if (intent.progress) return action.subjectId === intent.subjectId && action.kind === 'progress'

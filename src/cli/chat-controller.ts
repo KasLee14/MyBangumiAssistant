@@ -16,7 +16,8 @@ import { BgmOperationExecutor } from '../adapters/bgm-cli/executor.js';
 import { McpOperationExecutor } from '../adapters/mcp/operation-executor.js';
 import type { McpCallClient } from '../adapters/mcp/client.js';
 import { AppError, safeError } from '../domain/errors.js';
-import { displayText, toolLabel } from './ui/format.js';
+import { displayText } from './ui/format.js';
+import { finalAnswer, turnFailure, visibleMessageIndexes } from './turn-output.js';
 import type { LoginPrompt } from '../adapters/bangumi-login/login.js';
 
 export type LoginState =
@@ -86,7 +87,8 @@ export class ChatController {
   private model: ClosableModel | undefined;
   private round: AbortController | undefined;
   private active: Promise<void> | undefined;
-  private textTimer: ReturnType<typeof setTimeout> | undefined;
+  private readonly diagnosticItems: string[] = [];
+  private readonly roundPlans = new Map<string, OperationPlan>();
   private readonly countedUnknown = new Set<string>();
   private readonly lifetime = new AbortController();
   private closed = false;
@@ -142,17 +144,19 @@ export class ChatController {
     const unknown = [...recovery.values()].filter(state => state === 'started' || state === 'unknown').length;
     this.commands?.resetRequests();
     this.log = log; this.history = history;
-    const phase = (phase: 'writing' | 'verifying', subjectId: number) => this.update({ status:
-      `${phase === 'writing' ? '正在提交变更' : '正在回读验证'} #${subjectId}${this.state.cancelling ? '（停止后核查）' : ''}` });
+    const phase = (phase: 'writing' | 'verifying', subjectId: number) => {
+      this.diagnosticItems.push(`${phase === 'writing' ? '正在提交变更' : '正在回读验证'} #${subjectId}`);
+      this.update({});
+    };
     const fallback = new BgmOperationExecutor(this.deps.client, 350, phase);
     this.tools = new DialogueTools(this.deps.client, new OperationCoordinator(journal,
       this.deps.mcp ? new McpOperationExecutor(this.deps.client, this.deps.mcp, fallback, phase) : fallback), {
-      candidates: set => { this.flushText(); this.add({ kind: 'candidates', set }); this.update({ candidates: set }); },
       plan: plan => this.receivePlan(plan),
     }, this.deps.mcp);
     this.commands = new DialogueCommands(this.tools, log);
     this.tools.hydrate(history);
     this.attachModel(this.state.modelName);
+    this.diagnosticItems.length = 0; this.roundPlans.clear();
     this.countedUnknown.clear();
     this.update({ sessionId: log.id, liveText: '', pending: null, previewAcknowledged: false,
       candidates: this.tools.candidates.snapshot().sets.at(-1) ?? null,
@@ -166,16 +170,26 @@ export class ChatController {
       this.tools, this.commands, this.log);
   }
   private restoreTranscript(): void {
+    const visible = visibleMessageIndexes(this.history);
     for (let index = 0; index < this.history.length; index++) {
       const message = this.history[index]!;
-      if ((message.role === 'user' || message.role === 'assistant') && message.content) {
+      if (visible.has(index) && (message.role === 'user' || message.role === 'assistant') && message.content) {
         const candidates = new CandidateState(); candidates.restore(this.history.slice(0,index));
         this.add({ kind: message.role, text: displayText(message.role === 'user' ? selectionDisplay(message.content,candidates) : message.content) });
       }
     }
+    this.showSelection();
   }
+  private showSelection(): void {
+    const question = this.tools.awaitingSelection();
+    const set = question ? this.tools.candidates.set(question.setId) : null;
+    if (set) this.add({ kind: 'candidates', set });
+  }
+  /** 只有主动打开/details才读取诊断；默认正文与快照不包含工具过程或推理。 */
+  details(): readonly string[] { return this.diagnosticItems.map(displayText); }
   selectCandidate(selection: { setId: string; subjectId: number }): Promise<void> {
-    const set = this.tools.candidates.snapshot().sets.at(-1);
+    const waiting = this.tools.awaitingSelection();
+    const set = this.tools.candidates.set(waiting?.setId ?? this.tools.candidates.set()?.id);
     const index = set?.items.findIndex(item => item.id === selection.subjectId) ?? -1;
     if (!set || set.id !== selection.setId || index < 0) { this.notify('选择已过期，请使用当前候选清单。'); return Promise.resolve(); }
     return this.submit(`/select ${set.id} ${index+1}`);
@@ -200,8 +214,12 @@ export class ChatController {
     }
   }
   private receivePlan(plan: OperationPlan): void {
-    this.flushText(); this.add({ kind: 'plan', plan });
-    if (plan.state === 'pending') this.update({ pending: plan, previewAcknowledged: false });
+    this.roundPlans.set(plan.id, structuredClone(plan));
+    this.diagnosticItems.push(`预览 ${plan.id} · ${plan.state}`);
+    if (plan.state === 'pending' && plan.requiresConfirmation) {
+      this.add({ kind: 'plan', plan });
+      this.update({ pending: plan, previewAcknowledged: false });
+    }
     else this.update({ pending: null, previewAcknowledged: false });
     if (plan.results && !this.countedUnknown.has(plan.id)) {
       this.countedUnknown.add(plan.id);
@@ -216,23 +234,12 @@ export class ChatController {
     this.commands.presented(plan); this.update({ previewAcknowledged: true });
   }
   private onEvent = (event: AgentEvent): void => {
-    if (event.type === 'model/start') this.update({ status: event.stage === 'scope' ? '正在判断任务范围' : '正在生成回答' });
-    else if (event.type === 'tool/start') { this.flushText(); this.update({ status: toolLabel(event.name) }); }
-    else {
-      this.add({ kind: 'activity', name: event.name, ok: event.ok, detail: event.error?.message ?? '完成' });
+    if (event.type === 'tool/end') {
+      this.diagnosticItems.push(`${event.ok ? '✓' : '×'} ${event.name}：${event.error?.message ?? '完成'}`);
       if (event.error && /^(BGM_AUTH|BGM_HTTP_401)/.test(event.error.code)) this.update({ login: { kind: 'signed-out' } });
+      else this.update({});
     }
   };
-  private appendText = (text: string): void => {
-    this.state = { ...this.state, liveText: this.state.liveText + text };
-    if (!this.textTimer) this.textTimer = setTimeout(() => { this.textTimer = undefined; this.update({}); }, 40);
-  };
-  private flushText(): void {
-    if (this.textTimer) { clearTimeout(this.textTimer); this.textTimer = undefined; }
-    const text = displayText(this.state.liveText);
-    this.update({ liveText: '' });
-    if (text.trim()) this.add({ kind: 'assistant', text });
-  }
   submit(input: string): Promise<void> {
     if (this.closed) return Promise.resolve();
     if (!this.state.ready || this.state.busy) { this.notify('当前操作尚未结束，请保留草稿，结束后再发送。'); return Promise.resolve(); }
@@ -242,6 +249,7 @@ export class ChatController {
       this.notify('具体预览还在展示，请待完整展示后再确认。'); return Promise.resolve();
     }
     this.round = new AbortController();
+    this.roundPlans.clear();
     this.update({ busy: true, cancelling: false, startedAt: Date.now(), status: '正在处理', liveText: '' });
     this.active = this.perform(displayText(input), AbortSignal.any([this.deps.signal, this.round.signal,this.lifetime.signal]));
     return this.active;
@@ -257,27 +265,29 @@ export class ChatController {
         const info=safeError(error); this.update({login:info.code === 'BGM_AUTH_INVALID' ? {kind:'signed-out'} : {kind:'unverified',message:info.message}});
       }
       signal.throwIfAborted();
+      this.diagnosticItems.length = 0; this.roundPlans.clear();
       this.add({ kind: 'user', text: displayText(selectionDisplay(input,this.tools.candidates)) });
       // 新轮次的界面不继续显示旧确认选项；宿主自行判断确认或重新规划。
       this.update({ pending: null, previewAcknowledged: false, candidates: null, selectionQuestion: null });
-      const result = await this.conversation.run(input, this.history, { signal, onText: this.appendText, onEvent: this.onEvent });
+      const result = await this.conversation.run(input, this.history, { signal, onEvent: this.onEvent });
       this.history = result.messages;
-      this.flushText();
+      const text = finalAnswer(result.messages);
+      if (text.trim()) this.add({ kind: 'assistant', text });
+      this.showSelection();
       const pending = this.state.pending;
       if (pending && this.tools.operations.get(pending.id).state !== 'pending') this.update({ pending: null, previewAcknowledged: false });
-      this.update({ focus: this.tools.candidates.current()?.title ?? null, candidates: this.tools.candidates.snapshot().sets.at(-1) ?? null });
+      this.update({ focus: this.tools.candidates.current()?.title ?? null, candidates: this.tools.candidates.set(this.tools.awaitingSelection()?.setId) });
     } catch (error) {
-      this.flushText(); const info = safeError(error);
-      this.add({ kind: signal.aborted ? 'notice' : 'error', text: signal.aborted ? '本轮已停止；已发送的变更以回读结果及操作记录为准。' : `[${info.code}] ${info.message}` });
+      const plans = [...this.roundPlans.keys()].map(id => this.tools.operations.get(id));
+      this.add({ kind: signal.aborted ? 'notice' : 'error', text: turnFailure(error, signal.aborted, plans) });
       this.commands.resetRequests(); this.update({ pending: null, previewAcknowledged: false });
       this.update({candidates:this.tools.candidates.snapshot().sets.at(-1) ?? null,focus:this.tools.candidates.current()?.title ?? null});
     } finally {
-      this.flushText();
       if (signal.aborted) { this.commands.resetRequests(); this.update({ pending: null, previewAcknowledged: false }); }
       this.round = undefined;
       const selectionQuestion = this.tools.awaitingSelection();
       this.update({ busy: false, cancelling: false, selectionQuestion, status: this.state.pending ? '等待确认'
-        : selectionQuestion ? '等待选择作品' : '就绪' });
+        : selectionQuestion ? '等待选择作品' : this.tools.question() ? '等待回答' : '就绪' });
     }
   }
   private async localCommand(input: string, signal: AbortSignal): Promise<boolean> {
@@ -345,6 +355,6 @@ export class ChatController {
   async close(): Promise<void> {
     if (this.closed) { await this.active; return; }
     this.closed = true; this.cancel(); this.lifetime.abort(); await this.active;
-    if (this.textTimer) clearTimeout(this.textTimer); await this.model?.close?.();
+    await this.model?.close?.();
   }
 }

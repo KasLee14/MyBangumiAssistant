@@ -2,7 +2,7 @@ import type { Episode, MediaType } from './bangumi.js';
 import { positiveId, progressCapability } from './bangumi.js';
 import { AppError } from './errors.js';
 
-export type EpisodeIntent = { mode: 'through' | 'single'; number: number } | { mode: 'explicit'; episodeId: number };
+export type EpisodeIntent = { mode: 'through' | 'single' | 'ordinal'; number: number } | { mode: 'explicit'; episodeId: number };
 
 /** 只生成目标清单；不写网站、不清除其他章节，也不联动收藏状态。 */
 export function planEpisodeTargets(type: MediaType, episodes: readonly Episode[], complete: boolean, intent: EpisodeIntent): number[] {
@@ -14,6 +14,13 @@ export function planEpisodeTargets(type: MediaType, episodes: readonly Episode[]
     return [id];
   }
   const number = positiveId(intent.number);
+  if (intent.mode === 'ordinal') {
+    const main = episodes.filter(ep => ep.type === 0).sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+    if (!main.length || main.some((ep, index) => !Number.isSafeInteger(ep.number) || ep.number! < 1
+      || index > 0 && ep.number !== main[index - 1]!.number! + 1)) throw new AppError('EPISODE_AMBIGUOUS', '本季主线编号缺失、重复或不连续，请明确章节ID。');
+    if (number > main.length) throw new AppError('PROGRESS_OUT_OF_RANGE', '本季集数超过完整主线清单范围。');
+    return [main[number - 1]!.id];
+  }
   const main = episodes.filter(ep => ep.type === 0 && ep.number !== null && ep.number >= 1);
   const exact = main.filter(ep => ep.number === number);
   if (exact.length !== 1) throw new AppError('EPISODE_AMBIGUOUS', '主线集数不存在或匹配不唯一，请明确章节。');

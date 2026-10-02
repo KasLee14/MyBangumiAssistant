@@ -54,7 +54,7 @@ export async function runPlainChat(controller: ChatController, signal: AbortSign
       const input = queue.shift();
       if(signal.aborted || stop.signal.aborted || input === undefined)break;
       if (input.trim() === '/exit') break;
-      if (input.trim() === '/details') { stdout.write('普通文本模式已显示活动记录；用 /status 查看会话 ID。\n'); continue; }
+      if (input.trim() === '/details') { stdout.write(displayText(controller.details().join('\n') || '本轮暂无工具或计划详情。')+'\n'); continue; }
       try { await controller.submit(input); } finally { resumeInput(); }
     } } finally {signal.removeEventListener('abort',close);stop.signal.removeEventListener('abort',close);}
   } finally { process.off('SIGINT',interrupt);await controller.close(); await writing; unsubscribe(); readline?.close(); }

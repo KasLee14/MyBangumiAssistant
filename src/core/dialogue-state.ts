@@ -2,27 +2,44 @@ import { CandidateState } from './candidates.js';
 import { mutationFrom, rateAnswer, looksLikeRateAnswer, selectionFrom, statusAnswer, type Mutation, type RequestDraft } from '../domain/dialogue-intent.js';
 import { assertSubjectMutationRequest, type DirectIntent } from '../domain/permissions.js';
 import { AppError } from '../domain/errors.js';
+import type { MediaType } from '../domain/bangumi.js';
 
 export interface PendingRequest {
   draft: RequestDraft; subjectId: number | null; sources: string[]; direct: boolean;
   needsStatus: boolean;
   accountId: number | null;
+  candidateSetId?: string;
+  type?: MediaType;
 }
 /** 只存本次活跃会话的未完成请求；日志恢复不恢复写入请求和授权。 */
 export class DialogueState {
-  private pending: PendingRequest | null = null;
+  private requests: PendingRequest[] = [];
+  private activeIndex = 0;
+  private get pending(): PendingRequest | null { return this.requests[this.activeIndex] ?? null; }
+  private set pending(value: PendingRequest | null) { this.requests = value ? [value] : []; this.activeIndex = 0; }
   constructor(private readonly candidates: CandidateState) {}
   snapshot(): PendingRequest | null { this.validateOrigin(); return structuredClone(this.pending); }
+  all(): PendingRequest[] { this.validateOrigin(); return structuredClone(this.requests); }
+  active(): number { return this.activeIndex; }
+  activate(index: number): void {
+    if (!this.requests[index]) throw new AppError('INVALID_INPUT', '修改项不存在。');
+    this.activeIndex = index;
+  }
+  private nextMissing(): void {
+    const index = this.requests.findIndex(request => request.subjectId === null || request.draft.missing !== null || request.needsStatus);
+    this.activeIndex = index < 0 ? 0 : index;
+  }
   private validateOrigin(): void {
-    if (!this.pending) return;
-    const source = this.pending.sources[0] ?? '';
-    if (this.pending.direct) { if (!mutationFrom(source)) this.clear(); }
-    else { try { assertSubjectMutationRequest(source); } catch { this.clear(); } }
+    for (const request of this.requests) {
+      const source = request.sources[0] ?? '';
+      if (request.direct) { if (!mutationFrom(source)) { this.clear(); return; } }
+      else { try { assertSubjectMutationRequest(source); } catch { this.clear(); return; } }
+    }
   }
   clear(): void { this.pending = null; }
   canHandleAnswer(input: string): boolean {
     this.validateOrigin();
-    return Boolean(this.pending && (selectionFrom(input) || this.candidates.hasName(input.trim())
+    return Boolean(this.pending && (this.pending.subjectId === null && (selectionFrom(input) || this.candidates.hasName(input.trim()))
       || this.pending.draft.missing === 'rate' && looksLikeRateAnswer(input)
       || (this.pending.draft.missing === 'status' || this.pending.needsStatus) && statusAnswer(input) !== null));
   }
@@ -49,7 +66,7 @@ export class DialogueState {
         this.pending.draft.mutation = { kind: 'collection', patch: answer !== null ? { rate: answer } : { status: status! } };
         this.pending.draft.missing = null;
       }
-      return true;
+      this.nextMissing(); return true;
     }
     const draft = mutationFrom(input);
     if (draft) {
@@ -58,12 +75,14 @@ export class DialogueState {
     }
     const ref = selectionFrom(input) ?? (this.candidates.hasName(input.trim()) ? { kind: 'name' as const, name: input.trim() } : null);
     if (ref) {
-      const selected = this.candidates.resolve(ref, true);
+      const selected = this.candidates.resolve(ref, true, this.pending?.candidateSetId, this.pending?.type);
       if (this.pending) {
-        this.pending.subjectId = ref.kind === 'id' ? ref.id : selected?.id ?? null;
+        const id = ref.kind === 'id' && (!this.pending.candidateSetId || selected) ? ref.id : selected?.id ?? null;
+        if (this.pending.subjectId !== null && id !== this.pending.subjectId) throw new AppError('INVALID_INPUT', '选择不能覆盖该修改项已绑定的对象，请重新提出任务。');
+        this.pending.subjectId = id;
         this.pending.draft.reference = ref; this.pending.sources.push(input);
       }
-      return true;
+      this.nextMissing(); return true;
     }
     this.clear(); return false;
   }
@@ -78,6 +97,28 @@ export class DialogueState {
       && JSON.stringify(canonical.mutation) === JSON.stringify(draft.mutation) && canonical.missing === draft.missing;
     this.pending = { draft, subjectId: this.subject(draft), sources: [source], direct, needsStatus: false, accountId: null };
   }
+  /** 每项对象独立绑定；模型对象参数仅为提案，不能从编号或ID猜测歧义对象。 */
+  proposeMany(items: { draft: RequestDraft; candidateSetId?: string; type?: MediaType; subjectId?: number }[], source: string, canonicalSubjectId?: number | null): void {
+    assertSubjectMutationRequest(source);
+    if (!items.length || items.length > 20) throw new AppError('INVALID_INPUT', '修改请求须包含1～20项。');
+    const requests = items.map(item => {
+      const ref = item.draft.reference;
+      const resolved = this.candidates.resolve(ref, false, ref.kind === 'name' ? undefined : item.candidateSetId, item.type);
+      const subjectId = ref.kind === 'id' ? ref.id : resolved?.id ?? null;
+      if (item.subjectId !== undefined && item.subjectId !== subjectId) throw new AppError('SELECTION_REQUIRED', '对象ID与真实指代不一致或尚有歧义，不能由模型替用户选择。');
+      const canonical = items.length === 1 ? mutationFrom(source) : null;
+      const direct = canonical !== null && JSON.stringify(canonical.mutation) === JSON.stringify(item.draft.mutation) && canonical.missing === item.draft.missing
+        && (JSON.stringify(canonical.reference) === JSON.stringify(ref) || ref.kind === 'missing' && canonical.reference.kind === 'current'
+          || typeof canonicalSubjectId === 'number' && canonicalSubjectId === subjectId);
+      const set = item.candidateSetId ?? (subjectId === null ? this.candidates.snapshot().sets.findLast(set =>
+        ref.kind !== 'name' || set.items.some(candidate => [candidate.title, ...(candidate.aliases ?? [])].some(name => name.normalize('NFKC').replace(/\s/g, '').toLowerCase() === ref.name.normalize('NFKC').replace(/\s/g, '').toLowerCase())))?.id : undefined);
+      return { draft: structuredClone(item.draft), subjectId, sources: [source], direct, needsStatus: false, accountId: null,
+        ...(set ? { candidateSetId: set } : {}), ...(item.type ? { type: item.type } : {}) } satisfies PendingRequest;
+    });
+    const ids = requests.flatMap(request => request.subjectId === null ? [] : [request.subjectId]);
+    if (new Set(ids).size !== ids.length) throw new AppError('INVALID_INPUT', '同一作品的修改应合并为一项。');
+    this.requests = requests; this.nextMissing();
+  }
   /** 模型只能补充宿主已保存请求的缺项，不能改写已有对象/值或取得直接授权。 */
   completeFromModel(input: string, values: { reference?: string; rate?: number; status?: number }): void {
     this.validateOrigin();
@@ -87,7 +128,7 @@ export class DialogueState {
     if (values.reference !== undefined) {
       if (request.subjectId !== null || !input.includes(values.reference)) throw new AppError('INVALID_INPUT', '只能用本轮原文补充尚未绑定的对象。');
       const ref = selectionFrom(values.reference) ?? { kind: 'name' as const, name: values.reference };
-      request.subjectId = ref.kind === 'id' ? ref.id : probe.resolve(ref, true)?.id ?? null;
+      request.subjectId = ref.kind === 'id' ? ref.id : probe.resolve(ref, true, request.candidateSetId, request.type)?.id ?? null;
       request.draft.reference = ref;
     }
     if (values.rate !== undefined) {
@@ -103,16 +144,18 @@ export class DialogueState {
       } else { request.draft.mutation = { kind: 'collection', patch: { status: values.status } }; request.draft.missing = null; }
     }
     request.sources.push(input); request.direct = false;
-    this.pending = request; this.candidates.restoreSnapshot(probe.snapshot());
+    this.requests[this.activeIndex] = request; this.candidates.restoreSnapshot(probe.snapshot()); this.nextMissing();
   }
   private subject(draft: RequestDraft): number | null {
     return draft.reference.kind === 'id' ? draft.reference.id : this.candidates.resolve(draft.reference, true)?.id ?? null;
   }
   requireStatus(): void { if (this.pending) this.pending.needsStatus = true; }
+  creationCompleted(index: number): void { this.activate(index); this.pending!.needsStatus = false; this.nextMissing(); }
   bindAccount(accountId: number): void {
-    if (!this.pending) return;
-    if (this.pending.accountId !== null && this.pending.accountId !== accountId) throw new AppError('ACCOUNT_CHANGED', '补全请求期间账户发生变化，请重新提出修改要求。');
-    this.pending.accountId = accountId;
+    for (const request of this.requests) {
+      if (request.accountId !== null && request.accountId !== accountId) throw new AppError('ACCOUNT_CHANGED', '补全请求期间账户发生变化，请重新提出修改要求。');
+      request.accountId = accountId;
+    }
   }
   statusForCreation(): number | null {
     if (!this.pending?.needsStatus) return null;
@@ -121,18 +164,19 @@ export class DialogueState {
   intent(): DirectIntent | null {
     this.validateOrigin();
     const request = this.pending;
-    if (!request?.direct || request.subjectId === null || !request.draft.mutation) return null;
+    if (this.requests.length !== 1 || !request?.direct || request.subjectId === null || !request.draft.mutation) return null;
     return mutationIntent(request.subjectId, request.draft.mutation);
   }
   context(): string {
-    return `宿主保存的未完成请求（不能自行补全缺失对象或参数）：${JSON.stringify(this.pending)}。`;
+    return `宿主保存的任务修改项（按原顺序；只能补第${this.activeIndex + 1}项的缺项，不能覆盖已有对象或参数）：${JSON.stringify(this.requests)}。`;
   }
   question(): string | null {
     this.validateOrigin();
     if (!this.pending) return null;
-    if (this.pending.subjectId === null) return '你指哪一项作品？可以说“第一项”，或告诉我完整作品名、条目链接。修改要求已保留。';
-    if (this.pending.draft.missing === 'rate') return '要设置成几分？请给出0～10的整数。';
-    if (this.pending.draft.missing === 'status' || this.pending.needsStatus && this.statusForCreation() === null) return '这部作品尚未明确收藏状态，请选择想看/想读/想听/想玩、在看/在读/在听/在玩、看过/读过/听过/玩过、搁置或抛弃。原修改要求已保留。';
+    const prefix = this.requests.length > 1 ? `第${this.activeIndex + 1}项修改：` : '';
+    if (this.pending.subjectId === null) return `${prefix}你指哪一项作品？可以说“第一项”，或告诉我完整作品名、条目链接。修改要求已保留。`;
+    if (this.pending.draft.missing === 'rate') return `${prefix}要设置成几分？请给出0～10的整数。`;
+    if (this.pending.draft.missing === 'status' || this.pending.needsStatus && this.statusForCreation() === null) return `${prefix}这部作品尚未明确收藏状态，请选择想看/想读/想听/想玩、在看/在读/在听/在玩、看过/读过/听过/玩过、搁置或抛弃。原修改要求已保留。`;
     return null;
   }
 }

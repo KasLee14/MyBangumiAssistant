@@ -1,8 +1,9 @@
 import { AppError } from '../../domain/errors.js';
 import { findToolDefinition, validateToolArguments } from './catalog.js';
 import type { McpTransport } from './transport.js';
+import { preparedBaseline, type PreparedBaseline } from './prepared.js';
 
-export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number }
+export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline }
 type ObjectValue = Record<string, unknown>;
 function obj(value: unknown, label = 'Bangumi响应'): ObjectValue {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new AppError('INVALID_RESPONSE', `${label}必须是对象。`);
@@ -13,6 +14,17 @@ function positive(value: unknown): number {
   return value;
 }
 function compact(input: ObjectValue): ObjectValue { return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)); }
+/** 上界/下界由已验证的有类型参数编译；模型不能提交原始查询表达式。 */
+function searchFilter(args: ObjectValue): ObjectValue {
+  const input = args.filter === undefined ? {} : obj(args.filter);
+  const result: ObjectValue = compact({ type: args.subject_type === undefined ? undefined : [args.subject_type], tag: input.tag, meta_tags: input.meta_tags });
+  for (const key of ['rating', 'rating_count', 'rank', 'air_date']) {
+    if (input[key] === undefined) continue;
+    const bounds = obj(input[key]);
+    result[key] = [bounds.min === undefined ? undefined : `>=${bounds.min}`, bounds.max === undefined ? undefined : `<=${bounds.max}`].filter(value => value !== undefined);
+  }
+  return result;
+}
 function ratedSubject(value: unknown): ObjectValue {
   const item = obj(value);
   const total = item.rating && typeof item.rating === 'object' ? obj(item.rating).total : undefined;
@@ -36,6 +48,18 @@ function canonicalCollection(value: unknown): ObjectValue {
     private: interest.private, ep_status: interest.epStatus ?? interest.ep_status, vol_status: interest.volStatus ?? interest.vol_status,
     updated_at: interest.updatedAt ?? interest.updated_at };
 }
+/** 仅固定、已认证的作品详情可用省略 interest 表示未收藏；残缺作品不能取得空基线。 */
+function checkedUncollectedSubject(item: ObjectValue): void {
+  const record = (value: unknown) => value !== null && typeof value === 'object' && !Array.isArray(value);
+  if (![1, 2, 3, 4, 6].includes(Number(item.type)) || typeof item.type !== 'number'
+    || ['name', 'nameCN', 'summary', 'info'].some(key => typeof item[key] !== 'string') || !String(item.name).trim()
+    || ['eps', 'volumes', 'redirect', 'seriesEntry'].some(key => !Number.isSafeInteger(item[key]) || Number(item[key]) < 0)
+    || ['locked', 'nsfw', 'series'].some(key => typeof item[key] !== 'boolean')
+    || ['airtime', 'collection', 'platform', 'rating'].some(key => !record(item[key]))
+    || ['infobox', 'metaTags', 'tags'].some(key => !Array.isArray(item[key]))) {
+    throw new AppError('INCOMPLETE_COLLECTION', '目标作品快照不完整，无法核实未收藏状态。');
+  }
+}
 function canonicalIndex(value: unknown): ObjectValue {
   const item = obj(value); const user = item.user == null ? undefined : obj(item.user);
   return { ...item, id: positive(item.id), ownerId: item.ownerId ?? item.uid ?? user?.id, title: item.title, description: item.description ?? item.desc, private: item.private };
@@ -50,7 +74,7 @@ export class BangumiMcpService {
   constructor(private readonly transport: McpTransport) {}
   close(): Promise<void> { return this.transport.close(); }
   private async checkedAccount(signal?: AbortSignal): Promise<{ id: number; username: string }> {
-    const user = await this.transport.currentUser(signal);
+    const user = await this.transport.currentUser(signal, false);
     positive(user.id);
     if (typeof user.username !== 'string' || !user.username) throw new AppError('INVALID_RESPONSE', '当前账户缺少用户名。');
     return user;
@@ -91,9 +115,13 @@ export class BangumiMcpService {
     throw new AppError('INCOMPLETE_DATA', '账户分页未完整读取。');
   }
   private async myCollection(subjectId: number, accountId: number, signal?: AbortSignal): Promise<ObjectValue | null> {
-    const all = await this.allAccount('/p1/collections/subjects', accountId, {}, signal);
-    const value = all.find(item => obj(item).id === subjectId);
-    return value === undefined ? null : canonicalCollection(value);
+    const value = obj(await this.transport.account(`/p1/subjects/${subjectId}`, { expectedAccountId: accountId }, signal));
+    if (value.id !== subjectId) throw new AppError('INVALID_RESPONSE', '作品快照返回了其他对象。');
+    if (!Object.hasOwn(value, 'interest') || value.interest === null) {
+      checkedUncollectedSubject(value);
+      return null;
+    }
+    return canonicalCollection(value);
   }
   private async myEntityCollection(entity: 'characters' | 'persons', entityId: number, accountId: number, signal?: AbortSignal): Promise<ObjectValue | null> {
     const all = await this.allAccount(`/p1/collections/${entity}`, accountId, {}, signal);
@@ -135,7 +163,8 @@ export class BangumiMcpService {
     signal?.throwIfAborted();
     if (definition.effect === 'write') {
       if (!guard || typeof guard.accountId !== 'number' || !Number.isSafeInteger(guard.accountId) || guard.accountId < 1) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要宿主绑定账户及具体操作的授权。');
-      await this.assertAccount(guard.accountId, signal);
+      if (guard.prepared === undefined) await this.assertAccount(guard.accountId, signal);
+      else guard = { ...guard, prepared: preparedBaseline(guard.prepared) };
       return this.write(name, args, guard, signal);
     }
     const id = (key: string): number => Number(args[key]); const limit = Number(args.limit ?? 30); const offset = Number(args.offset ?? 0);
@@ -146,9 +175,9 @@ export class BangumiMcpService {
       const data = calendar.map(raw => { const day = obj(raw); const page = this.relationPage(day.items, limit, offset); return { ...day, items: page.data, total: page.total, limit, offset, nextOffset: page.nextOffset, complete: page.complete }; });
       return { data, limit, offset, complete: data.every(day => day.complete), kind: 'weekly_schedule' };
     }
-    if (name === 'get_current_user') return this.checkedAccount(signal);
+    if (name === 'get_current_user') return this.transport.currentUser(signal);
     if (['search_subjects', 'search_characters', 'search_persons'].includes(name)) {
-      const entity = name.slice('search_'.length); const filter = entity === 'subjects' ? compact({ type: args.subject_type === undefined ? undefined : [args.subject_type] })
+      const entity = name.slice('search_'.length); const filter = entity === 'subjects' ? searchFilter(args)
         : entity === 'characters' ? compact({ nsfw: args.nsfw_filter }) : compact({ career: args.career_filter });
       return publicCall(`/v0/search/${entity}`, { method: 'POST', query: { limit, offset }, body: compact({ keyword: args.keyword, sort: args.sort, filter }) });
     }
@@ -234,13 +263,16 @@ export class BangumiMcpService {
   private async write(name: string, args: ObjectValue, guard: McpWriteGuard, signal?: AbortSignal): Promise<unknown> {
     const accountId = guard.accountId;
     const submit = async (path: string, method: string, body?: unknown): Promise<unknown> => {
-      await this.assertAccount(accountId, signal); signal?.throwIfAborted();
+      if (guard.prepared === undefined) await this.assertAccount(accountId, signal); signal?.throwIfAborted();
       return this.transport.account(path, body === undefined ? { method, expectedAccountId: accountId } : { method, body, expectedAccountId: accountId }, signal);
     };
     if (name === 'update_subject_collection') {
       const subjectId = Number(args.subject_id);
       if (guard.subjectId !== undefined && guard.subjectId !== subjectId) throw new AppError('STALE_PREVIEW', '作品与宿主授权不一致。');
-      const current = await this.myCollection(subjectId, accountId, signal);
+      const baseline = guard.prepared?.collection;
+      if (baseline && baseline.subjectId !== subjectId) throw new AppError('STALE_PREVIEW', '快照作品与写入对象不一致。');
+      const current = guard.prepared === undefined ? await this.myCollection(subjectId, accountId, signal) : baseline === null ? null
+        : { type: baseline!.status, rate: baseline!.rate, comment: baseline!.comment, tags: baseline!.tags, private: baseline!.private };
       const fields = ['collection_type', 'rating', 'comment', 'tags', 'private'];
       const changesCollection = fields.some(key => Object.hasOwn(args, key));
       const changesProgress = Object.hasOwn(args, 'ep_status') || Object.hasOwn(args, 'vol_status');
@@ -266,6 +298,17 @@ export class BangumiMcpService {
     }
     if (name === 'update_single_episode_collection' || name === 'update_episode_collection') {
       const ids = name === 'update_single_episode_collection' ? [Number(args.episode_id)] : args.episode_ids as number[];
+      if (guard.prepared) {
+        const baseline = guard.prepared;
+        if (!['anime', 'real'].includes(baseline.type) || !baseline.collection || baseline.collection.subjectId !== guard.subjectId
+          || args.subject_id !== undefined && args.subject_id !== guard.subjectId) throw new AppError('STALE_PREVIEW', '章节快照所属作品不一致。');
+        for (const id of ids) {
+          const episode = baseline.episodes?.find(ep => ep.id === id);
+          if (!episode || guard.expectedStatus !== undefined && episode.status !== guard.expectedStatus) throw new AppError('STALE_PREVIEW', '章节不在已核对计划中。');
+        }
+        for (const id of ids) await submit(`/p1/collections/episodes/${id}`, 'PATCH', { type: args.collection_type, batch: false });
+        return { submitted: true, episode_ids: ids };
+      }
       const episodes: ObjectValue[] = [];
       for (const id of ids) {
         const episode = await this.privateEpisode(id, accountId, signal); this.checkEpisode(episode, guard, args.subject_id === undefined ? undefined : Number(args.subject_id));

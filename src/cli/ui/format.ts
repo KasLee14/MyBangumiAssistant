@@ -33,13 +33,14 @@ export function resultLines(results: readonly ActionResult[], plan?: OperationPl
   }).join('\n'));
 }
 export function planText(plan: OperationPlan): string {
-  if (plan.results) return resultLines(plan.results, plan) + (plan.stopped ? `\n后续操作已停止：${plan.stopped}；未知项先核对网站，勿重复提交。` : '');
+  const unchanged = (plan.unchanged ?? []).map(item => `#${item.subjectId} ${item.title}：读取时已符合要求，无需改动。`);
+  if (plan.results) return [...unchanged, resultLines(plan.results, plan)].join('\n') + (plan.stopped ? `\n后续操作已停止：${plan.stopped}；未知项先核对网站，勿重复提交。` : '');
   return displayText([`账户：${plan.accountId}`, ...plan.actions.flatMap(action => [
     `#${action.subjectId} ${action.title}`,
     ...action.changes.map(change => `  ${fieldLabel(change.field)}：${valueText(change.field, change.before)} → ${valueText(change.field, change.after)}`),
     ...action.effects.map(change => `  附带影响 ${fieldLabel(change.field)}：${valueText(change.field, change.before)} → ${valueText(change.field, change.after)}`),
     ...(action.notice ? [`  ${action.notice}`] : []),
-  ]), ...(plan.requiresConfirmation ? [`需确认：${plan.reasons.join('；')}`] : ['明确单项请求，按既有授权执行。']),
+  ]), ...unchanged, ...(plan.requiresConfirmation ? [`需确认：${plan.reasons.join('；')}`] : ['明确单项请求，按既有授权执行。']),
     ...(!plan.writeAvailable ? ['此入口仅预览，确认也不会修改账户。'] : [])].join('\n'));
 }
 export const TOOL_LABELS: Record<string,string> = {

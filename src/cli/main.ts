@@ -29,6 +29,8 @@ import { AccountTransport } from '../adapters/bangumi-login/transport.js';
 import { terminalLoginPrompt } from './login-input.js';
 import { APP_NAME, APP_VERSION } from './version.js';
 import { CollectionReader } from '../core/collection-reader.js';
+import { finalAnswer, operationOutcome } from './turn-output.js';
+import { displayText } from './ui/format.js';
 import { collectionQuery, collectionStatus } from '../domain/collection-library.js';
 import { showCollectionPage, showCollectionSummary } from './collections.js';
 
@@ -231,12 +233,9 @@ export async function main(argv: string[]): Promise<void> {
       let commands: DialogueCommands;
       const previewOutputs: OperationPlan[] = [];
       const tools = new DialogueTools(client, new OperationCoordinator(journal, new McpOperationExecutor(client, mcp, new BgmOperationExecutor(client))), {
-        ...(flags.json ? {} : { candidates: set => process.stderr.write(redact(showCandidates(set), credentialValues())) }),
         plan: plan => {
           const index = previewOutputs.findIndex(value => value.id === plan.id);
           if (index < 0) previewOutputs.push(plan); else previewOutputs[index] = plan;
-          if (plan.state === 'pending') commands.presented(plan);
-          if (!flags.json) process.stderr.write(redact(showPlan(plan), credentialValues()));
         },
       }, mcp);
       commands = new DialogueCommands(tools, log);
@@ -245,18 +244,34 @@ export async function main(argv: string[]): Promise<void> {
       let history: Message[] = flags.resume ? await log.messages() : [];
       const run = async (input: string): Promise<void> => {
         previewOutputs.length = 0;
-        let printed = false;
-        const result = await conversation.run(input, history, { signal: controller.signal,
-          ...(flags.json ? {} : { onText: (text: string) => { printed = true; stdout.write(text); },
-            onTool: (tool: string) => { process.stderr.write(`\n[工具] ${tool}\n`); } }),
-        });
+        const writeOutput = (text: string) => new Promise<void>((resolve, reject) =>
+          stdout.write(displayText(text) + '\n', error => error ? reject(error) : resolve()));
+        let result;
+        try { result = await conversation.run(input, history, { signal: controller.signal }); }
+        catch (error) {
+          const outcome = operationOutcome(previewOutputs.map(plan => tools.operations.get(plan.id)));
+          if (!flags.json && outcome) await writeOutput(outcome);
+          throw error;
+        }
         history = result.messages;
         if (flags.json) {
           const answer = history.at(-1);
           dump({ sessionId: log.id, answer: { role: 'assistant', content: answer?.role === 'assistant' ? answer.content : null },
             boundary: { code: result.boundary.code }, candidates: tools.candidates.snapshot(), plans: previewOutputs.map(plan => tools.operations.get(plan.id)), ...(flags.resume ? { operationRecovery } : {}) });
         }
-        else { if (printed) stdout.write('\n'); process.stderr.write(`会话：${log.id}\n`); }
+        else {
+          const text = finalAnswer(history);
+          if (text.trim()) await writeOutput(text);
+          const question = tools.awaitingSelection();
+          const candidates = question ? tools.candidates.set(question.setId) : null;
+          if (candidates) await writeOutput(showCandidates(candidates));
+          for (const plan of previewOutputs.map(plan => tools.operations.get(plan.id))) {
+            if (plan.state !== 'pending' || !plan.requiresConfirmation) continue;
+            await writeOutput(showPlan(plan));
+            commands.presented(plan);
+          }
+          process.stderr.write(`会话：${log.id}\n`);
+        }
       };
       await run(positional[0]!);
     }

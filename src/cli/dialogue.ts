@@ -24,6 +24,7 @@ export function showPlan(plan: OperationPlan): string {
     const effects = action.effects.map(change => `  附带影响 ${FIELD_LABELS[change.field] ?? change.field}: ${JSON.stringify(change.before)} → ${JSON.stringify(change.after)}`);
     return [`#${action.subjectId} ${action.title}`, ...changes, ...effects, ...(action.notice ? [action.notice] : [])].join('\n');
   });
+  rows.push(...(plan.unchanged ?? []).map(item => `#${item.subjectId} ${item.title}：读取时已符合要求，无需改动。`));
   if (plan.results) return `\n[变更结果 ${plan.id}]\n${resultLines(plan.results, plan)}${plan.stopped ? `\n已停止：${plan.stopped}` : ''}\n`;
   return `\n[变更预览 ${plan.id}] 账户 #${plan.accountId}\n${rows.join('\n')}\n${plan.requiresConfirmation ? `需确认：${plan.reasons.join('；')}\n可以说“确认执行”或“取消”；快捷命令 /confirm ${plan.id} 或 /reject ${plan.id}` : '明确单项请求已绑定，权限就绪。'}\n${plan.writeAvailable ? '已接入网站写入；成功仅以回读验证为准。' : '此入口仅预览，确认也不会修改账户。'}\n`;
 }
@@ -43,6 +44,7 @@ export class DialogueCommands {
     input = redact(input, credentialValues());
     const naturalDecision = decisionFrom(input);
     const naturalRequest = selectionCommand(input) !== null
+      || this.tools.canHandleProgressGate(input)
       || !input.trim().startsWith('/') && !naturalDecision && this.tools.canHandleUser(input, history);
     if (!input.trim().startsWith('/') && !naturalDecision && !naturalRequest) return null;
     signal.throwIfAborted();
@@ -75,7 +77,9 @@ export class DialogueCommands {
             const result = await this.tools.operations.execute(id, signal);
             this.tools.presentPlan(result.plan);
             answer = result.plan.writeAvailable ? `变更结果：\n${resultLines(result.results, result.plan)}${result.stopped ? `；后续操作已停止：${result.stopped}` : ''}` : '具体变更已确认；此入口只有预览能力，账户没有修改。';
-            this.displayed.delete(id); this.tools.dialogue.clear();
+            this.displayed.delete(id);
+            const continuation = await this.tools.afterConfirmation(result.plan, signal);
+            if (continuation) answer += `\n${typeof continuation === 'string' ? continuation : '原任务的完整变更已重新展示，请核对后确认。'}`;
           }
         }
       } else {
@@ -89,8 +93,11 @@ export class DialogueCommands {
             const result = await this.tools.operations.execute(id, signal);
             this.tools.presentPlan(result.plan);
             answer = result.plan.writeAvailable ? `变更结果：\n${resultLines(result.results, result.plan)}${result.stopped ? `；后续操作已停止：${result.stopped}` : ''}` : '具体变更已确认，权限就绪；此入口只有预览能力，账户没有修改。';
+            this.displayed.delete(id);
+            const continuation = await this.tools.afterConfirmation(result.plan, signal);
+            if (continuation) answer += `\n${typeof continuation === 'string' ? continuation : '原任务的完整变更已重新展示，请核对后确认。'}`;
           }
-          this.displayed.delete(id); this.tools.dialogue.clear();
+          if (decision[1] === 'reject') { this.displayed.delete(id); this.tools.dialogue.clear(); }
         } else if (input.trim() === '/help') {
           answer = '可以说“第一项”“这个结果是对的，把它改成8分”“确认执行”“取消”。快捷命令：/select [清单ID] 编号、/confirm 预览ID、/reject 预览ID；/exit 退出。明确单项直接执行，复杂项需确认；未知结果先核对网站。';
         } else throw new AppError('INVALID_INPUT', '未知或不完整的对话命令，输入 /help 查看。');

@@ -12,32 +12,48 @@ function candidate(value: unknown): Candidate {
   if (!value || typeof value !== 'object') throw new AppError('INVALID_RESPONSE', '候选应为对象。');
   const item = value as Record<string, unknown>; const id = positiveId(item.id);
   return { id, title: String(item.nameCn || item.name || item.title || '').slice(0, 300), type: mediaType(item.type), url: `https://bgm.tv/subject/${id}`,
-    aliases: [...new Set([item.name, item.nameCn, item.title].filter((value): value is string => typeof value === 'string' && Boolean(value)).map(value => value.slice(0, 300)))] };
+    aliases: [...new Set([item.name, item.nameCn, item.title, ...(Array.isArray(item.aliases) ? item.aliases : [])].filter((value): value is string => typeof value === 'string' && Boolean(value)).map(value => value.slice(0, 300)))].slice(0, 10) };
 }
 
 export class CandidateState {
   private sets: CandidateSet[] = [];
-  private selected: Candidate | null = null;
+  private targets: Candidate[] = [];
+  private antecedents: Candidate[] = [];
+  private taskEstablished = false;
+  private multiple = false;
+  private antecedentMultiple = false;
   private sequence = 0;
+  /** 新任务不继承默认对象；上一任务只作为明确指代的来源。 */
+  beginTask(): void { this.antecedents = structuredClone(this.targets); this.antecedentMultiple = this.multiple; this.targets = []; this.taskEstablished = false; this.multiple = false; }
+  objects(): Candidate[] { return structuredClone(this.targets); }
+  references(): Candidate[] { return structuredClone(this.taskEstablished ? this.targets : this.antecedents); }
+  known(): Candidate[] {
+    return structuredClone([...new Map([...this.antecedents, ...this.sets.flatMap(set => set.items), ...this.targets].map(item => [item.id, item])).values()]);
+  }
+  remember(value: Candidate): void { this.taskEstablished = true; this.targets = [...this.targets.filter(item => item.id !== value.id), structuredClone(value)]; }
+  clearTask(): void { this.targets = []; this.antecedents = []; this.taskEstablished = true; this.multiple = false; this.antecedentMultiple = false; }
+  set(id?: string): CandidateSet | null { return structuredClone((id ? this.sets.find(set => set.id === id) : this.sets.at(-1)) ?? null); }
   add(values: unknown[], setId?: string): CandidateSet {
     const items = values.map(candidate);
     if (items.length > 20 || new Set(items.map(item => item.id)).size !== items.length) throw new AppError('INVALID_RESPONSE', '候选数量超限或包含重复条目。');
     const id = setId ?? `c${++this.sequence}`;
     if (!/^c[1-9]\d*$/.test(id) || this.sets.some(set => set.id === id)) throw new AppError('INVALID_RESPONSE', '候选清单标识无效或重复。');
     this.sequence = Math.max(this.sequence, Number(id.slice(1)));
-    const set = { id, items }; this.sets.push(set); this.sets = this.sets.slice(-10); this.selected = items.length === 1 ? structuredClone(items[0]!) : null;
+    const set = { id, items }; this.sets.push(set); this.sets = this.sets.slice(-10);
+    if (items.length === 1) this.remember(items[0]!);
+    else { this.taskEstablished = true; if (!this.multiple) this.targets = []; }
     return structuredClone(set);
   }
   select(index: number, setId?: string): Candidate {
     const set = setId ? this.sets.find(item => item.id === setId) : this.sets.at(-1);
     if (!set || !Number.isInteger(index) || index < 1 || index > set.items.length) throw new AppError('CANDIDATE_NOT_FOUND', '候选编号不存在，请查看具体候选清单。');
-    this.selected = structuredClone(set.items[index - 1]!); return structuredClone(this.selected);
+    this.focus(set.items[index - 1]!); return structuredClone(set.items[index - 1]!);
   }
   matchQuery(input: string): Candidate | null {
     const query = subjectQuery(input);
     if (!query) return null;
     const matches = this.queryMatches(input);
-    if (matches.length || query.type || /第.+[季期]/.test(query.name)) this.selected = matches.length === 1 ? structuredClone(matches[0]!) : null;
+    if (matches.length || query.type || /第.+[季期]/.test(query.name)) this.targets = matches.length === 1 ? structuredClone(matches) : [];
     return this.current();
   }
   queryMatches(input: string): Candidate[] {
@@ -57,7 +73,7 @@ export class CandidateState {
   targetMatches(task: ReadTask | null): Candidate[] {
     if (!task?.targetName || task.mode !== 'single') return [];
     const name = normalizeSubjectName(task.targetName);
-    const items = this.sets.at(-1)?.items.filter(item => !task.type || item.type === task.type) ?? [];
+    const items = this.known().filter(item => !task.type || item.type === task.type);
     const names = (item: Candidate) => [item.title, ...(item.aliases ?? [])].map(normalizeSubjectName);
     const exact = items.filter(item => names(item).includes(name));
     if (!/第\d+季/.test(name)) {
@@ -69,14 +85,16 @@ export class CandidateState {
   matchTarget(task: ReadTask | null): Candidate | null {
     if (!task) return this.current();
     const matches = this.targetMatches(task);
-    this.selected = matches.length === 1 ? structuredClone(matches[0]!) : null;
+    this.taskEstablished = true;
+    this.multiple = task.mode !== 'single';
+    if (task.mode === 'single') this.targets = matches.length === 1 ? structuredClone(matches) : [];
     return this.current();
   }
   fromExplicitUser(input: string): void {
     const command = selectionCommand(input);
     if (command) {
       if (command.reference.kind === 'index') this.select(command.reference.index, command.setId);
-      else if (!this.resolve(command.reference, true)) this.selected = null;
+      else if (!this.resolve(command.reference, true)) this.targets = [];
       return;
     }
     const ref = selectionFrom(input) ?? (this.hasName(input.trim()) ? { kind: 'name' as const, name: input.trim() } : null);
@@ -86,7 +104,7 @@ export class CandidateState {
     const command = selectionCommand(input);
     if (command) {
       if (command.reference.kind === 'index') this.select(command.reference.index, command.setId);
-      else if (!this.resolve(command.reference, true)) this.selected = null;
+      else if (!this.resolve(command.reference, true)) this.targets = [];
       return;
     }
     if (unsafeMutationText(input)) return;
@@ -96,54 +114,71 @@ export class CandidateState {
     const indices = [...input.matchAll(/第([一二三四五六七八九十\d]+)[部个项]/g)];
     // 多个不同编号或同时存在其他条目ID时不把任意一个猜成单项授权。
     const targets = new Set(indices.map(match => match[1]));
-    if (targets.size > 1) { this.selected = null; return; }
+    if (targets.size > 1) { this.targets = []; return; }
     if (indices.length) {
       const value = indices[0]![1]!; const digits: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
       const index = /^\d+$/.test(value) ? Number(value) : digits[value] ?? (value.startsWith('十') ? 10 + (digits[value.slice(1)] ?? NaN) : value === '二十' ? 20 : NaN);
       this.select(index);
     }
   }
-  resolve(reference: Reference, focus = false): Candidate | null {
+  resolve(reference: Reference, focus = false, setId?: string, type?: MediaType): Candidate | null {
     let result: Candidate | null = null;
-    const latest = this.sets.at(-1);
-    if (reference.kind === 'current') result = this.selected;
-    if (reference.kind === 'index') result = this.select(reference.index);
-    if (reference.kind === 'id') result = latest?.items.find(item => item.id === reference.id) ?? (this.selected?.id === reference.id ? this.selected : null);
-    if (reference.kind === 'name') {
-      const normalize = (value: string) => value.normalize('NFC').replace(/\s/g, '').toLocaleLowerCase();
-      const matches = latest?.items.filter(item => [item.title, ...(item.aliases ?? [])].some(name => normalize(name) === normalize(reference.name))) ?? [];
-      if (matches.length === 1) result = matches[0]!;
-      else if (matches.length === 0 && this.selected && normalize(this.selected.title) === normalize(reference.name)) result = this.selected;
+    const set = this.set(setId);
+    if (setId && !set) throw new AppError('CANDIDATE_NOT_FOUND', '候选清单不存在。');
+    const items = (setId ? set!.items : this.known()).filter(item => !type || item.type === type);
+    if (reference.kind === 'current') {
+      const refs = this.references();
+      if (!(this.taskEstablished ? this.multiple : this.antecedentMultiple) && refs.length === 1 && (!type || refs[0]!.type === type) && (!setId || items.some(item => item.id === refs[0]!.id))) result = refs[0]!;
     }
-    // 未解析的文字片段不是一次有效选择；保留原有焦点供受限解析核对“这部”。
-    if (focus && !(reference.kind === 'name' && !this.hasName(reference.name))) this.selected = result ? structuredClone(result) : null;
+    if (reference.kind === 'index') {
+      if (!set || reference.index < 1 || reference.index > set.items.length || !Number.isInteger(reference.index)) throw new AppError('CANDIDATE_NOT_FOUND', '候选编号不存在。');
+      result = set.items[reference.index - 1]!;
+    }
+    if (reference.kind === 'id') result = items.find(item => item.id === reference.id) ?? null;
+    if (reference.kind === 'name') {
+      const normalize = normalizeSubjectName;
+      const nameItems = setId ? set!.items : this.known();
+      const matches = nameItems.filter(item => [item.title, ...(item.aliases ?? [])].some(name => normalize(name) === normalize(reference.name)));
+      if (matches.length === 1) result = matches[0]!;
+    }
+    if (result && type && result.type !== type) result = null;
+    if (focus && result) this.focus(result);
     return structuredClone(result);
   }
-  focus(value: Candidate): void { this.selected = structuredClone(value); }
+  focus(value: Candidate): void { this.taskEstablished = true; this.multiple = false; this.targets = [structuredClone(value)]; }
   hasName(value: string): boolean {
     const normalize = (text: string) => text.normalize('NFC').replace(/\s/g, '').toLocaleLowerCase();
-    return [...(this.sets.at(-1)?.items ?? []), ...(this.selected ? [this.selected] : [])].some(item => [item.title, ...(item.aliases ?? [])].some(name => normalize(name) === normalize(value)));
+    return this.known().some(item => [item.title, ...(item.aliases ?? [])].some(name => normalize(name) === normalize(value)));
   }
   restoreSnapshot(value: ReturnType<CandidateState['snapshot']>): void {
-    this.sets = structuredClone(value.sets); this.selected = structuredClone(value.selected);
+    this.sets = structuredClone(value.sets); this.targets = structuredClone(value.targets); this.antecedents = structuredClone(value.antecedents); this.taskEstablished = value.taskEstablished; this.multiple = value.multiple; this.antecedentMultiple = value.antecedentMultiple;
     this.sequence = Math.max(0, ...this.sets.map(set => Number(set.id.slice(1))));
   }
-  current(): Candidate | null { return structuredClone(this.selected); }
-  snapshot(): { sets: CandidateSet[]; selected: Candidate | null } { return structuredClone({ sets: this.sets, selected: this.selected }); }
+  /** 仅表示本次任务已经唯一核实的对象，不作为新操作的默认参数。 */
+  current(): Candidate | null { return structuredClone(!this.multiple && this.targets.length === 1 ? this.targets[0]! : null); }
+  snapshot(): { sets: CandidateSet[]; targets: Candidate[]; antecedents: Candidate[]; taskEstablished: boolean; multiple: boolean; antecedentMultiple: boolean } { return structuredClone({ sets: this.sets, targets: this.targets, antecedents: this.antecedents, taskEstablished: this.taskEstablished, multiple: this.multiple, antecedentMultiple: this.antecedentMultiple }); }
   restore(messages: readonly Message[]): void {
-    this.sets = []; this.selected = null; this.sequence = 0;
+    this.sets = []; this.targets = []; this.antecedents = []; this.taskEstablished = false; this.multiple = false; this.antecedentMultiple = false; this.sequence = 0;
     const calls = new Map<string, string>();
     let input = '';
     for (const message of messages) {
-      if (message.role === 'user') { input = message.content; try { this.fromExplicitUser(input); } catch { this.selected = null; } }
+      if (message.role === 'user') { input = message.content; this.beginTask(); try { this.fromExplicitUser(input); } catch { this.targets = []; } }
       if (message.role === 'assistant') for (const call of message.tool_calls ?? []) calls.set(call.id, call.function.name);
-      if (message.role !== 'tool' || calls.get(message.tool_call_id) !== 'search_subjects') continue;
+      if (message.role !== 'tool') continue;
       try {
         const result = JSON.parse(message.content);
-        if (result.ok === true && Array.isArray(result.data?.data)) {
-          this.add(result.data.data, result.data.candidateSet?.id);
+        if (calls.get(message.tool_call_id) === 'search_subjects' && result.ok === true && Array.isArray(result.data?.data)) {
+          this.add(Array.isArray(result.data.candidateSet?.items) ? result.data.candidateSet.items : result.data.data, result.data.candidateSet?.id);
           // 仅恢复成功读取的结构化目标；旧自然语言解析不再进入主会话恢复。
           if (result.data.readTask?.kind === 'read') this.matchTarget(readTaskFrom(result.data.readTask, input));
+        }
+        if (result.ok === true && ['get_subject', 'get_subject_details'].includes(calls.get(message.tool_call_id) ?? '') && result.data?.id) this.remember(candidate(result.data));
+        if (result.ok === true && ['propose_dialogue_request', 'preview_collection_changes', 'preview_progress_changes'].includes(calls.get(message.tool_call_id) ?? '') && Array.isArray(result.data?.actions)) {
+          for (const action of result.data.actions) {
+            const known = this.resolve({ kind: 'id', id: positiveId(action.subjectId) });
+            if (known) this.remember(known);
+            else if (action.baseline?.type && typeof action.title === 'string') this.remember(candidate({ id: action.subjectId, type: action.baseline.type, title: action.title }));
+          }
         }
       } catch { /* 旧日志不合法的候选不用于授权或消歧。 */ }
     }

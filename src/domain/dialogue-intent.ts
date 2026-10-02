@@ -2,7 +2,7 @@ import type { ChangeValue } from './permissions.js';
 import type { ProgressRequest } from './progress-plan.js';
 
 export type Reference = { kind: 'id'; id: number } | { kind: 'index'; index: number }
-  | { kind: 'current' } | { kind: 'name'; name: string };
+  | { kind: 'current' } | { kind: 'missing' } | { kind: 'name'; name: string };
 export type Mutation = { kind: 'collection'; patch: Record<string, ChangeValue> }
   | { kind: 'progress'; progress: ProgressRequest } | { kind: 'delete' };
 export interface RequestDraft {
@@ -21,7 +21,8 @@ export function chineseNumber(text: string): number | null {
 }
 export function referenceFrom(text: string): Reference {
   const value = text.trim().replace(/^(?:把|将|给)\s*/, '').replace(/的$/, '').trim();
-  if (!value || /^(?:这部|这本书|这本|这个|这个结果|这项|它|他|那部|那个|刚才那部|刚才那个)$/.test(value)) return { kind: 'current' };
+  if (!value) return { kind: 'missing' };
+  if (/^(?:这部|这本书|这本|这个|这个结果|这项|它|他|那部|那个|刚才那部|刚才那个)$/.test(value)) return { kind: 'current' };
   const id = /^(?:#|条目\s*#?)?(\d+)$/.exec(value) ?? /^(?:https?:\/\/)?(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)\/?$/.exec(value);
   if (id && Number.isSafeInteger(Number(id[1])) && Number(id[1]) > 0) return { kind: 'id', id: Number(id[1]) };
   const ordinal = new RegExp(`^(?:刚才)?第(${NUMBER})[部个项本]$`).exec(value);

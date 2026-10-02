@@ -10,14 +10,15 @@ import { TOOL_DEFINITIONS, validateToolArguments } from './catalog.js';
 import { BangumiMcpService } from './service.js';
 import { createMcpTransport } from './transport.js';
 import type { McpWriteGuard } from './client.js';
+import { preparedBaseline } from './prepared.js';
 
 function writeGuard(value: unknown): McpWriteGuard {
   if (value === undefined) throw new AppError('AUTHORIZATION_REQUIRED', 'MCP 写入必须由宿主授权链路提交。');
   const raw = object(value, '写入保护');
-  if (Object.keys(raw).some(key => !['accountId', 'subjectId', 'expectedStatus'].includes(key))) throw new AppError('INVALID_INPUT', '写入保护元数据无效。');
+  if (Object.keys(raw).some(key => !['accountId', 'subjectId', 'expectedStatus', 'prepared'].includes(key))) throw new AppError('INVALID_INPUT', '写入保护元数据无效。');
   if (raw.expectedStatus !== undefined && (typeof raw.expectedStatus !== 'number' || ![0, 1, 2, 3].includes(raw.expectedStatus))) throw new AppError('INVALID_INPUT', '章节保护状态无效。');
   return { accountId: positiveId(raw.accountId), ...(raw.subjectId === undefined ? {} : { subjectId: positiveId(raw.subjectId) }),
-    ...(raw.expectedStatus === undefined ? {} : { expectedStatus: raw.expectedStatus as number }) };
+    ...(raw.expectedStatus === undefined ? {} : { expectedStatus: raw.expectedStatus as number }), ...(raw.prepared === undefined ? {} : { prepared: preparedBaseline(raw.prepared) }) };
 }
 /** 单机固定目录服务；stdout 只输出 MCP JSON-RPC，不接受模型提供的URL或执行命令。 */
 export function createBangumiMcpServer(service: BangumiMcpService): Server {

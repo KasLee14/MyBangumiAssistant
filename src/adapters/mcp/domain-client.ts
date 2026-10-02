@@ -40,7 +40,7 @@ export class McpBangumiClient implements BangumiWriteClient {
     const account = await this.currentUser(signal);
     const result = object(await this.mcp.call('get_user_collections', { username: '-', limit: query.limit, offset: query.offset,
       ...(query.type ? { subject_type: TYPE_IDS[query.type] } : {}), ...(query.status ? { collection_type: STATUS_IDS[query.status] } : {}) }, signal));
-    if (result.account !== undefined && accountFrom(result.account).id !== account.id || (await this.currentUser(signal)).id !== account.id) throw new AppError('ACCOUNT_CHANGED', '收藏查询期间账户改变。');
+    if (result.account !== undefined && accountFrom(result.account).id !== account.id) throw new AppError('ACCOUNT_CHANGED', '收藏查询期间账户改变。');
     if (!Array.isArray(result.data) || !Number.isSafeInteger(result.total) || Number(result.total) < 0
       || (result.offset !== undefined && result.offset !== query.offset) || (result.limit !== undefined && result.limit !== query.limit)) throw new AppError('INCOMPLETE_COLLECTION', '收藏列表、总数或分页信息无效；无法确认完整性。');
     const total = Number(result.total); const data = result.data.map(collectionEntry);
@@ -77,14 +77,15 @@ export class McpBangumiClient implements BangumiWriteClient {
     throw new AppError('BGM_EPISODE_LIMIT', '章节分页超过100页。');
   }
   async collectionSnapshot(id: number, signal?: AbortSignal): Promise<Collection | null> {
-    const subjectId = positiveId(id); const account = await this.currentUser(signal);
+    const subjectId = positiveId(id);
     const result = await this.mcp.call('get_user_subject_collection', { username: '-', subject_id: subjectId }, signal);
-    if ((await this.currentUser(signal)).id !== account.id) throw new AppError('ACCOUNT_CHANGED', '收藏读取期间账户改变。');
     if (result === null) return null;
     const raw = object(result);
     if (raw.subject_id !== subjectId || typeof raw.comment !== 'string' || raw.comment.length > 2000 || !Array.isArray(raw.tags) || raw.tags.length > 40
       || raw.tags.some(tag => typeof tag !== 'string') || typeof raw.private !== 'boolean' || ![1, 2, 3, 4, 5].includes(Number(raw.type))
-      || !Number.isInteger(raw.rate) || Number(raw.rate) < 0 || Number(raw.rate) > 10) throw new AppError('INCOMPLETE_COLLECTION', '收藏字段不完整，不能保证保留原值。');
+      || !Number.isInteger(raw.rate) || Number(raw.rate) < 0 || Number(raw.rate) > 10
+      || !Number.isSafeInteger(raw.ep_status) || Number(raw.ep_status) < 0
+      || !Number.isSafeInteger(raw.vol_status) || Number(raw.vol_status) < 0) throw new AppError('INCOMPLETE_COLLECTION', '收藏字段不完整，不能保证保留原值。');
     return collectionFrom(raw, subjectId);
   }
   private async episodeSnapshot(id: number, subjectId: number, signal?: AbortSignal) {
@@ -95,7 +96,7 @@ export class McpBangumiClient implements BangumiWriteClient {
   }
   async progressEpisodes(id: number, accountId: number, signal?: AbortSignal): Promise<CompleteEpisodes> {
     const subjectId = positiveId(id);
-    if ((await this.currentUser(signal)).id !== positiveId(accountId)) throw new AppError('ACCOUNT_CHANGED', '读取账户不匹配。');
+    positiveId(accountId);
     const data: Episode[] = []; const seen = new Set<number>(); let total: number | undefined;
     for (let offset = 0; offset < 2000; offset += 100) {
       signal?.throwIfAborted();
@@ -111,7 +112,6 @@ export class McpBangumiClient implements BangumiWriteClient {
         seen.add(episode.id); data.push(episode);
       }
       if (data.length === total) {
-        if ((await this.currentUser(signal)).id !== accountId) throw new AppError('ACCOUNT_CHANGED', '章节读取期间账户改变。');
         return { data, total, complete: true };
       }
     }

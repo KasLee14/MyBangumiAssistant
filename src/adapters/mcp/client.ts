@@ -6,14 +6,24 @@ import { isAbsolute } from 'node:path';
 import { AppError } from '../../domain/errors.js';
 import { object, positiveId } from '../../domain/bangumi.js';
 import { policyFor, type ProxyOptions } from '../../config/proxy.js';
-import { TOOL_DEFINITIONS, validateToolArguments } from './catalog.js';
+import { TOOL_DEFINITIONS, validateToolArguments, remoteInputError } from './catalog.js';
+import { preparedBaseline, type PreparedBaseline } from './prepared.js';
 
-export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number }
+export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline }
 export interface McpCallClient {
   call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard): Promise<unknown>;
   close(): Promise<void>;
 }
 const SAFE_ENVIRONMENT = ['APPDATA', 'HOMEDRIVE', 'HOMEPATH', 'LOCALAPPDATA', 'PATH', 'PROCESSOR_ARCHITECTURE', 'SYSTEMDRIVE', 'SYSTEMROOT', 'TEMP', 'TMP', 'USERNAME', 'USERPROFILE', 'PROGRAMFILES', 'HOME', 'LANG', 'LC_ALL'];
+// 只使用本地固定提示，不转发服务端任意正文，也不在传输层猜测是否已经提交。
+const TOOL_ERROR_MESSAGES: Record<string, string> = {
+  INCOMPLETE_COLLECTION: '目标条目的个人收藏快照不完整，无法核实状态或保留原值。',
+  INVALID_RESPONSE: 'Bangumi 返回的数据结构或对象不符合预期。',
+  BGM_AUTH_REQUIRED: '请先运行 login 或在 chat 中使用 /login。',
+  BGM_AUTH_EXPIRED: '当前登录已失效，请重新 /login。',
+  BGM_HTTP_401: '网站拒绝了当前登录，请重新 /login。',
+  ACCOUNT_CHANGED: '当前账户与请求绑定的账户不一致，操作已停止。',
+};
 function childEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
   const result: Record<string, string> = {};
   for (const key of SAFE_ENVIRONMENT) {
@@ -25,7 +35,7 @@ function childEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
 function guarded(value: McpWriteGuard): McpWriteGuard {
   const accountId = positiveId(value.accountId);
   if (value.expectedStatus !== undefined && (!Number.isInteger(value.expectedStatus) || ![0, 1, 2, 3].includes(value.expectedStatus))) throw new AppError('INVALID_INPUT', '章节保护状态无效。');
-  return { accountId, ...(value.subjectId === undefined ? {} : { subjectId: positiveId(value.subjectId) }), ...(value.expectedStatus === undefined ? {} : { expectedStatus: value.expectedStatus }) };
+  return { accountId, ...(value.subjectId === undefined ? {} : { subjectId: positiveId(value.subjectId) }), ...(value.expectedStatus === undefined ? {} : { expectedStatus: value.expectedStatus }), ...(value.prepared === undefined ? {} : { prepared: preparedBaseline(value.prepared) }) };
 }
 function interrupted(signal?: AbortSignal): void { if (signal?.aborted) throw new AppError('CANCELLED', '操作已取消。'); }
 async function awaitWithCancellation<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
@@ -126,7 +136,11 @@ export class LocalMcpClient implements McpCallClient {
     if (result.isError === true) {
       const remote = object(structured.error, 'MCP错误');
       const code = typeof remote.code === 'string' && /^[A-Z][A-Z_0-9]{0,79}$/.test(remote.code) ? remote.code : 'MCP_TOOL_ERROR';
-      throw new AppError(code, 'Bangumi MCP 操作未完成，请核对认证、输入及网站状态。');
+      if (code === 'INVALID_INPUT' && definition.effect === 'read' && remote.networkAttempted === false) {
+        const feedback = remoteInputError(name, parameters, remote.issues);
+        if (feedback) throw feedback;
+      }
+      throw new AppError(code, TOOL_ERROR_MESSAGES[code] ?? 'Bangumi MCP 操作未完成，请核对输入及网站状态。');
     }
     if (!Object.hasOwn(structured, 'value')) throw new AppError('MCP_INVALID_RESULT', 'MCP 返回缺少结构化 value，不能将展示文本作为业务结果。');
     if (Buffer.byteLength(JSON.stringify(structured)) > 2_000_000) throw new AppError('MCP_OUTPUT_LIMIT', 'MCP 查询结果过大，请缩小范围。');

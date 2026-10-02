@@ -10,7 +10,7 @@ export interface McpRequestOptions { method?: string; query?: Record<string, unk
 export interface McpTransport {
   public(path: string, options?: McpRequestOptions, signal?: AbortSignal): Promise<unknown>;
   account(path: string, options?: McpRequestOptions, signal?: AbortSignal): Promise<unknown>;
-  currentUser(signal?: AbortSignal): Promise<{ id: number; username: string }>;
+  currentUser(signal?: AbortSignal, fresh?: boolean): Promise<{ id: number; username: string }>;
   close(): Promise<void>;
 }
 export interface McpTransportOptions {
@@ -32,6 +32,7 @@ class FixedMcpTransport implements McpTransport {
   private readonly loadSession: () => Promise<AccountSession | null>;
   private closed = false;
   private rejectedSession: { accountId: number; savedAt: number } | undefined;
+  private activeAccount: { session: AccountSession; api: AccountTransport; user?: { id: number; username: string } } | undefined;
   constructor(private readonly options: McpTransportOptions) {
     this.dispatchers = new ProxyDispatchers(options.proxy);
     this.loadSession = options.loadSession ?? (() => new AccountSessionStore(options.authDir).load());
@@ -91,34 +92,45 @@ class FixedMcpTransport implements McpTransport {
     if (!session) throw new AppError('BGM_AUTH_REQUIRED', '请先运行 login 或在 chat 中使用 /login。');
     if (session.expiresAt <= Date.now()) throw new AppError('BGM_AUTH_EXPIRED', '本机登录已到期，请重新 /login。');
     if (this.rejectedSession?.accountId === session.accountId && this.rejectedSession.savedAt === session.savedAt) throw new AppError('BGM_AUTH_EXPIRED', '网站已拒绝此会话，请重新 /login；未继续个人请求。');
-    const api = new AccountTransport(session, this.options.proxy, this.options.timeoutMs, this.options.fakeFetch);
+    if (!this.activeAccount || !this.sameSession(this.activeAccount.session, session)) {
+      await this.activeAccount?.api.close();
+      this.activeAccount = { session, api: new AccountTransport(session, this.options.proxy, this.options.timeoutMs, this.options.fakeFetch) };
+    }
+    const api = this.activeAccount.api;
     try { return await run(api, session); }
     catch (error) {
       if (error instanceof AppError && error.code === 'BGM_HTTP_401') this.rejectedSession = { accountId: session.accountId, savedAt: session.savedAt };
       throw error;
-    } finally { await api.close(); }
+    }
   }
-  async currentUser(signal?: AbortSignal): Promise<{ id: number; username: string }> {
+  private sameSession(a: AccountSession, b: AccountSession): boolean {
+    return a.accountId === b.accountId && a.savedAt === b.savedAt && a.sessionId === b.sessionId;
+  }
+  async currentUser(signal?: AbortSignal, fresh = true): Promise<{ id: number; username: string }> {
     return this.withAccount(async (api, session) => {
+      if (!fresh && this.activeAccount?.user) return this.activeAccount.user;
+      delete this.activeAccount!.user;
       const user = userFrom(await api.json('/p1/me', { auth: true }, signal));
       if (user.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED', '网站账户与本机保存登录不一致。');
+      this.activeAccount!.user = user;
       return user;
     }, signal);
   }
   async account(path: string, options: McpRequestOptions = {}, signal?: AbortSignal): Promise<unknown> {
     return this.withAccount(async (api, session) => {
       if (!/^\/p1\/[A-Za-z0-9_./%-]+$/.test(path) || path.includes('..') || /^\/p1\/(?:login|logout)(?:\/|$)/.test(path)) throw new AppError('INVALID_INPUT', '账户请求超出固定业务路径。');
-      const before = userFrom(await api.json('/p1/me', { auth: true }, signal));
+      const before = this.activeAccount?.user ?? userFrom(await api.json('/p1/me', { auth: true }, signal));
       if (before.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED', '账户请求前登录身份发生变化。');
       if (options.expectedAccountId !== undefined && before.id !== positiveId(options.expectedAccountId)) throw new AppError('ACCOUNT_CHANGED', '当前登录账户与宿主授权账户不一致，未提交。');
+      this.activeAccount!.user = before;
       const { expectedAccountId: _expectedAccountId, ...request } = options;
       const data = await api.json(path, { ...request, auth: true }, signal);
-      const after = userFrom(await api.json('/p1/me', { auth: true }, signal));
-      if (after.id !== before.id) throw new AppError('ACCOUNT_CHANGED', '账户请求期间登录身份发生变化。');
+      const latest = await this.loadSession();
+      if (!latest || !this.sameSession(latest, session)) throw new AppError('ACCOUNT_CHANGED', '账户请求期间本机登录会话改变。');
       return data;
     }, signal);
   }
-  async close(): Promise<void> { this.closed = true; await this.dispatchers.close(); }
+  async close(): Promise<void> { this.closed = true; await this.activeAccount?.api.close(); await this.dispatchers.close(); }
 }
 
 export function createMcpTransport(options: McpTransportOptions): McpTransport { return new FixedMcpTransport(options); }

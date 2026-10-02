@@ -159,21 +159,18 @@ export function ChatApp({controller}: {controller:ChatController}) {
     change();
   });
   const composerRows = Math.min(5,Math.max(1,Math.floor(height/5)));
-  const liveRows = Math.max(1,height-composerRows-(menu || commandPanel || state.pending || candidateQuestion ? 12 : 7));
-  const liveLines = wrapText(state.liveText,width-2);
-  const recentDetails = state.items.filter(item => item.kind === 'activity' || item.kind === 'plan').slice(-3);
+  const recentDetails = details ? controller.details().slice(-3) : [];
   return <Box flexDirection="column" width={width}>
     <Static items={[...state.items]}>{item => <Transcript key={item.id} item={item} width={width} />}</Static>
     {!state.ready && <Header info={state} width={width} />}
-    {state.liveText && <Box flexDirection="column"><Text dimColor>{liveLines.length > liveRows ? '较长回答正在生成，完成后保留全文。' : ''}</Text><Text>{displayText(liveLines.slice(-liveRows).join('\n'))}</Text></Box>}
-    {details && <Box flexDirection="column"><Text dimColor>工具与计划详情</Text>{recentDetails.map(item => <Text key={item.id} dimColor>{displayText(item.kind === 'activity' ? `${item.name}：${item.detail}` : item.kind === 'plan' ? `预览 ${item.plan.id} · ${item.plan.state}` : '')}</Text>)}</Box>}
+    {details && <Box flexDirection="column"><Text dimColor>工具与计划详情</Text>{recentDetails.map((text,index) => <Text key={index} dimColor>{text}</Text>)}</Box>}
     {menu ? <Picker {...menu} height={Math.min(10,height-composerRows-6)} /> : commandPanel ? suggestions.length
       ? <CommandPicker options={suggestions} selected={commandIndex} width={width} height={Math.min(8,height-composerRows-6)} />
       : <Text dimColor>{ARGUMENT_COMMANDS[editor.text] ? `请补充参数：${ARGUMENT_COMMANDS[editor.text]}` : '没有匹配命令，请继续输入或修改。'}</Text> : null}
     {candidateQuestion && !menu && !commandPanel && <Picker title="你指哪一部作品？可直接输入自然语言回答" selected={candidateIndex}
       options={candidateQuestion.items.map(item => ({label:`${item.title} · #${item.id}`,value:String(item.id)}))} height={Math.min(10,height-composerRows-6)} />}
     {state.pending && !state.busy && !menu && <OperationView plan={state.pending} acknowledged={state.previewAcknowledged} selected={confirmation} />}
-    <Text dimColor>{state.busy ? `${['◐','◓','◑','◒'][Math.floor(clock/200)%4]} ${state.status} · ${Math.max(0,Math.floor((clock-state.startedAt)/1000))}秒 · Esc 停止` : state.status}{state.focus ? ` · 当前作品：${displayText(state.focus)}` : ''}</Text>
+    <Text dimColor>{state.busy ? `${['◐','◓','◑','◒'][Math.floor(clock/200)%4]} ${state.status} · ${Math.max(0,Math.floor((clock-state.startedAt)/1000))}秒 · Esc 停止` : state.status}</Text>
     {state.unknownOperations > 0 && <Text color="yellow">有 {state.unknownOperations} 项结果未知，请先核对网站；不会自动重试。</Text>}
     {state.credentialPrompt ? <Box flexDirection="column"><Text>{state.credentialPrompt.kind==='email' ? 'Bangumi 登录邮箱：' : 'Bangumi 密码：'}{state.credentialPrompt.kind==='password' ? '•'.repeat(Math.min(40,Array.from(credential.value).length)) : displayText(credential.value)}▏</Text><Text dimColor>Enter 提交 · Esc 取消 · 输入不进入聊天记录</Text></Box>
       : <Composer editor={editor} width={width} height={composerRows} busy={state.busy} />}
