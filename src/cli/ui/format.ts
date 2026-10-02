@@ -2,6 +2,7 @@ import { stripVTControlCharacters } from 'node:util';
 import stringWidth from 'string-width';
 import type { OperationPlan, ActionResult } from '../../core/operations.js';
 import { credentialValues, redact } from '../../domain/errors.js';
+import { TOOL_DEFINITIONS } from '../../adapters/mcp/catalog.js';
 
 /** 外部文本不能向终端注入光标移动、OSC、铃声或其他控制序列。 */
 export function displayText(text: string): string {
@@ -10,6 +11,7 @@ export function displayText(text: string): string {
 }
 export const FIELD_LABELS: Record<string, string> = {
   status: '收藏状态', rate: '评分', tags: '标签', comment: '短评', private: '私密', chapters: '章数', volumes: '卷数', collection: '收藏',
+  title: '标题', description: '目录说明', order: '目录顺序', collected: '收藏', subjects: '目录条目',
 };
 const STATES: Record<ActionResult['state'], string> = { success: '回读验证成功', failed: '失败', unknown: '结果未知', not_started: '尚未开始' };
 export function fieldLabel(field: string): string { return FIELD_LABELS[field] ?? (field.startsWith('episode:') ? `章节 #${field.slice(8)}` : field); }
@@ -18,6 +20,7 @@ function valueText(field: string, value: unknown): string {
   if (field === 'status' && typeof value === 'number') return ({1:'想看',2:'看过',3:'在看',4:'搁置',5:'抛弃'} as Record<number,string>)[value] ?? String(value);
   if (field === 'status' && typeof value === 'string') return ({ wish: '想看', collect: '看过', do: '在看', on_hold: '搁置', dropped: '抛弃' } as Record<string,string>)[value] ?? value;
   if (field === 'private' && typeof value === 'boolean') return value ? '私密' : '公开';
+  if (field === 'collected' && typeof value === 'boolean') return value ? '已收藏' : '未收藏';
   if (Array.isArray(value)) return value.length ? value.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join('、') : '空';
   return typeof value === 'string' ? value || '空' : JSON.stringify(value);
 }
@@ -45,8 +48,10 @@ export const TOOL_LABELS: Record<string,string> = {
   list_episodes: '读取章节', get_progress: '读取原生进度', resolve_reference: '解析作品指代',
   preview_collection_changes: '规划收藏变更', preview_progress_changes: '规划进度变更',
   propose_dialogue_request: '解析修改请求',
+  request_task_clarification: '等待补充查询条件',
+  complete_dialogue_request: '补充修改请求',
 };
-export function toolLabel(name: string): string { return TOOL_LABELS[name] ?? '处理作品请求'; }
+export function toolLabel(name: string): string { return TOOL_LABELS[name] ?? TOOL_DEFINITIONS.find(tool => tool.name === name)?.description.split(/[；。]/)[0] ?? '处理作品请求'; }
 export function wrapText(text: string, width: number): string[] {
   const limit = Math.max(1, width); const lines: string[] = [];
   for (const source of displayText(text).replace(/\t/g, '  ').split('\n')) {

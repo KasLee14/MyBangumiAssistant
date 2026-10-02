@@ -10,7 +10,7 @@ interface HostDialogue {
   canHandle(input: string, history: readonly Message[]): boolean;
   handle(input: string, history: readonly Message[], signal: AbortSignal): Promise<Message[] | null>;
   resetRequests(): void;
-  selectionContinuation?(input: string, history: readonly Message[]): boolean;
+  selectionContinuation?(input: string, history: readonly Message[]): string | null;
 }
 interface ScopeTools extends ToolRegistry { scopeContext(): unknown }
 export interface ScopedResult { messages: Message[]; boundary: BoundaryRecord }
@@ -27,10 +27,11 @@ export class ScopedConversation {
     if (!input.trim() || input.length > 8000) throw new AppError('INVALID_INPUT', '输入须为1～8000字。');
     input = redact(input, credentialValues()); options.signal.throwIfAborted();
     const safeHistory = scopeHistory(history);
-    if (this.host.selectionContinuation?.(input, safeHistory)) {
-      const boundary: BoundaryRecord = { code: 'IN_SCOPE', modelInput: input };
-      const messages = await this.agent.run(input, history, { ...options, boundary,
-        toolContext: `${this.tools.context?.() ?? ''}\n用户已经回答作品选择问题。立即继续历史中宿主放行的原任务，不要只回复已选择，也不要让用户重复问题。选择本身不授予修改权限。` });
+    const selection = this.host.selectionContinuation?.(input, safeHistory);
+    if (selection) {
+      const boundary: BoundaryRecord = { code: 'IN_SCOPE', modelInput: selection };
+      const messages = await this.agent.run(input, history, { ...options, boundary, modelInput: selection,
+        toolContext: '用户本轮已明确选择作品，本轮消息是宿主校验后的条目链接。立即继续历史中宿主放行的原查询；若此前仅展示搜索结果，读取所选作品资料。不要只回复已选择，不要让用户重复问题，也不要重放已完成修改。选择本身不授予修改权限。' });
       return { messages, boundary };
     }
     // 完整匹配的宿主交互保留原有确定性权限、消歧和补全。

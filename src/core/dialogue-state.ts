@@ -1,6 +1,6 @@
 import { CandidateState } from './candidates.js';
 import { mutationFrom, rateAnswer, looksLikeRateAnswer, selectionFrom, statusAnswer, type Mutation, type RequestDraft } from '../domain/dialogue-intent.js';
-import type { DirectIntent } from '../domain/permissions.js';
+import { assertSubjectMutationRequest, type DirectIntent } from '../domain/permissions.js';
 import { AppError } from '../domain/errors.js';
 
 export interface PendingRequest {
@@ -12,9 +12,22 @@ export interface PendingRequest {
 export class DialogueState {
   private pending: PendingRequest | null = null;
   constructor(private readonly candidates: CandidateState) {}
-  snapshot(): PendingRequest | null { return structuredClone(this.pending); }
+  snapshot(): PendingRequest | null { this.validateOrigin(); return structuredClone(this.pending); }
+  private validateOrigin(): void {
+    if (!this.pending) return;
+    const source = this.pending.sources[0] ?? '';
+    if (this.pending.direct) { if (!mutationFrom(source)) this.clear(); }
+    else { try { assertSubjectMutationRequest(source); } catch { this.clear(); } }
+  }
   clear(): void { this.pending = null; }
+  canHandleAnswer(input: string): boolean {
+    this.validateOrigin();
+    return Boolean(this.pending && (selectionFrom(input) || this.candidates.hasName(input.trim())
+      || this.pending.draft.missing === 'rate' && looksLikeRateAnswer(input)
+      || (this.pending.draft.missing === 'status' || this.pending.needsStatus) && statusAnswer(input) !== null));
+  }
   canHandle(input: string): boolean {
+    this.validateOrigin();
     const draft = mutationFrom(input);
     const knownDraft = draft && (draft.reference.kind !== 'name' || this.candidates.hasName(draft.reference.name));
     return Boolean(knownDraft || selectionFrom(input) || this.candidates.hasName(input.trim())
@@ -22,6 +35,7 @@ export class DialogueState {
       || (this.pending?.draft.missing === 'status' || this.pending?.needsStatus) && statusAnswer(input) !== null);
   }
   consume(input: string): boolean {
+    this.validateOrigin();
     const answer = this.pending?.draft.missing === 'rate' ? rateAnswer(input) : null;
     const status = this.pending?.draft.missing === 'status' || this.pending?.needsStatus ? statusAnswer(input) : null;
     if (this.pending?.draft.missing === 'rate' && looksLikeRateAnswer(input) && answer === null) return true;
@@ -54,10 +68,42 @@ export class DialogueState {
     this.clear(); return false;
   }
   propose(draft: RequestDraft, source: string): void {
+    assertSubjectMutationRequest(source);
     // 模型解析只产生待确认提案，不能扩大真实用户已有的确定性请求。
     if (this.pending && !(this.pending.subjectId === null && this.pending.draft.reference.kind === 'name'
       && this.pending.sources.length === 1 && this.pending.sources[0] === source)) return;
-    this.pending = { draft, subjectId: this.subject(draft), sources: [source], direct: false, needsStatus: false, accountId: null };
+    // 模型提案不授予权限；仅宿主重新核对完整原文得到完全同一请求时沿用方案B。
+    const canonical = mutationFrom(source);
+    const direct = canonical !== null && JSON.stringify(canonical.reference) === JSON.stringify(draft.reference)
+      && JSON.stringify(canonical.mutation) === JSON.stringify(draft.mutation) && canonical.missing === draft.missing;
+    this.pending = { draft, subjectId: this.subject(draft), sources: [source], direct, needsStatus: false, accountId: null };
+  }
+  /** 模型只能补充宿主已保存请求的缺项，不能改写已有对象/值或取得直接授权。 */
+  completeFromModel(input: string, values: { reference?: string; rate?: number; status?: number }): void {
+    this.validateOrigin();
+    if (!this.pending) throw new AppError('PLAN_UNAVAILABLE', '没有本次活跃会话的待补请求。');
+    const request = structuredClone(this.pending);
+    const probe = new CandidateState(); probe.restoreSnapshot(this.candidates.snapshot());
+    if (values.reference !== undefined) {
+      if (request.subjectId !== null || !input.includes(values.reference)) throw new AppError('INVALID_INPUT', '只能用本轮原文补充尚未绑定的对象。');
+      const ref = selectionFrom(values.reference) ?? { kind: 'name' as const, name: values.reference };
+      request.subjectId = ref.kind === 'id' ? ref.id : probe.resolve(ref, true)?.id ?? null;
+      request.draft.reference = ref;
+    }
+    if (values.rate !== undefined) {
+      if (request.draft.missing !== 'rate' || !Number.isInteger(values.rate) || values.rate < 0 || values.rate > 10) throw new AppError('INVALID_INPUT', '只能补充缺失的0～10分整数评分。');
+      request.draft.mutation = { kind: 'collection', patch: { rate: values.rate } }; request.draft.missing = null;
+    }
+    if (values.status !== undefined) {
+      if (!(request.draft.missing === 'status' || request.needsStatus) || !Number.isInteger(values.status) || values.status < 1 || values.status > 5) throw new AppError('INVALID_INPUT', '只能补充缺失的收藏状态。');
+      if (request.needsStatus) {
+        if (request.draft.mutation?.kind === 'collection') request.draft.mutation.patch.status = values.status;
+        else throw new AppError('INVALID_INPUT', '未收藏进度请用明确状态回答，先创建收藏再重新预览。');
+        request.needsStatus = false;
+      } else { request.draft.mutation = { kind: 'collection', patch: { status: values.status } }; request.draft.missing = null; }
+    }
+    request.sources.push(input); request.direct = false;
+    this.pending = request; this.candidates.restoreSnapshot(probe.snapshot());
   }
   private subject(draft: RequestDraft): number | null {
     return draft.reference.kind === 'id' ? draft.reference.id : this.candidates.resolve(draft.reference, true)?.id ?? null;
@@ -73,6 +119,7 @@ export class DialogueState {
     return statusAnswer(this.pending.sources.at(-1)!) ?? null;
   }
   intent(): DirectIntent | null {
+    this.validateOrigin();
     const request = this.pending;
     if (!request?.direct || request.subjectId === null || !request.draft.mutation) return null;
     return mutationIntent(request.subjectId, request.draft.mutation);
@@ -81,6 +128,7 @@ export class DialogueState {
     return `宿主保存的未完成请求（不能自行补全缺失对象或参数）：${JSON.stringify(this.pending)}。`;
   }
   question(): string | null {
+    this.validateOrigin();
     if (!this.pending) return null;
     if (this.pending.subjectId === null) return '你指哪一项作品？可以说“第一项”，或告诉我完整作品名、条目链接。修改要求已保留。';
     if (this.pending.draft.missing === 'rate') return '要设置成几分？请给出0～10的整数。';

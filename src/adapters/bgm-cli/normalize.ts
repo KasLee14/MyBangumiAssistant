@@ -13,15 +13,17 @@ function text(value: unknown, max: number): string {
 
 export function subjectFrom(value: unknown): Subject {
   const item = object(value, '条目'); const id = positiveId(item.id);
-  const type = TYPE_IDS[Number(item.type)];
+  const type = typeof item.type === 'string' && ['anime','book','game','music','real'].includes(item.type) ? mediaType(item.type) : TYPE_IDS[Number(item.type)];
   if (!type) throw new AppError('INVALID_RESPONSE', '条目类型不受支持。');
   const rating = item.rating && typeof item.rating === 'object' ? object(item.rating) : {};
   const rank = finite(rating.rank ?? item.rank);
+  const count = Object.hasOwn(item, 'ratingCount') ? item.ratingCount : rating.total;
   return {
-    id, type, name: text(item.name, 300), nameCn: text(item.name_cn ?? item.nameCN, 300),
+    id, type, name: text(item.name, 300), nameCn: text(item.name_cn ?? item.nameCN ?? item.nameCn, 300),
     summary: text(item.summary, 5000), date: text(item.date, 50),
     score: finite(rating.score ?? item.score), rank: rank !== null && rank > 0 ? rank : null,
-    totalEpisodes: finite(item.total_episodes ?? item.eps), totalVolumes: finite(item.volumes), url: `https://bgm.tv/subject/${id}`,
+    ratingCount: typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : null,
+    totalEpisodes: finite(item.total_episodes ?? item.eps ?? item.totalEpisodes), totalVolumes: finite(item.volumes ?? item.totalVolumes), url: `https://bgm.tv/subject/${id}`,
   };
 }
 

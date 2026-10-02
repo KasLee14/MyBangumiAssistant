@@ -1,7 +1,9 @@
 import type { Message } from './types.js';
 import { AppError } from '../domain/errors.js';
 import { mediaType, positiveId, type MediaType } from '../domain/bangumi.js';
-import { mutationFrom, selectionFrom, unsafeMutationText, type Reference } from '../domain/dialogue-intent.js';
+import { mutationFrom, selectionFrom, selectionCommand, unsafeMutationText, type Reference } from '../domain/dialogue-intent.js';
+import { normalizeSubjectName, subjectQuery } from '../domain/subject-query.js';
+import { readTaskFrom, type ReadTask } from '../domain/model-task.js';
 
 export interface Candidate { id: number; title: string; type: MediaType; url: string; aliases?: string[] }
 export interface CandidateSet { id: string; items: Candidate[] }
@@ -31,9 +33,62 @@ export class CandidateState {
     if (!set || !Number.isInteger(index) || index < 1 || index > set.items.length) throw new AppError('CANDIDATE_NOT_FOUND', '候选编号不存在，请查看具体候选清单。');
     this.selected = structuredClone(set.items[index - 1]!); return structuredClone(this.selected);
   }
+  matchQuery(input: string): Candidate | null {
+    const query = subjectQuery(input);
+    if (!query) return null;
+    const matches = this.queryMatches(input);
+    if (matches.length || query.type || /第.+[季期]/.test(query.name)) this.selected = matches.length === 1 ? structuredClone(matches[0]!) : null;
+    return this.current();
+  }
+  queryMatches(input: string): Candidate[] {
+    const query = subjectQuery(input);
+    if (!query) return [];
+    const name = normalizeSubjectName(query.name);
+    const items = this.sets.at(-1)?.items.filter(item => !query.type || item.type === query.type) ?? [];
+    const names = (item: Candidate) => [item.title, ...(item.aliases ?? [])].map(normalizeSubjectName);
+    const exact = items.filter(item => names(item).includes(name));
+    if (query.fields.length && !/第\d+季/.test(name)) {
+      const seasons = items.filter(item => names(item).some(alias => alias.startsWith(name) && /^第\d+季$/.test(alias.slice(name.length))));
+      if (exact.length && seasons.length) return structuredClone([...items.filter(item => exact.includes(item) || seasons.includes(item))]);
+    }
+    return structuredClone(exact);
+  }
+  /** 主对话使用模型结构化目标，宿主仅核对已读取候选，不解析自由表达。 */
+  targetMatches(task: ReadTask | null): Candidate[] {
+    if (!task?.targetName || task.mode !== 'single') return [];
+    const name = normalizeSubjectName(task.targetName);
+    const items = this.sets.at(-1)?.items.filter(item => !task.type || item.type === task.type) ?? [];
+    const names = (item: Candidate) => [item.title, ...(item.aliases ?? [])].map(normalizeSubjectName);
+    const exact = items.filter(item => names(item).includes(name));
+    if (!/第\d+季/.test(name)) {
+      const seasons = items.filter(item => names(item).some(alias => alias.startsWith(name) && /^第\d+季$/.test(alias.slice(name.length))));
+      if (exact.length && seasons.length) return structuredClone(items.filter(item => exact.includes(item) || seasons.includes(item)));
+    }
+    return structuredClone(exact);
+  }
+  matchTarget(task: ReadTask | null): Candidate | null {
+    if (!task) return this.current();
+    const matches = this.targetMatches(task);
+    this.selected = matches.length === 1 ? structuredClone(matches[0]!) : null;
+    return this.current();
+  }
+  fromExplicitUser(input: string): void {
+    const command = selectionCommand(input);
+    if (command) {
+      if (command.reference.kind === 'index') this.select(command.reference.index, command.setId);
+      else if (!this.resolve(command.reference, true)) this.selected = null;
+      return;
+    }
+    const ref = selectionFrom(input) ?? (this.hasName(input.trim()) ? { kind: 'name' as const, name: input.trim() } : null);
+    if (ref) this.resolve(ref, true);
+  }
   fromUser(input: string): void {
-    const command = /^\/select\s+(?:(c[1-9]\d*)\s+)?([1-9]\d*)$/.exec(input.trim());
-    if (command) { this.select(Number(command[2]), command[1]); return; }
+    const command = selectionCommand(input);
+    if (command) {
+      if (command.reference.kind === 'index') this.select(command.reference.index, command.setId);
+      else if (!this.resolve(command.reference, true)) this.selected = null;
+      return;
+    }
     if (unsafeMutationText(input)) return;
     const reference = mutationFrom(input)?.reference ?? selectionFrom(input)
       ?? (this.hasName(input.trim()) ? { kind: 'name' as const, name: input.trim() } : null);
@@ -78,13 +133,18 @@ export class CandidateState {
   restore(messages: readonly Message[]): void {
     this.sets = []; this.selected = null; this.sequence = 0;
     const calls = new Map<string, string>();
+    let input = '';
     for (const message of messages) {
-      if (message.role === 'user') { try { this.fromUser(message.content); } catch { this.selected = null; } }
+      if (message.role === 'user') { input = message.content; try { this.fromExplicitUser(input); } catch { this.selected = null; } }
       if (message.role === 'assistant') for (const call of message.tool_calls ?? []) calls.set(call.id, call.function.name);
       if (message.role !== 'tool' || calls.get(message.tool_call_id) !== 'search_subjects') continue;
       try {
         const result = JSON.parse(message.content);
-        if (result.ok === true && Array.isArray(result.data?.data)) this.add(result.data.data, result.data.candidateSet?.id);
+        if (result.ok === true && Array.isArray(result.data?.data)) {
+          this.add(result.data.data, result.data.candidateSet?.id);
+          // 仅恢复成功读取的结构化目标；旧自然语言解析不再进入主会话恢复。
+          if (result.data.readTask?.kind === 'read') this.matchTarget(readTaskFrom(result.data.readTask, input));
+        }
       } catch { /* 旧日志不合法的候选不用于授权或消歧。 */ }
     }
   }

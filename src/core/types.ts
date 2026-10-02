@@ -24,6 +24,8 @@ export interface ToolRegistry {
   beginTurn?(input: string, history: readonly Message[]): void;
   endTurn?(completed: boolean): void;
   context?(): string;
+  /** 宿主观察完整最终回答，可将明确的候选追问登记为等待选择；不授予权限。 */
+  observeAnswer?(content: string): void;
   /** 结构化追问已建立时结束本轮，等待真实用户回答。 */
   question?(): string | null;
 }

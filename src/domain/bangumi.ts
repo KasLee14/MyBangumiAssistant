@@ -51,6 +51,7 @@ export interface Subject {
   summary: string;
   date: string;
   score: number | null;
+  ratingCount?: number | null;
   rank: number | null;
   totalEpisodes: number | null;
   totalVolumes?: number | null;

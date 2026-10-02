@@ -1,18 +1,32 @@
 import { AppError } from './errors.js';
 import { positiveId } from './bangumi.js';
 import type { Collection, Episode, MediaType } from './bangumi.js';
+import { unsafeMutationText, selectionFrom, selectionCommand } from './dialogue-intent.js';
+
+/** 仅是写入入口的否定/查询及显式修改要求核查，不用于业务意图分流。 */
+export function assertSubjectMutationRequest(input: string): void {
+  const outer = input.replace(/[“"][\s\S]*?[”"]/g, '正文').replace(/《[^》]*》/g, '作品').trim();
+  if (!outer || unsafeMutationText(input) || selectionFrom(input) || selectionCommand(input)
+    || /^(?:请\s*)?(?:帮我|我(?:想|要))?\s*(?:查询|查看|查(?:询|查|一下)?|搜(?:索|一下)?|找一下|看(?:看|一下)|显示|展示|列出|检索|告诉我|解释|介绍|读取|获取)/.test(outer)
+    || /(?:只(?:是)?想|想要|想)(?:知道|了解)|几分|多少|是什么|什么情况/.test(outer)) {
+    throw new AppError('AUTHORIZATION_REQUIRED', '查询、否定、假设或单纯选择不能生成修改预览；需要真实用户明确提出修改。');
+  }
+  // 不用动作词白名单限制模型的自由表达提案；未被宿主完整句式独立核实的请求只能预览确认。
+}
 
 export type ChangeValue = string | number | boolean | null | string[] | number[];
 export interface FieldChange { field: string; before: ChangeValue; after: ChangeValue }
 export interface PlannedAction {
-  subjectId: number; title: string; kind: 'collection' | 'progress' | 'delete';
+  subjectId: number; title: string; kind: 'collection' | 'progress' | 'delete' | 'mcp';
   changes: FieldChange[];
   /** 由领域适配器读取并计算的附带影响，不能由模型声明其不存在。 */
   effects: FieldChange[];
   baseline?: { type: MediaType; collection: Collection | null; episodes?: Episode[] };
   notice?: string;
+  /** MCP 的新增领域写入由宿主生成；从不把此字段注册到模型工具参数。 */
+  mcp?: { tool: string; args: Record<string, unknown>; baseline: unknown; expected: unknown };
 }
-export interface DirectIntent { subjectId: number; patch: Record<string, ChangeValue>; progress?: { mode: string; number?: number; episodeId?: number } }
+export interface DirectIntent { subjectId: number; patch: Record<string, ChangeValue>; progress?: { mode: string; number?: number; episodeId?: number }; mcp?: { tool: string; args: Record<string, unknown> } }
 export interface PermissionDecision { requiresConfirmation: boolean; reasons: string[] }
 
 export function permissionFor(actions: readonly PlannedAction[]): PermissionDecision {
@@ -24,6 +38,7 @@ export function permissionFor(actions: readonly PlannedAction[]): PermissionDeci
     ids.add(action.subjectId);
     if (!action.changes.length) throw new AppError('NO_CHANGE', '请求未产生变更。');
     if (action.kind === 'delete') reasons.add('删除收藏');
+    if (action.kind === 'mcp' && !['collect_character', 'collect_person', 'collect_index'].includes(action.mcp?.tool ?? '')) reasons.add('MCP 复杂操作须核对完整预览后确认');
     if (action.effects.length) reasons.add('存在未指定字段的附带影响');
     for (const change of action.changes) {
       if (change.field === 'private') reasons.add('公开或私密设置变化');
@@ -42,6 +57,8 @@ export function permissionFor(actions: readonly PlannedAction[]): PermissionDeci
 export function matchesDirectIntent(actions: readonly PlannedAction[], intent: DirectIntent | null): boolean {
   if (!intent || actions.length !== 1 || permissionFor(actions).requiresConfirmation) return false;
   const action = actions[0]!;
+  if (action.kind === 'mcp') return Boolean(action.mcp && intent.mcp && action.subjectId === intent.subjectId
+    && action.mcp.tool === intent.mcp.tool && JSON.stringify(action.mcp.args) === JSON.stringify(intent.mcp.args));
   if (intent.progress) return action.subjectId === intent.subjectId && action.kind === 'progress'
     && action.notice?.startsWith(`明确进度语义：${JSON.stringify(intent.progress)}\n`) === true;
   return action.subjectId === intent.subjectId && action.changes.every(change => Object.hasOwn(intent.patch, change.field)

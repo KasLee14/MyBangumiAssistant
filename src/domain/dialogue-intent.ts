@@ -36,6 +36,13 @@ export function selectionFrom(input: string): Reference | null {
   return ref.kind === 'index' || ref.kind === 'id' && /^(?:#|条目|https?:\/\/|bgm\.tv\/|bangumi\.tv\/|chii\.in\/)/.test(text)
     || /^[《“"]/.test(text) || /^(?:名字是|名为|叫)/.test(text) ? ref : null;
 }
+export function selectionCommand(input: string): { reference: Reference; setId?: string } | null {
+  const match = /^\/select\s+(.+)$/.exec(input.trim());
+  if (!match) return null;
+  const numbered = /^(?:(c[1-9]\d*)\s+)?([1-9]\d*)$/.exec(match[1]!);
+  return numbered ? { reference: { kind: 'index', index: Number(numbered[2]) }, ...(numbered[1] ? { setId: numbered[1] } : {}) }
+    : { reference: referenceFrom(match[1]!) };
+}
 /** 否定、假设、问句、引述不生成直接意图。引号内的最终短评不参与语气判断。 */
 export function unsafeMutationText(input: string): boolean {
   const outer = input.replace(/[“"][\s\S]*?[”"]/g, '正文').replace(/《[^》]*》/g, '作品');
@@ -64,6 +71,8 @@ export function statusAnswer(input: string): number | null {
 /** 完整句式解析；未覆盖的表达可由模型提出待确认的结构化请求，不能自行获得授权。 */
 export function mutationFrom(input: string): RequestDraft | null {
   if (unsafeMutationText(input)) return null;
+  // 角色、人物和目录使用各自MCP权限链路，不被旧作品取消收藏规则拦截或误当作品焦点。
+  if (/^(?:请)?(?:帮我|给我|把|将)?\s*(?:(?:取消|删除|移除|收藏|新增|加入)\s*)?(?:(?:角色|人物|目录)\s*(?:#|ID|编号)?\s*[1-9]\d*|(?:https?:\/\/)?(?:bgm\.tv|bangumi\.tv|chii\.in)\/(?:character|person|index)\/[1-9]\d*)/i.test(input.trim())) return null;
   const text = input.trim().replace(/[。！!]$/, '')
     .replace(/^确认[，,]\s*(?:不过|但是|但)\s*/, '')
     .replace(/^(?:这个结果是对的|这个结果对|结果是对的|对[，,]?就是这个|对|没错)[，,]\s*/, '')
@@ -73,11 +82,15 @@ export function mutationFrom(input: string): RequestDraft | null {
   let match = new RegExp(`^(.*?)(?:的)?(?:评分|分数)(?:改成|改为|设为|设置为|调整到)\\s*(${NUMBER})\\s*分?$`).exec(text)
     ?? new RegExp(`^(?:给)?(.*?)(?:打|评|改成|改为|设为)\\s*(${NUMBER})\\s*分$`).exec(text);
   if (match) { const rate = chineseNumber(match[2]!); if (rate !== null && rate >= 0 && rate <= 10) return ready(match[1]!, { kind: 'collection', patch: { rate } }); return null; }
-  match = /^(?:给)?(.*?)(?:打(?:个)?分|评(?:个)?分|评分(?:改成|改为|设为)?)$/.exec(text);
-  if (match) return { reference: referenceFrom(match[1]!), mutation: null, missing: 'rate' };
+  match = /^(?:给)?(.*?)(?:打(?:个)?分|评个分|评分(?:改成|改为|设为))$/.exec(text) ?? /^给(.*?)评分$/.exec(text);
+  if (match) {
+    const outer = text.replace(/《[^》]*》|[“"][\s\S]*?[”"]/g, '作品');
+    if (!/^(?:我(?:想|要)(?:看|查|了解|知道)|帮我(?:查|搜|找)|查|搜|看一下|看看|找一下)/.test(outer)
+      && !/多少人|几个人|评分人数|打分人数/.test(outer)) return { reference: referenceFrom(match[1]!), mutation: null, missing: 'rate' };
+  }
   match = /^(.*?)(?:的)?(?:(?:收藏状态|状态)(?:改成|改为|设为|设置为)|加入|标记为|设为)(想看|想读|想听|想玩|看过|读过|听过|玩过|在看|在读|在听|在玩|搁置|抛弃)$/.exec(text);
   if (match) return ready(match[1]!, { kind: 'collection', patch: { status: STATUSES[match[2]!]! } });
-  match = /^(.*?)(?:的)?(?:收藏状态|状态)(?:改成|改为|设为)?$/.exec(text);
+  match = /^(.*?)(?:的)?(?:收藏状态|状态)(?:改成|改为|设为)$/.exec(text);
   if (match) return { reference: referenceFrom(match[1]!), mutation: null, missing: 'status' };
   match = /^(.*?)(?:的)?短评(?:改成|改为|保存为)[“"]([\s\S]*)[”"]$/.exec(text);
   if (match) return ready(match[1]!, { kind: 'collection', patch: { comment: match[2]! } });

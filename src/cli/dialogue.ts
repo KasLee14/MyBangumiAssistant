@@ -4,10 +4,17 @@ import type { CandidateSet } from '../core/candidates.js';
 import type { Message } from '../core/types.js';
 import type { SessionLog } from '../storage/session.js';
 import { AppError, credentialValues, redact } from '../domain/errors.js';
-import { decisionFrom } from '../domain/dialogue-intent.js';
+import { decisionFrom, selectionCommand } from '../domain/dialogue-intent.js';
+import { CandidateState } from '../core/candidates.js';
 import { resultLines } from './ui/format.js';
 
 const FIELD_LABELS: Record<string, string> = { status: '收藏状态', rate: '评分', tags: '标签', comment: '短评', private: '私密', chapters: '章数', volumes: '卷数' };
+export function selectionDisplay(input: string, candidates: CandidateState): string {
+  if (!selectionCommand(input)) return input;
+  const probe = new CandidateState(); probe.restoreSnapshot(candidates.snapshot());
+  try { probe.fromUser(input); return `/select ${probe.current()?.title ?? '待消歧的作品'}`; }
+  catch { return '/select 无效的作品选择'; }
+}
 export function showCandidates(set: CandidateSet): string {
   return `\n[候选 ${set.id}]\n${set.items.length ? set.items.map((item, index) => `${index + 1}. #${item.id} ${item.title} (${item.type}) ${item.url}`).join('\n') : '没有候选。'}\n可以说“第一项”或作品名；只有一项时可说“这个”。快捷命令：/select ${set.id} <编号>\n`;
 }
@@ -30,12 +37,12 @@ export class DialogueCommands {
     return input.trim().startsWith('/') || decisionFrom(input) !== null || this.tools.canHandleUser(input, history);
   }
   resetRequests(): void { this.displayed.clear(); this.tools.resetRequests(); }
-  selectionContinuation(input: string, history: readonly Message[]): boolean { return this.tools.selectionContinuation(input, history); }
+  selectionContinuation(input: string, history: readonly Message[]): string | null { return this.tools.selectionContinuation(input, history); }
   async handle(input: string, history: readonly Message[], signal: AbortSignal): Promise<Message[] | null> {
     if (!input.trim() || input.length > 8000) throw new AppError('INVALID_INPUT', '输入须为1～8000字。');
     input = redact(input, credentialValues());
     const naturalDecision = decisionFrom(input);
-    const naturalRequest = /^\/select\s+(?:(c[1-9]\d*)\s+)?[1-9]\d*$/.test(input.trim())
+    const naturalRequest = selectionCommand(input) !== null
       || !input.trim().startsWith('/') && !naturalDecision && this.tools.canHandleUser(input, history);
     if (!input.trim().startsWith('/') && !naturalDecision && !naturalRequest) return null;
     signal.throwIfAborted();

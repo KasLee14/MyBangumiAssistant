@@ -1,8 +1,8 @@
 import type { AppConfig, AppPaths } from '../config/config.js';
-import { proxySummary, proxyForUrl } from '../config/proxy.js';
+import { policyFor } from '../config/proxy.js';
 import type { LanguageModel, Message } from '../core/types.js';
 import type { AgentEvent } from '../core/events.js';
-import type { CandidateSet } from '../core/candidates.js';
+import { CandidateState, type CandidateSet } from '../core/candidates.js';
 import type { OperationPlan } from '../core/operations.js';
 import { OperationCoordinator } from '../core/operations.js';
 import { ReadAgent } from '../core/agent.js';
@@ -10,9 +10,11 @@ import { ScopedConversation } from '../core/scoped-conversation.js';
 import { SessionLog } from '../storage/session.js';
 import { OperationJournal } from '../storage/operations.js';
 import { DialogueTools } from '../tools/dialogue-tools.js';
-import { DialogueCommands } from './dialogue.js';
+import { DialogueCommands, selectionDisplay } from './dialogue.js';
 import type { BangumiWriteClient } from '../adapters/bgm-cli/write-client.js';
 import { BgmOperationExecutor } from '../adapters/bgm-cli/executor.js';
+import { McpOperationExecutor } from '../adapters/mcp/operation-executor.js';
+import type { McpCallClient } from '../adapters/mcp/client.js';
 import { AppError, safeError } from '../domain/errors.js';
 import { displayText, toolLabel } from './ui/format.js';
 import type { LoginPrompt } from '../adapters/bangumi-login/login.js';
@@ -39,11 +41,13 @@ export interface ChatState extends HeaderInfo {
   credentialPrompt: { id: number; kind: 'email' | 'password' } | null;
   ready: boolean; busy: boolean; cancelling: boolean; startedAt: number; status: string;
   items: readonly TranscriptItem[]; liveText: string; candidates: CandidateSet | null;
+  selectionQuestion: { setId: string; text: string } | null;
   pending: OperationPlan | null; previewAcknowledged: boolean; focus: string | null; unknownOperations: number;
 }
 interface ClosableModel extends LanguageModel { close?(): Promise<void> }
 export interface ChatDependencies {
   config: AppConfig; paths: AppPaths; client: BangumiWriteClient;
+  mcp?: McpCallClient;
   createModel(name: string): ClosableModel;
   /** 仅交给界面账户 ID 和用户名，不交给界面组件 Token 或保护后的凭据。 */
   loadLogin(): Promise<{ accountId: number; username: string } | null>;
@@ -55,13 +59,13 @@ export const CHAT_HELP = `可以直接输入作品名称、“第一项”“确
 /help       查看帮助
 /login      本地邮箱、隐藏密码与浏览器人机验证
 /login --manual  使用本地验证码辅助页，不经上游托管服务
-/status     查看登录核实结果、模型、会话ID、当前作品及待处理操作
+/status     查看 Bangumi 登录状态、当前模型、代理信息和会话ID
 /model      打开模型菜单；/model 名称 切换配置
 /sessions   打开历史会话菜单
 /resume ID  恢复已完成对话，旧预览和授权失效
 /new        新建会话
 /details    显示/收起本轮工具与计划标识
-/select [清单ID] 编号   选择作品
+/select 完整条目名     选择作品（也支持 [清单ID] 编号）
 /confirm 预览ID        确认当前已展示的具体变更
 /reject 预览ID         拒绝变更
 /exit       退出
@@ -94,7 +98,7 @@ export class ChatController {
     if (!Object.hasOwn(deps.config.models, name)) throw new AppError('INVALID_INPUT', '指定的模型配置不存在。');
     this.state = { ready: false, modelName: name, modelLabel: deps.config.models[name]!.model, sessionId: '', login: { kind: 'checking' },
       busy: false, cancelling: false, startedAt: 0, status: '正在准备会话', items: [], liveText: '', candidates: null,
-      pending: null, previewAcknowledged: false, focus: null, unknownOperations: 0, credentialPrompt: null };
+      pending: null, previewAcknowledged: false, focus: null, unknownOperations: 0, credentialPrompt: null, selectionQuestion: null };
   }
   setLoginPrompt(handler:LoginPrompt):void { this.loginPromptHandler = handler; }
   submitLoginInput(id:number,value:string):void {
@@ -128,7 +132,7 @@ export class ChatController {
     await this.refreshLogin(AbortSignal.any([this.deps.signal,this.lifetime.signal]));
     this.add({ kind: 'header', header: this.header() });
     if (this.resumeId) this.restoreTranscript();
-    this.update({ ready: true, status: '就绪' });
+    this.update({ ready: true, status: this.state.selectionQuestion ? '等待选择作品' : '就绪' });
   }
   private async replaceSession(id?: string): Promise<void> {
     const log = new SessionLog(this.deps.paths.sessions, id);
@@ -138,18 +142,21 @@ export class ChatController {
     const unknown = [...recovery.values()].filter(state => state === 'started' || state === 'unknown').length;
     this.commands?.resetRequests();
     this.log = log; this.history = history;
+    const phase = (phase: 'writing' | 'verifying', subjectId: number) => this.update({ status:
+      `${phase === 'writing' ? '正在提交变更' : '正在回读验证'} #${subjectId}${this.state.cancelling ? '（停止后核查）' : ''}` });
+    const fallback = new BgmOperationExecutor(this.deps.client, 350, phase);
     this.tools = new DialogueTools(this.deps.client, new OperationCoordinator(journal,
-      new BgmOperationExecutor(this.deps.client, 350, (phase, subjectId) => this.update({ status:
-        `${phase === 'writing' ? '正在提交变更' : '正在回读验证'} #${subjectId}${this.state.cancelling ? '（停止后核查）' : ''}` }))), {
+      this.deps.mcp ? new McpOperationExecutor(this.deps.client, this.deps.mcp, fallback, phase) : fallback), {
       candidates: set => { this.flushText(); this.add({ kind: 'candidates', set }); this.update({ candidates: set }); },
       plan: plan => this.receivePlan(plan),
-    });
+    }, this.deps.mcp);
     this.commands = new DialogueCommands(this.tools, log);
     this.tools.hydrate(history);
     this.attachModel(this.state.modelName);
     this.countedUnknown.clear();
     this.update({ sessionId: log.id, liveText: '', pending: null, previewAcknowledged: false,
       candidates: this.tools.candidates.snapshot().sets.at(-1) ?? null,
+      selectionQuestion: this.tools.awaitingSelection(),
       focus: this.tools.candidates.current()?.title ?? null, unknownOperations: unknown });
     if (id) this.notify(`恢复仅采用已完成对话；旧预览和授权已失效。历史未知操作：${unknown}，不会自动重试。`);
   }
@@ -159,9 +166,19 @@ export class ChatController {
       this.tools, this.commands, this.log);
   }
   private restoreTranscript(): void {
-    for (const message of this.history) {
-      if ((message.role === 'user' || message.role === 'assistant') && message.content) this.add({ kind: message.role, text: displayText(message.content) });
+    for (let index = 0; index < this.history.length; index++) {
+      const message = this.history[index]!;
+      if ((message.role === 'user' || message.role === 'assistant') && message.content) {
+        const candidates = new CandidateState(); candidates.restore(this.history.slice(0,index));
+        this.add({ kind: message.role, text: displayText(message.role === 'user' ? selectionDisplay(message.content,candidates) : message.content) });
+      }
     }
+  }
+  selectCandidate(selection: { setId: string; subjectId: number }): Promise<void> {
+    const set = this.tools.candidates.snapshot().sets.at(-1);
+    const index = set?.items.findIndex(item => item.id === selection.subjectId) ?? -1;
+    if (!set || set.id !== selection.setId || index < 0) { this.notify('选择已过期，请使用当前候选清单。'); return Promise.resolve(); }
+    return this.submit(`/select ${set.id} ${index+1}`);
   }
   async refreshLogin(signal: AbortSignal): Promise<void> {
     this.update({ login: { kind: 'checking' } });
@@ -240,16 +257,15 @@ export class ChatController {
         const info=safeError(error); this.update({login:info.code === 'BGM_AUTH_INVALID' ? {kind:'signed-out'} : {kind:'unverified',message:info.message}});
       }
       signal.throwIfAborted();
-      this.add({ kind: 'user', text: input });
+      this.add({ kind: 'user', text: displayText(selectionDisplay(input,this.tools.candidates)) });
       // 新轮次的界面不继续显示旧确认选项；宿主自行判断确认或重新规划。
-      this.update({ pending: null, previewAcknowledged: false, candidates: null });
+      this.update({ pending: null, previewAcknowledged: false, candidates: null, selectionQuestion: null });
       const result = await this.conversation.run(input, this.history, { signal, onText: this.appendText, onEvent: this.onEvent });
       this.history = result.messages;
       this.flushText();
       const pending = this.state.pending;
       if (pending && this.tools.operations.get(pending.id).state !== 'pending') this.update({ pending: null, previewAcknowledged: false });
-      this.update({ focus: this.tools.candidates.current()?.title ?? null });
-      if (!this.tools.candidates.current()) this.update({candidates:this.tools.candidates.snapshot().sets.at(-1) ?? null});
+      this.update({ focus: this.tools.candidates.current()?.title ?? null, candidates: this.tools.candidates.snapshot().sets.at(-1) ?? null });
     } catch (error) {
       this.flushText(); const info = safeError(error);
       this.add({ kind: signal.aborted ? 'notice' : 'error', text: signal.aborted ? '本轮已停止；已发送的变更以回读结果及操作记录为准。' : `[${info.code}] ${info.message}` });
@@ -259,8 +275,9 @@ export class ChatController {
       this.flushText();
       if (signal.aborted) { this.commands.resetRequests(); this.update({ pending: null, previewAcknowledged: false }); }
       this.round = undefined;
-      this.update({ busy: false, cancelling: false, status: this.state.pending ? '等待确认'
-        : !this.state.focus && this.state.candidates?.items.length ? '等待选择作品' : '就绪' });
+      const selectionQuestion = this.tools.awaitingSelection();
+      this.update({ busy: false, cancelling: false, selectionQuestion, status: this.state.pending ? '等待确认'
+        : selectionQuestion ? '等待选择作品' : '就绪' });
     }
   }
   private async localCommand(input: string, signal: AbortSignal): Promise<boolean> {
@@ -287,7 +304,8 @@ export class ChatController {
     if (input === '/status') {
       this.update({ status: '正在核实 Bangumi 登录状态' });
       await this.refreshLogin(signal);
-      const { login, pending, unknownOperations } = this.state;
+      const { login } = this.state;
+      const proxy = policyFor(this.deps.config.proxyPolicy ?? this.deps.config.proxy);
       const account = login.kind === 'signed-in' ? `已登录（用户 ID：${login.accountId}；本次 API 会话核实通过）`
         : login.kind === 'signed-out' ? '未登录或登录已失效；输入 /login 登录'
           : login.kind === 'unverified' ? `待核实${login.accountId ? `（本机保存的用户 ID：${login.accountId}）` : ''}；${login.message}`
@@ -295,16 +313,9 @@ export class ChatController {
       this.notify([
         '当前状态（/status）',
         `Bangumi 登录：${account}`,
-        '认证方式：邮箱登录的本机 p1 会话（条目取消收藏暂未开放）',
         `当前模型：${this.state.modelLabel}`,
-        `模型配置：${this.state.modelName}（/model 切换）`,
-        `应用代理：${proxySummary(this.deps.config.proxyPolicy ?? this.deps.config.proxy)}`,
-        `Bangumi 路由：${proxyForUrl(this.deps.config.proxyPolicy ?? this.deps.config.proxy, 'https://next.bgm.tv') ?? '直连'}`,
-        `当前模型路由：${proxyForUrl(this.deps.config.proxyPolicy ?? this.deps.config.proxy, this.deps.config.models[this.state.modelName]!.baseUrl) ?? '直连'}`,
+        `代理信息：${proxy.https ?? proxy.http ?? '直连'}`,
         `完整会话 ID：${this.state.sessionId}（/resume ID 恢复）`,
-        `当前作品：${this.state.focus ?? '尚未选择作品'}`,
-        `待确认变更：${pending ? `${pending.actions.length} 个条目；预览 ID：${pending.id}；${this.state.previewAcknowledged ? '可确认或取消' : '等待完整展示'}` : '无'}`,
-        `结果未知的操作：${unknownOperations} 项${unknownOperations ? '；请先核对网站，不会自动重试' : '（无需核查）'}`,
       ].join('\n')); return true;
     }
     if (input === '/sessions') { this.notify((await this.sessions()).map(id => `${id}${id === this.state.sessionId ? '（当前）' : ''}`).join('\n') || '暂无历史会话。'); return true; }

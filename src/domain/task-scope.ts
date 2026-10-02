@@ -27,7 +27,7 @@ export function scopeReply(reason: ScopeReason): string {
     case 'community': return '当前助手不提供讨论区发帖、回复、日志、动态或通知等社区功能；可以查询作品及管理个人收藏。';
     case 'scheduling': return '当前助手不提供定时任务或提醒；可以在当前对话中查询作品及管理个人收藏。';
     case 'custom_progress': return '当前助手只处理网站原生进度，不记录游戏游玩时长、路线或自定义完成百分比；可以管理条目收藏状态。';
-    case 'cross_account': return '当前助手只处理本机当前账户，不提供跨账户操作。';
+    case 'cross_account': return '只能修改本机当前登录账户的资料；其他用户可查询公开资料和公开收藏，不能读取其私密数据或代其写入。';
     default: return SCOPE_REFUSAL;
   }
 }

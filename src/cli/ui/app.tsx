@@ -10,13 +10,13 @@ import { OperationView } from './operation-view.js';
 
 const COMMANDS: MenuOption[] = [
   { label: '/help      查看帮助', value: '/help' }, { label: '/login     登录 Bangumi 账号', value: '/login' },
-  { label: '/status    查看登录、模型、会话及待处理操作', value: '/status' },
+  { label: '/status    查看登录、模型、代理和会话ID', value: '/status' },
   { label: '/model     选择模型配置', value: '/model' }, { label: '/sessions  选择历史会话', value: '/sessions' },
   { label: '/new       新建会话', value: '/new' }, { label: '/details   展开本轮工具详情', value: '/details' },
   { label: '/exit      退出聊天', value: '/exit' },
 ];
 const ARGUMENT_COMMANDS: Record<string,string> = {
-  '/resume': '/resume 会话ID', '/select': '/select [清单ID] 编号',
+  '/resume': '/resume 会话ID', '/select': '/select 完整条目名（也支持编号）',
   '/confirm': '/confirm 预览ID', '/reject': '/reject 预览ID',
 };
 interface Menu { title: string; options: MenuOption[]; selected: number }
@@ -37,7 +37,7 @@ export function ChatApp({controller}: {controller:ChatController}) {
   useEffect(() => { if (!quitHint) return; const timer = setTimeout(() => setQuitHint(false),1500); return () => clearTimeout(timer); },[quitHint]);
   useEffect(() => { setConfirmation(0); },[state.pending?.id]);
   useEffect(() => { setCandidateIndex(0); },[state.candidates?.id]);
-  const candidateQuestion = state.ready && !state.busy && !state.pending && state.candidates && !state.focus
+  const candidateQuestion = state.ready && !state.busy && !state.pending && state.candidates && state.selectionQuestion?.setId === state.candidates.id
     && state.candidates.items.length > 1 && state.candidates.id !== dismissedCandidate ? state.candidates : null;
   useEffect(() => {
     const plan = state.pending; if (!plan || state.previewAcknowledged) return;
@@ -122,7 +122,7 @@ export function ChatApp({controller}: {controller:ChatController}) {
     if (menu) {
       if (key.upArrow) setMenu({...menu,selected:Math.max(0,menu.selected-1)});
       else if (key.downArrow) setMenu({...menu,selected:Math.min(menu.options.length-1,menu.selected+1)});
-      else if (key.return) { const option = menu.options[menu.selected]; setMenu(null); if (option) execute(option.value); }
+      else if (key.return) { const option = menu.options[menu.selected]; setMenu(null); if (option?.selection) void controller.selectCandidate(option.selection); else if (option) execute(option.value); }
       return;
     }
     if (key.ctrl && input === 'j' || key.return && key.shift || input === '\n' && !key.return) { editor.insert('\n'); change(); return; }
@@ -133,7 +133,7 @@ export function ChatApp({controller}: {controller:ChatController}) {
     if (suggestions.length && key.tab) { editor.set(suggestions[commandIndex]!.value); change(); return; }
     if (key.tab && state.ready && !editor.text && !state.busy && state.candidates?.items.length) {
       const set = state.candidates;
-      setMenu({title:'选择作品（回答后继续原任务）',selected:0,options:set.items.map((item,index) => ({label:`${index+1}. ${item.title} · #${item.id}`,value:`/select ${set.id} ${index+1}`}))}); return;
+      setMenu({title:'选择作品（回答后继续原任务）',selected:0,options:set.items.map((item,index) => ({label:`${index+1}. ${item.title} · #${item.id}`,value:`/select ${item.title}`,selection:{setId:set.id,subjectId:item.id}}))}); return;
     }
     if (candidateQuestion && !menu && !editor.text && (key.upArrow || key.downArrow)) {
       setCandidateIndex(value => Math.max(0,Math.min(candidateQuestion.items.length-1,value+(key.upArrow ? -1 : 1)))); return;
@@ -143,7 +143,7 @@ export function ChatApp({controller}: {controller:ChatController}) {
       if (state.busy) { controller.notify('本轮尚未结束，草稿已保留；结束后再按 Enter 发送。'); return; }
       if (editor.text.trim()) submitDraft(suggestions[commandIndex]?.value ?? editor.text);
       else if (state.pending && state.previewAcknowledged) execute(`/${confirmation ? 'confirm' : 'reject'} ${state.pending.id}`);
-      else if (candidateQuestion) execute(`/select ${candidateQuestion.id} ${candidateIndex+1}`);
+      else if (candidateQuestion) { const item = candidateQuestion.items[candidateIndex]; if (item) void controller.selectCandidate({setId:candidateQuestion.id,subjectId:item.id}); }
       return;
     }
     if (key.leftArrow) editor.left(); else if (key.rightArrow) editor.right();
@@ -178,7 +178,7 @@ export function ChatApp({controller}: {controller:ChatController}) {
     {state.credentialPrompt ? <Box flexDirection="column"><Text>{state.credentialPrompt.kind==='email' ? 'Bangumi 登录邮箱：' : 'Bangumi 密码：'}{state.credentialPrompt.kind==='password' ? '•'.repeat(Math.min(40,Array.from(credential.value).length)) : displayText(credential.value)}▏</Text><Text dimColor>Enter 提交 · Esc 取消 · 输入不进入聊天记录</Text></Box>
       : <Composer editor={editor} width={width} height={composerRows} busy={state.busy} />}
     <Text dimColor>{wrapText(headerDetails(state),width).join('\n')}</Text>
-    <Text dimColor>{quitHint ? '再按一次 Ctrl+C 退出' : commandPanel ? '继续输入可筛选命令' : width < 50 ? 'Enter 发送 · / 命令 · Tab 选择' : 'Enter 发送 · Ctrl+J 换行 · / 命令 · Tab 选择作品'}</Text>
+    <Text dimColor>{quitHint ? '再按一次 Ctrl+C 退出' : commandPanel ? '继续输入可筛选命令' : width < 50 ? 'Enter 发送 · / 命令' : 'Enter 发送 · Ctrl+J 换行 · / 命令'}</Text>
   </Box>;
 }
 export async function runChatUi(controller:ChatController):Promise<void> {

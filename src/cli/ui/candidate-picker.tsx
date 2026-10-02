@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Box, Text } from 'ink';
 import stringWidth from 'string-width';
 import { displayText, wrapText } from './format.js';
-export interface MenuOption { label: string; value: string }
+export interface MenuOption { label: string; value: string; selection?: { setId: string; subjectId: number } }
 /** 命令候选始终与输入框同时可用；窄窗口先保留完整命令名。 */
 export function CommandPicker({options,selected,width,height}: {options:readonly MenuOption[];selected:number;width:number;height:number}):ReactNode {
   const hint = wrapText(width < 38 ? '↑↓ · Tab · Enter' : '↑↓ 选择 · Tab 补全 · Enter 执行',width);

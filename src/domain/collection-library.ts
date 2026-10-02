@@ -14,6 +14,7 @@ export interface CollectionEntry {
   chapters: number | null; volumes: number | null; updatedAt: string | null; url: string;
 }
 export interface CollectionQuery { type?: MediaType; status?: CollectionStatus; limit?: number; offset?: number }
+export type CollectionScope = Pick<CollectionQuery, 'type' | 'status'>;
 export function collectionQuery(value: CollectionQuery, maximum = 100): Required<Pick<CollectionQuery, 'limit' | 'offset'>> & CollectionQuery {
   const limit = value.limit ?? 20;
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > maximum) throw new AppError('INVALID_INPUT', `收藏每页数量须为1～${maximum}。`);
@@ -32,7 +33,7 @@ export interface CollectionSource {
 }
 export interface CollectionSnapshot {
   account: CollectionAccount; data: CollectionEntry[]; total: number; complete: true;
-  startedAt: string; readAt: string; scope: { type?: MediaType };
+  startedAt: string; readAt: string; scope: CollectionScope;
 }
 export interface CollectionCounts {
   total: number; statuses: Record<CollectionStatus, number>;
@@ -44,12 +45,14 @@ function emptyCounts(): CollectionCounts {
 }
 /** 只在已核实完整的当前收藏上统计；0为未评分，null为未知。 */
 export function summarizeCollections(snapshot: CollectionSnapshot) {
+  collectionQuery(snapshot.scope);
   if (snapshot.complete !== true || snapshot.data.length !== snapshot.total || new Set(snapshot.data.map(item => item.subjectId)).size !== snapshot.total) throw new AppError('INCOMPLETE_COLLECTION', '收藏清单不完整，不能统计全部收藏。');
   const overall = emptyCounts();
   const includedTypes = snapshot.scope.type ? [snapshot.scope.type] : [...MEDIA_TYPES];
   const byType = Object.fromEntries(includedTypes.map(type => [type, emptyCounts()])) as Record<MediaType, CollectionCounts>;
   for (const item of snapshot.data) {
-    if (!byType[item.type] || !COLLECTION_STATUSES.includes(item.status) || (snapshot.scope.type && snapshot.scope.type !== item.type)) throw new AppError('INVALID_RESPONSE', '收藏类型、状态或统计范围不一致。');
+    if (!byType[item.type] || !COLLECTION_STATUSES.includes(item.status) || (snapshot.scope.type && snapshot.scope.type !== item.type)
+      || (snapshot.scope.status && snapshot.scope.status !== item.status)) throw new AppError('INVALID_RESPONSE', '收藏类型、状态或统计范围不一致。');
     for (const counts of [overall, byType[item.type]]) {
       counts.total++; counts.statuses[item.status]++;
       if (item.rate === 0) counts.ratings.unrated++;
@@ -64,6 +67,6 @@ export function summarizeCollections(snapshot: CollectionSnapshot) {
   }
   return { account: snapshot.account, scope: snapshot.scope, includedTypes, complete: true as const, fetched: snapshot.data.length,
     startedAt: snapshot.startedAt, readAt: snapshot.readAt, overall, byType,
-    basis: '当前账户可读取的现存条目收藏（含私密）；已完成依据收藏状态，不推断章节完成，不包含已删除历史。评分为个人评分，0为未评分，缺失或异常为未知。',
+    basis: '当前账户可读取的现存条目收藏（含私密）；数量、状态计数及评分均仅覆盖scope指定范围，未指定状态时包含所有状态，筛选后其他状态的零值不代表账户没有该状态收藏。已完成依据收藏状态，不推断章节完成，不包含已删除历史。评分为个人评分，0为未评分，缺失或异常为未知。',
     consistency: '分页遍历已核对数量、重复及账户；网站不提供原子快照，读取期间总数不变的编辑仍可能无法识别。' };
 }

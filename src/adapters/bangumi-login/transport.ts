@@ -30,7 +30,7 @@ export class AccountTransport {
       }
       throw new AppError(`BGM_HTTP_${response.status}`, '认证、权限或请求失败，请核对登录与网络状态。');
     }
-    if (!response.headers.get('content-type')?.includes('application/json')) throw new AppError('INVALID_RESPONSE', '服务未返回 JSON。');
+    if (response.status !== 204 && !response.headers.get('content-type')?.includes('application/json')) throw new AppError('INVALID_RESPONSE', '服务未返回 JSON。');
     return response;
   }
   async verificationSession(relayUrl: string, signal: AbortSignal): Promise<unknown> {
@@ -62,6 +62,7 @@ export class AccountTransport {
     if (url.origin !== 'https://next.bgm.tv' || !url.pathname.startsWith('/p1/')) throw new AppError('INVALID_INPUT','请求超出固定 Bangumi 主机或路径。');
     for (const [key,value] of Object.entries(options.query ?? {})) if (value !== undefined && value !== null) for (const item of Array.isArray(value) ? value : [value]) url.searchParams.append(key,String(item));
     const response = await this.request(url.href,options.method ?? 'GET',{ ...(this.session ? {Cookie:`chiiNextSessionID=${this.session.sessionId}`} : {}), ...(options.body === undefined ? {} : {'Content-Type':'application/json'}) },options.body === undefined ? undefined : JSON.stringify(options.body),signal);
+    if (response.status === 204) return null;
     try { return await response.json(); } catch { throw new AppError('INVALID_RESPONSE','Bangumi 返回无效 JSON。'); }
   }
   async close():Promise<void> { await this.dispatchers.close(); }

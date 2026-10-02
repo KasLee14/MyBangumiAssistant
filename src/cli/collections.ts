@@ -19,7 +19,8 @@ function ratingLine(counts: CollectionCounts): string {
 }
 export function showCollectionSummary(summary: ReturnType<typeof summarizeCollections>): string {
   const types = summary.scope.type ? [summary.scope.type] : MEDIA_TYPES;
-  return displayText([`账户：${summary.account.username}（#${summary.account.id}）　范围：${summary.scope.type ? MEDIA_LABELS[summary.scope.type] : '五类收藏'}`,
+  const labels = summary.scope.type ? statusLabels(summary.scope.type) : { wish: '计划', completed: '已完成', in_progress: '进行中', on_hold: '搁置', dropped: '抛弃' };
+  return displayText([`账户：${summary.account.username}（#${summary.account.id}）　范围：${summary.scope.type ? MEDIA_LABELS[summary.scope.type] : '五类收藏'}${summary.scope.status ? ` / ${labels[summary.scope.status]}` : ' / 全部状态'}`,
     `共${summary.overall.total}项；已完成${summary.overall.statuses.completed}项。`, ratingLine(summary.overall),
     ...types.map(type => {
       const counts = summary.byType[type]; const labels = statusLabels(type);

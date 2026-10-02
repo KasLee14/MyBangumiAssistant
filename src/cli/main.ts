@@ -2,10 +2,11 @@
 import { stdin, stdout } from 'node:process';
 import { loadConfig, pathsFor, ensurePaths, type AppConfig } from '../config/config.js';
 import { proxySummary } from '../config/proxy.js';
-import { BgmReadClient, createBgmRunner } from '../adapters/bgm-cli/client.js';
-import { BgmWriteClient } from '../adapters/bgm-cli/write-client.js';
+import { LocalMcpClient } from '../adapters/mcp/client.js';
+import { McpBangumiClient } from '../adapters/mcp/domain-client.js';
+import { McpOperationExecutor } from '../adapters/mcp/operation-executor.js';
+import { TOOL_DEFINITIONS } from '../adapters/mcp/catalog.js';
 import { BgmOperationExecutor } from '../adapters/bgm-cli/executor.js';
-import { fileURLToPath } from 'node:url';
 import { ChatCompletionsModel } from '../adapters/llm/chat-completions.js';
 import { ReadTools } from '../tools/read-tools.js';
 import { DialogueTools } from '../tools/dialogue-tools.js';
@@ -40,10 +41,12 @@ const HELP = `${APP_NAME} ${APP_VERSION} —— 查询、收藏与原生进度
   subject <条目ID> [--json]            条目详情
   collection <条目ID> [--json]         当前账户收藏（需 Bangumi 认证）
   collections [--type anime] [--status completed] [--limit 20] [--offset 0] [--json]
-  collection-summary [--type anime] [--json]  五类收藏数量、状态与个人评分统计（只读）
+  collection-summary [--type anime] [--status completed] [--json]  收藏数量、状态与个人评分统计（只读）
   episodes <条目ID> [--limit 20] [--offset 0] [--json]
   episodes <条目ID> --all [--json]     完整章节（最多2000项）
   progress <条目ID> [--json]           原生进度能力与个人记录
+  mcp-tools [--json]                 列出全部55项本地MCP工具及读写类别（离线）
+  mcp-read <工具名> '<参数JSON>' [--json]  调用固定MCP只读工具；写入使用ask/chat预览链路
   preview <条目ID> '<字段JSON>' [--json] 收藏变更预览，不写入
   login [--force] [--manual]          本地邮箱、隐藏密码与浏览器人机验证
   login-status                       仅查看本机登录元数据，不验证网站
@@ -62,10 +65,10 @@ chat 内 /help 查看候选选择和预览确认命令。
 function parse(argv: string[]): { command: string; positional: string[]; flags: Record<string, string | boolean> } {
   const command = argv[0] ?? '--help'; const positional: string[] = []; const flags: Record<string, string | boolean> = {};
   const allowed: Record<string, string[]> = {
-    collections: ['type','status','limit','offset','json'], 'collection-summary': ['type','json'],
+    collections: ['type','status','limit','offset','json'], 'collection-summary': ['type','status','json'],
     ask: ['model', 'resume', 'json'], chat: ['model', 'resume', 'plain'], search: ['type','limit','json'],
     subject: ['json'], collection: ['json'], episodes: ['limit','offset','all','json'], progress: ['json'], preview: ['json'], 'preview-delete':['json'], 'auth-check': [],
-    login:['force','manual'], 'login-status':[], logout:[],
+    login:['force','manual'], 'login-status':[], logout:[], 'mcp-tools':['json'], 'mcp-read':['json'],
     sessions: [], config: [], doctor: [], '--help': [], '--version': [],
   };
   if (!Object.hasOwn(allowed, command)) throw new AppError('INVALID_INPUT', '未知命令，使用 --help 查看。');
@@ -99,8 +102,13 @@ export async function main(argv: string[]): Promise<void> {
   if (command === 'preview-delete') throw new AppError('UNSUPPORTED_OPERATION', '条目取消收藏暂未开放，请在 Bangumi 网站操作。');
   if (command === '--help') { console.log(HELP); return; }
   if (command === '--version') { console.log('0.1.0'); return; }
-  const expected = command === 'preview' ? 2 : ['ask','search','subject','collection','episodes','progress','preview-delete'].includes(command) ? 1 : 0;
+  const expected = command === 'preview' || command === 'mcp-read' ? 2 : ['ask','search','subject','collection','episodes','progress','preview-delete'].includes(command) ? 1 : 0;
   if (positional.length !== expected) throw new AppError('INVALID_INPUT', `此命令需要 ${expected} 个位置参数，多字问题请用引号包裹。`);
+  if (command === 'mcp-tools') {
+    if (flags.json) dump({ transport: 'local-stdio', count: TOOL_DEFINITIONS.length, tools: TOOL_DEFINITIONS });
+    else console.log(TOOL_DEFINITIONS.map(tool => `${tool.name} [${tool.effect === 'write' ? '需宿主授权' : '只读'}] ${tool.description}`).join('\n'));
+    return;
+  }
   const paths = pathsFor(); const config = await loadConfig(paths);
   const proxy = config.proxyPolicy ?? config.proxy;
   const store=new AccountSessionStore(join(paths.root,'auth'));
@@ -111,12 +119,14 @@ export async function main(argv: string[]): Promise<void> {
       login: { applicationCredentialsRequired:false,verificationService:'https://oauth-backend-jet.vercel.app',manualVerificationAvailable:true },
       models: Object.entries(config.models).map(([name, value]) => ({ name, model: value.model, baseUrl: value.baseUrl,
         apiKeyEnv: value.apiKeyEnv, credentialPresent: Boolean(process.env[value.apiKeyEnv]) })),
+      mcp: { transport:'local-stdio',runtime:'node',toolCount:TOOL_DEFINITIONS.length,externalPythonRequired:false },
       proxy: config.proxy, proxyPolicy: config.proxyPolicy, proxyDescription: proxySummary(proxy), networkChecked: false, bangumiAuthenticationChecked: false, mode: 'authorized-writes' }); return;
   }
   if (command === 'sessions') { dump(await SessionLog.list(paths.sessions)); return; }
   const controller = new AbortController(); const cancel = (): void => controller.abort();
   if(command !== 'chat')process.on('SIGINT', cancel);
   let model: ChatCompletionsModel | undefined;
+  let mcp: LocalMcpClient | undefined;
   try {
     await ensurePaths(paths);
     if(command === 'logout') { await store.clear(); dump({localAuthenticationCleared:true,serverSessionRevoked:false}); return; }
@@ -142,15 +152,21 @@ export async function main(argv: string[]): Promise<void> {
       }
       dump({authenticated:true,user:await login(store,{proxy,requestTimeoutMs:config.requestTimeoutMs,signal:controller.signal,prompt:terminalLoginPrompt(),manual:Boolean(flags.manual),notice:message=>process.stderr.write(`${message}\n`)}),source:'password-session'}); return;
     }
-    // 只为日志/模型裁剪注册本应用会话；不读取旧 OAuth 或网页登录凭据。
-    if (command !== 'chat') await store.load().catch(error => { if (!['search', 'subject', 'episodes'].includes(command)) throw error; });
-    const runnerOptions = { configDir: paths.bgm, authDir:join(paths.root,'auth'),timeoutMs: config.requestTimeoutMs, proxy, signal: controller.signal };
-    const readClient = new BgmReadClient(createBgmRunner(runnerOptions));
-    const client = new BgmWriteClient(readClient, createBgmRunner({ ...runnerOptions, entry: fileURLToPath(new URL('../adapters/bgm-cli/worker.js', import.meta.url)) }));
+    mcp = new LocalMcpClient({ authDir:join(paths.root,'auth'), timeoutMs:config.requestTimeoutMs, proxy });
+    const client = new McpBangumiClient(mcp);
+    if (command === 'mcp-read') {
+      const definition = TOOL_DEFINITIONS.find(tool => tool.name === positional[0]);
+      if (!definition) throw new AppError('TOOL_UNAVAILABLE', '此 MCP 工具未登记。');
+      if (definition.effect !== 'read') throw new AppError('AUTHORIZATION_REQUIRED', 'MCP 写入请通过 ask/chat 生成完整预览并授权。');
+      let value: unknown;
+      try { value = JSON.parse(positional[1]!); } catch { throw new AppError('INVALID_INPUT', 'MCP 参数须为有效 JSON 对象。'); }
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new AppError('INVALID_INPUT', 'MCP 参数须为 JSON 对象。');
+      dump(await mcp.call(definition.name, value as Record<string,unknown>, controller.signal)); return;
+    }
     if (command === 'chat') {
       if (!stdin.isTTY) throw new AppError('INVALID_INPUT', 'chat 需要交互终端；脚本请使用 ask。');
       const { ChatController } = await import('./chat-controller.js');
-      const chat = new ChatController({ config, paths, client, signal: controller.signal,
+      const chat = new ChatController({ config, paths, client, mcp, signal: controller.signal,
         createModel: name => new ChatCompletionsModel(config.models[name]!, config.requestTimeoutMs, proxy),
         loadLogin: async () => { const saved = await store.load(); return saved ? { accountId: saved.accountId, username: saved.username } : null; },
         login: async (signal, notice, prompt, manual) => {
@@ -171,7 +187,10 @@ export async function main(argv: string[]): Promise<void> {
       const page = await client.collections(query, controller.signal);
       if (flags.json) dump(page); else console.log(showCollectionPage(page));
     } else if (command === 'collection-summary') {
-      const summary = await new CollectionReader(client).summary(flags.type === undefined ? undefined : mediaType(flags.type), controller.signal);
+      const summary = await new CollectionReader(client).summary({
+        ...(flags.type === undefined ? {} : { type: mediaType(flags.type) }),
+        ...(flags.status === undefined ? {} : { status: collectionStatus(flags.status) }),
+      }, controller.signal);
       if (flags.json) dump(summary); else console.log(showCollectionSummary(summary));
     } else if (command === 'search') {
       const result = await client.search(positional[0]!, typeof flags.type === 'string' ? mediaType(flags.type) : undefined,
@@ -193,7 +212,9 @@ export async function main(argv: string[]): Promise<void> {
       try { patch = JSON.parse(redact(positional[1]!, credentialValues())); }
       catch { throw new AppError('INVALID_INPUT', '修改字段不是有效 JSON。'); }
       const log = new SessionLog(paths.sessions);
-      const tools = new DialogueTools(client, new OperationCoordinator(new OperationJournal(paths.sessions, log.id)));
+      const tools = new DialogueTools(client, new OperationCoordinator(new OperationJournal(paths.sessions, log.id)), {}, mcp);
+      // 独立CLI preview命令是用户明确的预览请求；此入口没有写执行器，也不产生直接授权。
+      tools.beginTurn(`修改条目 #${positiveId(positional[0])} 的字段（CLI预览）`, []);
       const plan = await tools.execute('preview_collection_changes', { operations: [{ subjectId: positiveId(positional[0]), patch }] }, { signal: controller.signal });
       if (flags.json) dump(plan); else console.log(redact(showPlan(plan as OperationPlan), credentialValues()));
     }
@@ -209,7 +230,7 @@ export async function main(argv: string[]): Promise<void> {
       if (flags.resume && !flags.json) process.stderr.write(`恢复仅采用已完成对话，旧授权已失效；操作记录：成功${operationRecovery.success}，失败${operationRecovery.failed}，未知${operationRecovery.unknown}。未知项先核对网站状态，不自动重试。\n`);
       let commands: DialogueCommands;
       const previewOutputs: OperationPlan[] = [];
-      const tools = new DialogueTools(client, new OperationCoordinator(journal, new BgmOperationExecutor(client)), {
+      const tools = new DialogueTools(client, new OperationCoordinator(journal, new McpOperationExecutor(client, mcp, new BgmOperationExecutor(client))), {
         ...(flags.json ? {} : { candidates: set => process.stderr.write(redact(showCandidates(set), credentialValues())) }),
         plan: plan => {
           const index = previewOutputs.findIndex(value => value.id === plan.id);
@@ -217,7 +238,7 @@ export async function main(argv: string[]): Promise<void> {
           if (plan.state === 'pending') commands.presented(plan);
           if (!flags.json) process.stderr.write(redact(showPlan(plan), credentialValues()));
         },
-      });
+      }, mcp);
       commands = new DialogueCommands(tools, log);
       const agent = new ReadAgent(model, tools, log, config.maxSteps);
       const conversation = new ScopedConversation(model, agent, tools, commands, log);
@@ -239,7 +260,7 @@ export async function main(argv: string[]): Promise<void> {
       };
       await run(positional[0]!);
     }
-  } finally { process.off('SIGINT', cancel); await model?.close(); }
+  } finally { process.off('SIGINT', cancel); await model?.close(); await mcp?.close(); }
 }
 
 main(process.argv.slice(2)).catch(error => {
