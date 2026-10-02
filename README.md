@@ -1,351 +1,150 @@
-# MyBangumiAssistant
+# MyBangumiAssistant · Pi
 
-用自然语言查询 Bangumi 作品、管理个人收藏和更新观看或阅读进度的本地 CLI Agent。
+独立迁移工程。`pi/` 为官方 Pi 的固定源码，`bangumi/` 为登录、MCP 和契约扩展。
+对话循环、会话、压缩、模型选择和终端界面均使用 Pi 原生能力。旧项目保持独立。
 
-支持动画、书籍、音乐、游戏和三次元；可以连续对话、选择同名作品、切换模型，并在复杂修改前查看具体预览。Bangumi 查询和修改通过项目内的本地 MCP 服务执行，对话编排使用自建轻量核心；保留独立 [bgm-cli](https://github.com/aronnaxlin/bgm-cli) 兼容入口。
+## 安装与运行
 
-普通自由表达由当前模型理解，并按程序提供的固定工具 schema 选择工具、填写参数；沿用现有模型循环，不要求固定中文句式。消歧和读取追问保存结构化任务，选择或补充后继续原目标。模型不生成新的 MCP 地址或接口，参数、账户、权限和写后回读仍由宿主检查。普通单集状态和单条目收藏状态，在真实请求、唯一对象及账户绑定后直接修改；降低/清空进度、批量及附带影响等复杂项预览后确认。
+需要 Node.js `>=24.14.0 <25`、npm、Git 与 curl。Pi 子模块固定为 `9fba660cf1caca0ade5bea72269352416e595a19`，保留官方源码和许可证。
 
-
-## 快速开始
-
-### 运行要求
-
-- Node.js `>=24.14.0 <25`，项目锁定版本为 `24.14.0`。
-- npm 和 Git。
-- Windows 与可用的默认浏览器。当前账户凭据保护使用 Windows DPAPI，其他系统的账户功能尚不支持。
-- 对话功能需要支持工具调用和流式响应的模型 API；独立查询命令不需要模型密钥。
-
-### 安装
-
-当前从源码运行：
+从 `pi` 分支克隆并执行固定源码初始化：
 
 ```powershell
-git clone https://github.com/KasLee14/MyBangumiAssistant.git
+git clone --branch pi --recurse-submodules https://github.com/KasLee14/MyBangumiAssistant.git
 cd MyBangumiAssistant
-npm ci
-npm run build
-npm start -- --help
-npm start -- doctor
+node bootstrap-pi.mjs --proxy http://127.0.0.1:7890
+cd bangumi
+npm start
 ```
 
-已经取得源码时，从 `npm ci` 开始即可。`npm start` 使用构建产物，修改源码后需重新运行 `npm run build`。项目暂未发布 npm 包，不提供全局安装或 `npx` 安装方式。
+初始化脚本安装锁定依赖、验证固定模型目录 SHA-256、运行官方 hydrate 与 Pi 原生离线构建，再构建 Bangumi 应用。已有缓存仍会核对哈希。未递归克隆时，脚本会初始化固定子模块；不使用 GitHub ZIP 代替 Git 克隆。
 
-### 开始对话
+初始化的 `--proxy` 可省略。应用运行时自动发现标准环境和 Windows 代理，`--proxy` 显式指定，`--direct` 显式直连，不自动换线路。
 
-完成下方模型配置后运行：
+默认运行数据目录为 `%LOCALAPPDATA%/MyBangumiAssistant-Pi`；用 `--data-dir` 或 `BANGUMI_PI_HOME` 单独指定。不会自动读取旧项目的配置、会话或登录文件。
+
+## 配置模型
+
+模型采用 Pi 配置：运行数据目录内的 `pi/models.json`、`pi/settings.json` 和模型凭据。密钥优先用环境变量引用，不放进聊天或项目源码。可用 `--provider`、`--model`，以及 Pi 的 `/model` 切换。
+
+兼容端点配置可从 `bangumi/config/models.example.json` 开始，替换占位地址和模型名；`apiKey` 使用 `${BANGUMI_MODEL_API_KEY}` 形式引用环境变量（必须带 `$`），真实值只设置在本机环境。示例地址不能直接发起请求。
+
+### 1. 创建或打开配置
+
+先进入 `bangumi/`，在 PowerShell 中执行。已有配置不会被示例覆盖：
 
 ```powershell
-npm start -- chat
+$piConfigDir = Join-Path $env:LOCALAPPDATA 'MyBangumiAssistant-Pi\pi'
+if ($env:BANGUMI_PI_HOME) { $piConfigDir = Join-Path $env:BANGUMI_PI_HOME 'pi' }
+New-Item -ItemType Directory -Force -Path $piConfigDir | Out-Null
+$piModelFile = Join-Path $piConfigDir 'models.json'
+if (!(Test-Path -LiteralPath $piModelFile)) {
+    Copy-Item -LiteralPath .\config\models.example.json -Destination $piModelFile
+}
+notepad $piModelFile
 ```
 
-也可以只提一个问题：
-
-```powershell
-npm start -- ask '搜索葬送的芙莉莲，列出三个候选及链接'
-```
-
-个人收藏、统计、个人进度及修改操作需要先登录 Bangumi；公开搜索、作品详情和公开章节查询通常不需要登录。
-
-### 本地 MCP 工具
-
-安装后程序自动启动和关闭内置 Node.js MCP 服务，无需 Python、额外 MCP 配置或第三方托管服务。已导入 55 项工具：41 项读取、14 项修改；模型继续使用上述 Chat Completions 接口。
-
-| 分类 | 工具数 | 能力 |
-| --- | ---: | --- |
-| 作品与章节 | 10 | 搜索、浏览、详情、图片、关系、放送日历、章节 |
-| 角色 | 7 | 搜索、资料、图片、作品和出演人物、个人收藏 |
-| 人物与组织 | 7 | 搜索、资料、图片、作品与角色、个人收藏 |
-| 用户 | 3 | 公开资料、头像、本机当前账户 |
-| 收藏 | 11 | 作品、章节、角色和人物收藏读取与原生修改 |
-| 资料编辑历史 | 8 | 作品、章节、角色、人物的百科修订记录 |
-| 目录 | 9 | 目录与条目读取、本人目录创建和修改、目录收藏 |
-
-查看全部工具或直接执行只读查询，不需要模型密钥：
-
-```powershell
-npm start -- mcp-tools --json
-npm start -- mcp-read get_daily_broadcast '{}'
-npm start -- mcp-read get_subject_relations '{"subject_id":400602,"limit":10}'
-npm start -- mcp-read get_user_collections '{"username":"-","limit":20}'
-```
-
-`username="-"` 使用本机当前登录账户；显式用户名只读取其公开资料，公共请求不携带本机账户会话。关系和收藏按页返回，只有明确的完整范围才能用于全量结论。放送日历表示当前周计划，不能据此保证具体章节已经上线。
-
-搜索支持显式标签及评分、评分人数、排名、日期范围，例如 `search_subjects` 参数：
-
-```json
-{"keyword":"","subject_type":2,"filter":{"tag":["百合"],"rating":{"min":6.2,"max":7.2}},"sort":"rank","limit":20,"offset":0}
-```
-
-`keyword` 仅作文字检索；只按条件筛选时填空字符串并提供有效 `filter`，无需把题材词同时放入标题关键词。`tag` 为用户标签，`meta_tags` 为公共标签，多标签及不同条件均为“且”；范围对象采用包含边界的 `min/max`，可省略一侧，`air_date` 使用实际的 `YYYY-MM-DD` 日期。聊天模型只填写数字媒体 `subject_type`，旧 `type` 媒体名仍由兼容入口接受。搜索排序不表示与基准评分的差值；标签命中也不保证题材主线相符，推荐仍需根据取得的资料核实。
-
-浏览的 `cat` 表示作品形式：动画只能是0其他、1TV、2OVA、3电影、5WEB；`series` 仅书籍可用，`platform` 仅游戏可用。非法字段、嵌套未知键、类型或条件组合会在网络请求前被拒绝，返回字段路径、合法值和修正提示；同轮相同无效只读参数不反复执行，不自动删除筛选条件。固定55项工具采用共享schema与运行时校验，权限及写后回读继续由宿主执行。
-
-修改请使用 `ask` 或 `chat`，`mcp-read` 只允许读取。角色、人物和目录使用对应类型的 ID 或链接；目录内容修改只针对本人拥有的目录。新增复杂修改先显示具体字段与影响，再通过现有确认流程执行，结果以独立回读为准。条目取消收藏仍未开放，角色/人物/目录的取消收藏是各自独立能力。
-
-工具名称与分类参考 [BangumiMCP](https://github.com/Ukenn2112/BangumiMCP)，本项目根据官方 Bangumi API 独立实现本地 TypeScript 服务。新增能力的离线验收与真实模型、登录和账户读写验证分别记录。
-
-## 模型配置
-
-可以配置兼容当前请求与响应协议的 API 地址，使用不同提供方和模型，并手动切换。当前接入的是 **Chat Completions 协议**，用于 Agent 的服务还需支持 **SSE 流式响应和工具调用**；DeepSeek 只是一个配置示例。
-
-先查看用户配置文件的位置：
-
-```powershell
-npm start -- doctor
-npm start -- config
-```
-
-Windows 默认配置文件为 `%APPDATA%\BangumiAgent\config.json`。新建或编辑该文件，下面是一个最小示例：
+在 `models.json` 中替换兼容接口根地址与真实模型 ID：
 
 ```json
 {
-  "activeModel": "default",
-  "models": {
-    "default": {
-      "baseUrl": "https://api.deepseek.com",
-      "model": "deepseek-flash",
-      "apiKeyEnv": "BANGUMI_MODEL_API_KEY"
+  "providers": {
+    "bangumi-model": {
+      "baseUrl": "https://example.invalid/v1",
+      "api": "openai-completions",
+      "apiKey": "${BANGUMI_MODEL_API_KEY}",
+      "models": [{ "id": "your-model" }]
     }
   }
 }
 ```
 
-| 字段 | 说明 |
-| --- | --- |
-| `activeModel` | 默认使用的配置名称，对应 `models` 中的键 |
-| `baseUrl` | 服务的 API 基础地址，例如 `https://api.deepseek.com`；某些服务需要带 `/v1` |
-| `model` | 提供方实际支持的模型 ID |
-| `apiKeyEnv` | 保存 API Key 的环境变量名称，配置文件只保存名称 |
+`baseUrl` 不带末尾的 `/chat/completions`，也不能把 Anthropic 端点配给 `openai-completions`。`id` 必须是提供方实际支持的模型名。`example.invalid` 和 `your-model` 只是占位符，必须替换。环境变量名必须使用 `$NAME` 或 `${NAME}`，裸变量名会被当成实际密钥字符串。
 
-程序在 `baseUrl` 后追加 `/chat/completions`，不要填写完整请求地址。当前不支持 `/responses` 或 `/anthropic` 协议；模型名称应使用真实 ID，不附加其他客户端专用的后缀。
+### 2. 在本机隐藏输入密钥
 
-在启动应用的 PowerShell 窗口中提供模型密钥：
+若尚未设置对应环境变量，在启动程序的同一个 PowerShell 窗口执行：
 
 ```powershell
-$env:BANGUMI_MODEL_API_KEY = '<你的 API Key>'
-npm start -- chat
+$piSecret = Read-Host '模型 API Key' -AsSecureString
+$env:BANGUMI_MODEL_API_KEY = [System.Net.NetworkCredential]::new('', $piSecret).Password
+Remove-Variable piSecret
 ```
 
-此设置只对当前窗口及其子进程生效，也可以使用本机已有的用户环境变量。不要把真实密钥写进配置文件、源码或对话；程序不会自动加载 `.env` 文件。
+输入不会显示，密钥不写进命令历史或配置文件。此设置只对当前窗口及其子进程生效；新开窗口需要重新输入。若已有长期环境变量，直接在 `apiKey` 中引用其名称即可，不必复制或重复输入。不要把真实密钥填进项目示例或发送到聊天。
 
-添加模型时，在 `models` 中增加一个配置名称，填写对应地址、模型 ID 和密钥环境变量名。启动时选择配置：
+### 3. 启动、选择与保存默认模型
+
+把 `your-model` 换成配置中的模型 ID：
 
 ```powershell
-npm start -- chat --model default
-npm start -- ask '查询葬送的芙莉莲的详情' --model default
+npm start -- --model bangumi-model/your-model --proxy http://127.0.0.1:7890
 ```
 
-聊天中输入 `/model` 打开模型菜单，或用 `/model 配置名称` 直接切换。配置在启动时读取，编辑文件后请重启应用。
+可以在 Pi 中用 `/model` 切换；选中模型后按 Ctrl+S 保存默认选择。也可以编辑同目录的 `settings.json`，合并以下字段并保留原有设置：
 
-基础配置不需要填写 `thinking`。当前实现仍会自动发送这一扩展参数（省略时为 `disabled`），部分兼容服务可能拒绝或忽略；改为按需发送尚待实现。
-
-## 代理配置
-
-应用启动时自动发现代理，优先级为：
-
-```text
-config.json 中显式设置的 proxy
-→ BANGUMI_AGENT_PROXY
-→ HTTPS_PROXY / HTTP_PROXY
-→ Windows 当前用户已启用的固定系统代理
-→ 直连
+```json
+{
+  "defaultProvider": "bangumi-model",
+  "defaultModel": "your-model",
+  "defaultThinkingLevel": "off"
+}
 ```
 
-通常无需额外配置。需要显式指定本机代理时：
+设置默认后执行 `npm start` 即可。代理自动发现仍生效；`--proxy` 显式指定，`--direct` 显式直连。`--thinking high` 或 Pi `/thinking` 可调整模型支持的思考级别。
 
-```powershell
-$env:BANGUMI_AGENT_PROXY = 'http://127.0.0.1:7890'
-npm start -- doctor
+### DeepSeek 本机接入示例
+
+Pi固定模型目录已包含 `deepseek/deepseek-flash`。若本机已有 DeepSeek 密钥环境变量 `ANTHROPIC_AUTH_TOKEN`，可只覆盖认证和端点，保留 Pi 原生模型目录：
+
+```json
+{
+  "providers": {
+    "deepseek": {
+      "baseUrl": "https://api.deepseek.com",
+      "api": "openai-completions",
+      "apiKey": "${ANTHROPIC_AUTH_TOKEN}"
+    }
+  }
+}
 ```
 
-也可以使用标准环境变量，且不要同时设置更高优先级的应用代理：
+对应默认选择为 `defaultProvider=deepseek`、`defaultModel=deepseek-flash`；`defaultThinkingLevel=off` 使用非思考模式。环境变量的名称不决定请求协议：Chat Completions 使用上述根地址，Claude Code 的 `/anthropic` 地址及 `[1m]` 模型后缀不能原样复制到这里。该配置不改动 Claude Code 或其密钥。模型名、协议地址及思考开关见 [DeepSeek 官方文档](https://api-docs.deepseek.com/api/create-chat-completion/)。
 
-```powershell
-$env:HTTPS_PROXY = 'http://127.0.0.1:7890'
-$env:HTTP_PROXY = 'http://127.0.0.1:7890'
-$env:NO_PROXY = 'localhost,127.0.0.1'
-```
-
-标准变量支持大小写，小写优先，并遵守 `NO_PROXY`；Windows 系统代理使用自己的绕过规则。标准变量按目标协议分流，仅设置 `HTTP_PROXY` 时也用于 HTTPS。
-
-配置文件中省略 `proxy` 表示自动发现；设置 `"proxy": null` 表示明确直连；填写 HTTP/HTTPS 地址表示强制使用该代理。显式应用代理不采用标准变量的绕过规则。
-
-`doctor` 显示代理来源及规则，聊天中的 `/status` 仅显示代理地址，无代理时显示“直连”。模型请求、Bangumi API、邮箱登录及验证码会话准备共享应用代理；浏览器验证网页使用浏览器自己的网络设置。Git 和 npm 也有独立的代理设置。
-
-代理配置修改后需要重启应用。所选代理发生故障时不会自动换线路或直连，也不会通过换线路重发写入。
-
-<a id="bangumi-认证与进度限制"></a>
+只有 `/model` 能识别模型、凭据引用能解析并不能证明网站请求成功；首次真实请求的兼容性和认证结果需单独核实。
 
 ## Bangumi 登录
 
-登录入口统一使用 CLI 的 `login`，或聊天中的 `/login`：
+Bangumi 使用专用命令：
+
+- `/bangumi-login`：独立邮箱、隐藏密码和浏览器验证码。
+- `/bangumi-login manual`：使用本地验证码辅助。
+- `/bangumi-login-status`：本地登录状态，不代表在线认证成功。
+- `/bangumi-logout`：仅清除本应用保存的 Bangumi 会话。
+
+邮箱和密码在独立组件中输入，不经过模型、共享编辑器或普通会话。登录后的会话使用 Windows DPAPI 保存。
+
+## 工具与修改
+
+保留固定55项 MCP 工具与同源输入/输出契约。普通请求直接由 Pi 主模型理解并组合工具，没有前置分类器或自写对话状态机。
+
+**每次写入均使用 Pi 进行具体确认。** 提交绑定账户、对象和参数；确认后若原文、账户或现状改变则失效。结果以独立回读为准，超时/取消仍核查，未知不重发。非交互入口不自动同意写入。
+
+长预览按窗口分页；查看完整内容后，在末页按 → 选择确认，再 Enter 提交。默认取消，Esc 可随时取消。
+
+原生终端的缓存、日志和会话在首次加载Pi之前就固定到隔离目录。默认关闭启动工具下载和更新检查，模型与Bangumi网络请求仍按配置工作。
+
+条目取消收藏、社区写入和本地补充进度仍未开放。旧终端布局、宿主统计/便利进度封装和历史格式不强制兼容。
+
+## 生产检查与验证边界
+
+在 `bangumi/` 执行：
 
 ```powershell
-npm start -- login
+npm run typecheck
+npm run build
 ```
 
-程序依次提示 **Bangumi 登录邮箱**、**隐藏密码**，随后打开默认浏览器完成人机验证。首次使用无需注册 OAuth 应用或配置 App ID / App Secret 环境变量。聊天中的 `/login` 使用独立输入区域，密码以圆点显示，邮箱与密码都不进入普通聊天、输入历史或模型。
+公开分支仅包含安装、构建和运行所需文件。本地开发测试、规划文档和机器来源清单不发布，不提供缺失测试材料的 `npm test`。迁移实现已有128项本地离线验证及Windows终端冒烟证据；真实模型、登录和网站持久化仍待验收。
 
-人机验证默认参考锁定 `bgm-cli 1.1.2`，通过 Bangumi 官方验证页和上游 `https://oauth-backend-jet.vercel.app` 的无状态回传服务送回短期验证令牌。该服务只处理验证令牌与随机本机回传地址；邮箱、密码仅经 HTTPS 直接发往 `https://next.bgm.tv/p1/login`，账户会话不发送到验证服务。应用继承当前代理策略，浏览器使用自身网络设置。
-
-| 命令 | 用途 |
-| --- | --- |
-| `npm start -- login` | 核实已有登录，失效时提示邮箱和隐藏密码，再完成人机验证 |
-| `npm start -- login --force` | 强制重新登录或切换账户 |
-| `npm start -- login --manual` | 使用本地验证辅助页，不依赖上游托管服务 |
-| `npm start -- login-status` | 查看本机保存的登录信息，不验证网站 |
-| `npm start -- auth-check` | 在线只读核实当前账户，不自动重登 |
-| `npm start -- logout` | 清除本机登录，不注销网站其他会话 |
-
-聊天中也可使用 `/login --manual`。手动模式打开中文本地辅助页，按步骤在 `next.bgm.tv` 开发者工具中运行只创建验证码的脚本，成功后回传；浏览器阻止回传时可将验证码粘贴到辅助页本地框。此模式不读取浏览器 Cookie，不要求在聊天中粘贴凭据。默认流程失败时明确报错，不自动切换模式或重发登录。
-
-整次登录最多等待5分钟，Ctrl+C 可取消；交互聊天及邮箱/密码输入时也可用 Esc。回传只监听随机 `127.0.0.1` 端口，校验本次随机路径、Host、来源与一次性提交，无需登记回调地址。关闭网页本身不会发回取消信号。
-
-成功后独立请求 `/p1/me` 核对同一数字账户，再将会话及账户元数据原子加密保存到 `%APPDATA%\BangumiAgent\auth\account-session.dpapi`（设置 `BANGUMI_AGENT_HOME` 时以 `doctor` 显示目录为准）。密码不落盘，配置、会话日志及模型不保存认证数据。有效期采用响应 Max-Age，最多30天，实际网站可能提前使其失效；失效后重新 `/login`，不保存密码自动登录、不自动重发修改。失败或保存前取消保留原本机登录。
-
-旧 `oauth-session.dpapi`、`web-session.dpapi` 与独立 bgm-cli 配置不会导入、读取或自动删除；已有 OAuth 用户需重新邮箱登录。凭据保护当前仅支持 Windows，与当前用户及本机绑定，换电脑后重新登录。离线回调、模拟账户及临时 DPAPI 验证不代表真实验证码和账户线上验收。
-
-## 当前支持功能
-
-下表列出当前实现的能力；代码和离线验证不代表真实账户线上验收已完成。
-
-| 功能 | 支持范围 |
-| --- | --- |
-| 作品搜索与详情 | 动画、书籍、音乐、游戏、三次元，返回条目 ID 和网站链接 |
-| 个人收藏查询 | 单条目查询、五类分页列表、媒体和收藏状态筛选 |
-| 收藏统计 | 数量、各状态数量、个人评分分布及有效评分平均分 |
-| 收藏字段修改 | 状态、评分、标签、最终短评、公开/私密，修改前读取现状并保留其他字段 |
-| 动画与三次元进度 | 主线累计、单集、明确指定的特殊章节、回退与清空 |
-| 书籍进度 | 章数与卷数分别查询、更新、降低或清零 |
-| 音乐与游戏 | 收藏状态和字段管理，当前不支持细粒度进度 |
-| 多轮对话 | 候选消歧、编号和作品指代、补全未完成请求 |
-| 操作确认与结果核查 | 复杂变更先预览确认；写入后回读，区分成功、失败、未知及未开始 |
-| 会话和模型 | 手动切换模型、保存并恢复已完成对话，不重放工具和旧授权 |
-
-条目取消收藏暂未开放。个性化动画推荐、长期偏好和查询缓存尚未实现；首版不包含社区功能或本地自定义进度。
-
-## 使用案例
-
-### 查询作品和章节
-
-无需模型密钥即可使用独立命令：
-
-```powershell
-npm start -- search '葬送的芙莉莲' --type anime --limit 3
-npm start -- subject 400602
-npm start -- episodes 400602 --limit 20 --offset 0
-npm start -- episodes 400602 --all
-```
-
-搜索及章节查询每页最多20项；章节结果中的 `nextOffset` 用于翻页。`--all` 最多汇总100页/2000项，不能与 `--limit` 或 `--offset` 同用。分页异常或中途失败不会被当作完整清单。
-
-### 查询个人收藏和统计
-
-登录后运行：
-
-```powershell
-npm start -- collection 400602
-npm start -- collections --type anime --status in_progress --limit 20
-npm start -- collection-summary
-npm start -- collection-summary --type book --json
-npm start -- collection-summary --type anime --status completed
-npm start -- progress 400602
-```
-
-媒体参数：`anime` 动画、`book` 书籍、`music` 音乐、`game` 游戏、`real` 三次元。
-
-收藏状态：`wish` 计划、`completed` 已完成、`in_progress` 进行中、`on_hold` 搁置、`dropped` 抛弃；分别对应想看/想读等网站含义。
-
-统计使用当前账户可读取的现存收藏，包括可读取的私密项，不包含已删除历史。`collection-summary` 可组合 `--type` 和 `--status` 筛选，不传状态时包含全部状态；数量、评分分布和平均分均只统计所选范围。只统计看过的动画使用 `--type anime --status completed`。已完成依据收藏状态，不根据章节推断；个人评分0为未评分，平均分只包含1～10分的有效评分，并报告样本数。完整统计最多读取10000项，失败不输出局部全量统计，也不保证网站原子快照。
-
-### 连续对话与消歧
-
-启动 `npm start -- chat`，在同一个会话中输入：
-
-```text
-搜索葬送的芙莉莲，列出三个候选
-第一项
-查看它的详情
-查询我的五类收藏统计
-列出我正在看的动画
-```
-
-有多个候选时，使用方向键和 Enter 选择，或回复编号、完整作品名。选择后继续原任务；选择作品本身不授权修改。
-
-每项查询或修改都有自己的作品对象，选择只补充对应任务，不设置会话的默认作品。模型结合原文和历史工具结果填写对象参数，程序核对其来源和歧义。可以在一轮讨论或操作多部作品；“它”“这部”只在上文对象唯一时使用，比较多部作品后应说明具体名称。省略修改对象会追问，底部不再常驻“当前作品”。
-
-### 修改收藏和进度
-
-以下为会修改账户的输入示例，执行前请确认条目 ID 和目标值：
-
-```text
-把#400602评分改为8分
-把#400602看到第8集了
-把这部第9集看过
-把这部退回第5集
-把冰之城墙第二季第一集处理成看过
-冰之城墙第二季已经追完了，帮我记成看过
-把葬送的芙莉莲设为看过，把胆大党第二季设为搁置
-```
-
-书籍可以使用“把#条目ID读到第3卷了”，将“条目ID”替换为真实数字。
-
-明确且无额外影响的单项修改可直接执行；批量、降低或清空进度、公开/私密变化及未指定字段的附带影响，必须先展示具体变更再确认。可以回复“确认执行”或“取消”，也可以操作终端确认卡。这里仅展示输入方式，不代表这些条目已完成真实写入验证。
-
-多作品修改合成完整预览，逐项列出对象和变化；选择作品或补评分、状态只补对应项，不覆盖其他项。已符合要求的作品单列“无需改动”，不会阻止其余项。批量中尚未收藏的作品要修改进度时，先明确收藏状态并确认创建，再重新核对和展示原批量任务；结果未知时停止后续项，不重发。
-
-单集进度先在本人在看列表中查找完整作品名及季度；未找到会先问是否仍要修改，回复“继续修改”才继续查找，回复“取消”即结束。条目收藏状态优先公开搜索作品，不要求作品已在本人收藏中，也不查询在看列表。两类操作按“搜索—核对—生成计划—写入—独立回读—返回”执行，采用一次核对取得的快照，不再在提交前反复重读；核对与回读均读取目标单条收藏，不扫描全部收藏。未收藏且已明确状态时一次创建，例如“把let's go 怪奇组设置成在看”；已收藏只改要求的状态并保留原字段，已是目标状态则无需修改。只有回读一致才报告成功。已有个人收藏对象缺少必要字段时停止；网站合法未收藏响应省略整个个人收藏字段属于正常情况。核对阶段停止时明确说明尚未提交修改。
-
-“看到第N集”累计标记网站主线1～N，不清除后续；“第N集看过”只改指定主线。“本季第N集”由完整连续主线映射，续季从15开始时，本季第1集对应网站编号15；网站编号与本季序号不会混用，编号异常或对象不明确先追问。特殊章节需明确章节 ID。到达末集不自动改变收藏状态，未收藏时先选择要创建的收藏状态。修改只有独立回读一致才报告成功，重复无效参数会停止，未知结果不换工具重发。
-
-回退只将后续主线已看状态改为未看；清空会移除全部章节状态，包含特殊章节和其他状态。书籍章数、卷数独立。多章节更新可能部分成功，未知结果先核对网站，不自动重试或回滚。
-
-只检查收藏字段的变更、不提交时，可以使用独立预览命令：
-
-```powershell
-npm start -- preview 400602 '{"rate":8}' --json
-```
-
-预览需要登录并读取现状；单次命令退出后不保留授权，要执行修改需在 `chat` 中重新提出请求。
-
-### 保存和恢复对话
-
-```powershell
-npm start -- sessions
-npm start -- chat --resume '<会话ID>'
-npm start -- ask '第一项的详情' --resume '<会话ID>'
-```
-
-将占位符替换为已有会话 ID。恢复只采用已完成轮次及候选，不重放工具、恢复旧预览授权或执行此前未完成的修改；需要修改时重新提出请求。
-
-## 终端操作
-
-终端上方保留可滚动、可复制的对话，底部显示处理状态、草稿和快捷提示；启动横幅显示版本、当前模型和 Bangumi 用户名。
-
-默认等整轮执行结束后一次性显示最终答复，工具前说明、模型推理、工具活动和自动执行的计划不会逐条刷屏。真正需要消歧、补条件或补值时才展示问题和选择；复杂修改仍展示完整预览并等待确认。恢复历史也只回显每轮输入及最终答复，内部工具历史和操作记录保留。`/details` 可主动查看本轮脱敏工具与计划记录；普通文本模式同样适用。`ask` 普通输出仅显示最终正文及必要交互，`--json` 保留结构化结果。
-
-| 操作 | 按键或命令 |
-| --- | --- |
-| 发送 / 换行 | Enter / Ctrl+J；终端支持时可用 Shift+Enter |
-| 多行粘贴 | 保留为可编辑草稿，不自动发送 |
-| 命令候选 | 输入 `/` 自动展开；↑↓选择、Tab补全、Enter执行，Esc收起 |
-| 登录 / 状态 | `/login` / `/status` |
-| 模型 / 会话菜单 | `/model` / `/sessions` |
-| 新会话 / 帮助 | `/new` / `/help` |
-| 工具与计划详情 | `/details`；普通文本模式打印本轮记录 |
-| 停止本轮 | 运行时 Esc 或 Ctrl+C |
-| 退出 | `/exit`，或空闲时两次 Ctrl+C |
-
-需要普通文本界面时使用 `npm start -- chat --plain`。脚本调用使用 `ask` 和独立命令；支持的命令可加 `--json`，具体参数以 `npm start -- --help` 为准。
-
-已经发送写入时，停止本轮后仍需等待独立回读核查；取消不代表撤销网站修改。
-
-## 致谢与许可证
-
-- [Bangumi](https://bgm.tv/)：作品资料和个人收藏服务。
-- [bgm-cli](https://github.com/aronnaxlin/bgm-cli)：CLI 操作基础及数据转换。
-- [deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)：对话编排的架构参考。
-
-本项目采用 [AGPL-3.0-only](LICENSE)
+Pi 上游为 MIT；迁入的 Bangumi 应用源码保留 AGPL-3.0-only。两者许可证分别保留。
