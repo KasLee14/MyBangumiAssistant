@@ -1,0 +1,12 @@
+{
+  "providers": {
+    "bangumi-model": {
+      "baseUrl": "https://example.invalid/v1",
+      "api": "openai-completions",
+      "apiKey": "${BANGUMI_MODEL_API_KEY}",
+      "models": [
+        { "id": "your-model", "name": "你的兼容模型", "reasoning": false, "input": ["text"], "contextWindow": 32000, "maxTokens": 4096 }
+      ]
+    }
+  }
+}

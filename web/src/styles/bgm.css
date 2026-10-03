@@ -1,0 +1,770 @@
+/* ============================================================
+   Bangumi 风格覆盖层
+   ------------------------------------------------------------
+   依据 docs/bgm-design/ui-style.md（bgm.tv r771 实测）与已确认的
+   docs/bgm-design/style-preview.html。
+
+   为什么是覆盖层而不是重写 tokens.css：现有 tokens.css 有 358 个
+   DSH 变量、frame/composer/cards/modal 共约 60KB 规则，整体重写的
+   回归面远大于收益。这里做两件事就够了：
+
+   1. 定义 `--bgm-*` 令牌，并把组件样式**实际引用到的** 85 个 DSH
+      语义别名重定向过去 —— 既有的颜色与描边会成片跟着变；
+   2. 只针对形态（圆角、边框、胶囊、点线分隔、hover 填充、弹窗面板）
+      写覆盖规则。
+
+   本文件必须在 tokens/frame/composer/cards/modal 之后引入。
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. Bangumi 令牌：浅色
+   ------------------------------------------------------------ */
+:root {
+  --bgm-primary: #f09199;
+  --bgm-primary-soft: #fdf0f1;
+  --bgm-primary-text: #a8575f;
+  --bgm-interactive: #369cf8;
+  --bgm-link: #0084b4;
+  --bgm-danger: #c00;
+  --bgm-danger-soft: #fdf1f1;
+  --bgm-danger-border: #e9c4c4;
+  --bgm-success: #4caf50;
+  --bgm-success-soft: #f1f8f1;
+  --bgm-success-border: #cbe3cb;
+  --bgm-success-text: #2f6b33;
+  --bgm-warn: #8a6d1f;
+
+  --bgm-bg: #f5f5f5;
+  --bgm-surface: #fff;
+  --bgm-surface-alt: #fafafa;
+  --bgm-sunken: #f5f5f5;
+
+  --bgm-text: #444;
+  --bgm-text-strong: #333;
+  --bgm-text-muted: #666;
+  --bgm-text-weak: #999;
+  --bgm-text-disabled: #aaa;
+
+  --bgm-border: #ddd;
+  --bgm-border-soft: #eee;
+  --bgm-dotted: #e0e0e0;
+  /* 表单控件描边：站点 input.inputtext 的 1px #d9d9d9 */
+  --bgm-input-border: #d9d9d9;
+  /* 弹窗右上角的关闭图标：站点 #TB_closeWindowButton 的 15px 细线 ×。
+     以 mask 形式保存，按钮只给底色，hover 变色不需要第二份资源。 */
+  --bgm-close-icon: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2215%22%20height%3D%2215%22%20viewBox%3D%220%200%2015%2015%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M0.248438%2014.7539C0.134965%2014.6467%200.0593157%2014.5205%200.0214912%2014.3754C-0.0100292%2014.2303%20-0.00687718%2014.0852%200.0309473%2013.9401C0.0687718%2013.795%200.141269%2013.6688%200.248438%2013.5615L6.30036%207.49527L0.248438%201.43849C0.141269%201.33123%200.0687718%201.20505%200.0309473%201.05994C-0.000573098%200.914827%20-0.000573098%200.769716%200.0309473%200.624606C0.0687718%200.479495%200.141269%200.353312%200.248438%200.246057C0.355608%200.132492%200.481689%200.0599369%200.626683%200.0283912C0.771677%20-0.00946372%200.916671%20-0.00946372%201.06167%200.0283912C1.21296%200.0599369%201.3422%200.132492%201.44937%200.246057L7.50129%206.30284L13.5532%200.246057C13.6604%200.132492%2013.7865%200.0599369%2013.9315%200.0283912C14.0765%20-0.00946372%2014.2214%20-0.00946372%2014.3664%200.0283912C14.5114%200.0599369%2014.6407%200.132492%2014.7541%200.246057C14.8613%200.353312%2014.9338%200.479495%2014.9716%200.624606C15.0095%200.769716%2015.0095%200.914827%2014.9716%201.05994C14.9338%201.20505%2014.8613%201.33123%2014.7541%201.43849L8.70222%207.49527L14.7541%2013.5615C14.8613%2013.6688%2014.9307%2013.795%2014.9622%2013.9401C15%2014.0852%2015%2014.2303%2014.9622%2014.3754C14.9307%2014.5205%2014.8613%2014.6467%2014.7541%2014.7539C14.647%2014.8675%2014.5177%2014.9401%2014.3664%2014.9716C14.2214%2015.0095%2014.0765%2015.0095%2013.9315%2014.9716C13.7865%2014.9338%2013.6604%2014.8612%2013.5532%2014.7539L7.50129%208.69716L1.44937%2014.7539C1.3422%2014.8612%201.21612%2014.9338%201.07112%2014.9716C0.926128%2015.0095%200.781134%2015.0095%200.63614%2014.9716C0.491146%2014.9338%200.361912%2014.8612%200.248438%2014.7539Z%22%20fill%3D%22%23000%22%2F%3E%0A%3C%2Fsvg%3E%0A");
+  /* 提示条的浅块底：会话区底色是 --bgm-bg，比它暗一档才看得出分组 */
+  --bgm-tint: #ebebed;
+
+  --bgm-r-sm: 5px;
+  --bgm-r-md: 10px;
+  --bgm-r-lg: 15px;
+  --bgm-r-tag: 20px;
+  --bgm-r-pill: 999px;
+
+  --bgm-shadow-soft: 0 0 5px #ddd;
+  /* 站点弹窗外发光：0 5px 30px 10px rgba(80,80,80,.5)（#TB_window / .modal-panel 实测） */
+  --bgm-shadow-modal: 0 5px 30px 10px rgba(80, 80, 80, .5);
+  --bgm-focus: 0 0 0 2px rgba(54, 156, 248, .35);
+  --bgm-fast: all linear .1s;
+  --bgm-slow: all .25s ease-out;
+
+  --bgm-font: "SF Pro SC", "SF Pro Display", "PingFang SC", "Lucida Grande",
+    "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif, "Hiragino Sans GB";
+  --bgm-mono: Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+/* ------------------------------------------------------------
+   2. 把既有 DSH 语义别名重定向到 Bangumi 值
+   ------------------------------------------------------------
+   弹窗、toast、菜单材质等组件消费的是 DSH 语义别名，这里把它们整体重定向到
+   `--bgm-*`，颜色与描边会成片跟着变。浅色是唯一外观，因此只在 `:root` 声明。
+   ------------------------------------------------------------ */
+:root {
+  /* 字体：改用系统 UI 字体栈，不再使用打包进来的 Montserrat */
+  --dsw-font-family: var(--bgm-font);
+  --dsw-font-family-brand: var(--bgm-font);
+  --ds-font-family-code: var(--bgm-mono);
+  --dsw-font-markdown-code: var(--bgm-mono);
+  --dsw-font-markdown-code-block: var(--bgm-mono);
+
+  /* 字号阶梯：正文 14px、次级 13px，辅助信息不低于 12px */
+  --dsh-content-font-size: 14px;
+  --dsh-content-font-size-secondary: 13px;
+  --dsh-content-font-delta: 1px;
+  --dsh-content-font-delta-secondary: 1px;
+  --dsw-font-markdown-base: 14px;
+
+  /* 圆角：对齐 Bangumi 的 5 / 10 / 15 / 20 阶梯 */
+  --dsw-radius-sm: var(--bgm-r-sm);
+  --dsw-radius-md: var(--bgm-r-md);
+  --dsw-radius-lg: var(--bgm-r-lg);
+  --dsw-radius-xl: var(--bgm-r-tag);
+  --dsw-radius-panel: var(--bgm-r-sm);
+
+  /* 背景 */
+  --dsw-alias-bg-base: var(--bgm-bg);
+  --dsw-alias-bg-module-platform: var(--bgm-surface);
+  --dsw-alias-bg-mask-1: rgba(0, 0, 0, .35);
+  --dsw-specific-sidebar-fill: var(--bgm-surface-alt);
+  --dsw-specific-menu: var(--bgm-surface);
+  --dsw-specific-input-major: var(--bgm-surface);
+  --dsw-specific-bubble: var(--bgm-primary-soft);
+
+  /* 文字 */
+  --dsw-alias-label-primary: var(--bgm-text);
+  --dsw-alias-label-primary-bluish: var(--bgm-text-strong);
+  --dsw-alias-label-primary-foreground: var(--bgm-text-strong);
+  --dsw-alias-label-secondary: var(--bgm-text-muted);
+  --dsw-alias-label-tertiary: var(--bgm-text-weak);
+  --dsw-alias-label-caption: var(--bgm-text-weak);
+  --dsw-alias-label-dimmed: var(--bgm-text-disabled);
+
+  /* 描边 */
+  --dsw-alias-border-l1: var(--bgm-border-soft);
+  --dsw-alias-border-l2: var(--bgm-border);
+  --dsw-alias-border-l2-darkmode-thin: var(--bgm-border);
+  --dsw-alias-border-l3: var(--bgm-border);
+  --dsw-alias-border-l4: var(--bgm-border);
+
+  /* 交互与按钮 */
+  --dsw-alias-interactive-bg-hover: var(--bgm-interactive);
+  --dsw-alias-interactive-bg-active: var(--bgm-interactive);
+  --dsw-alias-interactive-bg-hover-danger: var(--bgm-danger);
+  --dsw-alias-button-primary-fill: var(--bgm-primary);
+  --dsw-alias-button-primary-hover: var(--bgm-interactive);
+  --dsw-alias-button-info-fill: var(--bgm-interactive);
+  --dsw-alias-button-info-hover: var(--bgm-primary);
+  --dsw-alias-button-elevated-fill: var(--bgm-surface);
+  --dsw-alias-button-floating-hover: var(--bgm-border-soft);
+  --dsw-alias-link: var(--bgm-link);
+
+  /* 状态色 */
+  --dsw-alias-state-error-primary: var(--bgm-danger);
+  --dsw-alias-state-success-primary: var(--bgm-success);
+  --dsw-alias-state-success-secondary: var(--bgm-success);
+  --dsw-alias-state-success-tertiary: var(--bgm-primary-soft);
+  --dsw-alias-state-warn-label: var(--bgm-warn);
+  --dsw-alias-state-warn-secondary: #f0d9a0;
+  --dsw-alias-state-warn-tertiary: #fff8e6;
+  --dsw-alias-state-business-primary: var(--bgm-interactive);
+  --dsw-alias-state-business-tertiary: var(--bgm-primary-soft);
+  --dsw-alias-state-idle-primary: var(--bgm-text-disabled);
+
+  /* 阴影：Bangumi 用 1px 边框 + 极柔光，不用大扩散投影 */
+  --dsw-shadow-lv2: var(--bgm-shadow-soft);
+  --dsw-elevation-soft: none;
+  --dsw-elevation-stroke: 1px solid var(--bgm-border);
+  --dsw-elevation-panel: var(--bgm-shadow-soft);
+  --dsw-elevation-prominent: var(--bgm-shadow-modal);
+  --dsw-menu-backdrop-filter: none;
+  --dsw-mask-blur: 0;
+}
+
+/* ------------------------------------------------------------
+   3. 形态覆盖
+   ------------------------------------------------------------ */
+
+/* 3.1 侧栏：浅底 + 右侧 1px 边框；行用点线，hover 整行填充交互蓝 */
+.sidebar {
+  background: var(--bgm-surface-alt);
+  border-right: 1px solid var(--bgm-border);
+}
+
+.regionArea { border-top: 1px solid var(--bgm-border); }
+
+.sessionRow {
+  border-bottom: 1px dotted var(--bgm-dotted);
+  border-radius: 0;
+  transition: var(--bgm-fast);
+}
+.sessionRow:hover,
+.sessionRow:focus-visible {
+  background: var(--bgm-interactive);
+  color: #fff;
+}
+.sessionRow:hover .time,
+.sessionRow:hover .meta {
+  color: rgba(255, 255, 255, .88);
+}
+.sessionRow.selected {
+  color: var(--bgm-primary);
+  font-weight: 700;
+}
+
+.regionLabel {
+  border-bottom: 1px solid var(--bgm-border);
+  color: var(--bgm-text-weak);
+}
+
+.newSession {
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-primary);
+  border: 1px solid var(--bgm-primary);
+  color: #fff;
+  transition: var(--bgm-fast);
+}
+.newSession:hover {
+  background: var(--bgm-interactive);
+  border-color: var(--bgm-interactive);
+}
+
+/* 3.2 顶栏与会话头 */
+.conversationHeader {
+  background: var(--bgm-surface);
+  border-bottom: 1px solid var(--bgm-border);
+}
+
+.chip {
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-border-soft);
+  color: var(--bgm-text-muted);
+  border: 1px solid transparent;
+}
+/* 连接状态用语义底色表达，不靠 6px 圆点单独承担：已连接为绿，中断为红 */
+.chip[data-state="on"] {
+  background: var(--bgm-success-soft);
+  border-color: var(--bgm-success-border);
+  color: var(--bgm-success-text);
+}
+.chip[data-state="off"] {
+  background: var(--bgm-danger-soft);
+  border-color: var(--bgm-danger-border);
+  color: var(--bgm-danger);
+}
+
+.iconButton {
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--bgm-r-sm);
+  background: var(--bgm-surface);
+  color: var(--bgm-text-muted);
+  transition: var(--bgm-fast);
+}
+.iconButton:hover {
+  background: var(--bgm-interactive);
+  border-color: var(--bgm-interactive);
+  color: #fff;
+}
+
+/* 3.3 会话流：轮次之间点线分隔（真实结构是 .column > .flowItem） */
+.column > .flowItem + .flowItem {
+  border-top: 1px dotted var(--bgm-dotted);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+/* 用户消息：主色浅底 + 右侧主色边条，避免整块实心色 */
+.userRow .bubble,
+.bubble {
+  background: var(--bgm-primary-soft);
+  border: 0;
+  border-right: 3px solid var(--bgm-primary);
+  border-radius: var(--bgm-r-md) 0 0 var(--bgm-r-md);
+  color: var(--bgm-text-strong);
+}
+
+.assistantRow .assistantBody,
+.assistantBody {
+  border-left: 2px solid var(--bgm-border-soft);
+  padding-left: 10px;
+}
+
+/* 3.4 工具活动与过程折叠 */
+.processGroup {
+  border: 0;
+  background: transparent;
+}
+.processTitle {
+  color: var(--bgm-text-weak);
+  transition: var(--bgm-fast);
+}
+.processTitle:hover { color: var(--bgm-interactive); }
+
+.processBody { border-left: 0; }
+.activityRow {
+  border-bottom: 1px dotted var(--bgm-dotted);
+  font-size: 12px;
+}
+.activityRow .mark { font-family: var(--bgm-mono); }
+/* 工具详情是同一行里的长 JSON，允许断行以免把内容区撑出横向滚动 */
+.activityRow > span:last-child { word-break: break-all; line-height: 1.7; }
+.activityRow[data-state="ok"] .mark { color: var(--bgm-success); }
+.activityRow[data-state="running"] .mark { color: var(--bgm-interactive); }
+.activityRow[data-state="error"] .mark { color: var(--bgm-danger); }
+
+/* 3.5 卡片：1px 边框 + 10px 圆角，无投影（靠边框分组） */
+.cardSeat .planCard,
+.planCard {
+  background: var(--bgm-surface);
+  border: 1px solid var(--bgm-border);
+  border-left: 3px solid var(--bgm-primary);
+  border-radius: var(--bgm-r-md);
+  box-shadow: none;
+}
+.planStrip { border-bottom: 1px solid var(--bgm-border-soft); }
+.planNote { color: var(--bgm-text-muted); font-size: 12px; }
+.previewText {
+  background: var(--bgm-sunken);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-sm);
+  color: var(--bgm-text-muted);
+  font-family: var(--bgm-mono);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+/* 3.6 会话内提示与错误：沿用 DSH 的行内语汇，没有彩色横幅。
+   notice 是淡底无描边的一行说明；error 是状态点 + 文本，只有点着色。 */
+.noticeRow {
+  padding: 4px 8px;
+  border-radius: var(--bgm-r-md);
+  background: var(--bgm-tint);
+  color: var(--bgm-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+.errorRow {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 2px 0;
+  color: var(--bgm-text);
+  font-size: 13px;
+  line-height: 20px;
+}
+.errorRow .stateDot {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  color: var(--bgm-danger);
+}
+.errorRow .stateDot::after {
+  content: '';
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  corner-shape: round;
+  background: currentColor;
+}
+.errorRow .errorText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.thinkingBlock {
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-sm);
+  background: var(--bgm-surface-alt);
+}
+.thinkingTitle { color: var(--bgm-text-weak); }
+
+/* 3.7 输入区：容器承担边框与聚焦发光，输入框本体无边框 */
+.composerSeat {
+  /* 卡片与它下面的读数之间留出间距；读数行自己带实心底，此处只负责留白 */
+  padding-bottom: calc(var(--dsh-composer-dock-inset) + 26px);
+}
+.composerSeat .composerCard,
+.composerHero,
+.composerInput {
+  background: var(--bgm-surface);
+}
+.composerSeat .composerHero,
+.composerHero {
+  border: 1px solid var(--bgm-primary);
+  border-radius: var(--bgm-r-lg);
+  transition: var(--bgm-slow);
+}
+.composerSeat .composerHero:focus-within,
+.composerHero:focus-within {
+  box-shadow: 0 0 10px rgba(240, 145, 153, .6);
+}
+.composerInput { border: 0; }
+.composerHint { color: var(--bgm-text-weak); font-size: 12px; }
+.composerProblem { color: var(--bgm-danger); font-size: 12px; }
+
+.sendButton {
+  border-radius: 50%;
+  background: var(--bgm-primary);
+  color: #fff;
+  transition: var(--bgm-fast);
+}
+.sendButton:hover { background: var(--bgm-interactive); }
+.sendButton[disabled] { background: var(--bgm-border-soft); color: var(--bgm-text-disabled); }
+
+/* 3.8 浮层：菜单项 hover 整行填充交互蓝 + 白字 */
+.menuSurface,
+.thinkingMenu,
+.composerPopup {
+  background: var(--bgm-surface);
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--bgm-r-sm);
+  box-shadow: var(--bgm-shadow-soft);
+  backdrop-filter: none;
+}
+.menuItem,
+.composerPopupViewport > * {
+  transition: var(--bgm-fast);
+}
+/* 命令候选：选中态与 hover 都是整行填充交互蓝 + 白字（Bangumi 的下拉约定） */
+.popupItem { transition: var(--bgm-fast); }
+.popupItem:hover,
+.popupItem.active {
+  background: var(--bgm-interactive);
+  color: #fff;
+}
+.popupItem:hover .value,
+.popupItem:hover .hint,
+.popupItem.active .value,
+.popupItem.active .hint { color: rgba(255, 255, 255, .88); }
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: var(--bgm-interactive);
+  color: #fff;
+}
+.menuItem:hover .hint,
+.menuItem:hover .menuLabel,
+.menuItem:hover .meta { color: rgba(255, 255, 255, .88); }
+.menuItem.selected { color: var(--bgm-primary); font-weight: 700; }
+.menuSeparator { border-top: 1px solid var(--bgm-border-soft); }
+.popupSection { color: var(--bgm-text-weak); border-bottom: 1px solid var(--bgm-border-soft); }
+
+/* 3.9 弹窗：对齐 bgm.tv 弹窗（#TB_window / .modal-panel / .collectBox 实测）
+   ------------------------------------------------------------
+   站点的弹窗是一件「浮起来的白面板」：15px 圆角、几乎没有可见描边，靠
+   0 5px 30px 10px rgba(80,80,80,.5) 的大扩散柔光与页面分离；40px 标题栏里只有
+   16px/700 的主色标题与一个 15px 细线 ×，底下压一条 1px #eee 实线；内容区 15px
+   内边距，字段标签是 12px 灰字、控件整行；输入框 5px 圆角 + 1px #d9d9d9，聚焦
+   走粉色边框 + 内阴影 + 外发光；主按钮是 14px 白字粉色胶囊，次按钮是 #eee 底灰字胶囊。
+   只沿用浅色一套：站点弹窗在深色主题下是深色玻璃，本项目没有深色外观。 */
+.modalOverlay { background: rgba(0, 0, 0, .1); }
+.modalSurface {
+  width: min(480px, 100%);
+  max-height: min(85vh, 640px);
+  padding: 0;
+  /* 表面色由 .menuMaterial 子层承担（站点 #TB_window 的浅色玻璃），这里只做几何 */
+  background: transparent;
+  color: var(--bgm-text);
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: var(--bgm-r-lg);
+  box-shadow: var(--bgm-shadow-modal);
+  backdrop-filter: none;
+}
+.modalSurface[data-wide='true'] { width: min(600px, 100%); }
+/* 站点弹窗的表面：rgba(254,254,254,.8) + 20px 背景模糊的浅色玻璃 */
+.modalSurface .menuMaterial {
+  background: rgba(254, 254, 254, .8);
+  backdrop-filter: blur(20px);
+  box-shadow: none;
+}
+
+/* 标题栏：40px 高、两端对齐（站点 #TB_title）；底线是实线，不是点线 */
+.modalHeader {
+  flex: none;
+  align-items: center;
+  gap: 0;
+  height: 40px;
+  margin: 0;
+  padding: 0 5px 0 15px;
+  border-bottom: 1px solid var(--bgm-border-soft);
+}
+.modalHeader h2 {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  color: var(--bgm-primary);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* eyebrow 退成标题前的一枚 12px 灰字：站点标题栏只有标题，这里保住上下文又不占一行 */
+.modalEyebrow {
+  flex: none;
+  margin: 0 8px 0 0;
+  color: var(--bgm-text-weak);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+/* 关闭按钮：站点是 30×30 点击区 + 15px 细线图标，默认 #ccc、悬停转黑，无边框无底色 */
+.modalClose {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-right: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: #ccc;
+  -webkit-mask: var(--bgm-close-icon) center / 15px 15px no-repeat;
+  mask: var(--bgm-close-icon) center / 15px 15px no-repeat;
+  cursor: pointer;
+  transition: var(--bgm-fast);
+}
+.modalClose:hover { background-color: #000; }
+.modalClose:focus-visible {
+  outline: 2px solid var(--bgm-interactive);
+  outline-offset: 2px;
+}
+
+.modalBody {
+  gap: 10px;
+  padding: 15px;
+  color: var(--bgm-text);
+}
+/* 底部操作区：站点弹窗底部只有留白，没有分隔线 */
+.modalFooter {
+  flex: none;
+  margin: 0;
+  padding: 0 15px 15px;
+  border-top: 0;
+}
+.modalFooter .note { font-size: 12px; }
+.modalHint { color: var(--bgm-text-weak); }
+.modalError { color: var(--bgm-danger); }
+.modalSteps li { color: var(--bgm-text-muted); }
+
+/* 字段：站点把字段名放在控件上方，12px 灰字（截图里的「我的评价 / 标签 / 吐槽」） */
+.modalField { gap: 5px; }
+.modalField label { color: var(--bgm-text-muted); font-size: 12px; }
+
+/* 输入框：站点 input.inputtext —— 5px 圆角、1px #d9d9d9、22px 行高 */
+.modalInput {
+  height: 34px;
+  padding: 5px 8px;
+  background: #fff;
+  border: 1px solid var(--bgm-input-border);
+  border-radius: var(--bgm-r-sm);
+  color: #000;
+  font-size: 14px;
+  line-height: 22px;
+}
+textarea.modalInput { height: auto; min-height: 64px; resize: vertical; }
+.modalInput::placeholder { color: var(--bgm-text-disabled); }
+.modalInput:disabled {
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-disabled);
+}
+.modalInput:focus {
+  border-color: #d98d88 #f4a8bc #f4a8bc #d98d88;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .1), 0 0 8px rgba(240, 145, 153, .6);
+}
+
+/* 原生单选/复选：站点用浏览器默认控件，只有尺寸与选中色跟随 */
+.modalCheck { color: var(--bgm-text); font-size: 14px; }
+.modalCheck input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--bgm-interactive);
+}
+
+/* 横排选项行：站点收藏类型那一行（div.collectType）——14px 灰字 + 1px #eee 底线 */
+.modalChoiceRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--bgm-border-soft);
+  color: var(--bgm-text-muted);
+  font-size: 14px;
+}
+
+/* 状态条：站点 .modifyTool 的浅灰色块（#f5f5f5 + 5px 圆角，无描边） */
+.modalStatus {
+  padding: 5px 10px;
+  background: var(--bgm-sunken);
+  border: 0;
+  border-radius: var(--bgm-r-sm);
+  color: var(--bgm-text-muted);
+  font-size: 13px;
+}
+
+.modalSurface code {
+  background: var(--bgm-sunken);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: 3px;
+  font-family: var(--bgm-mono);
+}
+/* 面板内的按钮与图标按钮沿用页面同一套形态，不需要反色适配 */
+
+/* 设置弹窗：每行「名称 + 当前值 + 操作」。底线用实线（站点 .widget-item 的做法）。 */
+.settingsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bgm-border-soft);
+}
+.settingsRow:last-child { border-bottom: 0; }
+.settingsRow .label {
+  flex: none;
+  width: 5.5em;
+  color: var(--bgm-text-weak);
+  font-size: 12px;
+}
+.settingsRow .value {
+  flex: 1;
+  min-width: 0;
+  color: var(--bgm-text);
+  font-size: 14px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+.settingsRow .actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+/* 行内小按钮：站点 a.btnGraySmall（#eee 底 + 12px 字） */
+.settingsRow .actions .button {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+/* /sessions 选择弹窗：站点条目列表的行式（ul.collect li.item）——14px、点线分隔、
+   无描边无圆角，hover 整行填充交互蓝 + 白字。 */
+.pickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.pickerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px dotted var(--bgm-dotted);
+  border-radius: 0;
+  background: transparent;
+  color: var(--bgm-text-muted);
+  font-size: 14px;
+  line-height: 160%;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--bgm-fast);
+}
+.pickerRow:hover,
+.pickerRow:focus-visible {
+  background: var(--bgm-interactive);
+  color: #fff;
+}
+.pickerRow.selected {
+  color: var(--bgm-primary);
+  font-weight: 700;
+}
+.pickerRow.selected:hover,
+.pickerRow.selected:focus-visible { color: #fff; }
+.pickerRow .title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pickerRow .meta { flex: none; color: var(--bgm-text-weak); font-size: 12px; }
+.pickerRow:hover .meta,
+.pickerRow:focus-visible .meta { color: rgba(255, 255, 255, .88); }
+
+/* 3.10 按钮：站点 a.btnPink / a.btnGray —— 胶囊 + 白字；hover 统一切到交互蓝。
+   弹窗底部的操作按钮取站点常规尺寸（14px + 5px 25px 内边距），设置行内的小按钮
+   取 a.btnGraySmall 的尺寸（见 .settingsRow）；会话流卡片里的按钮仍是 12px 胶囊。 */
+.button {
+  border-radius: var(--bgm-r-pill);
+  font-size: 12px;
+  transition: var(--bgm-fast);
+}
+.button.primary {
+  background: var(--bgm-primary);
+  border: 1px solid var(--bgm-primary);
+  color: #fff;
+}
+.button.primary:hover:not(:disabled) {
+  background: var(--bgm-interactive);
+  border-color: var(--bgm-interactive);
+}
+.button.primary:disabled {
+  background: var(--bgm-border-soft);
+  border-color: var(--bgm-border-soft);
+  color: var(--bgm-text-disabled);
+}
+.modalFooter .button {
+  height: 32px;
+  padding: 0 24px;
+  border-radius: var(--bgm-r-pill);
+  font-size: 14px;
+  line-height: 150%;
+}
+/* 次要动作不用白底描边，而是站点 a.btnGraySmall 的 #eee 底 + #888 字 */
+.modalFooter .button.ghost,
+.modalFooter .button.outline,
+.settingsRow .actions .button.ghost,
+.settingsRow .actions .button.outline {
+  background: var(--bgm-border-soft);
+  border: 1px solid var(--bgm-border-soft);
+  color: #888;
+}
+.modalFooter .button.ghost:hover:not(:disabled),
+.modalFooter .button.outline:hover:not(:disabled),
+.settingsRow .actions .button.ghost:hover:not(:disabled),
+.settingsRow .actions .button.outline:hover:not(:disabled) {
+  background: var(--bgm-interactive);
+  border-color: var(--bgm-interactive);
+  color: #fff;
+}
+
+/* 3.11 hero 首屏与轮次导航 */
+.heroBadge {
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+  border-radius: var(--bgm-r-pill);
+}
+.turnRail .index,
+.railSlot .index { font-family: var(--bgm-mono); }
+
+/* 3.12 代码与 Markdown：等宽 + 浅底细边 */
+.markdown code {
+  background: var(--bgm-sunken);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: 3px;
+  font-family: var(--bgm-mono);
+  font-size: 12px;
+}
+.markdown pre {
+  background: var(--bgm-sunken);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-sm);
+  font-family: var(--bgm-mono);
+}
+.markdown blockquote {
+  border-left: 3px solid var(--bgm-primary);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+}
+.markdown a { color: var(--bgm-link); }
+.markdown a:hover { color: var(--bgm-interactive); }
+.markdown table { border: 1px solid var(--bgm-border); }
+.markdown th { background: var(--bgm-surface-alt); border-bottom: 1px solid var(--bgm-border); }
+.markdown td { border-bottom: 1px dotted var(--bgm-dotted); }
+.markdown hr { border-top: 1px dotted var(--bgm-dotted); }
+
+/* 3.13 toast：浅色胶囊，与弹窗同一语汇 */
+.toast {
+  background: var(--bgm-surface);
+  color: var(--bgm-text-strong);
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--bgm-r-pill);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .16);
+}
+
+/* 3.14 滚动条：细、无色块感 */
+* {
+  scrollbar-color: var(--bgm-border) transparent;
+}

@@ -1,0 +1,44 @@
+{
+  "name": "my-bangumi-assistant-pi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=24.14.0 <25"
+  },
+  "bin": {
+    "my-bangumi-assistant": "dist/src/main.js",
+    "bangumi-agent": "dist/src/main.js"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p ../web/tsconfig.json --noEmit",
+    "build": "npm run build:web && tsc -p tsconfig.json && node scripts/copy-strategy-skills.mjs",
+    "build:web": "vite build",
+    "dev:web": "vite build --watch",
+    "web": "node dist/src/main.js web",
+    "start": "node dist/src/main.js"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "file:../pi/packages/agent",
+    "@earendil-works/pi-ai": "file:../pi/packages/ai",
+    "@earendil-works/pi-coding-agent": "file:../pi/packages/coding-agent",
+    "@earendil-works/pi-tui": "file:../pi/packages/tui",
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "ajv": "8.20.0",
+    "playwright-core": "1.63.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-redux": "9.3.0",
+    "redux": "5.0.1",
+    "undici": "7.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.0",
+    "typescript": "5.9.3",
+    "@types/react": "19.2.0",
+    "@types/react-dom": "19.2.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "vite": "8.3.2"
+  }
+}

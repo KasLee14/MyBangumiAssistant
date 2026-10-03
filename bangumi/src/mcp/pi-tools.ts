@@ -1,0 +1,54 @@
+import type { AgentToolResult } from '@earendil-works/pi-agent-core';
+import type { ExtensionToolContext, ToolDefinition } from '@earendil-works/pi-coding-agent';
+import { safeError } from '../support/errors.js';
+import { TOOL_DEFINITIONS, validateToolArguments } from './catalog.js';
+import type { McpCallClient } from './client.js';
+import { checkOutput, checkSubjectResponse } from './subject-output.js';
+import { checkResourceResponse } from './resource-output.js';
+import { resourceOutputSchema } from './resource-schemas.js';
+
+/** 写入接入由应用宿主实现，不向模型开放账户guard或授权标记。 */
+export type McpWriteHandler = (
+  name: string, args: Record<string, unknown>, signal: AbortSignal | undefined,
+  ctx: ExtensionToolContext, toolCallId: string,
+) => Promise<AgentToolResult<unknown>>;
+
+function jsonResult(value: Record<string, unknown>, isError = false): AgentToolResult<unknown> {
+  // 固定MCP契约仅包含JSON字段；文字和结构化结果来自同一份白名单数据。
+  const serialized = JSON.stringify(value);
+  return { content: [{ type: 'text', text: serialized }], details: value,
+    structuredContent: JSON.parse(serialized), ...(isError ? { isError: true } : {}) };
+}
+
+/** Pi只负责原生工具循环；此桥接保留原始参数严格校验及MCP结果契约。 */
+export function createMcpTools(client: McpCallClient, writeHandler?: McpWriteHandler): ToolDefinition[] {
+  return TOOL_DEFINITIONS.filter(definition => definition.effect === 'read' || writeHandler !== undefined).map(definition => ({
+    name: definition.name,
+    label: definition.name,
+    description: definition.description,
+    parameters: structuredClone(definition.inputSchema) as ToolDefinition['parameters'],
+    ...(definition.effect === 'read' && definition.outputSchema
+      ? { outputSchema: structuredClone(definition.outputSchema) as ToolDefinition['parameters'] } : {}),
+    executionMode: 'sequential' as const,
+    // 在Pi的兼容类型转换之前执行；不删除非法字段、不转换类型、不回显原始值。
+    prepareArguments: (raw: unknown) => validateToolArguments(definition.name, raw),
+    async execute(toolCallId, raw, signal, _onUpdate, ctx) {
+      try {
+        const args = validateToolArguments(definition.name, raw);
+        if (definition.effect === 'write') return await writeHandler!(definition.name, args, signal, ctx, toolCallId);
+        const value = await client.call(definition.name, args, signal);
+        // 即使测试/嵌入宿主注入另一客户端，也不得绕过完整输出及对象/范围验证。
+        if (definition.outputSchema) {
+          checkOutput(definition.outputSchema, { value });
+          checkSubjectResponse(definition.name, value, args);
+          if (resourceOutputSchema(definition.name)) checkResourceResponse(definition.name, value, args, definition.outputSchema);
+        }
+        return jsonResult({ value });
+      } catch (error) {
+        return jsonResult({ error: safeError(error) }, true);
+      }
+    },
+  }));
+}
+
+export function createReadTools(client: McpCallClient): ToolDefinition[] { return createMcpTools(client); }
