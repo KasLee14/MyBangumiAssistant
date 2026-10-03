@@ -1,17 +1,18 @@
 import type { Data } from './resource-output.js';
 
 export const WRITE_LABELS: Record<string, string> = {
-  update_subject_collection: '修改作品收藏', update_single_episode_collection: '修改单集状态', update_episode_collection: '修改指定章节状态',
+  update_subject_collection: '修改作品收藏', update_single_episode_collection: '修改章节进度', update_episode_collection: '修改指定章节状态',
   collect_character: '收藏角色', uncollect_character: '取消角色收藏', collect_person: '收藏人物', uncollect_person: '取消人物收藏',
   create_index: '创建目录', update_index: '修改目录', add_subject_to_index: '向目录添加作品', update_index_subject: '修改目录作品',
   remove_subject_from_index: '从目录移除作品', collect_index: '收藏目录', uncollect_index: '取消目录收藏',
 };
 const fields: Record<string, string> = {
   title: '标题', description: '简介', private: '可见性', comment: '短评', order: '顺序', rating: '评分', tags: '标签',
-  collection_type: '收藏状态', ep_status: '章数', vol_status: '卷数', collected: '是否收藏', episodes: '章节', parentCollection: '整部作品收藏',
+  collection_type: '收藏状态', ep_status: '原生进度计数（动画为已看集数，书籍为章数）', vol_status: '卷数', collected: '是否收藏', episodes: '章节', protectedEpisodes: '保留状态的后续及特殊章节', parentCollection: '整部作品收藏',
   subject_id: '作品ID', episode_id: '章节ID', episode_type: '章节类型', index_id: '目录ID', ownerId: '所有者ID',
 };
 function shown(value: unknown, key = '', episode = false): string {
+  if (key === 'protectedEpisodes' && Array.isArray(value)) return `${value.length}条，保留原状态`;
   if (key === 'private') return value ? '私密' : '公开';
   if (key === 'collection_type') {
     const labels = episode ? ['未收藏', '想看', '看过', '抛弃'] : ['', '想看', '看过', '在看', '搁置', '抛弃'];
@@ -33,7 +34,8 @@ export function formatWriteItem(item: WritePreviewItem, number?: number): string
   const entityId = t.subjectId ?? (t.kind !== 'index' ? t.id : undefined);
   const target = [indexName, t.title, t.name, entityId === undefined ? '' : `对象 #${entityId}`, t.episodeIds ? `章节ID：${shown(t.episodeIds)}` : ''].filter(Boolean).map(v => shown(v)).join(' · ');
   const episode = item.name.includes('episode_collection');
-  return [`${number === undefined ? '' : `${number}. `}${WRITE_LABELS[item.name] ?? item.name}${target ? `｜${target}` : ''}`,
+  const label = item.name === 'update_single_episode_collection' && t.batch === true ? '设置看到此集' : WRITE_LABELS[item.name] ?? item.name;
+  return [`${number === undefined ? '' : `${number}. `}${label}${target ? `｜${target}` : ''}`,
     `修改前：\n${shown(item.before, '', episode)}`, `修改后：\n${shown(item.after, '', episode)}`,
     ...item.effects.map(effect => `说明：${shown(effect)}`)].join('\n');
 }

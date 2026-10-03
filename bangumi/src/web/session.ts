@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { resolve, sep } from "node:path";
 import type { AgentMessage, ThinkingLevel } from "@earendil-works/pi-agent-core";
 import {
   SessionManager,
@@ -19,6 +18,7 @@ import {
 import { policyFor } from "../support/proxy.js";
 import { discoverProxy, type ProxyController } from "../support/proxy-controller.js";
 import { sessionDisplayName } from "../session-title.js";
+import type { TaskQueue } from "../support/task-queue.js";
 import type {
   ActivityItemView,
   CatalogView,
@@ -190,6 +190,7 @@ export interface WebSessionOptions {
   proxy: ProxyController;
   /** Bangumi 请求超时（毫秒），与终端版登录共用同一个启动参数。 */
   timeoutMs: number;
+  accountQueue?: TaskQueue;
 }
 
 /**
@@ -207,6 +208,7 @@ export class WebSession {
   private readonly sessionDir: string;
   private readonly proxy: ProxyController;
   private readonly timeoutMs: number;
+  private readonly accountQueue: TaskQueue | undefined;
 
   private items: TranscriptItemView[] = [];
   private nextItemId = 1;
@@ -233,7 +235,6 @@ export class WebSession {
    * 两个值并缓存，第二次直接复用，浏览器因此只看到一个凭据弹窗。
    */
   private loginDraft: { email: string; password: string } | null = null;
-  private proxyLabel: string;
   /**
    * 本会话累计 token 消耗与当前上下文占用的缓存。
    *
@@ -265,7 +266,7 @@ export class WebSession {
     this.sessionDir = options.sessionDir;
     this.proxy = options.proxy;
     this.timeoutMs = options.timeoutMs;
-    this.proxyLabel = options.proxy.summary;
+    this.accountQueue = options.accountQueue;
   }
 
   /** 绑定扩展交互、订阅事件并载入当前会话的历史。 */
@@ -327,6 +328,26 @@ export class WebSession {
     return { ...this.scalars(), items: [...this.items] };
   }
 
+  get id(): string { return this.runtime.session.sessionId; }
+  get file(): string | undefined { return this.runtime.session.sessionFile; }
+
+  /** 列表摘要不复制正在增长的会话正文。 */
+  summary(): SessionOptionView {
+    const session = this.runtime.session;
+    const firstUser = this.items.find(item => item.kind === 'user');
+    return {
+      id: this.id, path: this.file ?? '', name: sessionDisplayName(session.sessionName,
+        firstUser?.kind === 'user' ? firstUser.text : ''),
+      modified: new Date(this.startedAt || session.sessionManager.getLeafEntry()?.timestamp
+        || session.sessionManager.getHeader()?.timestamp || Date.now()).toISOString(),
+      messageCount: session.messages.filter(message => message.role === 'user' || message.role === 'assistant').length,
+      current: false, busy: this.busy, awaitingConfirmation: this.pending !== null,
+      awaitingLogin: this.login !== null || this.loginBusy,
+    };
+  }
+
+  notifySettingsChange(): void { this.emit(); }
+
   private scalars(): ChatScalarsView {
     const session = this.runtime.session;
     const model = session.model;
@@ -343,7 +364,7 @@ export class WebSession {
       loginText: this.loginText,
       loginState: this.loginState,
       loginUsername: this.loginUsername,
-      proxyLabel: this.proxyLabel,
+      proxyLabel: this.proxy.summary,
       proxyMode: this.proxy.mode,
       proxyAddress: this.proxy.addresses,
       tokenUsage: this.tokenUsage,
@@ -446,8 +467,7 @@ export class WebSession {
   /**
    * 会话切换后按当前分支的有效上下文重建条目，浏览器不需要理解 Pi 的存储格式。
    *
-   * 条目编号保持全局递增：切换会话后首条编号必然变化，服务端据此判定需要
-   * 整体下发，浏览器不会把两个会话的条目拼在一起。
+   * 条目编号在本运行时内递增；服务端按会话 ID 判定切换并整体下发。
    */
   private rebuild(): void {
     this.items = [];
@@ -773,7 +793,7 @@ export class WebSession {
     this.loginStatus = "正在准备登录…";
     this.emit();
     try {
-      await login(this.store, {
+      const performLogin = () => login(this.store, {
         signal: controller.signal,
         // 取当前线路：运行中换过代理后，登录也跟着走新线路。
         proxy: this.proxy.current,
@@ -784,6 +804,8 @@ export class WebSession {
           this.emit();
         },
       });
+      if (this.accountQueue) await this.accountQueue.run(performLogin, controller.signal);
+      else await performLogin();
       this.loginStatus = "登录成功，正在保存本机会话…";
       await this.refreshLogin();
     } finally {
@@ -806,7 +828,8 @@ export class WebSession {
    * 状态；结果只反映在登录元数据里，不产生会话条目。
    */
   async logout(): Promise<void> {
-    await this.store.clear();
+    if (this.accountQueue) await this.accountQueue.run(() => this.store.clear());
+    else await this.store.clear();
     await this.refreshLogin();
   }
 
@@ -902,24 +925,6 @@ export class WebSession {
         ? `思考强度已是 ${describe(applied)}，已保存为本机默认；重启后保留。`
         : `思考强度已切换为 ${describe(applied)}，并已保存为本机默认；重启后保留。`,
     );
-    this.emit();
-  }
-
-  async newSession(): Promise<void> {
-    await this.runtime.newSession();
-    this.emit();
-  }
-
-  async resumeSession(path: string): Promise<void> {
-    // 浏览器只能恢复本会话目录里的会话：路径直接来自请求体，不能让它指向任意文件。
-    const root = resolve(this.sessionDir);
-    const target = resolve(path);
-    if (target !== root && !target.startsWith(root + sep))
-      throw new AppError(
-        "INVALID_INPUT",
-        "只能恢复本工作目录会话列表中的会话。",
-      );
-    await this.runtime.switchSession(target);
     this.emit();
   }
 
@@ -1101,8 +1106,7 @@ export class WebSession {
         : mode === "manual" ? policyFor(address, "config")
           : await discoverProxy();
     await this.proxy.set(policy, mode);
-    this.proxyLabel = this.proxy.summary;
-    this.pushNotice(`网络线路已切换为${this.proxyLabel}，仅本次运行生效。`);
+    this.pushNotice(`网络线路已切换为${this.proxy.summary}，仅本次运行生效。`);
     this.emit();
   }
 

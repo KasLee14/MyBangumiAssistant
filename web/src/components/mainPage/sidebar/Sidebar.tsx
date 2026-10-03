@@ -22,6 +22,7 @@ export function Sidebar(): ReactNode {
   const actions = useActions();
   const collapsed = useAppSelector(state => state.ui.collapsed);
   const sessions = useAppSelector(state => state.catalog.sessions);
+  const sessionId = useAppSelector(state => state.stream.sessionId);
   return (
     <aside className="sidebar">
       <div className="logoRow">
@@ -38,14 +39,15 @@ export function Sidebar(): ReactNode {
         <div className="regionLabel">历史会话</div>
         {sessions.length ? sessions.map(session => (
           <button
-            key={session.path}
+            key={session.id}
             type="button"
-            className={`sessionRow${session.current ? ' selected' : ''}`}
+            className={`sessionRow${session.id === sessionId ? ' selected' : ''}`}
             onClick={() => { void actions.resumeSession(session).catch(() => { /* 失败已提示。 */ }); }}
             title={`${session.name || '新会话'} · ${session.modified} · ${session.messageCount} 条消息`}
           >
             <span className="title">{session.name || '新会话'}</span>
-            {session.current ? <span className="time">当前</span> : <span className="time">{session.messageCount}</span>}
+            <span className="time">{session.awaitingConfirmation ? '待确认' : session.awaitingLogin ? '待登录'
+              : session.busy ? '运行中' : session.id === sessionId ? '当前' : session.messageCount}</span>
           </button>
         )) : <div className="regionLabel">暂无历史会话</div>}
       </div>

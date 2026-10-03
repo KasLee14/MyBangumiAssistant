@@ -73,7 +73,7 @@ export function MainPage(): ReactNode {
    */
   const composer = (
     <div className="composerSeat">
-      {takeover ?? <Composer />}
+      {takeover ?? <Composer key={sessionId} />}
     </div>
   );
 

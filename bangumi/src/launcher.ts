@@ -15,7 +15,9 @@ import { AppError, safeError } from './support/errors.js';
 import { policyFor, type ProxyOptions } from './support/proxy.js';
 import { discoverProxy, ProxyController, type ProxyMode } from './support/proxy-controller.js';
 import { startWebTerminal } from './web/server.js';
-import { WebInteractionChannel, WebSession } from './web/session.js';
+import { WebInteractionChannel } from './web/session.js';
+import { WebSessionManager } from './web/session-manager.js';
+import { TaskQueue } from './support/task-queue.js';
 
 export interface WebOptions { port: number; open: boolean }
 
@@ -137,12 +139,14 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   // Web 终端需要在浏览器里确认写入与输入登录字段，终端模式沿用原地的 Pi 组件。
   const webChannel = options.web ? new WebInteractionChannel() : undefined;
   const channel: InteractionChannel = webChannel ?? createTerminalChannel();
+  const accountQueue = new TaskQueue();
   let runtime;
+  let webSessions: WebSessionManager | undefined;
   let printOwnsDisposal = false;
   try {
     runtime = await createBangumiRuntime({
       cwd, agentDir, sessionManager, fetch: transport.fetch,
-      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel }),
+      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel, accountQueue }),
       ...(args.provider === undefined ? {} : { provider: args.provider }),
       ...(args.model === undefined ? {} : { model: args.model }),
       ...(args.thinking === undefined ? {} : { thinkingLevel: args.thinking }),
@@ -157,12 +161,20 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
       return 0;
     }
     if (options.web && webChannel) {
-      const session = new WebSession({ runtime, channel: webChannel, store: new AccountSessionStore(authDir), cwd, sessionDir, proxy, timeoutMs: options.timeoutMs });
-      webChannel.attach(session);
-      await session.start();
-      const terminal = await startWebTerminal({ session, channel: webChannel, port: options.web.port, open: options.web.open });
+      const modelRuntime = runtime.services.modelRuntime;
+      webSessions = new WebSessionManager({ initial: { runtime, channel: webChannel },
+        store: new AccountSessionStore(authDir), cwd, sessionDir, proxy, timeoutMs: options.timeoutMs, accountQueue,
+        createRuntime: (manager, sessionChannel) => createBangumiRuntime({
+          cwd, agentDir, sessionManager: manager, modelRuntime, fetch: transport.fetch,
+          extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel: sessionChannel, accountQueue }),
+          ...(args.provider === undefined ? {} : { provider: args.provider }),
+          ...(args.model === undefined ? {} : { model: args.model }),
+          ...(args.thinking === undefined ? {} : { thinkingLevel: args.thinking }),
+        }),
+      });
+      await webSessions.start();
+      const terminal = await startWebTerminal({ sessions: webSessions, port: options.web.port, open: options.web.open });
       await terminal.closed;
-      await session.dispose();
       return 0;
     }
     if (args.mode === 'rpc') return await runRpcMode(runtime);
@@ -185,8 +197,10 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
     });
   } finally {
     // print 模式自行处置运行时；其余分支（含 Web 终端退出后）由这里统一释放。
-    if (runtime && !printOwnsDisposal) await runtime.dispose();
-    await transport.close();
+    try {
+      if (webSessions) await webSessions.dispose();
+      else if (runtime && !printOwnsDisposal) await runtime.dispose();
+    } finally { await transport.close(); }
   }
 }
 

@@ -12,6 +12,7 @@
     "bangumi-agent": "dist/src/main.js"
   },
   "scripts": {
+    "test:web": "node --test test/web-*.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p ../web/tsconfig.json --noEmit",
     "build": "npm run build:web && tsc -p tsconfig.json && node scripts/copy-strategy-skills.mjs",
     "build:web": "vite build",

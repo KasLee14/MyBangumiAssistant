@@ -1,5 +1,7 @@
 import { AppError, type SubmissionReceipt, type SubmissionItem } from '../support/errors.js';
 import { type Data, record, positive } from './resource-output.js';
+import { isWatchedUntil, requestedEpisodeStatus, watchedUntilIds } from './episode-progress.js';
+import type { PreparedBaseline } from './prepared.js';
 
 /** 仅记录固定写入流程的调用阶段，不授予权限，也不重试。 */
 export class SubmissionTracker {
@@ -19,13 +21,15 @@ export class SubmissionTracker {
       : name === 'update_index_subject' ? ['index_subject_update'] : name === 'remove_subject_from_index' ? ['index_subject_remove'] : ['index_collection'];
     const items: SubmissionItem[] = name === 'update_episode_collection' ? (args.episode_ids as number[]).map(id => ({ target: { kind: 'episode', id, subjectId: args.subject_id }, stage: 'episode_collection', submissionState: 'not_attempted' }))
       : stages.map(stage => ({ target: structuredClone(target), stage, submissionState: 'not_attempted' }));
-    const fields = name === 'update_subject_collection' ? ['collection_type','rating','comment','tags','private','ep_status','vol_status'] : name.includes('episode_collection') ? ['collection_type'] : ['title','description','private','comment','order'];
+    const fields = name === 'update_subject_collection' ? ['collection_type','rating','comment','tags','private','ep_status','vol_status'] : name.includes('episode_collection') ? ['collection_type','batch'] : ['title','description','private','comment','order'];
     this.receipt = { schemaVersion: 1, kind: 'submission', tool: name, expectedAccountId: accountId, target, submissionState: 'not_attempted', verification: 'pending', items,
       requestedFields: /^(collect|uncollect)_/.test(name) ? ['collected'] : name === 'remove_subject_from_index' ? ['membership'] : [
         ...(name === 'add_subject_to_index' ? ['membership'] : []), ...fields.filter(key => Object.hasOwn(args,key))],
       createdId: null, relatedId: null, requestedCollected: /^(collect|uncollect)_/.test(name) ? name.startsWith('collect_') : null,
-      requestedEpisodeStatus: name.includes('episode_collection') ? Number(args.collection_type) : null };
+      requestedEpisodeStatus: name.includes('episode_collection') ? requestedEpisodeStatus(name, args) : null,
+      ...(isWatchedUntil(name, args) ? { affectedEpisodeIds: [] } : {}) };
   }
+  episodeScope(ids: number[]): void { this.receipt.affectedEpisodeIds = [...ids]; }
   parent(id: number, subjectId: number): void {
     const target = { kind: 'episode', id, subjectId };
     for (const item of this.receipt.items) if (this.name === 'update_single_episode_collection' || item.target?.id === id) item.target = target;
@@ -62,7 +66,7 @@ export class SubmissionTracker {
 }
 
 /** 每份回执绑定原调用与宿主专用guard；服务输出不是新授权。 */
-export function checkSubmission(name: string, value: unknown, args: Data, accountId: number, parent?: number): void {
+export function checkSubmission(name: string, value: unknown, args: Data, accountId: number, parent?: number, prepared?: PreparedBaseline): void {
   const receipt = record(value);
   if (receipt.tool !== name || receipt.expectedAccountId !== accountId || receipt.verification !== 'pending') throw new AppError('MCP_INVALID_RESULT', '提交回执与原工具或账户不一致。');
   const target = receipt.target == null ? null : record(receipt.target);
@@ -76,9 +80,15 @@ export function checkSubmission(name: string, value: unknown, args: Data, accoun
   const items = receipt.items as SubmissionItem[];
   if (ids) {
     if (items.length !== ids.length || items.some((item,index) => item.target !== null && (item.target.id !== ids[index] || args.subject_id !== undefined && item.target.subjectId !== args.subject_id))
-      || receipt.requestedEpisodeStatus !== args.collection_type) throw new AppError('MCP_INVALID_RESULT', '逐章节回执与请求不一致。');
+      || receipt.requestedEpisodeStatus !== requestedEpisodeStatus(name, args)) throw new AppError('MCP_INVALID_RESULT', '逐章节回执与请求不一致。');
     if (name === 'update_single_episode_collection' && target !== null && (target.id !== args.episode_id || parent !== undefined && target.subjectId !== parent)) throw new AppError('MCP_INVALID_RESULT', '单章节回执与原绑定不一致。');
   }
+  if (isWatchedUntil(name, args)) {
+    const scope = receipt.affectedEpisodeIds;
+    if (!Array.isArray(scope) || scope.some(id => typeof id !== 'number' || !Number.isSafeInteger(id) || id < 1) || new Set(scope).size !== scope.length
+      || receipt.submissionState !== 'not_attempted' && !scope.includes(args.episode_id)) throw new AppError('MCP_INVALID_RESULT', '看到此集回执缺少完整影响范围。');
+    if (scope.length && prepared?.episodes && JSON.stringify(scope) !== JSON.stringify(watchedUntilIds(prepared.episodes, Number(args.episode_id)))) throw new AppError('MCP_INVALID_RESULT', '看到此集回执与已核对范围不一致。');
+  } else if (receipt.affectedEpisodeIds !== undefined) throw new AppError('MCP_INVALID_RESULT', '普通逐集回执不能声明看到此集范围。');
   if (receipt.relatedId !== null && target?.kind === 'indexSubject' && target.relationId !== receipt.relatedId) throw new AppError('MCP_INVALID_RESULT', '目录关系回执ID不一致。');
   const expected = new SubmissionTracker(name,args,accountId,parent).failed();
   if (JSON.stringify(receipt.requestedFields) !== JSON.stringify(expected.requestedFields) || receipt.requestedCollected !== expected.requestedCollected

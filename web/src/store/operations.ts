@@ -19,6 +19,7 @@ import {
   submitInput,
   submitLoginInput,
   submitProxy,
+  rememberSession,
 } from '../utils/api';
 import { helpText, type CommandHint } from '../utils/commands';
 import {
@@ -33,6 +34,8 @@ import {
   sessionsOpened,
   settingsClosed,
   settingsOpened,
+  frameReceived,
+  switchingSet,
 } from './actions';
 import type { AppStore } from './index';
 import type { SettingsPane } from './reducers/ui';
@@ -41,6 +44,7 @@ const message = (error: unknown): string => (error instanceof Error ? error.mess
 
 // 不同组件各有动作门面，但目录请求序号必须按同一个store共享。
 const catalogRequests = new WeakMap<AppStore, number>();
+const selectionRequests = new WeakMap<AppStore, number>();
 
 /**
  * 界面可发起的全部动作。
@@ -116,6 +120,7 @@ export function createActions(store: AppStore): Actions {
    * 提交给宿主。未登记的斜杠命令在这里拦下：输入区不再需要知道命令表。
    */
   const send = (input: string): Promise<void> => {
+    if (state().ui.switching || !state().stream.ready) return Promise.reject(new Error('会话正在切换，请稍后发送。'));
     const value = input.trim();
     if (!value) return Promise.resolve();
     if (value.startsWith('/') && !value.includes('\n')) {
@@ -144,9 +149,23 @@ export function createActions(store: AppStore): Actions {
     return started;
   };
 
-  const newSession = (): Promise<void> => selectSession().catch(notifyFailure);
-  const resumeSession = (session: SessionOptionView): Promise<void> =>
-    selectSession(session.path).catch(notifyFailure);
+  const switchSession = async (session?: SessionOptionView): Promise<void> => {
+    const request = (selectionRequests.get(store) ?? 0) + 1;
+    selectionRequests.set(store, request);
+    dispatch(switchingSet(true));
+    dispatch(settingsClosed());
+    try {
+      const frame = await selectSession(session);
+      dispatch(frameReceived(frame));
+      rememberSession(state().stream.sessionId);
+      await loadCatalog();
+    } catch (error) { notifyFailure(error); }
+    finally {
+      if (selectionRequests.get(store) === request) dispatch(switchingSet(false));
+    }
+  };
+  const newSession = (): Promise<void> => switchSession();
+  const resumeSession = (session: SessionOptionView): Promise<void> => switchSession(session);
 
   const openSettings = async (pane: SettingsPane | null): Promise<void> => {
     // 打开前重取目录，让模型行显示的密钥状态是最新的。

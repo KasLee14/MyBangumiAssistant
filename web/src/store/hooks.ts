@@ -50,13 +50,15 @@ export function useEscapeShortcut(): void {
   const actions = useActions();
   const busy = useAppSelector(state => state.stream.busy);
   const pending = useAppSelector(state => state.stream.pending);
+  const switching = useAppSelector(state => state.ui.switching);
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
+      if (switching) return;
       if (busy) { actions.stopRound(); return; }
       if (pending) actions.reject(pending.id);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [actions, busy, pending]);
+  }, [actions, busy, pending, switching]);
 }

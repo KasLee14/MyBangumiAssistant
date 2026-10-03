@@ -5,6 +5,8 @@ import { preparedBaseline, type PreparedBaseline } from './prepared.js';
 import { subjectDetails, subjectSummary, subjectPage, collectionPage, indexSubjectPage, checkOutput, checkSubjectResponse, type SubjectInclude } from './subject-output.js';
 import { resourceResult, checkResourceResponse, entitySummary } from './resource-output.js';
 import { SubmissionTracker, checkSubmission } from './submission.js';
+import { isDeepStrictEqual } from 'node:util';
+import { isWatchedUntil, watchedUntilIds } from './episode-progress.js';
 
 export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline }
 type ObjectValue = Record<string, unknown>;
@@ -187,6 +189,11 @@ export class BangumiMcpService {
     if (result.id !== episodeId) throw new AppError('INVALID_RESPONSE', '章节响应返回了其他对象。');
     return result;
   }
+  private async allPrivateEpisodes(subjectId: number, accountId: number, signal?: AbortSignal): Promise<ObjectValue[]> {
+    const data = (await this.allAccount(`/p1/subjects/${subjectId}/episodes`, accountId, {}, signal)).map(canonicalEpisode);
+    if (data.some(ep => ep.subject_id !== subjectId)) throw new AppError('INVALID_RESPONSE', '章节所属作品与请求不一致。');
+    return data;
+  }
   private checkEpisode(episode: ObjectValue, guard: McpWriteGuard, subjectId?: number): void {
     const target = subjectId ?? guard.subjectId;
     if (!target || episode.subject_id !== target || guard.subjectId !== undefined && guard.subjectId !== target) throw new AppError('STALE_PREVIEW', '章节所属作品与宿主授权不一致。');
@@ -222,7 +229,7 @@ export class BangumiMcpService {
       try { checkOutput(definition.outputSchema, { value: result }); }
       catch (error) { if (definition.effect === 'write') throw new SubmissionError('MCP_INVALID_RESULT', '提交回执不符合固定输出契约；仍须独立核实。', result as import('../support/errors.js').SubmissionReceipt); throw error; }
     }
-    if (definition.effect === 'write') checkSubmission(name, result, args, guard!.accountId, guard?.subjectId);
+    if (definition.effect === 'write') checkSubmission(name, result, args, guard!.accountId, guard?.subjectId, guard?.prepared);
     checkSubjectResponse(name, result, args);
     return result;
   }
@@ -269,7 +276,10 @@ export class BangumiMcpService {
     if (name === 'get_single_episode_collection' || name === 'get_user_episode_collection') {
       const account = await this.checkedAccount(signal);
       if (name === 'get_single_episode_collection') { const result = await this.privateEpisode(id('episode_id'), account.id, signal); await this.assertAccount(account.id, signal); return { ...result, account }; }
-      const page = this.page(await this.transport.account(`/p1/subjects/${id('subject_id')}/episodes`, { query: compact({ type: args.episode_type, limit, offset }), expectedAccountId: account.id }, signal), limit, offset);
+      // p1上游用truthiness判断type，type=0会返回所有类型；先完整核实再筛选和分页。
+      const all = args.episode_type === 0 ? (await this.allPrivateEpisodes(id('subject_id'), account.id, signal)).filter(ep => ep.type === 0) : undefined;
+      const page = all ? { data: all.slice(offset, offset + limit), total: all.length, limit, offset }
+        : this.page(await this.transport.account(`/p1/subjects/${id('subject_id')}/episodes`, { query: compact({ type: args.episode_type, limit, offset }), expectedAccountId: account.id }, signal), limit, offset);
       const data = page.data.map(item => canonicalEpisode(item));
       if (data.some(item => item.subject_id !== id('subject_id') || args.episode_type !== undefined && item.type !== args.episode_type) || new Set(data.map(item => item.id)).size !== data.length) throw new AppError('INVALID_RESPONSE', '章节归属、筛选范围或分页记录错误。');
       await this.assertAccount(account.id, signal); return { ...page, data, account };
@@ -377,6 +387,23 @@ export class BangumiMcpService {
     }
     if (name === 'update_single_episode_collection' || name === 'update_episode_collection') {
       const ids = name === 'update_single_episode_collection' ? [Number(args.episode_id)] : args.episode_ids as number[];
+      if (isWatchedUntil(name, args)) {
+        const baseline = guard.prepared;
+        if (!baseline || !['anime', 'real'].includes(baseline.type) || !baseline.collection || baseline.collection.subjectId !== guard.subjectId || !baseline.episodes) {
+          throw new AppError('STALE_PREVIEW', '看到此集要求宿主核实完整作品和章节范围。');
+        }
+        const scope = watchedUntilIds(baseline.episodes, ids[0]!);
+        tracker.episodeScope(scope);
+        const current = await this.allPrivateEpisodes(guard.subjectId!, accountId, signal);
+        const snapshots = current.map(ep => ({ id: Number(ep.id), type: Number(ep.type), status: Number(obj(ep.collection).type), sort: typeof ep.sort === 'number' ? ep.sort : null }));
+        const ordered = <T extends { id: number }>(rows: T[]) => [...rows].sort((a, b) => a.id - b.id);
+        if (!isDeepStrictEqual(ordered(snapshots), ordered(baseline.episodes)) || !isDeepStrictEqual(watchedUntilIds(snapshots, ids[0]!), scope)) {
+          throw new AppError('STALE_PREVIEW', '看到此集的章节范围或现状改变，未提交旧计划。');
+        }
+        await this.assertAccount(accountId, signal);
+        await submit(`/p1/collections/episodes/${ids[0]}`, 'PATCH', { batch: true });
+        return { submitted: true, episode_ids: scope };
+      }
       if (guard.prepared) {
         const baseline = guard.prepared;
         if (!['anime', 'real'].includes(baseline.type) || !baseline.collection || baseline.collection.subjectId !== guard.subjectId

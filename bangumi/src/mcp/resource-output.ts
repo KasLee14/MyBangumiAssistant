@@ -93,15 +93,17 @@ function collectionState(value: unknown, kind: 'subject' | 'character' | 'person
     const recordValue = record(raw);
     if (kind === 'subject') {
       if (recordValue.subject_id !== targetId) throw new AppError('INVALID_RESPONSE', '收藏返回了其他作品。');
+      const subjectType = recordValue.subject == null ? undefined : record(recordValue.subject).subjectType ?? record(recordValue.subject).type;
+      const progressMeaning = subjectType === 1 ? '已读章数' : subjectType === 2 || subjectType === 6 ? '已看集数' : '原生进度计数';
       if (self) {
         if (typeof recordValue.type !== 'number' || ![1,2,3,4,5].includes(recordValue.type) || integer(recordValue.rate) === null || Number(recordValue.rate) > 10 || typeof recordValue.comment !== 'string' || typeof recordValue.private !== 'boolean'
           || !Array.isArray(recordValue.tags) || recordValue.tags.some(tag => typeof tag !== 'string') || integer(recordValue.ep_status) === null || integer(recordValue.vol_status) === null) throw new AppError('INCOMPLETE_COLLECTION', '完整收藏现状字段缺失。');
         collection = { subjectId: targetId, collectionStatus: recordValue.type, personalRating: recordValue.rate, personalTags: recordValue.tags, comment: recordValue.comment, private: recordValue.private,
-          chapters: recordValue.ep_status, volumes: recordValue.vol_status, complete: true };
+          chapters: recordValue.ep_status, volumes: recordValue.vol_status, progressMeaning, complete: true };
       } else {
         if (recordValue.private === true) throw new AppError('PRIVATE_SCOPE', '公开接口返回了非公开收藏。');
         collection = { subjectId: targetId, collectionStatus: recordValue.type, personalRating: integer(recordValue.rate), personalTags: strings(recordValue.tags), comment: text(recordValue.comment), private: typeof recordValue.private === 'boolean' ? recordValue.private : null,
-          chapters: integer(recordValue.ep_status), volumes: integer(recordValue.vol_status) };
+          chapters: integer(recordValue.ep_status), volumes: integer(recordValue.vol_status), progressMeaning };
       }
     } else {
       if (recordValue.id !== targetId) throw new AppError('INVALID_RESPONSE', '收藏返回了其他实体。');

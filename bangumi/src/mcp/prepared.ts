@@ -5,7 +5,7 @@ import { AppError } from '../support/errors.js';
 export interface PreparedBaseline {
   type: MediaType;
   collection: { subjectId: number; status: number | null; rate: number | null; comment: string; tags: string[]; private: boolean | null; chapters: number | null; volumes: number | null } | null;
-  episodes?: { id: number; type: number | null; status: number | null }[];
+  episodes?: { id: number; type: number | null; status: number | null; sort?: number | null }[];
 }
 
 /** 仅宿主通过 _meta 传递已核对快照，模型参数中没有此字段。 */
@@ -25,6 +25,7 @@ export function preparedBaseline(value: unknown): PreparedBaseline {
     for (const value of raw.episodes) {
       const ep = object(value); const id = positiveId(ep.id);
       if (seen.has(id) || typeof ep.status !== 'number' || ![0, 1, 2, 3].includes(ep.status) || !Number.isInteger(ep.type)) throw new AppError('INVALID_INPUT', '快照章节重复或状态无效。');
+      if (ep.sort !== undefined && ep.sort !== null && (typeof ep.sort !== 'number' || !Number.isFinite(ep.sort))) throw new AppError('INVALID_INPUT', '快照章节序号无效。');
       seen.add(id);
     }
   }

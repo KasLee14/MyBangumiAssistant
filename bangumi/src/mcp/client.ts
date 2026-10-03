@@ -150,14 +150,14 @@ export class LocalMcpClient implements McpCallClient {
       }
       const message = TOOL_ERROR_MESSAGES[code] ?? 'Bangumi MCP 操作未完成，请核对输入及网站状态。';
       if (definition.effect === 'write' && remote.submission !== undefined) {
-        checkSubmission(name, remote.submission, parameters, guard!.accountId, guard?.subjectId);
+        checkSubmission(name, remote.submission, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
         throw new SubmissionError(code, message, remote.submission as SubmissionReceipt);
       }
       throw new AppError(code, message);
     }
     if (!Object.hasOwn(structured, 'value')) throw new AppError('MCP_INVALID_RESULT', 'MCP 返回缺少结构化 value，不能将展示文本作为业务结果。');
     checkSubjectResponse(name, structured.value, parameters);
-    if (definition.effect === 'write') checkSubmission(name, structured.value, parameters, guard!.accountId, guard?.subjectId);
+    if (definition.effect === 'write') checkSubmission(name, structured.value, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
     else if (resourceOutputSchema(name)) checkResourceResponse(name, structured.value, parameters, definition.outputSchema!);
     if (Buffer.byteLength(JSON.stringify(structured)) > 2_000_000) throw new AppError('MCP_OUTPUT_LIMIT', 'MCP 查询结果过大，请缩小范围。');
     return structured.value;

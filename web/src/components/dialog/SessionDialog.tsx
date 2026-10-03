@@ -7,6 +7,7 @@ import { Modal } from './Modal';
 export function SessionDialog(): ReactNode {
   const actions = useActions();
   const sessions = useAppSelector(selectSessions);
+  const sessionId = useAppSelector(state => state.stream.sessionId);
   return (
     <Modal
       title="历史会话"
@@ -24,14 +25,15 @@ export function SessionDialog(): ReactNode {
         <div className="pickerList">
           {sessions.map(session => (
             <button
-              key={session.path}
+              key={session.id}
               type="button"
-              className={`pickerRow${session.current ? ' selected' : ''}`}
+              className={`pickerRow${session.id === sessionId ? ' selected' : ''}`}
               title={session.name || '新会话'}
               onClick={() => actions.pickSession(session)}
             >
               <span className="title">{session.name || '新会话'}</span>
-              <span className="meta">{session.current ? '当前' : `${session.messageCount} 条 · ${session.modified}`}</span>
+              <span className="meta">{session.awaitingConfirmation ? '待确认' : session.awaitingLogin ? '待登录'
+                : session.busy ? '运行中' : session.id === sessionId ? '当前' : `${session.messageCount} 条 · ${session.modified}`}</span>
             </button>
           ))}
         </div>

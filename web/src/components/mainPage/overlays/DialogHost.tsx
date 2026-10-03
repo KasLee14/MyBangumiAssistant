@@ -13,11 +13,12 @@ import { SettingsDialog } from '../../dialog/SettingsDialog';
  */
 export function DialogHost(): ReactNode {
   const loginPrompt = useAppSelector(state => state.stream.loginPrompt);
+  const sessionId = useAppSelector(state => state.stream.sessionId);
   const settingsOpen = useAppSelector(selectSettingsOpen);
   const sessionsOpen = useAppSelector(selectSessionsOpen);
   return (
     <>
-      {loginPrompt ? <LoginDialog prompt={loginPrompt} /> : null}
+      {loginPrompt ? <LoginDialog key={`${sessionId}/${loginPrompt.id}`} prompt={loginPrompt} /> : null}
       {settingsOpen ? <SettingsDialog /> : null}
       {sessionsOpen ? <SessionDialog /> : null}
     </>

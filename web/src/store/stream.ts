@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
-import { openStream } from '../utils/api';
-import { connectionChanged, frameReceived, streamFatal } from './actions';
+import { openStream, rememberSession } from '../utils/api';
+import { connectionChanged, frameReceived, streamFatal, sessionsUpdated } from './actions';
+import { useStore } from 'react-redux';
+import type { RootState, AppStore } from './index';
+import type { AppAction } from './actions';
 import { useAppDispatch } from './hooks';
 
 /**
@@ -11,11 +14,14 @@ import { useAppDispatch } from './hooks';
  */
 export function useStreamSubscription(): void {
   const dispatch = useAppDispatch();
+  const store = useStore<RootState, AppAction>() as AppStore;
   useEffect(() => openStream({
     onFrame: frame => {
       if (frame.type === 'fatal') { dispatch(streamFatal(frame.message)); return; }
+      if (frame.type === 'sessions') { dispatch(sessionsUpdated(frame.sessions)); return; }
       dispatch(frameReceived(frame));
+      rememberSession(store.getState().stream.sessionId);
     },
     onStatus: connected => { dispatch(connectionChanged(connected)); },
-  }), [dispatch]);
+  }), [dispatch, store]);
 }

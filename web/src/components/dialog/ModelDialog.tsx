@@ -97,7 +97,7 @@ export function ModelDialog(): ReactNode {
           <p className="modalHint">宿主没有报告任何可配置的模型提供方，无法在这里填入密钥。</p>
           <ol className="modalSteps">
             <li>检查数据目录里的 <code>pi/models.json</code> 是否存在且格式正确。</li>
-            <li>确认 Pi 的模型目录已随项目初始化下载（<code>node bootstrap-pi.mjs</code>）。</li>
+            <li>确认已运行项目初始化，生成并构建内置的 Pi 模型目录（<code>node bootstrap-pi.mjs</code>）。</li>
             <li>重启 <code>npm start -- web</code> 后回到这里。</li>
           </ol>
         </>

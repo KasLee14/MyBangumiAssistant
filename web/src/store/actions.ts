@@ -1,4 +1,4 @@
-import type { CatalogView } from '../../../bangumi/src/web/protocol';
+import type { CatalogView, SessionOptionView } from '../../../bangumi/src/web/protocol';
 import type { CatalogAction } from './reducers/catalog';
 import type { PendingEcho, StreamAction, StreamFrame } from './reducers/stream';
 import type { SettingsPane, UiAction } from './reducers/ui';
@@ -17,6 +17,10 @@ export const pendingEchoCleared = (): StreamAction => ({ type: 'stream/pendingEc
 /* ---------------------------------------------------------------- 目录 */
 
 export const catalogLoaded = (catalog: CatalogView): CatalogAction => ({ type: 'catalog/loaded', catalog });
+export const sessionsUpdated = (sessions: SessionOptionView[]): CatalogAction => ({ type: 'catalog/sessions', sessions });
+export const switchingSet = (switching: boolean): UiAction => ({ type: 'ui/switching', switching });
+export const draftSet = (sessionId: string, text: string): UiAction => ({ type: 'ui/draft', sessionId, text });
+export const draftRestored = (sessionId: string, text: string): UiAction => ({ type: 'ui/draftRestore', sessionId, text });
 
 /* ---------------------------------------------------------------- 界面 */
 

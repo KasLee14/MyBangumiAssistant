@@ -60,7 +60,7 @@ export function subjectOutputSchema(name: string, inputSchema: JsonSchema): Json
   const scope = closed(structuredClone(inputSchema.properties as Record<string, JsonSchema>), []);
   const collectionItem = closed({ subject: subjectSummarySchema, subjectId: integer(1),
     collectionStatus: { type: 'integer', enum: [1, 2, 3, 4, 5] }, statusMeaning: string(30), personalRating: nullable({ type: 'integer', minimum: 0, maximum: 10 }),
-    personalTags: stringList, private: nullable({ type: 'boolean' }), chapters: nullable(integer()), volumes: nullable(integer()), updatedAt: nullable(string(100)),
+    personalTags: stringList, private: nullable({ type: 'boolean' }), chapters: { ...nullable(integer()), description: '书籍已读章数；动画/三次元为派生已看集数，不能直接写ep_status。' }, volumes: nullable(integer()), updatedAt: nullable(string(100)),
   });
   const indexItem = closed({ subject: subjectSummarySchema, relationId: nullable(integer(1)), order: nullable(integer()), comment: nullable(string(2000)) });
   const collection = name === 'get_user_collections'; const index = name === 'get_index_subjects';

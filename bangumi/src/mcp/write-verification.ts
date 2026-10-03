@@ -25,9 +25,11 @@ export function verifyWrittenState(name: string, before: unknown, after: unknown
   const expectedParent = record(expected.parentCollection);
   const observedParent = observed.parentCollection === null ? null : record(observed.parentCollection);
   const requestedStateMatched = isDeepStrictEqual(observed.episodes, expected.episodes);
-  const protectedFieldsMatched = observedParent !== null && isDeepStrictEqual(withoutDerivedProgress(observedParent), withoutDerivedProgress(expectedParent));
+  const protectedEpisodesMatched = isDeepStrictEqual(observed.protectedEpisodes, expected.protectedEpisodes);
+  const protectedFieldsMatched = protectedEpisodesMatched && observedParent !== null && isDeepStrictEqual(withoutDerivedProgress(observedParent), withoutDerivedProgress(expectedParent));
   const mismatchedFields = Object.keys(expectedParent).filter(key => key !== 'ep_status' && !isDeepStrictEqual(observedParent?.[key], expectedParent[key])).map(key => `parentCollection.${key}`);
   if (!requestedStateMatched) mismatchedFields.unshift('episodes');
+  if (!protectedEpisodesMatched) mismatchedFields.push('protectedEpisodes');
   return { readbackCompleted: true, requestedStateMatched, protectedFieldsMatched, mismatchedFields,
     ...(observedParent === null ? {} : { parentProgress: { subjectId: Number(target.subjectId), before: Number(record(record(before).parentCollection).ep_status), actual: Number(observedParent.ep_status) } }) };
 }

@@ -16,6 +16,7 @@ import { formatWritePreview, WRITE_LABELS } from './write-preview.js';
 import type { ExtensionToolContext } from '@earendil-works/pi-coding-agent';
 import { confirmationForPlan } from './confirmation-policy.js';
 import { isEpisodeWrite, verifyWrittenState, type ReadbackVerification } from './write-verification.js';
+import { isWatchedUntil, MAX_PROGRESS_EPISODES, watchedUntilIds } from './episode-progress.js';
 
 type State = 'success' | 'failed' | 'unknown' | 'unchanged';
 export interface Binding {
@@ -130,6 +131,26 @@ export function createWriteBoundary(
   async function subjectCollection(id: number, accountId: number, signal?: AbortSignal): Promise<Data | null> {
     return collection(await read('get_user_subject_collection', { username: '-', subject_id: id }, signal), id, accountId);
   }
+  async function allEpisodeStates(subjectId: number, accountId: number, signal?: AbortSignal): Promise<{ state: Data; id: number; type: number; sort: number | null }[]> {
+    const rows: { state: Data; id: number; type: number; sort: number | null }[] = []; const seen = new Set<number>(); let total: number | undefined;
+    for (let offset = 0; offset < MAX_PROGRESS_EPISODES; offset += 100) {
+      const page = pageRecord(await read('get_user_episode_collection', { subject_id: subjectId, limit: 100, offset }, signal), accountId);
+      if (!Number.isSafeInteger(page.total) || Number(page.total) > MAX_PROGRESS_EPISODES || total !== undefined && total !== page.total) throw new AppError('INCOMPLETE_DATA', '看到此集要求稳定的完整章节分页，范围超过上限或读取期间改变。');
+      total = Number(page.total);
+      for (const raw of page.data as Data[]) {
+        const ep = record(raw.episode); const id = positive(ep.id);
+        if (ep.subjectId !== subjectId || seen.has(id)) throw new AppError('INCOMPLETE_DATA', '看到此集的完整章节归属错误或重复。');
+        seen.add(id);
+        rows.push({ id, type: Number(ep.episodeType), sort: typeof ep.sort === 'number' ? ep.sort : null,
+          state: { episode_id: id, subject_id: subjectId, episode_type: ep.episodeType, collection_type: raw.episodeStatus } });
+      }
+      if (rows.length === total) return rows.sort((a, b) => a.id - b.id);
+    }
+    throw new AppError('INCOMPLETE_DATA', '看到此集的完整章节超过读取上限。');
+  }
+  function episodeScope(rows: Awaited<ReturnType<typeof allEpisodeStates>>): Data[] {
+    return rows.map(({ id, type, sort }) => ({ id, type, sort }));
+  }
   async function indexSnapshot(id: number, accountId: number, signal?: AbortSignal): Promise<Data> {
     return index(await read('get_index', { index_id: id, own: true }, signal), id, accountId);
   }
@@ -159,13 +180,14 @@ export function createWriteBoundary(
     };
     if (name === 'update_subject_collection') {
       const id = positive(args.subject_id); const info = await subject(id, signal);
+      const progress = Object.hasOwn(args, 'ep_status') || Object.hasOwn(args, 'vol_status');
+      if (progress && info.subjectType !== 1) throw new AppError('UNSUPPORTED_PROGRESS', 'ep_status/vol_status仅支持书籍；动画和三次元请使用章节工具并回读已看集数。');
       const before = await load(`collection:${id}`, () => subjectCollection(id, accountId, signal));
+      if (progress && before === null) throw new AppError('COLLECTION_REQUIRED', '书籍尚未收藏，请先完成收藏，再修改章数/卷数。');
       if (before === null && args.collection_type === undefined) throw new AppError('COLLECTION_REQUIRED', '作品尚未收藏，请先明确收藏状态。');
       const after: Data = before === null ? { collection_type: args.collection_type, rating: 0, comment: '', tags: [], private: false, ep_status: 0, vol_status: 0 } : structuredClone(before);
       for (const key of Object.keys(after)) if (Object.hasOwn(args, key)) after[key] = key === 'tags' ? [...args.tags as string[]].sort() : args[key];
-      const progress = Object.hasOwn(args, 'ep_status') || Object.hasOwn(args, 'vol_status');
       if (progress) {
-        if (info.subjectType !== 1 || before === null) throw new AppError('UNSUPPORTED_PROGRESS', '章数/卷数修改要求书籍已经收藏，请分别完成收藏与进度修改。');
         for (const [key, totalKey] of [['ep_status', 'totalEpisodes'], ['vol_status', 'totalVolumes']]) {
           if (args[key!] !== undefined && typeof info[totalKey!] === 'number' && Number(info[totalKey!]) > 0 && Number(args[key!]) > Number(info[totalKey!])) throw new AppError('INVALID_INPUT', '书籍进度超过作品总量。');
         }
@@ -180,6 +202,36 @@ export function createWriteBoundary(
         readback: (_receipt, active) => subjectCollection(id, accountId, active) };
     }
     if (name === 'update_single_episode_collection' || name === 'update_episode_collection') {
+      if (isWatchedUntil(name, args)) {
+        const anchorId = positive(args.episode_id);
+        const anchor = episode(await read('get_single_episode_collection', { episode_id: anchorId }, signal), anchorId, accountId);
+        const parent = positive(anchor.subject_id); const info = await subject(parent, signal);
+        if (![2, 6].includes(Number(info.subjectType))) throw new AppError('UNSUPPORTED_PROGRESS', '看到此集仅支持动画和三次元。');
+        const current = await load(`collection:${parent}`, () => subjectCollection(parent, accountId, signal));
+        if (current === null) throw new AppError('COLLECTION_REQUIRED', '作品尚未收藏，请先明确创建收藏，再设置看到此集。');
+        const all = await allEpisodeStates(parent, accountId, signal);
+        const scope = episodeScope(all);
+        await load(`episodeScope:${parent}`, async () => scope);
+        const ids = watchedUntilIds(all, anchorId); const affected = new Set(ids);
+        const snapshots: Data[] = [];
+        for (const row of all) snapshots.push(await load(`episode:${row.id}`, async () => row.state));
+        const byId = new Map(snapshots.map(row => [Number(row.episode_id), row]));
+        const before = { episodes: ids.map(id => byId.get(id)!), protectedEpisodes: snapshots.filter(row => !affected.has(Number(row.episode_id))), parentCollection: current };
+        const after = { ...before, episodes: before.episodes.map(row => ({ ...row, collection_type: 2 })) };
+        guard.subjectId = parent;
+        guard.prepared = { type: media[Number(info.subjectType)]!, collection: {
+          subjectId: parent, status: Number(current.collection_type), rate: Number(current.rating), comment: String(current.comment), tags: current.tags as string[], private: current.private as boolean, chapters: Number(current.ep_status), volumes: Number(current.vol_status),
+        }, episodes: all.map(row => ({ id: row.id, type: row.type, sort: row.sort, status: Number(byId.get(row.id)!.collection_type) })) };
+        return { target: { kind: 'episodes', subjectId: parent, name: info.nameCn ?? info.name, episodeId: anchorId, episodeIds: ids, batch: true }, before, after, args, guard,
+          effects: ['官方看到此集：一次请求将同作品sort不大于目标的正篇标记为看过；保留后续章节和特殊章节。',
+            '已看章节的观看时间可能更新；汇总集数由网站计算并独立回读，不直接写ep_status，也不改变整部收藏状态。'],
+          readback: async (_receipt, active) => {
+            const rows = await allEpisodeStates(parent, accountId, active);
+            if (!equal(episodeScope(rows), scope)) throw new AppError('INCOMPLETE_DATA', '回读章节范围改变，无法验证原看到此集计划。');
+            const map = new Map(rows.map(row => [row.id, row.state]));
+            return { episodes: ids.map(id => map.get(id)!), protectedEpisodes: rows.filter(row => !affected.has(row.id)).map(row => row.state), parentCollection: await subjectCollection(parent, accountId, active) };
+          } };
+      }
       const ids = name === 'update_single_episode_collection' ? [positive(args.episode_id)] : args.episode_ids as number[];
       const before: Data[] = [];
       let parent = name === 'update_episode_collection' ? positive(args.subject_id) : undefined;
@@ -275,10 +327,22 @@ export function createWriteBoundary(
     const [kind, id, entityId] = key.split(':');
     if (kind === 'collection') return subjectCollection(Number(id), accountId, signal);
     if (kind === 'episode') return episode(await read('get_single_episode_collection', { episode_id: Number(id) }, signal), Number(id), accountId);
+    if (kind === 'episodeScope') return episodeScope(await allEpisodeStates(Number(id), accountId, signal));
     if (kind === 'index') return indexSnapshot(Number(id), accountId, signal);
     if (kind === 'relations') return indexSubjects(Number(id), accountId, signal);
     if (kind === 'entity') return { collected: entityCollected(await read(`get_user_${id}_collection`, { username: '-', [`${id}_id`]: Number(entityId) }, signal), id!, Number(entityId), accountId) };
     throw new AppError('INVALID_INPUT', '未登记的批量现状类型。');
+  }
+  /** 看到此集的完整分页同时覆盖范围与逐集基线，避免为同一快照逐集发起HTTP读取。 */
+  async function canonicalView(keys: Iterable<string>, accountId: number, signal?: AbortSignal): Promise<Map<string, unknown>> {
+    const requested = new Set(keys); const result = new Map<string, unknown>();
+    for (const key of requested) if (key.startsWith('episodeScope:')) {
+      const rows = await allEpisodeStates(Number(key.split(':')[1]), accountId, signal);
+      result.set(key, episodeScope(rows));
+      for (const row of rows) if (requested.has(`episode:${row.id}`)) result.set(`episode:${row.id}`, row.state);
+    }
+    for (const key of requested) if (!result.has(key)) result.set(key, await canonical(key, accountId, signal));
+    return result;
   }
   function sameBaseline(actual: Map<string, unknown> | undefined, expected: Map<string, unknown> | undefined): boolean {
     if (!actual || !expected || actual.size !== expected.size) return false;
@@ -356,14 +420,14 @@ export function createWriteBoundary(
         const submitted = await client.call(name, binding.args, signal, binding.guard);
         const definition = findToolDefinition(name);
         checkOutput(definition.outputSchema!, { value: submitted });
-        checkSubmission(name, submitted, binding.args, accountId, binding.guard.subjectId);
+        checkSubmission(name, submitted, binding.args, accountId, binding.guard.subjectId, binding.guard.prepared);
         receipt = submitted as SubmissionReceipt;
       } catch (error) {
         submissionError = error;
         if (error instanceof SubmissionError) {
           try {
             checkOutput(findToolDefinition(name).outputSchema!, { error: safeError(error) });
-            checkSubmission(name, error.submission, binding.args, accountId, binding.guard.subjectId);
+            checkSubmission(name, error.submission, binding.args, accountId, binding.guard.subjectId, binding.guard.prepared);
             receipt = error.submission;
           } catch {}
         }
@@ -386,12 +450,13 @@ export function createWriteBoundary(
               const key = `collection:${verification.parentProgress.subjectId}`;
               expected.set(key, { ...record(expected.get(key)), ep_status: verification.parentProgress.actual });
             }
-            const observed = new Map<string, unknown>();
-            for (const key of expected.keys()) observed.set(key, await canonical(key, accountId, verificationSignal));
+            const observed = await canonicalView(expected.keys(), accountId, verificationSignal);
             if (isEpisodeWrite(name)) {
               // 两次读取之间网站仍可能推进汇总；使用最后完整回读，不要求派生计数冻结。
               const subjectId = Number(binding.target.subjectId); const key = `collection:${subjectId}`;
-              actual = { episodes: (record(binding.after).episodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)), parentCollection: observed.get(key) };
+              const expectedState = record(binding.after);
+              actual = { episodes: (expectedState.episodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)), parentCollection: observed.get(key),
+                ...(expectedState.protectedEpisodes ? { protectedEpisodes: (expectedState.protectedEpisodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)) } : {}) };
               verification = verifyWrittenState(name, binding.before, binding.after, actual, binding.target);
               if (verification.parentProgress) expected.set(key, { ...record(expected.get(key)), ep_status: verification.parentProgress.actual });
             }
@@ -469,8 +534,7 @@ export function createWriteBoundary(
     if (confirmation.required && !await channel.confirm(ctx, formatWritePreview(account, frozen.map(s => ({ name: s.name, ...s.binding })), skipped), signal,
       { title: 'Bangumi 整批修改预览', confirmLabel: `确认执行全部${frozen.length - skipped}项修改` })) throw new AppError('CANCELLED', '用户取消整批授权，未提交修改。');
     await assertReady(ctx, input, accountId, signal);
-    const actual = new Map<string, unknown>();
-    for (const key of baseline.keys()) actual.set(key, await canonical(key, accountId, signal));
+    const actual = await canonicalView(baseline.keys(), accountId, signal);
     if (!sameBaseline(actual, baseline)) throw new AppError('STALE_PREVIEW', '确认期间网站现状改变，旧计划未提交，请重新核对完整范围。');
     checkInput(input);
     const token = {};

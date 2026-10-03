@@ -6,9 +6,11 @@ export type SettingsPane = 'credential' | 'model' | 'proxy' | 'login' | 'logout'
 /**
  * 界面状态：弹窗开关、侧栏形态、过程展开计数与两类瞬时提示。
  *
- * 只放跨区域共享的界面状态；输入草稿、弹窗内的输入框内容与忙碌标记都留在组件内部。
+ * 草稿按会话保存，切换后可恢复；弹窗字段与单次提交标记留在组件内部。
  */
 export interface UiState {
+  switching: boolean;
+  drafts: Record<string, string>;
   settingsOpen: boolean;
   settingsPane: SettingsPane | null;
   sessionsOpen: boolean;
@@ -22,6 +24,8 @@ export interface UiState {
 }
 
 export const INITIAL_UI_STATE: UiState = {
+  switching: false,
+  drafts: {},
   settingsOpen: false,
   settingsPane: null,
   sessionsOpen: false,
@@ -33,6 +37,8 @@ export const INITIAL_UI_STATE: UiState = {
 };
 
 export type UiAction =
+  | { type: 'ui/switching'; switching: boolean }
+  | { type: 'ui/draft' | 'ui/draftRestore'; sessionId: string; text: string }
   | { type: 'ui/notice'; message: string | null }
   | { type: 'ui/problem'; message: string | null }
   | { type: 'ui/settingsOpened'; pane: SettingsPane | null }
@@ -46,6 +52,11 @@ export type UiAction =
 
 export function uiReducer(state: UiState = INITIAL_UI_STATE, action: AppAction): UiState {
   switch (action.type) {
+    case 'ui/switching': return { ...state, switching: action.switching };
+    case 'ui/draftRestore':
+      if (state.drafts[action.sessionId]) return state;
+      return { ...state, drafts: { ...state.drafts, [action.sessionId]: action.text } };
+    case 'ui/draft': return { ...state, drafts: { ...state.drafts, [action.sessionId]: action.text } };
     case 'ui/notice':
       return { ...state, notice: action.message };
     case 'ui/problem':

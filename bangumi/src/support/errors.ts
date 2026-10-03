@@ -17,6 +17,8 @@ export interface SubmissionReceipt {
   schemaVersion: 1; kind: 'submission'; tool: string; expectedAccountId: number; target: Record<string, unknown> | null;
   submissionState: 'acknowledged' | 'partial' | 'unknown' | 'not_attempted'; verification: 'pending'; items: SubmissionItem[];
   requestedFields: string[]; createdId: number | null; relatedId: number | null; requestedCollected: boolean | null; requestedEpisodeStatus: number | null;
+  /** 官方看到此集：一次请求实际覆盖的完整正篇ID；普通逐集操作省略。 */
+  affectedEpisodeIds?: number[];
 }
 export class SubmissionError extends AppError {
   constructor(code: string, message: string, readonly submission: SubmissionReceipt) { super(code, message); }

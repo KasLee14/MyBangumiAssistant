@@ -115,6 +115,16 @@ const outputs: Record<string, JsonSchema> = {
   "uncollect_index": {"type":"object","oneOf":[{"type":"object","properties":{"value":{"allOf":[{"$ref":"#/$defs/Receipt_uncollect_index"},{"type":"object","properties":{"submissionState":{"type":"string","const":"acknowledged"},"target":{"type":"object","properties":{"kind":{"type":"string","const":"index"},"id":{"type":"integer","minimum":1,"maximum":9007199254740991}},"required":["kind","id"],"additionalProperties":false},"items":{"type":"array","items":{"type":"object","properties":{"target":{"type":"object","properties":{"kind":{"type":"string","const":"index"},"id":{"type":"integer","minimum":1,"maximum":9007199254740991}},"required":["kind","id"],"additionalProperties":false},"stage":{"type":"string","enum":["index_collection"]},"submissionState":{"type":"string","const":"acknowledged"}},"required":["target","stage","submissionState"],"additionalProperties":false},"maxItems":201,"minItems":1}}}]}},"required":["value"],"additionalProperties":false},{"type":"object","properties":{"error":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":100},"message":{"type":"string","minLength":0,"maxLength":20000},"networkAttempted":{"type":"boolean","const":false},"issues":{"type":"array","items":{"type":"object","properties":{"path":{"type":"string","minLength":0,"maxLength":300},"rule":{"type":"string","minLength":0,"maxLength":100},"hint":{"type":"string","minLength":0,"maxLength":3000},"allowed":{"type":"array","items":{"anyOf":[{"type":"string"},{"type":"number"},{"type":"boolean"},{"type":"null"}]},"maxItems":100}},"required":["path","rule","hint"],"additionalProperties":false},"maxItems":200},"submission":{"$ref":"#/$defs/Receipt_uncollect_index"}},"required":["code","message"],"additionalProperties":false}},"required":["error"],"additionalProperties":false}]},
 };
 
+// 单集工具的“看到”分支仍是一份提交回执，另列一个请求覆盖的完整章节范围。
+const untilReceipt = definitions.Receipt_update_single_episode_collection!;
+const untilReceiptProperties = untilReceipt.properties as Record<string, JsonSchema>;
+untilReceiptProperties.affectedEpisodeIds = { type: 'array', maxItems: 2000, uniqueItems: true, items: { type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER } };
+(untilReceiptProperties.requestedFields!.items as JsonSchema).enum = ['collection_type', 'batch'];
+for (const name of ['SelfSubjectSnapshot', 'PublicSubjectCollection']) {
+  const properties = definitions[name]!.properties as Record<string, JsonSchema>;
+  properties.chapters!.description = '书籍为已读章数；动画/三次元为章节工具派生的已看集数，不能通过ep_status直接写入。';
+  properties.progressMeaning = { type: 'string', enum: ['已读章数', '已看集数', '原生进度计数'] };
+}
 export function resourceOutputSchema(name: string): JsonSchema | undefined {
   const schema = outputs[name]; if (!schema) return undefined;
   const used = new Set<string>();

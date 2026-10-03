@@ -13,7 +13,7 @@ const stepId: JsonSchema = { type: 'integer', minimum: 1, maximum: 200 };
 const branches: JsonSchema[] = [];
 for (const definition of TOOL_DEFINITIONS.filter(d => d.effect === 'write')) {
   branches.push({ type: 'object', properties: { tool: { type: 'string', const: definition.name }, args: structuredClone(definition.inputSchema) }, required: ['tool', 'args'], additionalProperties: false });
-  if (Object.hasOwn(definition.inputSchema.properties as object, 'index_id')) {
+  if (Object.hasOwn(definition.inputSchema.properties as object ?? {}, 'index_id')) {
     const input = structuredClone(definition.inputSchema);
     delete (input.properties as Data).index_id;
     input.required = (input.required as string[]).filter(k => k !== 'index_id');

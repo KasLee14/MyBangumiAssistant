@@ -335,6 +335,10 @@ export interface SessionOptionView {
   modified: string;
   messageCount: number;
   current: boolean;
+  /** 活跃会话的后台状态；未载入的历史会话没有这些字段。 */
+  busy?: boolean;
+  awaitingConfirmation?: boolean;
+  awaitingLogin?: boolean;
 }
 
 /** 斜杠命令提示：来自 Pi 已注册的扩展命令、提示模板与技能。 */
@@ -373,7 +377,8 @@ export interface ApiErrorView { code: string; message: string }
 
 /** SSE 帧：`state` 增量携带条目，`full` 表示客户端应整体替换已有条目。 */
 export type ServerEvent =
-  | { type: 'state'; full: boolean; items: TranscriptItemView[]; state: ChatScalarsView }
+  | { type: 'state'; instanceId: string; revision: number; full: boolean; items: TranscriptItemView[]; state: ChatScalarsView }
+  | { type: 'sessions'; sessions: SessionOptionView[] }
   | { type: 'fatal'; message: string };
 
 /** 客户端提交的命令载荷，全部是按需字段而非通用透传。 */
@@ -396,4 +401,4 @@ export interface ClearCredentialPayload { provider: string }
 /** 网络线路切换；`manual` 时 `url` 必填，形如 `http://127.0.0.1:7890`。 */
 export interface ProxyPayload { mode: 'auto' | 'direct' | 'manual'; url?: string }
 /** 新建会话或恢复指定会话。 */
-export interface SessionPayload { action: 'new' | 'resume'; path?: string }
+export interface SessionPayload { action: 'new' | 'resume'; path?: string; sessionId?: string }

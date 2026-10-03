@@ -81,11 +81,16 @@ tool('get_user_avatar', '取得用户头像地址。', { username, avatar_type: 
 tool('get_current_user', '在线核实本应用当前登录账户。', {}, [], 'read', 'account');
 tool('get_user_collections', '分页读取用户作品收藏；本人支持私密记录，其他账户仅公开记录。', { username, subject_type: subjectType, collection_type: collectionType, ...page }, ['username']);
 tool('get_user_subject_collection', '查询用户指定作品收藏；本人读取单条p1快照，明确未收藏返回 null，缺个人字段拒绝推断。', { username, subject_id: id }, ['username', 'subject_id']);
-tool('update_subject_collection', '修改本账户收藏指定字段，保留其他字段；不会自动把所有章节标为看过。进度仅书籍可使用章数/卷数。', { subject_id: id, collection_type: collectionType, rating: int(0, 10), comment: text(2000), tags: { type: 'array', maxItems: 40, uniqueItems: true, items: text(100, 1, { pattern: '^\\S+$' }) }, private: boolean, ep_status: counter, vol_status: counter }, ['subject_id'], 'write', 'account');
+tool('update_subject_collection', '修改本账户收藏指定字段，保留其他字段；不会自动把所有章节标为看过。ep_status/vol_status仅支持已收藏书籍；动画和三次元通过章节工具修改并回读派生已看集数，不能额外写ep_status。', { subject_id: id, collection_type: collectionType, rating: int(0, 10), comment: text(2000), tags: { type: 'array', maxItems: 40, uniqueItems: true, items: text(100, 1, { pattern: '^\\S+$' }) }, private: boolean,
+  ep_status: { ...counter, description: '仅已收藏书籍的已读章数；禁止用于动画/三次元已看集数。' }, vol_status: { ...counter, description: '仅已收藏书籍的已读卷数。' } }, ['subject_id'], 'write', 'account');
 tool('get_user_episode_collection', '分页读取当前账户指定作品章节及个人状态。', { subject_id: id, episode_type: episodeType, ...page, limit: int(1, 100, { default: 100 }) }, ['subject_id'], 'read', 'account');
 tool('update_episode_collection', '逐项修改本账户章节状态；先完整验证所属作品，结果提交后宿主独立回读。', { subject_id: id, episode_ids: { type: 'array', minItems: 1, maxItems: 100, uniqueItems: true, items: id }, collection_type: episodeCollection }, ['subject_id', 'episode_ids'], 'write', 'account');
 tool('get_single_episode_collection', '读取当前账户单章节状态；未收藏为 0，保留所属作品ID。', { episode_id: id }, ['episode_id'], 'read', 'account');
-tool('update_single_episode_collection', '修改本账户一个章节状态，不自动联动其他章节。', { episode_id: id, collection_type: episodeCollection }, ['episode_id'], 'write', 'account');
+tool('update_single_episode_collection', 'batch省略或false只修改目标集状态；batch=true为官方“看到此集”，一次请求补齐同作品sort不大于目标的所有正篇为看过，禁止同时传collection_type。不回退后续已看状态；宿主核实完整范围、预览及独立回读。', { episode_id: id, collection_type: episodeCollection, batch: boolean }, ['episode_id'], 'write', 'account');
+definitions.at(-1)!.inputSchema = { type: 'object', oneOf: [
+  { type: 'object', properties: { episode_id: id, collection_type: episodeCollection, batch: { type: 'boolean', const: false } }, required: ['episode_id'], additionalProperties: false },
+  { type: 'object', properties: { episode_id: id, batch: { type: 'boolean', const: true, description: '官方看到此集；自动补齐前序正篇。' } }, required: ['episode_id', 'batch'], additionalProperties: false },
+] };
 for (const entity of ['person', 'character', 'subject', 'episode']) {
   tool(`get_${entity}_revisions`, '分页查询公开编辑历史。', { [`${entity}_id`]: id, ...page }, [`${entity}_id`]);
   tool(`get_${entity}_revision`, '获取一条公开编辑历史详情。', { revision_id: id }, ['revision_id']);

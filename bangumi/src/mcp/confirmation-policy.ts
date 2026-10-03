@@ -22,7 +22,8 @@ export function confirmationForPlan(items: readonly ConfirmationItem[]): Confirm
   const changes = items.filter(item => !isDeepStrictEqual(item.before, item.after));
   if (!changes.length) return { required: false, reasons: [] };
   const reasons: string[] = [];
-  if (items.length > 1 || items.some(item => item.name === 'update_episode_collection' && (item.args.episode_ids as number[]).length > 1)) {
+  if (items.length > 1 || items.some(item => item.name === 'update_episode_collection' && (item.args.episode_ids as number[]).length > 1
+    || item.name === 'update_single_episode_collection' && item.args.batch === true && (record(item.after).episodes as unknown[]).length > 1)) {
     reasons.push('批量修改完整范围');
   }
   if (changes.some(item => item.name === 'update_subject_collection' && Object.hasOwn(item.args, 'comment')

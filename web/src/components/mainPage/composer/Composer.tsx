@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { useActions, useAppSelector } from '../../../store/hooks';
+import { useActions, useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { draftSet, draftRestored } from '../../../store/actions';
 import { selectHeroPhase } from '../../../store/selectors';
 import { matchCommands } from '../../../utils/commands';
 import { StatsDock } from './StatsDock';
@@ -24,11 +25,13 @@ function StopIcon(): ReactNode {
 /**
  * 输入卡 + 命令弹窗。弹窗锚在卡片顶边的零高条带上，向上展开。
  *
- * 草稿是**组件内部状态**：它每个按键都变，而且输入卡挂载点必须稳定（卸载重建会丢
- * 焦点与 IME 组合态）。全局状态（会话流、目录、`problem` 与首屏阶段）都来自 store。
+ * 草稿在 store 中按会话保存；输入卡只在切换会话时重建，清掉旧会话的提交与补全状态。
  */
 export function Composer(): ReactNode {
   const actions = useActions();
+  const dispatch = useAppDispatch();
+  const sessionId = useAppSelector(state => state.stream.sessionId);
+  const unavailable = useAppSelector(state => state.ui.switching || !state.stream.ready || !state.stream.connected);
   const busy = useAppSelector(state => state.stream.busy);
   const cancelling = useAppSelector(state => state.stream.cancelling);
   const tokenUsage = useAppSelector(state => state.stream.tokenUsage);
@@ -37,21 +40,16 @@ export function Composer(): ReactNode {
   const problem = useAppSelector(state => state.ui.problem);
   const hero = useAppSelector(selectHeroPhase);
 
-  const [draft, setDraft] = useState('');
+  const draft = useAppSelector(state => state.ui.drafts[sessionId] ?? '');
+  const setDraft = (text: string): void => { dispatch(draftSet(sessionId, text)); };
   const [index, setIndex] = useState(0);
   const [dismissed, setDismissed] = useState('');
   /** 本次提交正在等待宿主确认：用于给出即时反馈并挡住重复提交。 */
   const [sending, setSending] = useState(false);
-  /** 最近一次草稿。失败回滚时用它判断「用户这期间是否又输入了内容」。 */
-  const lastDraft = useRef('');
   const area = useRef<HTMLTextAreaElement>(null);
   const suggestions = useMemo(() => (draft === dismissed ? [] : matchCommands(draft, commands)), [draft, dismissed, commands]);
 
   useEffect(() => { setIndex(0); }, [draft]);
-  // 草稿与「用于回滚判断的最新值」在同一次 effect 里同步，避免两者错位。
-  useEffect(() => {
-    lastDraft.current = draft;
-  }, [draft]);
   useEffect(() => {
     const node = area.current;
     if (!node) return;
@@ -68,7 +66,7 @@ export function Composer(): ReactNode {
 
   const submit = (raw: string): void => {
     const value = raw.trim();
-    if (!value || sending) return;
+    if (!value || sending || unavailable) return;
     if (busy) { actions.notice('本轮尚未结束，草稿已保留；结束后再发送。'); return; }
     // 斜杠输入一律交给宿主；本地命令表只用来决定少数纯前端动作。
     if (value.startsWith('/') && !value.includes('\n')) {
@@ -83,7 +81,7 @@ export function Composer(): ReactNode {
     setDraft('');
     setDismissed('');
     void Promise.resolve(actions.optimisticSend(value))
-      .catch(() => { if (lastDraft.current === '') setDraft(value); })
+      .catch(() => { dispatch(draftRestored(sessionId, value)); })
       .finally(() => setSending(false));
   };
 
@@ -143,6 +141,7 @@ export function Composer(): ReactNode {
             value={draft}
             rows={1}
             spellCheck={false}
+            disabled={unavailable}
             placeholder={busy ? '本轮进行中；结束后可继续输入' : '输入作品名或问题，/ 查看命令，Shift+Enter 换行'}
             onChange={event => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
@@ -162,11 +161,11 @@ export function Composer(): ReactNode {
             {/* 思考强度：常驻标签显示当前级别，点开就地切换（会写成本机默认）。 */}
             <ThinkingPicker />
             {busy ? (
-              <button type="button" className="sendButton" onClick={actions.stopRound} aria-label="停止本轮" title="停止本轮">
+              <button type="button" className="sendButton" disabled={unavailable} onClick={actions.stopRound} aria-label="停止本轮" title="停止本轮">
                 <StopIcon />
               </button>
             ) : (
-              <button type="button" className="sendButton" disabled={!draft.trim()} onClick={() => submit(draft)} aria-label="发送" title="发送">
+              <button type="button" className="sendButton" disabled={!draft.trim() || unavailable || sending} onClick={() => submit(draft)} aria-label="发送" title="发送">
                 <SendIcon />
               </button>
             )}
