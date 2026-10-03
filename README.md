@@ -55,27 +55,9 @@ npm start -- web --port 8788 --no-open
 
 ### 方式二：使用本地配置文件
 
-默认目录为 `%LOCALAPPDATA%\MyBangumiAssistant-Pi\pi`：
+在 `%LOCALAPPDATA%\MyBangumiAssistant-Pi\pi` 中手动创建以下两个文件（目录不存在时先创建）。
 
-| 配置 | 用途 |
-| --- | --- |
-| `models.json` | 定义模型提供方、接口地址、模型 ID 和 API Key 的环境变量引用。 |
-| `settings.json` | 保存默认提供方、默认模型和默认思考强度等偏好。 |
-| `auth.json` | 保存通过 Web 或 Pi 登录流程写入本机的模型凭据。 |
-| 本机环境变量 | 提供实际 API Key，供 `models.json` 引用。 |
-
-**第一步：创建或打开配置目录。** 在 PowerShell 中执行：
-
-```powershell
-$piConfigDir = Join-Path $env:LOCALAPPDATA 'MyBangumiAssistant-Pi\pi'
-if ($env:BANGUMI_PI_HOME) { $piConfigDir = Join-Path $env:BANGUMI_PI_HOME 'pi' }
-New-Item -ItemType Directory -Force -Path $piConfigDir | Out-Null
-notepad (Join-Path $piConfigDir 'models.json')
-```
-
-使用自定义 `--data-dir` 时，将 `$piConfigDir` 改为该目录下的 `pi` 子目录。文件不存在时，在记事本中创建并保存；已有配置请合并字段，保留其他提供方和设置。
-
-**第二步：配置 `models.json`。** 以下是一个兼容 OpenAI Chat Completions 的最小示例：
+**1. 创建 `models.json`，填写接口地址、API Key 和模型 ID。** 以下示例适用于兼容 OpenAI Chat Completions 的接口：
 
 ```json
 {
@@ -83,38 +65,16 @@ notepad (Join-Path $piConfigDir 'models.json')
     "bangumi-model": {
       "baseUrl": "https://example.invalid/v1",
       "api": "openai-completions",
-      "apiKey": "${BANGUMI_MODEL_API_KEY}",
+      "apiKey": "your-api-key",
       "models": [{ "id": "your-model" }]
     }
   }
 }
 ```
 
-- `bangumi-model`：自定义的提供方名称，后面的 `settings.json` 使用相同名称。
-- `baseUrl`：替换为提供方实际接口根地址，不带末尾的 `/chat/completions`。
-- `api`：此示例使用 `openai-completions`，接口必须支持对应协议。
-- `apiKey`：引用环境变量；保留 `${BANGUMI_MODEL_API_KEY}` 中的 `$`，不要写成裸变量名。
-- `id`：替换为提供方实际支持的模型 ID。
+将 `baseUrl` 替换为实际接口根地址（不带末尾的 `/chat/completions`），`your-api-key` 替换为你的密钥，`your-model` 替换为实际模型 ID。`bangumi-model` 是可自定义的提供方名称。
 
-`example.invalid` 和 `your-model` 都是占位符，必须替换。API Key 只在本机输入，不提交到仓库或发送到聊天。
-
-**第三步：在本机隐藏输入 API Key。** 在之后用于启动程序的同一个 PowerShell 窗口执行：
-
-```powershell
-$piSecret = Read-Host '模型 API Key' -AsSecureString
-$env:BANGUMI_MODEL_API_KEY = [System.Net.NetworkCredential]::new('', $piSecret).Password
-Remove-Variable piSecret
-```
-
-输入不会显示，密钥不写入命令历史。此环境变量只对当前窗口及其子进程有效，新开窗口需要重新输入。如果已经有长期配置的本机环境变量，可直接在 `models.json` 中引用它的名称。
-
-**第四步：配置 `settings.json`。** 在同一个 PowerShell 窗口打开：
-
-```powershell
-notepad (Join-Path $piConfigDir 'settings.json')
-```
-
-新文件可使用以下内容；已有文件只合并这些字段，保留其他设置：
+**2. 创建 `settings.json`，指定默认模型。**
 
 ```json
 {
@@ -124,21 +84,7 @@ notepad (Join-Path $piConfigDir 'settings.json')
 }
 ```
 
-| 字段 | 含义 |
-| --- | --- |
-| `defaultProvider` | 默认提供方，与 `models.json` 中的提供方名称一致。 |
-| `defaultModel` | 默认模型，填写模型 ID，与上例的 `id` 一致。 |
-| `defaultThinkingLevel` | 默认思考强度，`off` 表示关闭；其他级别以模型支持范围为准。 |
-
-`settings.json` 保存启动偏好，API Key 仍由环境变量提供。修改文件后重启程序，新会话会使用这些默认值；恢复历史会话时，会话自身记录的模型和思考设置可能优先。已有的 `modelThinkingLevels` 还可以为指定模型设置思考强度，并优先于全局默认。
-
-配置完成后，在 `bangumi/` 目录执行 `npm start -- web` 或 `npm start` 即可。也可以临时指定启动模型：
-
-```powershell
-npm start -- --model bangumi-model/your-model
-```
-
-CLI 中可通过 `/model` 打开模型选择器，在选择器内按 `Ctrl+S` 将选中项保存为默认模型。Web 中选择模型会更新当前会话，并保存到 `settings.json` 作为启动默认模型。Web 的思考强度选择会保存到本机配置的 `defaultThinkingLevel`，作为全局默认值。
+`defaultProvider` 与上面的提供方名称一致，`defaultModel` 与模型 `id` 一致；`defaultThinkingLevel` 可选，`off` 表示关闭思考。
 
 ## 3、致谢
 
