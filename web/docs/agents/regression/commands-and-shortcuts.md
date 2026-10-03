@@ -79,25 +79,27 @@ document.querySelectorAll('.flowItem').length     // 不因 /help 增加
 
 **步骤**：在有内容的会话里执行 `/new`。
 
-**预期**：当前会话被替换为新会话（条目清空、回到首屏）；侧栏「历史会话」列表刷新（此前会话出现为可恢复项）。
+**预期**：当前会话被替换为新会话（条目清空、回到首屏）；侧栏「历史会话」列表刷新（此前会话出现为可恢复项，右侧显示最后对话时间）。
 
 **判定**
 ```js
 document.querySelectorAll('.flowItem').length === 0
 document.querySelector('.body').dataset.phase === 'hero'
 document.querySelectorAll('.sessionRow').length > 0
+[...document.querySelectorAll('.sessionRow:not(.selected) .time')].every(el => /^(刚刚|\d+(分钟|小时|天|个月|年))$/.test(el.textContent))
 ```
 
 ## K5 `/sessions` 打开会话弹窗
 
 **步骤**：执行 `/sessions`。
 
-**预期**：打开「历史会话」弹窗（`.pickerRow` 列表，当前会话标 `当前`）；点一项即切换会话并关闭弹窗；弹窗打开时**设置弹窗被关闭**（互斥）。
+**预期**：打开「历史会话」弹窗（`.pickerRow` 列表，当前会话标 `当前`，其余行右侧为最后对话时间）；点一项即切换会话并关闭弹窗；弹窗打开时**设置弹窗被关闭**（互斥）。
 
 **判定**
 ```js
 document.querySelector('.modalHeader h2')?.textContent === '历史会话'
 document.querySelectorAll('.pickerRow').length > 0
+[...document.querySelectorAll('.pickerRow:not(.selected) .meta')].every(el => /^(刚刚|\d+(分钟|小时|天|个月|年))$/.test(el.textContent))
 ```
 
 ## K6 `/model` 直达模型选择
@@ -149,7 +151,7 @@ document.querySelector('#composer-input').value === '/nosuchcommand'
 
 ## K10 Esc 停止本轮（需模型）
 
-**前置**：本轮正在生成（`busy` 为真、按钮显示停止）。
+**前置**：本轮正在生成（`busy` 为真、按钮显示停止），且**没有**待确认的写入卡——有待确认时 Esc 先拒绝确认，见 [session-flow.md](session-flow.md) 的 `S6`。
 
 **步骤**：按 Esc（焦点不在弹窗/菜单里）。
 

@@ -14,12 +14,13 @@ interface SeatView {
   /** 宿主正在等待用户决定的写入预览；没有则为 null。 */
   pending: ConfirmationView | null;
   /**
-   * 本轮是否进行中。
+   * 本条确认的应答请求是否在途：只用来禁用卡片上的动作按钮。
    *
-   * 注意它**不参与**接管判定：写入确认只可能出现在工具执行期间（此时 busy 为真），
-   * 拿 busy 当条件会让确认按钮永远不会出现。它只用来禁用卡片上的动作按钮。
+   * 这里**不能用宿主的 `busy`**：写入确认只可能出现在工具执行期间，此时 `busy`
+   * 恒为真，拿它当禁用条件会让确认按钮永远不会出现为可点。`busy` 也不参与接管
+   * 判定——接管只看有没有 `pending`。
    */
-  busy: boolean;
+  answering: boolean;
   onConfirm(id: string): void;
   onReject(id: string): void;
 }
@@ -51,7 +52,7 @@ const SEAT_BRANCHES: SeatBranch[] = [
         <div className="cardSeat">
           <ConfirmationCard
             confirmation={pending}
-            busy={view.busy}
+            answering={view.answering}
             showActions
             onConfirm={view.onConfirm}
             onReject={view.onReject}
@@ -77,9 +78,15 @@ const SEAT_BRANCHES: SeatBranch[] = [
 export function ComposerSlot(): ReactNode {
   const actions = useActions();
   const pending = useAppSelector(state => state.stream.pending);
-  const busy = useAppSelector(state => state.stream.busy);
+  const answering = useAppSelector(state => state.stream.answering);
 
-  const view: SeatView = { pending, busy, onConfirm: actions.confirm, onReject: actions.reject };
+  const view: SeatView = {
+    pending,
+    // 只有「当前这张卡」的在途应答才禁用按钮：换到新确认卡后旧的应答不该牵连它。
+    answering: pending !== null && answering === pending.id,
+    onConfirm: actions.confirm,
+    onReject: actions.reject,
+  };
   const branch = SEAT_BRANCHES.find(candidate => candidate.match(view));
 
   return (

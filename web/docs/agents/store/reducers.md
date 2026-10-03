@@ -49,23 +49,26 @@ export function rootReducer(state: RootState = INITIAL_ROOT_STATE, action: AppAc
 
 ## `stream` 切片（`reducers/stream.ts`）
 
-字段：`ChatScalarsView` 的全部标量（`busy` / `status` / `liveText` / `pending` / `sessionId` …）+ `items` + `connected` + `pendingEcho`。
-初始值：`INITIAL_STREAM_STATE` = `INITIAL_SCALARS`（首帧前的占位状态，文案与终端启动提示一致）+ 三个空值。
+字段：`ChatScalarsView` 的全部标量（`busy` / `status` / `liveText` / `pending` / `sessionId` …）+ `items` + `connected` + `pendingEcho` + `answering`（前端本地状态，不在协议里）。
+初始值：`INITIAL_STREAM_STATE` = `INITIAL_SCALARS`（首帧前的占位状态，文案与终端启动提示一致）+ 三个空值 + `answering: null`。
 
 | action | 行为 |
 |---|---|
 | `stream/frame` | 见下（帧合并） |
-| `stream/fatal` | 写入 `status` 并置 `connected: false`（宿主明确报错，不重试） |
+| `stream/fatal` | 写入 `status` 并置 `connected: false`（宿主明确报错，不重试）；顺带清掉 `answering` |
 | `stream/connected` | 只改 `connected`；值未变时返回原 state |
 | `stream/pendingEchoSet` | 记录乐观回显（文本 + 当时的 `sessionId`） |
 | `stream/pendingEchoClear` | 撤下回显 |
+| `stream/answerStarted` | 记下正在应答的确认 id |
+| `stream/answerSettled` | 只清掉与 id 相同的那一条（值未变时返回原 state） |
 
 ### 帧合并（核心不变式）
 
 ```ts
 const switched = state.sessionId !== '' && frame.state.sessionId !== state.sessionId;
 const items = switched || frame.full ? frame.items : mergeItems(state.items, frame.items);
-return { ...state, ...frame.state, items, connected: true, pendingEcho };
+const answering = state.answering !== null && (switched || frame.state.pending?.id !== state.answering) ? null : state.answering;
+return { ...state, ...frame.state, items, connected: true, pendingEcho, answering };
 ```
 
 三条规则，缺一不可：
@@ -73,6 +76,17 @@ return { ...state, ...frame.state, items, connected: true, pendingEcho };
 1. **标量每帧覆盖**（`...frame.state`）；
 2. **条目按 `id` 合并**（`mergeItems`）：宿主不只追加——工具从"进行中"变完成、确认卡给出结论时会带同一个 `id` 与更高 `version` 重发那一条。必须**替换**而不是追加，否则界面同时留下新旧状态、React key 还会重复；
 3. **会话切换整表替换**：`sessionId` 从非空变为另一个值时，丢弃旧条目只接本帧（宿主新建/恢复会话时会重建条目列表，编号继续递增，所以这一帧总是全量）。
+
+### 应答在途的撤下条件（`answering`）
+
+`answering` 是**前端本地状态**：正在应答中的确认 id，`null` 表示没有应答在途。它只用来在「已点下、宿主还没返回」这一小段里禁用确认卡按钮，防止重复提交。
+
+**它不能由宿主标量 `busy` 代替**：写入确认必然出现在工具执行期间，此时 `busy` 恒为真，拿它当禁用条件会让确认按钮永远点不动。存 id 而不是布尔值，是为了让旧确认的应答不牵连换上来之后的新确认卡。
+
+撤下有两条路径，都要保留：
+
+1. **reducer**（权威）：本帧的 `pending` 不再是那一条（宿主已给出结论），或整体换了会话 → 清空。宿主给出结论比请求 promise 落地更早也更可靠，请求悬挂时靠它解禁；
+2. **动作层**：`answerStarted` / `answerSettled` 配对（见 [actions-and-operations.md](actions-and-operations.md)），兜住网络失败这类宿主不会回应的情况。
 
 ### 乐观回显的撤下条件
 

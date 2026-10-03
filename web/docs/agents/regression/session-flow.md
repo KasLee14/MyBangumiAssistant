@@ -103,6 +103,8 @@ document.querySelectorAll('.activityRow').length > 0
 **预期**
 - 输入区被**接管**：`.composerSeat` 内出现 `.cardSeat > .planCard`，输入框消失；
 - 卡片显示状态「待确认」、标题、完整预览文本（等宽、保留换行）与提示；
+- **两个按钮可点**（`disabled` 为 `false`）。待确认必然发生在本轮进行中（`busy` 为真），所以这里**不能**用 `busy` 当禁用条件——历史 bug 就是由此导致按钮恒灰；
+- 点下后到宿主返回结论之前，两个按钮**短暂禁用**（防重复提交），卡片被替换或结论下发后即解除；
 - 点「确认修改」→ 提交后卡片状态变为已确认/已过期，输入区恢复输入卡；
 - 另起一轮点「取消」→ 状态为「已拒绝」；
 - **历史条目里的确认卡不再有动作按钮**（只显示结果）。
@@ -110,6 +112,10 @@ document.querySelectorAll('.activityRow').length > 0
 **判定**
 ```js
 document.querySelector('.cardSeat .planCard')?.dataset.state      // 'pending' → 'accepted' | 'rejected'
+// 待确认时按钮可点：
+[...document.querySelectorAll('.cardSeat .planActions button')].every(b => !b.disabled)   // true
+// 点下后、结论到达前（窗口很短，需要立即求值）：
+[...document.querySelectorAll('.cardSeat .planActions button')].every(b => b.disabled)    // true
 // 接管时输入框不在：
 !document.querySelector('#composer-input')
 // 恢复后：
@@ -122,9 +128,9 @@ document.querySelector('.cardSeat .planCard')?.dataset.state      // 'pending' �
 
 **步骤**：按 Esc（焦点不在弹窗或思考菜单里）。
 
-**预期**：等价于点「取消」；本轮随后继续/结束，输入区恢复。
+**预期**：等价于点「取消」——只拒绝这次写入，**不中止整轮**（Esc 的优先级是「有待确认 → 拒绝」，`busy` 判定排在它后面）；本轮随后继续/结束，输入区恢复。
 
-**判定**：卡片 `data-state` 变为 `rejected` 或 `expired`，`#composer-input` 重新出现。
+**判定**：卡片 `data-state` 变为 `rejected` 或 `expired`，`#composer-input` 重新出现；本轮不被中断（过程块与后续输出照常收尾，不出现「本轮已停止」提示）。
 
 ## S7 会话切换（新建与恢复，不需模型）
 

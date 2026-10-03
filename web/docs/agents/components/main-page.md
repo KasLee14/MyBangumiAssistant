@@ -22,22 +22,23 @@
 本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
 
 1. **新增接管形态只改 `SEAT_BRANCHES`** —— 违反后果：判定散落、优先级失控。**顺序即优先级**，更"强"的形态排前面。
-2. **`busy` 不参与接管判定** —— 违反后果：确认按钮永远不出现。
+2. **`busy` 既不参与接管判定，也不当确认按钮的禁用条件** —— 违反后果：确认按钮永远点不动。按钮禁用只看 `stream.answering`（本条确认的应答是否在途）。
 3. **会话视图必须含 `.body` 与 `.scrollBody`，不含 `.frame` / `.conversation`** —— 违反后果：容器查询与屏外优化同时失效。
 4. **流式显示块独立成组件并 `memo`** —— 违反后果：每帧重渲染整棵会话树。
+5. **会话行右侧的时间文案走 [`../utils/relativeTime.ts`](../utils/relativeTime.md)** —— 违反后果：侧栏与 `/sessions` 弹窗各算一份，两处措辞漂移（`now` 由组件注入一次，不让每行自己取时钟）。
 
 ## 一览
 
 | 子目录 | 文件 | 职责 | 读 store | 写 store |
 |---|---|---|---|---|
-| `sidebar/` | `Sidebar.tsx` | 品牌行、折叠按钮、新建会话、历史会话列表 | `ui.collapsed`、`catalog.sessions` | `toggleSidebar`、`newSession`、`resumeSession` |
+| `sidebar/` | `Sidebar.tsx` | 品牌行、折叠按钮、新建会话、历史会话列表（右侧为最后对话时间） | `ui.collapsed`、`catalog.sessions` | `toggleSidebar`、`newSession`、`resumeSession` |
 | `header/` | `Header.tsx` | 标题行、连接状态 chip、设置入口 | `stream.connected` | `openSettings(null)` |
 | `conversation/` | `ConversationView.tsx` | 滚动容器、轮次列表、流式区、轮次导轨、贴底跟随 | —（props） | —（props） |
 | | `TurnView.tsx` | 一个轮次：用户气泡 + 过程折叠块 + 主体条目 | — | — |
 | | `MessageParts.tsx` | 原子行（用户气泡/提示/错误/会话头）+ 流式区 | — | — |
-| | `ConfirmationCard.tsx` | 写入预览卡；历史条目只显示结果 | — | — |
+| | `ConfirmationCard.tsx` | 写入预览卡；历史条目只显示结果、`answering` 恒为 `false` | — | — |
 | | `Hero.tsx` | 首屏引导块（无 props 的纯展示） | — | — |
-| `composer/` | `ComposerSlot.tsx` | 输入区**座位**：决定此刻放输入卡还是接管卡 | `stream.pending`、`stream.busy` | `confirm`、`reject` |
+| `composer/` | `ComposerSlot.tsx` | 输入区**座位**：决定此刻放输入卡还是接管卡 | `stream.pending`、`stream.answering` | `confirm`、`reject` |
 | | `Composer.tsx` | 输入卡 + 命令弹窗；持有草稿 | 流字段、`catalog.commands`、`ui.problem` | `optimisticSend`、`localCommand`、`stopRound`、`notice` |
 | | `ThinkingPicker.tsx` | 思考强度菜单 | `stream.thinking` | `pickThinkingLevel` |
 | | `StatsDock.tsx` | token 胶囊与上下文占用环 | —（props） | — |
@@ -57,14 +58,14 @@ interface SeatBranch {
 const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 ```
 
-- 判定只读 `SeatView` 这一份快照（`pending` / `busy` / `onConfirm` / `onReject`）。**新增分支时只要能在这份输入上判定，就不必回主界面接线。**
+- 判定只读 `SeatView` 这一份快照（`pending` / `answering` / `onConfirm` / `onReject`）。**新增分支时只要能在这份输入上判定，就不必回主界面接线。**
 - **顺序即优先级**：`SEAT_BRANCHES.find(...)` 取第一个命中项，更"强"的接管形态要排在前面。
 - 全部未命中 → 渲染默认输入卡（`<Composer />`）。
 
 两个必须保留的约束：
 
 1. **接管卡片替换 `.composerSeat` 内部的内容，容器本身不换**。容器一旦被卸载重建，textarea 会丢失焦点与 IME 组合态；历史上首屏与活动态各渲染一次输入卡就踩过这个坑。
-2. **`busy` 不参与接管判定**。写入确认只可能出现在工具执行期间（此时 `busy` 为真），拿 `busy` 当条件会让确认按钮永远不出现；它只用来禁用卡片上的动作按钮。
+2. **`busy` 不参与接管判定，也不当按钮的禁用条件**。写入确认只可能出现在工具执行期间（此时 `busy` 为真），拿 `busy` 当禁用条件会让按钮永远点不动；卡片按钮禁用只看 `answering === pending.id`（本条确认的应答在途，防重复提交）。
 
 新增一种输入区接管形态（例如另一种待决定卡片）的步骤：
 

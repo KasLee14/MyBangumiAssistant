@@ -54,7 +54,7 @@ createRoot(container).render(
 | `useStreamSubscription()` | 建立宿主事件流（`EventSource`），把帧 dispatch 进 store | 只在页面挂载期间存在；卸载即关闭 |
 | `useCatalogSync()` | 首屏与会话切换后重取目录（模型/会话/提供方/命令） | 失败不提示：打开设置弹窗时会再取一次 |
 | `useResponsiveCollapse()` | `innerWidth <= 1024` 时强制收起侧栏 | 是**强制**语义：手动展开后下一次 resize 仍会重置 |
-| `useEscapeShortcut()` | Esc：本轮进行中→停止本轮；有待确认写入→拒绝 | 弹窗与思考菜单各自在捕获阶段拦截并 `stopPropagation` |
+| `useEscapeShortcut()` | Esc：有待确认写入→拒绝本次写入；否则本轮进行中→停止本轮 | **顺序不能反**：待确认时 `busy` 也为真。弹窗与思考菜单各自在捕获阶段拦截并 `stopPropagation` |
 
 它们都定义在 `store/`（`hooks.ts`、`stream.ts`），页面只负责调用。
 

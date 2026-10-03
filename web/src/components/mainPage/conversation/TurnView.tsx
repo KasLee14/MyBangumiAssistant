@@ -67,11 +67,10 @@ function ProcessGroup({ items, running, reveal }: { items: ActivityItemView[]; r
   );
 }
 
-function BodyItem({ item, onConfirm, onReject, busy }: {
+function BodyItem({ item, onConfirm, onReject }: {
   item: TranscriptItemView;
   onConfirm(id: string): void;
   onReject(id: string): void;
-  busy: boolean;
 }): ReactNode {
   if (item.kind === 'assistant') {
     return <div className="assistantRow"><div className="assistantBody"><Markdown text={item.text} /></div></div>;
@@ -79,9 +78,9 @@ function BodyItem({ item, onConfirm, onReject, busy }: {
   if (item.kind === 'notice') return <NoticeRow text={item.text} />;
   if (item.kind === 'error') return <ErrorRow text={item.text} />;
   if (item.kind === 'header') return <SessionBanner text={item.text} />;
-  // 会话里的确认条目是历史记录，动作只在接管输入区提供。
+  // 会话里的确认条目是历史记录，动作只在接管输入区提供，因此没有应答在途一说。
   if (item.kind === 'confirmation') {
-    return <ConfirmationCard confirmation={item.confirmation} busy={busy} showActions={false} onConfirm={onConfirm} onReject={onReject} />;
+    return <ConfirmationCard confirmation={item.confirmation} answering={false} showActions={false} onConfirm={onConfirm} onReject={onReject} />;
   }
   // 内容条目：条目、统计、进度、表格等多样化展示，由组件库统一分派。
   if (isContentItem(item)) return <ContentItem item={item} />;
@@ -92,14 +91,17 @@ function BodyItem({ item, onConfirm, onReject, busy }: {
  * 一个轮次：用户消息、过程折叠块与主体内容。
  *
  * `memo`：流式期间宿主每帧下发新状态，`turns` 数组由 `ConversationView` 用
- * `useMemo` 固定引用，因此只有「正在流式的那一轮」与 `running`/`busy`/`reveal`
+ * `useMemo` 固定引用，因此只有「正在流式的那一轮」与 `running`/`reveal`
  * 变化的轮次会重渲染，历史轮次整体跳过。`ProcessGroup` 的展开状态由 `running`
  * 与 `reveal` 驱动，这两个 prop 必须保留传递，否则 memo 会把折叠块冻结在旧状态。
+ *
+ * 这里**不接收 `busy`**：会话里的确认条目是历史记录、不显示动作按钮，确认为待确认
+ * 那张卡（输入区）的按钮禁用只跟它自己的应答在途状态有关。多传一个 `busy` 会让
+ * 每次忙碌状态翻转都把全部轮次重渲染一遍。
  */
-export const TurnView = memo(function TurnView({ turn, running, busy, reveal, onConfirm, onReject }: {
+export const TurnView = memo(function TurnView({ turn, running, reveal, onConfirm, onReject }: {
   turn: TurnGroup;
   running: boolean;
-  busy: boolean;
   reveal: number;
   onConfirm(id: string): void;
   onReject(id: string): void;
@@ -111,7 +113,7 @@ export const TurnView = memo(function TurnView({ turn, running, busy, reveal, on
         {turn.user ? <UserBubble text={turn.user.text} /> : null}
         {process.length ? <ProcessGroup items={process} running={running} reveal={reveal} /> : null}
         {turn.body.map(item => (
-          <BodyItem key={item.id} item={item} onConfirm={onConfirm} onReject={onReject} busy={busy} />
+          <BodyItem key={item.id} item={item} onConfirm={onConfirm} onReject={onReject} />
         ))}
       </div>
     </section>

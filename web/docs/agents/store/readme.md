@@ -51,7 +51,7 @@
 
 | 切片 | 装什么 | 典型字段 |
 |---|---|---|
-| `stream` | 宿主下发的会话状态与条目 | `items`、`busy`、`liveText`、`pending`、`connected`、`pendingEcho` |
+| `stream` | 宿主下发的会话状态与条目（外加一个前端本地字段 `answering`） | `items`、`busy`、`liveText`、`pending`、`connected`、`pendingEcho`、`answering` |
 | `catalog` | 目录类数据（属于"有哪些东西可选"） | `models`、`sessions`、`providers`、`commands`、`canPersistCredentials` |
 | `ui` | 纯界面状态 | `settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider` |
 
@@ -64,6 +64,7 @@
 | `notice` / `problem` | `ui` | 提示与输入区不在同一棵子树 |
 | `reveal`（`/details`） | `ui` | 命令（store）触发、会话视图消费 |
 | **输入草稿** | `Composer` 自己的 `useState` | 每个按键都变，且输入卡挂载点必须稳定（卸载重建会丢焦点与 IME 组合态） |
+| **确认应答在途（`answering`）** | `stream` | 确认卡（`ComposerSlot`）读、`operations` 写，且必须随帧撤下（宿主给出结论时解禁）——见 [reducers.md](reducers.md) 的「应答在途的撤下条件」 |
 | **弹窗内输入框、busy、error** | 各弹窗自己的 `useState` | 组件私有，只服务这一次编辑 |
 | **菜单开合、滚动位置、当前轮次** | 组件自己的 `useState` / `useRef` | 纯视觉细节，没有第二个读者 |
 | **命令补全游标** | `Composer` 自己的 `useState` | 同上 |

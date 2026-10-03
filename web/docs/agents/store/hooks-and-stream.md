@@ -58,7 +58,7 @@ export function useActions(): Actions {
 |---|---|---|
 | `useCatalogSync()` | 首屏与 `sessionId` 变化后重取目录 | 失败静默：打开设置/会话弹窗时会再取一次。会话切换后模型与历史会话列表都可能变，所以依赖 `sessionId` |
 | `useResponsiveCollapse()` | 监听 `resize`，`innerWidth <= 1024` → `collapsedSet(true)` | 是**强制**语义：手动展开后下一次 resize 仍会重置。首屏初值由 `preloadedState` 决定（见 [selectors-and-instance.md](selectors-and-instance.md)），避免先展开再收起的一次闪动 |
-| `useEscapeShortcut()` | `keydown` 且 `key === 'Escape'`：`busy` → `stopRound()`；否则有 `pending` → `reject(id)` | 弹窗（`Modal`）与思考菜单各自在**捕获阶段**拦截并 `stopPropagation`，所以弹窗打开时 Esc 只作用于弹窗 |
+| `useEscapeShortcut()` | `keydown` 且 `key === 'Escape'`：有 `pending` → `reject(id)`；否则 `busy` → `stopRound()` | **顺序不能反**：待确认时 `busy` 也为真（确认发生在工具执行期间），先判 `busy` 会把 Esc 变成"中止整轮"。弹窗（`Modal`）与思考菜单各自在**捕获阶段**拦截并 `stopPropagation`，所以弹窗打开时 Esc 只作用于弹窗 |
 
 ## SSE 订阅（`stream.ts`）
 

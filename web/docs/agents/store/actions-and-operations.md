@@ -52,7 +52,8 @@
 - `optimisticSend(input)` = `send` + 写入 `pendingEcho`；斜杠命令不写回显（它不产生对话轮次，气泡会挡在结果前面）；
 - `openSettings(pane)` / `openSessions()` 会**先重取目录再打开**（失败则用已缓存的一份，让行内值可能略旧但不阻塞打开）；
 - `pickSession(session)` 先关弹窗再切会话；
-- `openSettings(pane)` 与 `openSessions()` 的互斥由 reducer 保证，动作层不重复判断。
+- `openSettings(pane)` 与 `openSessions()` 的互斥由 reducer 保证，动作层不重复判断；
+- `confirm(id)` / `reject(id)` 共用一个内部 `answer(id, accepted)`：先 `dispatch(answerStarted(id))` 再发请求，`.finally` 里 `answerSettled(id)` 解禁。**这个在途标记不能用宿主的 `busy` 代替**（确认期间 `busy` 恒为真，会让按钮永远点不动），语义见 [reducers.md](reducers.md) 的「应答在途的撤下条件」。
 
 ## 两种错误处理约定（新增动作时必须选一个）
 

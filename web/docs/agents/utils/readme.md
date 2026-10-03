@@ -17,6 +17,7 @@
 | [commands.md](commands.md) | 加本地斜杠命令、改补全匹配或 `/help` 文案时 |
 | [turns.md](turns.md) | 改轮次分组规则（哪些条目算过程、会话头归属）时 |
 | [credentialLabel.md](credentialLabel.md) | 改凭据来源的展示措辞时 |
+| [relativeTime.md](relativeTime.md) | 改历史会话右侧的时间文案或分档规则时 |
 
 ### 必须遵守的规则
 
@@ -46,6 +47,7 @@
 | [commands.ts](commands.md) | 斜杠命令候选表与匹配 | `LOCAL_COMMANDS`、`mergeCommands`、`matchCommands`、`helpText` |
 | [turns.ts](turns.md) | 条目 → 轮次的展示投影 | `projectTurns`、`TurnGroup` |
 | [credentialLabel.ts](credentialLabel.md) | 凭据来源的共用措辞 | `AUTH_LABEL` |
+| [relativeTime.ts](relativeTime.md) | 会话「最后对话时间」的相对文案 | `relativeTimeLabel` |
 
 规模悬殊是有意的：`credentialLabel.ts` 只有 9 行也单独成文件，因为它是**被两个组件共用的措辞表**；而 `api.ts` 承载全部端点。**判据是"功能类别"，不是行数。**
 
@@ -54,7 +56,7 @@
 1. **无组件、无 hook、无状态**：所有导出都是函数、常量或类型。唯一带副作用的是 `api.ts` 里的网络请求。
 2. **错误语义统一**：`api.ts` 只把宿主的 `ApiErrorView.message` 包成 `Error` 抛出，不做提示、不重试、不改写文案。谁调用、谁决定怎么提示（见 [../store/actions-and-operations.md](../store/actions-and-operations.md)）。
 3. **不复制协议类型**：跨端类型从 `protocol.ts` 取；这里的类型要么是协议类型的别名，要么是纯前端的投影结构（如 `TurnGroup`）。
-4. **文案集中在能共用的地方**：同一句话若出现在两处界面，就抽成这里的常量（`AUTH_LABEL` 是范例），避免两处漂移。
+4. **文案集中在能共用的地方**：同一句话若出现在两处界面，就抽成这里的常量或函数（`AUTH_LABEL`、`relativeTimeLabel` 是范例），避免两处漂移。
 5. **不写"顺手"的通用工具**：没有第二个调用方的工具函数不要提前抽出来。
 
 ## 新增一个工具文件时
@@ -62,4 +64,3 @@
 1. 确认它是**新的功能类别**（同类别追加进已有文件即可，例如再加一条本地命令写进 `commands.ts`）；
 2. 文件顶部写清"这一层为什么存在、边界是什么"（中文注释，与既有文件风格一致）；
 3. 在本文件与 [../../AGENTS.md](../../../AGENTS.md) 的索引里登记。
-
