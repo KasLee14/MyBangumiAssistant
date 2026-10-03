@@ -1,10 +1,13 @@
 **/node_modules/
 **/dist/
+**/.vite/
 **/.host-check/
 artifacts/
 runtime/
 AGENTS.md
+!web/AGENTS.md
 docs/
+!web/docs/
 tests/
 scripts/
 .github/

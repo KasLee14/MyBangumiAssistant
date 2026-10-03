@@ -15,7 +15,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p ../web/tsconfig.json --noEmit",
     "build": "npm run build:web && tsc -p tsconfig.json",
     "build:web": "vite build",
-    "dev:web": "vite build --watch",
+    "dev:web": "node dev-web.mjs",
     "start": "node dist/src/main.js",
     "web": "node dist/src/main.js web"
   },
