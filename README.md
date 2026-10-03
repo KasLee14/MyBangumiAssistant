@@ -1,7 +1,5 @@
 # MyBangumiAssistant · Pi
 
-## 1、这个项目是做什么的
-
 MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然语言，你可以查询作品、获取推荐，以及管理自己的收藏、评分、标签、观看进度和目录。它提供浏览器 Web 界面和命令行 CLI，两种入口使用同一套模型配置、工具和会话管理能力。
 
 例如，你可以直接说：
@@ -10,7 +8,7 @@ MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然�
 - “把《某部动画》第 3 集标记为看过。”
 - “创建一个目录，把这些作品加入进去。”
 
-## 2、如何安装并启动
+## 1、如何安装并启动
 
 ### 准备环境与安装
 
@@ -45,7 +43,7 @@ npm start -- web
 npm start -- web --port 8788 --no-open
 ```
 
-## 3、配置 API Key
+## 2、配置 API Key
 
 ### 方式一：在 Web 中填写
 
@@ -142,7 +140,7 @@ npm start -- --model bangumi-model/your-model
 
 CLI 中可通过 `/model` 打开模型选择器，在选择器内按 `Ctrl+S` 将选中项保存为默认模型。Web 中选择模型会更新当前会话，并保存到 `settings.json` 作为启动默认模型。Web 的思考强度选择会保存到本机配置的 `defaultThinkingLevel`，作为全局默认值。
 
-## 4、致谢
+## 3、致谢
 
 - [Pi](https://github.com/earendil-works/pi)：提供模型接入、对话循环、会话管理和终端交互能力。
 - [Bangumi](https://bgm.tv/) 与 [Bangumi API](https://github.com/bangumi/api)：提供作品、章节、人物、目录和收藏相关的数据与服务。
