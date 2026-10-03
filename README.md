@@ -20,11 +20,7 @@ MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然�
 node bootstrap-pi.mjs
 ```
 
-脚本会安装依赖、下载并校验模型目录，然后构建 Pi、Bangumi 应用和 Web 界面。需要本机 Clash 代理时，使用：
-
-```powershell
-node bootstrap-pi.mjs --proxy http://127.0.0.1:7890
-```
+脚本会安装依赖、下载并校验模型目录，然后构建 Pi、Bangumi 应用和 Web 界面。
 
 ### 启动 Web端
 
