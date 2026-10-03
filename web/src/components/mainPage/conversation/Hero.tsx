@@ -14,7 +14,7 @@ export function Hero(): ReactNode {
           <span>Bangumi 助手</span>
           <span className="heroBadge">Web 终端</span>
         </div>
-        <p className="heroHint">用自然语言查询作品、管理收藏与更新观看或阅读进度；写入前会先给出预览并等待确认。</p>
+        <p className="heroHint">用自然语言查询作品、管理收藏与更新观看或阅读进度；章节状态修改直接执行，作品短评和其他批量修改会先预览确认。</p>
       </div>
     </div>
   );

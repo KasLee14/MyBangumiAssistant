@@ -2,6 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { TOOL_DEFINITIONS } from './catalog.js';
 import { record, type Data } from './resource-output.js';
 import { AppError } from '../support/errors.js';
+import { isEpisodeWrite } from './write-verification.js';
 
 const writes = new Set([
   'update_subject_collection', 'update_single_episode_collection', 'update_episode_collection',
@@ -22,8 +23,8 @@ export function confirmationForPlan(items: readonly ConfirmationItem[]): Confirm
   const changes = items.filter(item => !isDeepStrictEqual(item.before, item.after));
   if (!changes.length) return { required: false, reasons: [] };
   const reasons: string[] = [];
-  if (items.length > 1 || items.some(item => item.name === 'update_episode_collection' && (item.args.episode_ids as number[]).length > 1
-    || item.name === 'update_single_episode_collection' && item.args.batch === true && (record(item.after).episodes as unknown[]).length > 1)) {
+  // 章节状态由用户指令直接授权，不计入批量审批数量；混合计划仍检查其他操作。
+  if (items.filter(item => !isEpisodeWrite(item.name)).length > 1) {
     reasons.push('批量修改完整范围');
   }
   if (changes.some(item => item.name === 'update_subject_collection' && Object.hasOwn(item.args, 'comment')

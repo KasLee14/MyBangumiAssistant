@@ -25,6 +25,12 @@ function fixture({ anchorDone = false } = {}) {
       return structuredClone(subject);
     },
     account: async (path, options = {}) => {
+      if (options.method === 'PUT' && path === '/p1/collections/subjects/101') {
+        requests.push({ path, ...structuredClone(options) });
+        const { type, rate, comment, tags, private: visibility } = options.body;
+        Object.assign(interest, { type, rate, comment, tags, private: visibility });
+        return {};
+      }
       if (options.method === 'PATCH') {
         requests.push({ path, ...structuredClone(options) });
         const anchor = episodes.find(e => e.id === Number(path.split('/').at(-1)));
@@ -50,15 +56,19 @@ function fixture({ anchorDone = false } = {}) {
   const input = { text: '把测试动画设置为看到第七集', generation: 1 };
   const records = [];
   const previews = [];
-  let onConfirm;
-  const channel = { canConfirm: () => true, confirm: async (_ctx, text) => { previews.push(text); onConfirm?.(); return true; } };
+  let onAuthorize;
+  let connected = true;
+  const channel = { canConfirm: () => connected, confirm: async (_ctx, text) => { previews.push(text); return true; } };
   const client = { call: (...args) => service.call(...args) };
   const ctx = { sessionManager: { getEntries: () => [] } };
   const boundary = createWriteBoundary(client, () => input, record => records.push(record), channel);
+  const authorize = boundary.authorize;
+  boundary.authorize = (...args) => { onAuthorize?.(); return authorize(...args); };
   const batch = createBatchWriteTool(boundary, record => records.push(record));
   return { service, boundary, episodes, interest, requests, previews, records,
     setMalformed: fn => { malformed = fn; }, setUser: value => { user = value; },
-    setIgnoreEarlier: () => { ignoreEarlier = true; }, onConfirm: fn => { onConfirm = fn; }, onWrite: fn => { onWrite = fn; },
+    setIgnoreEarlier: () => { ignoreEarlier = true; }, beforeAuthorize: fn => { onAuthorize = fn; }, onWrite: fn => { onWrite = fn; },
+    disconnect: () => { connected = false; },
     execute: async operations => (await batch.execute('test', { operations }, undefined, undefined, ctx)).details.value };
 }
 const until = { tool: 'update_single_episode_collection', args: { episode_id: 7, batch: true } };
@@ -81,7 +91,7 @@ test('筛选拒绝重复、残缺和总数变化的源分页', async () => {
   f.setMalformed((page, offset) => offset ? { ...page, total: page.total + 1 } : page);
   await assert.rejects(() => f.service.call('get_user_episode_collection', { subject_id: 101, episode_type: 0 }), { code: 'INCOMPLETE_DATA' });
 });
-test('看到使用一次官方请求，补齐前序并保护后续/SP/父收藏', async () => {
+test('看到免确认使用一次官方请求，补齐前序并保护后续/SP/父收藏', async () => {
   const f = fixture(); const before = { ...f.interest };
   const value = await f.execute([until]);
   assert.equal(value.state, 'success', JSON.stringify(value));
@@ -95,7 +105,8 @@ test('看到使用一次官方请求，补齐前序并保护后续/SP/父收藏'
   assert.equal(f.interest.epStatus, 9);
   assert.equal(f.interest.type, before.type);
   assert.equal(f.interest.comment, before.comment);
-  assert.equal(f.previews.length, 1);
+  assert.equal(f.previews.length, 0);
+  assert.deepEqual(value.confirmation, { required: false, reasons: [] });
   assert.deepEqual(value.items[0].submission.affectedEpisodeIds, [1, 2, 3, 4, 5, 6, 7]);
   assert.equal(value.items[0].verification.parentProgress.actual, 9);
 });
@@ -113,6 +124,8 @@ test('复数集看过只改显式列表，不补齐其他集', async () => {
   const f = fixture();
   const value = await f.execute([{ tool: 'update_episode_collection', args: { subject_id: 101, episode_ids: [4, 7], collection_type: 2 } }]);
   assert.equal(value.state, 'success', JSON.stringify(value));
+  assert.equal(f.previews.length, 0);
+  assert.deepEqual(value.confirmation, { required: false, reasons: [] });
   assert.deepEqual(f.requests.map(r => r.body), [{ type: 2, batch: false }, { type: 2, batch: false }]);
   assert.equal(f.episodes.find(e => e.id === 5).collection.status, 0);
 });
@@ -134,13 +147,22 @@ test('看到匹配官方 sort 规则，包含小数序号与同序号章节', as
   assert.equal(f.episodes.find(e => e.id === 77).collection.status, 2);
   assert.equal(f.episodes.find(e => e.id === 78).collection.status, 2);
 });
-test('预览期间范围/账户改变时不写入', async () => {
+test('免确认章节计划在提交前范围/账户改变时不写入', async () => {
   for (const mutate of [f => f.episodes.push({ id: 88, subjectID: 101, type: 0, sort: 6, name: '新增', collection: { status: 0 } }), f => f.setUser({ id: 43, username: 'other' })]) {
-    const f = fixture(); f.onConfirm(() => mutate(f));
+    const f = fixture(); f.beforeAuthorize(() => mutate(f));
     const value = await f.execute([until]);
     assert.equal(value.state, 'failed');
+    assert.ok(['STALE_PREVIEW', 'ACCOUNT_CHANGED'].includes(value.error.code), JSON.stringify(value));
     assert.equal(f.requests.length, 0);
   }
+});
+
+test('章节免确认仍要求有效交互通道', async () => {
+  const f = fixture(); f.disconnect();
+  const value = await f.execute([until]);
+  assert.equal(value.error.code, 'AUTHORIZATION_REQUIRED');
+  assert.equal(f.previews.length, 0);
+  assert.equal(f.requests.length, 0);
 });
 test('回读发现未补齐或范围外被修改时不报成功', async () => {
   for (const setup of [f => f.setIgnoreEarlier(), f => f.onWrite(() => { f.episodes.find(e => e.id === 8).collection.status = 2; })]) {
@@ -158,13 +180,29 @@ test('动画进度字段被明确拒绝；响应说明集数含义', async () =>
   const collection = await f.service.call('get_user_subject_collection', { username: '-', subject_id: 101 });
   assert.equal(collection.collection.progressMeaning, '已看集数');
 });
-test('连续看到或混合逐集操作只确认一次，正确承接范围与派生计数', async () => {
+test('多项章节操作免确认，正确承接范围与派生计数', async () => {
   const single = { tool: 'update_single_episode_collection', args: { episode_id: 5, collection_type: 2 } };
   for (const operations of [[until, { ...until, args: { episode_id: 10, batch: true } }], [single, until], [until, { tool: 'update_episode_collection', args: { subject_id: 101, episode_ids: [9], collection_type: 0 } }]]) {
     const f = fixture(); const value = await f.execute(operations);
     assert.equal(value.state, 'success', JSON.stringify(value));
-    assert.equal(f.previews.length, 1);
+    assert.equal(f.previews.length, 0);
+    assert.deepEqual(value.confirmation, { required: false, reasons: [] });
     assert.equal(f.requests.length, 2);
+  }
+});
+
+test('章节与单项评分混合不算批量审批，作品短评仍整计划确认一次', async () => {
+  for (const [args, required] of [[{ rating: 8 }, false], [{ comment: '新的作品短评' }, true]]) {
+    const f = fixture();
+    const value = await f.execute([until, { tool: 'update_subject_collection', args: { subject_id: 101, ...args } }]);
+    assert.equal(value.state, 'success', JSON.stringify(value));
+    assert.equal(f.previews.length, required ? 1 : 0);
+    assert.deepEqual(value.confirmation, { required, reasons: required ? ['发布或修改作品短评'] : [] });
+    assert.equal(f.requests.length, 2);
+    if (required) {
+      assert.match(f.previews[0], /设置看到此集/);
+      assert.match(f.previews[0], /新的作品短评/);
+    }
   }
 });
 test('回执必须绑定完整影响范围，普通单集不能伪装补齐范围', async () => {

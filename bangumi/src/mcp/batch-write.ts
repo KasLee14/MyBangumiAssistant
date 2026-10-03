@@ -62,7 +62,7 @@ export function createBatchWriteTool(boundary: WriteBoundary, onRecord: (value: 
   const completed = new Map<string, AgentToolResult<unknown>>();
   return {
     name: BATCH_TOOL_NAME, label: '执行修改计划',
-    description: '所有写入的完整计划入口：单项也提交一条operation，普通单项直接执行；发布或修改作品短评、所有类型的批量修改由宿主完整预览并一次确认，再串行执行及独立回读。每项tool只能是已登记写工具，args严格使用该工具原schema。支持混合收藏/评分/标签/章节/角色/人物/目录操作。新目录依赖用index_from引用本批前面的create_index序号（从1开始），该项args省略index_id。先解决全部对象歧义，简介/短评须提供最终正文；本轮开始提交后不能追加另一计划。失败、取消或未知停止后续；恢复不恢复授权，核对剩余范围后在新用户轮次生成完整计划。items中的verification和actual是宿主最终回读事实，嵌套submission.verification=pending不是尚未回读。',
+    description: '所有写入的完整计划入口：单项也提交一条operation，普通单项和章节状态修改直接执行；章节操作无论涉及多少集或多少项均不计入批量审批数量。发布或修改作品短评、包含多个非章节操作的计划由宿主完整预览并一次确认，再串行执行及独立回读。每项tool只能是已登记写工具，args严格使用该工具原schema。支持混合收藏/评分/标签/章节/角色/人物/目录操作。新目录依赖用index_from引用本批前面的create_index序号（从1开始），该项args省略index_id。先解决全部对象歧义，简介/短评须提供最终正文；本轮开始提交后不能追加另一计划。失败、取消或未知停止后续；恢复不恢复授权，核对剩余范围后在新用户轮次生成完整计划。items中的verification和actual是宿主最终回读事实，嵌套submission.verification=pending不是尚未回读。',
     parameters: structuredClone(BATCH_INPUT_SCHEMA) as ToolDefinition['parameters'], executionMode: 'sequential',
     prepareArguments: validateBatchArguments,
     async execute(toolCallId, raw, signal, onUpdate, ctx) {
