@@ -21,7 +21,11 @@
       "react-dom": ["../bangumi/node_modules/@types/react-dom/index.d.ts"],
       "react-dom/client": ["../bangumi/node_modules/@types/react-dom/client.d.ts"],
       "redux": ["../bangumi/node_modules/redux/dist/redux.d.ts"],
-      "react-redux": ["../bangumi/node_modules/react-redux/dist/react-redux.d.ts"]
+      "react-redux": ["../bangumi/node_modules/react-redux/dist/react-redux.d.ts"],
+      "motion/react": ["../bangumi/node_modules/motion/dist/react.d.ts"],
+      "motion": ["../bangumi/node_modules/motion/dist/index.d.ts"],
+      "gsap/ScrollTrigger": ["../bangumi/node_modules/gsap/types/ScrollTrigger.d.ts"],
+      "gsap": ["../bangumi/node_modules/gsap/types/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "../bangumi/src/web/protocol.ts"]

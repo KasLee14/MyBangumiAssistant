@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useActions, useAppSelector } from '../../../store/hooks';
+import { UiVariantToggle } from './UiVariantToggle';
 
 const ICON = { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': true } as const;
 
@@ -19,6 +20,8 @@ export function Header(): ReactNode {
         <span className="tab" aria-selected="true">会话</span>
       </div>
       <div className="headerMeta">
+        {/* 两版界面唯一的共同入口：切到 v2 也就切到了动效外观，切回来即恢复既有外观。 */}
+        <UiVariantToggle />
         <span className="chip" data-state={connected ? 'on' : 'off'} title="连接状态">
           <span className="dot" />
           {connected ? '已连接' : '连接中断'}

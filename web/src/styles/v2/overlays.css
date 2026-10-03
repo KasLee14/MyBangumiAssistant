@@ -1,0 +1,161 @@
+/* ============================================================
+   v2 浮层：弹窗表面与卡座的覆写。
+   ------------------------------------------------------------
+   弹窗组件（设置 / 会话 / 登录 / 模型 / 凭据 / 代理 / 退出）与 `Modal` 都是共享的，
+   进出动效由 `Modal` 的 v2 分支 + `DialogStageV2` 的 `AnimatePresence` 提供，
+   这里只负责把表面换成 v2 的观感：纯白、15px 圆角（Bangumi 的 #TB_window 规格）、
+   两级阴影、更清晰的字段层次。
+   ============================================================ */
+
+[data-ui='v2'] .modalOverlay {
+  background: rgba(40, 40, 40, .32);
+}
+
+[data-ui='v2'] .modalSurface {
+  border: 1px solid var(--v2-hairline-strong);
+  border-radius: var(--v2-radius-panel);
+  background: var(--v2-surface);
+  box-shadow: var(--v2-shadow-panel);
+}
+
+/* v1 的材质层是玻璃；v2 要的是干净的白面，让它透明即可（保留其占位，避免动到布局）。 */
+[data-ui='v2'] .modalSurface .menuMaterial {
+  opacity: 0;
+}
+
+[data-ui='v2'] .modalHeader {
+  border-bottom: 1px solid var(--v2-hairline);
+}
+
+[data-ui='v2'] .modalHeader h2 {
+  color: var(--bgm-text-strong);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+[data-ui='v2'] .modalEyebrow {
+  color: var(--bgm-primary-text);
+}
+
+[data-ui='v2'] .modalBody {
+  color: var(--bgm-text);
+}
+
+[data-ui='v2'] .modalFooter {
+  border-top: 1px solid var(--v2-hairline);
+}
+
+[data-ui='v2'] .modalFooter .note,
+[data-ui='v2'] .modalHint {
+  color: var(--bgm-text-muted);
+}
+
+[data-ui='v2'] .modalField label {
+  color: var(--bgm-text-muted);
+}
+
+[data-ui='v2'] .modalInput {
+  border: 1px solid var(--bgm-input-border);
+  border-radius: var(--v2-radius-control);
+  background: var(--bgm-surface);
+  color: var(--bgm-text-strong);
+  transition:
+    border-color var(--v2-dur-fast) var(--v2-ease-out),
+    box-shadow var(--v2-dur-fast) var(--v2-ease-out);
+}
+
+/* 输入框聚焦：与输入卡同一套语言（主色描边 + 淡光晕）。 */
+[data-ui='v2'] .modalInput:focus {
+  border-color: var(--bgm-primary);
+  box-shadow: 0 0 0 3px var(--v2-primary-veil);
+  outline: none;
+}
+
+[data-ui='v2'] .modalCheck {
+  border-radius: var(--v2-radius-control);
+  transition: background var(--v2-dur-fast) var(--v2-ease-out);
+}
+
+[data-ui='v2'] .modalCheck:hover {
+  background: var(--bgm-surface-alt);
+}
+
+[data-ui='v2'] .modalCheck input:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+[data-ui='v2'] .modalError {
+  color: var(--bgm-danger);
+}
+
+[data-ui='v2'] .modalStatus {
+  border: 1px solid var(--v2-hairline);
+  border-radius: var(--v2-radius-control);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+}
+
+[data-ui='v2'] .modalStatus .dot {
+  transition: background var(--v2-dur-base) var(--v2-ease-out);
+}
+
+[data-ui='v2'] .modalStatus[data-configured='true'] {
+  border-color: var(--bgm-success-border);
+  background: var(--bgm-success-soft);
+  color: var(--bgm-success-text);
+}
+
+/* 弹窗内的按钮沿用 v1 的 `.button` 语汇，只把圆角与过渡对齐到 v2。 */
+[data-ui='v2'] .modalSurface .button {
+  border-radius: var(--v2-radius-control);
+  transition:
+    background var(--v2-dur-fast) var(--v2-ease-out),
+    border-color var(--v2-dur-fast) var(--v2-ease-out),
+    color var(--v2-dur-fast) var(--v2-ease-out),
+    transform var(--v2-dur-instant) var(--v2-ease-out);
+}
+
+[data-ui='v2'] .modalSurface .button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+[data-ui='v2'] .modalSurface .button:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+/* ---------------------------------------------------------------- 确认卡 */
+
+/* 确认卡在 v2 里由输入区座位的 motion 包装推入，这里只改表面观感。 */
+[data-ui='v2'] .planCard {
+  border: 1px solid color-mix(in srgb, var(--bgm-primary) 30%, transparent);
+  border-radius: var(--v2-radius-panel);
+  background: var(--v2-surface);
+  box-shadow: var(--v2-shadow-card);
+  overflow: hidden;
+}
+
+[data-ui='v2'] .planStrip {
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+}
+
+[data-ui='v2'] .planBody {
+  color: var(--bgm-text);
+}
+
+[data-ui='v2'] .previewText {
+  border-radius: var(--v2-radius-control);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text);
+  font: 12px/1.7 var(--bgm-mono);
+}
+
+[data-ui='v2'] .planNote {
+  color: var(--bgm-text-muted);
+}
+
+[data-ui='v2'] .planActions {
+  border-top: 1px solid var(--v2-hairline);
+}

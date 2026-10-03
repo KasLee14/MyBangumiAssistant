@@ -17,6 +17,7 @@
 | [settings-and-credentials.md](settings-and-credentials.md) | 动设置弹窗、模型配置、凭据持久化、代理、登录之后 |
 | [commands-and-shortcuts.md](commands-and-shortcuts.md) | 动命令表、补全、Esc 行为、思考强度、toast 之后 |
 | [shell-and-layout.md](shell-and-layout.md) | 动样式、DOM 结构、类名、外壳布局之后（**改类名或层级必跑**） |
+| [ui-variants.md](ui-variants.md) | 动 v1/v2 两版外观、v2 的动效，或**改了共享组件**（`Modal`/`StatsDock`/`MessageParts`/`content/**`）之后（改共享组件必跑 `V4`） |
 
 ### 必须遵守的规则
 
@@ -59,6 +60,7 @@
 | `C` | [settings-and-credentials.md](settings-and-credentials.md) | 设置四行、模型配置与凭据持久化、模型选择、代理、登录 |
 | `K` | [commands-and-shortcuts.md](commands-and-shortcuts.md) | 命令补全与本地命令、Esc 行为、思考强度、toast |
 | `L` | [shell-and-layout.md](shell-and-layout.md) | 外壳与布局：首屏、侧栏、连接状态、DOM/类名契约、宽度轴、品牌外观 |
+| `V` | [ui-variants.md](ui-variants.md) | 两版外观：切换与持久化、作用域契约、v1 零改动、v2 的 DOM 契约、动效约束与降级、两版功能一致 |
 
 ## 按改动范围选用例
 
@@ -70,10 +72,15 @@
 | 改样式文件 | `L1`、`L5`、`L6`、`L7`（`--dsw-*` 或品牌令牌改动则全量 `L`） |
 | 改 `utils/api.ts` 或协议 | 对应端点的用例（`C*` / `S*`）+ `L4` |
 | 改消息渲染 / 内容组件 | `S2`、`S3`、`S9` + [../components/content.md](../components/content.md) 的"新增 kind 清单"核对 |
+| 改 `page/mainPage/*`、`components/v2/**`、`components/motion/**`、`styles/v2/**` | `V1`–`V10`（其中 `V3`、`V7` 是本组的关键项） |
+| 改**共享组件**（`Modal`、`StatsDock`、`MessageParts`、`content/**`） | `V4` + 该组件所在链路的用例 |
+| 加动效或改动效令牌 | `V8`、`V9` + [../styles/readme.md](../styles/readme.md) 的引入顺序核对 |
 
 ## 冒烟集（任何改动后至少跑这 5 条）
 
 `L1`（首屏渲染）→ `L4`（连接状态）→ `K1`+`K2`（命令补全与 `/help`）→ `L5`（DOM 契约）→ `L3`（侧栏折叠）。
+
+改动落到外观版本或共享组件时，在冒烟集之后追加：`V1`（切换）→ `V4`（v1 零改动）→ `V3`（不重连宿主）。
 
 ## 记录模板
 
