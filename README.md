@@ -68,18 +68,19 @@ Web 和 CLI 共用会话标题：首次提问立即使用问题的前 20 个字�
 
 启动 Web 后，点击右上角设置图标：
 
-1. 在“模型配置”中点击“编辑”，选择提供方并填写 API Key。
-2. 在“模型选择”中选择要使用的模型。
+1. 在“模型配置”中点击“编辑”，选择提供方并填写 API Key。默认勾选“保存到本机”，密钥保存至本机 Pi 的 `auth.json`；取消勾选则仅本次运行有效。已保存的密钥可在该弹窗清除，环境变量与 `models.json` 配置不受影响。
+2. 在“模型选择”中选择要使用的模型，同时保存为本机启动默认模型。
 3. 返回聊天页面，发送请求。
 
 ### 方式二：使用本地配置文件
 
-，默认目录为 `%LOCALAPPDATA%\MyBangumiAssistant-Pi\pi`：
+默认目录为 `%LOCALAPPDATA%\MyBangumiAssistant-Pi\pi`：
 
 | 配置 | 用途 |
 | --- | --- |
 | `models.json` | 定义模型提供方、接口地址、模型 ID 和 API Key 的环境变量引用。 |
 | `settings.json` | 保存默认提供方、默认模型和默认思考强度等偏好。 |
+| `auth.json` | 保存通过 Web 或 Pi 登录流程写入本机的模型凭据。 |
 | 本机环境变量 | 提供实际 API Key，供 `models.json` 引用。 |
 
 **第一步：创建或打开配置目录。** 在 PowerShell 中执行：
@@ -89,7 +90,7 @@ $piConfigDir = Join-Path $env:LOCALAPPDATA 'MyBangumiAssistant-Pi\pi'
 if ($env:BANGUMI_PI_HOME) { $piConfigDir = Join-Path $env:BANGUMI_PI_HOME 'pi' }
 New-Item -ItemType Directory -Force -Path $piConfigDir | Out-Null
 notepad (Join-Path $piConfigDir 'models.json')
-``
+```
 
 使用自定义 `--data-dir` 时，将 `$piConfigDir` 改为该目录下的 `pi` 子目录。文件不存在时，在记事本中创建并保存；已有配置请合并字段，保留其他提供方和设置。
 
@@ -156,7 +157,7 @@ notepad (Join-Path $piConfigDir 'settings.json')
 npm start -- --model bangumi-model/your-model
 ```
 
-CLI 中可通过 `/model` 打开模型选择器，在选择器内按 `Ctrl+S` 将选中项保存为默认模型。Web 中选择模型会更新当前会话；需要固定启动默认模型时，编辑 `settings.json`。Web 的思考强度选择会保存到本机配置的 `defaultThinkingLevel`，作为全局默认值。
+CLI 中可通过 `/model` 打开模型选择器，在选择器内按 `Ctrl+S` 将选中项保存为默认模型。Web 中选择模型会更新当前会话，并保存到 `settings.json` 作为启动默认模型。Web 的思考强度选择会保存到本机配置的 `defaultThinkingLevel`，作为全局默认值。
 
 ## 4、致谢
 

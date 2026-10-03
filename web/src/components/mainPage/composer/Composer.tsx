@@ -1,25 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { matchCommands, type CommandHint } from '../commands';
-import type { ViewState } from '../store';
+import { useActions, useAppSelector } from '../../../store/hooks';
+import { selectHeroPhase } from '../../../store/selectors';
+import { matchCommands } from '../../../utils/commands';
 import { StatsDock } from './StatsDock';
 import { ThinkingPicker } from './ThinkingPicker';
-
-interface ComposerProps {
-  state: ViewState;
-  draft: string;
-  /** 由 catalog 动态命令与本地命令合并而成的候选表。 */
-  commands: readonly CommandHint[];
-  /** 空会话首屏：输入卡用更高的最小高度（上游 52px）。 */
-  hero?: boolean;
-  /** 参数错误等本地提示，不进宿主。 */
-  problem: string | null;
-  onDraft(value: string): void;
-  /** 返回 promise：宿主确认接收后才清空草稿。 */
-  onSend(input: string): Promise<void>;
-  onLocal(command: CommandHint): void;
-  onCancel(): void;
-  onNotice(message: string): void;
-}
 
 function SendIcon(): ReactNode {
   return (
@@ -37,8 +21,23 @@ function StopIcon(): ReactNode {
   );
 }
 
-/** 输入卡 + 命令弹窗。弹窗锚在卡片顶边的零高条带上，向上展开。 */
-export function Composer({ state, draft, commands, hero = false, problem, onDraft, onSend, onLocal, onCancel, onNotice }: ComposerProps): ReactNode {
+/**
+ * 输入卡 + 命令弹窗。弹窗锚在卡片顶边的零高条带上，向上展开。
+ *
+ * 草稿是**组件内部状态**：它每个按键都变，而且输入卡挂载点必须稳定（卸载重建会丢
+ * 焦点与 IME 组合态）。全局状态（会话流、目录、`problem` 与首屏阶段）都来自 store。
+ */
+export function Composer(): ReactNode {
+  const actions = useActions();
+  const busy = useAppSelector(state => state.stream.busy);
+  const cancelling = useAppSelector(state => state.stream.cancelling);
+  const tokenUsage = useAppSelector(state => state.stream.tokenUsage);
+  const contextUsage = useAppSelector(state => state.stream.contextUsage);
+  const commands = useAppSelector(state => state.catalog.commands);
+  const problem = useAppSelector(state => state.ui.problem);
+  const hero = useAppSelector(selectHeroPhase);
+
+  const [draft, setDraft] = useState('');
   const [index, setIndex] = useState(0);
   const [dismissed, setDismissed] = useState('');
   /** 本次提交正在等待宿主确认：用于给出即时反馈并挡住重复提交。 */
@@ -60,24 +59,31 @@ export function Composer({ state, draft, commands, hero = false, problem, onDraf
     node.style.height = `${Math.max(24, node.scrollHeight)}px`;
   }, [draft]);
 
+  // 参数错误等本地提示只留在界面上几秒；清理由 store 的 action 完成。
+  useEffect(() => {
+    if (problem === null) return;
+    const timer = setTimeout(() => { actions.dismissProblem(); }, 4000);
+    return () => clearTimeout(timer);
+  }, [problem, actions]);
+
   const submit = (raw: string): void => {
     const value = raw.trim();
     if (!value || sending) return;
-    if (state.busy) { onNotice('本轮尚未结束，草稿已保留；结束后再发送。'); return; }
+    if (busy) { actions.notice('本轮尚未结束，草稿已保留；结束后再发送。'); return; }
     // 斜杠输入一律交给宿主；本地命令表只用来决定少数纯前端动作。
     if (value.startsWith('/') && !value.includes('\n')) {
       const name = value.split(/\s/, 1)[0]!;
       const local = commands.find(command => command.value === name && command.action !== undefined);
-      if (local && local.value === value) { onLocal(local); onDraft(''); return; }
+      if (local && local.value === value) { actions.localCommand(local); setDraft(''); return; }
     }
     // 乐观更新：立刻清空草稿并进入「发送中」，不等宿主返回。按回车因此是即时反馈，
     // 而不是等一次往返（首次发消息还要等模型首 token）才看到界面变化。
     // 失败时把原文写回草稿；只有当前草稿仍为空才回滚，避免冲掉用户这期间的新输入。
     setSending(true);
-    onDraft('');
+    setDraft('');
     setDismissed('');
-    void Promise.resolve(onSend(value))
-      .catch(() => { if (lastDraft.current === '') onDraft(value); })
+    void Promise.resolve(actions.optimisticSend(value))
+      .catch(() => { if (lastDraft.current === '') setDraft(value); })
       .finally(() => setSending(false));
   };
 
@@ -94,7 +100,7 @@ export function Composer({ state, draft, commands, hero = false, problem, onDraf
       setIndex(current => Math.max(0, Math.min(suggestions.length - 1, current + (event.key === 'ArrowUp' ? -1 : 1))));
       return;
     }
-    if (selected && event.key === 'Tab') { event.preventDefault(); onDraft(selected.value); return; }
+    if (selected && event.key === 'Tab') { event.preventDefault(); setDraft(selected.value); return; }
     if (event.key === 'Escape' && suggestions.length) { event.preventDefault(); setDismissed(draft); }
   };
 
@@ -137,8 +143,8 @@ export function Composer({ state, draft, commands, hero = false, problem, onDraf
             value={draft}
             rows={1}
             spellCheck={false}
-            placeholder={state.busy ? '本轮进行中；结束后可继续输入' : '输入作品名或问题，/ 查看命令，Shift+Enter 换行'}
-            onChange={event => onDraft(event.target.value)}
+            placeholder={busy ? '本轮进行中；结束后可继续输入' : '输入作品名或问题，/ 查看命令，Shift+Enter 换行'}
+            onChange={event => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
           />
         </div>
@@ -146,17 +152,17 @@ export function Composer({ state, draft, commands, hero = false, problem, onDraf
           <div className="composerTools">
             {problem ? <span className="composerProblem" role="alert">{problem}</span> : null}
             <span className="composerHint">
-              {state.busy
-                ? (state.cancelling ? '正在停止…' : 'Esc 停止本轮')
+              {busy
+                ? (cancelling ? '正在停止…' : 'Esc 停止本轮')
                 : sending ? '正在提交…'
                   : draft.startsWith('/') ? '↑↓ 选择 · Tab 补全 · Enter 执行' : 'Enter 发送 · Shift+Enter 换行'}
             </span>
           </div>
           <div className="composerTrailing">
             {/* 思考强度：常驻标签显示当前级别，点开就地切换（会写成本机默认）。 */}
-            <ThinkingPicker thinking={state.thinking} onNotice={onNotice} />
-            {state.busy ? (
-              <button type="button" className="sendButton" onClick={onCancel} aria-label="停止本轮" title="停止本轮">
+            <ThinkingPicker />
+            {busy ? (
+              <button type="button" className="sendButton" onClick={actions.stopRound} aria-label="停止本轮" title="停止本轮">
                 <StopIcon />
               </button>
             ) : (
@@ -168,7 +174,7 @@ export function Composer({ state, draft, commands, hero = false, problem, onDraf
         </div>
       </div>
       {/* 底栏读数（累计 token 与上下文占用）：卡外、紧贴卡片下方，浮层向上展开。 */}
-      <StatsDock tokenUsage={state.tokenUsage} contextUsage={state.contextUsage} />
+      <StatsDock tokenUsage={tokenUsage} contextUsage={contextUsage} />
     </div>
   );
 }

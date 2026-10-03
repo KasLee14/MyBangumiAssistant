@@ -809,3 +809,47 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   .contentTimelineRow { grid-template-columns: 64px 1fr; gap: 8px; }
   .contentStatBarRow { grid-template-columns: minmax(52px, 4.5em) 1fr auto; }
 }
+
+/* ============================================================
+ * 降级块：kind 认识、载荷不合法时的局部兜底
+ * ------------------------------------------------------------
+ * 与四态提示同一语汇：语义色取自 `.contentBlock` 派生的 --content-warn-*，
+ * 只有标记着色，不做整条彩色横幅；原始数据折叠，不铺满会话。
+ * ============================================================ */
+.contentFallback {
+  padding: 8px 10px;
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--bgm-r-md, 10px);
+  background: var(--content-warn-soft);
+}
+.contentFallbackLine {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--bgm-text);
+}
+.contentFallbackMark { flex: none; color: var(--content-warn); }
+.contentFallbackText { min-width: 0; overflow-wrap: anywhere; }
+.contentFallbackIssues {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--bgm-text-weak);
+}
+.contentFallbackRaw { margin-top: 6px; font-size: 11px; color: var(--bgm-text-muted); }
+.contentFallbackRaw summary { cursor: pointer; }
+.contentFallbackPre {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  overflow-x: auto;
+  border-radius: var(--bgm-r-sm, 5px);
+  background: var(--bgm-sunken);
+  font-family: var(--bgm-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--bgm-text);
+}

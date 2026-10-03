@@ -1,20 +1,20 @@
 import { memo, useEffect, useState, type ReactNode } from 'react';
-import type { ActivityItemView, TranscriptItemView } from '../../../bangumi/src/web/protocol';
-import type { TurnGroup } from '../turns';
-import { Markdown } from '../markdown';
+import type { ActivityItemView, TranscriptItemView } from '../../../../../bangumi/src/web/protocol';
+import type { TurnGroup } from '../../../utils/turns';
+import { Markdown } from '../../content/markdown';
 import { ConfirmationCard } from './ConfirmationCard';
-import { ContentItem, type ContentItemView } from './content';
+import { ContentItem, type ContentItemView } from '../../content';
+import { isContentKind } from '../../content/registry';
 import { ErrorRow, NoticeRow, SessionBanner, UserBubble } from './MessageParts';
 
-/** 内容条目的 kind：宿主尚未产生这些条目，一旦下发就能直接渲染。 */
-const CONTENT_KINDS: ReadonlySet<string> = new Set([
-  'subjects', 'stats', 'progress', 'infobox', 'table', 'timeline',
-  'tags', 'gallery', 'compare', 'quote', 'callout', 'links',
-]);
-
-/** 把平铺条目收窄成组件库能接收的联合类型；kind 判定与组件库的穷尽性检查互补。 */
+/**
+ * 把平铺条目收窄成组件库能接收的联合类型。
+ *
+ * kind 清单只有一处来源（`content/registry.ts`）：原先这里内联了一份 `Set` 与
+ * 注册表并存，两份定义会各自漂移。
+ */
 function isContentItem(item: TranscriptItemView): item is ContentItemView {
-  return CONTENT_KINDS.has(item.kind);
+  return isContentKind(item.kind);
 }
 
 function Chevron({ className }: { className: string }): ReactNode {
@@ -91,10 +91,10 @@ function BodyItem({ item, onConfirm, onReject, busy }: {
 /**
  * 一个轮次：用户消息、过程折叠块与主体内容。
  *
- * `memo`：流式期间宿主每帧下发新状态，`turns` 数组由 `App` 用 `useMemo` 固定引用，
- * 因此只有「正在流式的那一轮」与 `running`/`busy`/`reveal` 变化的轮次会重渲染，
- * 历史轮次整体跳过。`ProcessGroup` 的展开状态由 `running` 与 `reveal` 驱动，
- * 这两个 prop 必须保留传递，否则 memo 会把折叠块冻结在旧状态。
+ * `memo`：流式期间宿主每帧下发新状态，`turns` 数组由 `ConversationView` 用
+ * `useMemo` 固定引用，因此只有「正在流式的那一轮」与 `running`/`busy`/`reveal`
+ * 变化的轮次会重渲染，历史轮次整体跳过。`ProcessGroup` 的展开状态由 `running`
+ * 与 `reveal` 驱动，这两个 prop 必须保留传递，否则 memo 会把折叠块冻结在旧状态。
  */
 export const TurnView = memo(function TurnView({ turn, running, busy, reveal, onConfirm, onReject }: {
   turn: TurnGroup;

@@ -1,13 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { logout } from '../api';
+import { useActions, useAppSelector } from '../../store/hooks';
 import { Modal } from './Modal';
-
-interface BangumiLogoutDialogProps {
-  /** 已登录的用户名；为空时只显示通用说明。 */
-  username: string;
-  onClose(): void;
-  onNotice(message: string): void;
-}
 
 const message = (error: unknown): string => (error instanceof Error ? error.message : '请求失败。');
 
@@ -17,7 +10,9 @@ const message = (error: unknown): string => (error instanceof Error ? error.mess
  * 与 `/bangumi-logout` 命令等价，但不经过会话输入：确认后直接调用宿主接口清除
  * 本应用保存的会话，会话流里不会出现命令回显。
  */
-export function BangumiLogoutDialog({ username, onClose, onNotice }: BangumiLogoutDialogProps): ReactNode {
+export function BangumiLogoutDialog(): ReactNode {
+  const actions = useActions();
+  const username = useAppSelector(state => state.stream.loginUsername);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,9 +21,8 @@ export function BangumiLogoutDialog({ username, onClose, onNotice }: BangumiLogo
     setBusy(true);
     setError(null);
     try {
-      await logout();
-      onNotice('已退出 Bangumi 登录。');
-      onClose();
+      await actions.bangumiLogout();
+      actions.closePane();
     } catch (failure) {
       setError(message(failure));
     } finally {
@@ -40,11 +34,11 @@ export function BangumiLogoutDialog({ username, onClose, onNotice }: BangumiLogo
     <Modal
       eyebrow="设置"
       title="退出登录"
-      onClose={onClose}
+      onClose={actions.closePane}
       footer={(
         <>
           <span className="note">只清除本应用保存的会话。</span>
-          <button type="button" className="button ghost" disabled={busy} onClick={onClose}>取消</button>
+          <button type="button" className="button ghost" disabled={busy} onClick={actions.closePane}>取消</button>
           <button type="button" className="button primary" disabled={busy} onClick={() => void submit()}>
             退出登录
           </button>

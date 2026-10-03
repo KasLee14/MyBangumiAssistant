@@ -1,25 +1,20 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { ThinkingLevelName, ThinkingView } from '../../../bangumi/src/web/protocol';
-import { selectThinkingLevel } from '../api';
-
-interface ThinkingPickerProps {
-  /** 宿主下发的思考强度：当前值、可用级别与是否支持思考。 */
-  thinking: ThinkingView;
-  onNotice(message: string): void;
-}
-
-const message = (error: unknown): string => (error instanceof Error ? error.message : '请求失败。');
+import type { ThinkingLevelName } from '../../../../../bangumi/src/web/protocol';
+import { useActions, useAppSelector } from '../../../store/hooks';
 
 /**
  * 输入卡右侧的思考强度入口：常驻标签显示当前级别，点开就地选择。
  *
- * 级别清单完全来自宿主（Pi 的模型能力决定），这里不维护副本；切换与模型切换不同，
- * 会写成本机 Pi 的默认思考强度，因此标签的 title 与菜单底部都明确写出这一点。
+ * 级别清单完全来自宿主（Pi 的模型能力决定，随状态帧下发），这里不维护副本；切换与
+ * 模型切换不同，会写成本机 Pi 的默认思考强度，因此标签的 title 与菜单底部都明确
+ * 写出这一点。
  *
  * 未选择模型、或当前模型不支持思考时整体置灰：点了也没有可选值，不如直接说明原因。
  * 菜单锚在标签上方，Esc 在捕获阶段拦下，避免顺带触发会话层的「停止本轮 / 拒绝确认」。
  */
-export function ThinkingPicker({ thinking, onNotice }: ThinkingPickerProps): ReactNode {
+export function ThinkingPicker(): ReactNode {
+  const actions = useActions();
+  const thinking = useAppSelector(state => state.stream.thinking);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const anchor = useRef<HTMLDivElement>(null);
@@ -48,11 +43,9 @@ export function ThinkingPicker({ thinking, onNotice }: ThinkingPickerProps): Rea
   const pick = async (level: ThinkingLevelName, label: string): Promise<void> => {
     setBusy(true);
     try {
-      await selectThinkingLevel(level);
-      onNotice(`思考强度已切换为 ${label}（${level}），并已保存为本机默认。`);
+      // 成功与失败都由动作层给出提示；这里失败不抛出，避免留下未接管的 rejection。
+      await actions.pickThinkingLevel(level, label);
       setOpen(false);
-    } catch (error) {
-      onNotice(message(error));
     } finally {
       setBusy(false);
     }

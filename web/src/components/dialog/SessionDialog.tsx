@@ -1,23 +1,20 @@
 import type { ReactNode } from 'react';
-import type { SessionOptionView } from '../../../bangumi/src/web/protocol';
+import { useActions, useAppSelector } from '../../store/hooks';
+import { selectSessions } from '../../store/selectors';
 import { Modal } from './Modal';
 
-interface SessionDialogProps {
-  sessions: SessionOptionView[];
-  onPick(session: SessionOptionView): void;
-  onClose(): void;
-}
-
 /** `/sessions` 的居中选择弹窗；左侧栏的历史会话列表是同一件事的常驻入口。 */
-export function SessionDialog({ sessions, onPick, onClose }: SessionDialogProps): ReactNode {
+export function SessionDialog(): ReactNode {
+  const actions = useActions();
+  const sessions = useAppSelector(selectSessions);
   return (
     <Modal
       title="历史会话"
-      onClose={onClose}
+      onClose={actions.closeSessions}
       footer={(
         <>
           <span className="note">左侧栏的「历史会话」也可以直接切换。</span>
-          <button type="button" className="button ghost" onClick={onClose}>关闭</button>
+          <button type="button" className="button ghost" onClick={actions.closeSessions}>关闭</button>
         </>
       )}
     >
@@ -31,7 +28,7 @@ export function SessionDialog({ sessions, onPick, onClose }: SessionDialogProps)
               type="button"
               className={`pickerRow${session.current ? ' selected' : ''}`}
               title={session.name || '新会话'}
-              onClick={() => onPick(session)}
+              onClick={() => actions.pickSession(session)}
             >
               <span className="title">{session.name || '新会话'}</span>
               <span className="meta">{session.current ? '当前' : `${session.messageCount} 条 · ${session.modified}`}</span>

@@ -1,4 +1,4 @@
-import type { CommandOptionView } from '../../bangumi/src/web/protocol';
+import type { CommandOptionView } from '../../../bangumi/src/web/protocol';
 
 /** 命令候选条目；本地命令带 action，后端命令只带 value。 */
 export interface CommandHint {

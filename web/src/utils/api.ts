@@ -1,7 +1,8 @@
 import type {
-  ApiErrorView, CatalogView, ConfirmPayload, CredentialPayload, LoginInputPayload,
-  ModelPayload, ProxyPayload, ServerEvent, SessionPayload, SubmitPayload, ThinkingPayload,
-} from '../../bangumi/src/web/protocol';
+  ApiErrorView, CatalogView, ClearCredentialPayload, ConfirmPayload, CredentialPayload,
+  LoginInputPayload, ModelPayload, ProxyPayload, ServerEvent, SessionPayload, SubmitPayload,
+  ThinkingPayload,
+} from '../../../bangumi/src/web/protocol';
 
 /**
  * 宿主命令接口。
@@ -60,6 +61,7 @@ export function logout(): Promise<void> {
   return post('/logout', {});
 }
 
+/** 切换当前模型；宿主同时把它写成本机 Pi 的默认模型，重启后沿用。 */
 export function selectModel(provider: string, model: string): Promise<void> {
   const payload: ModelPayload = { provider, model };
   return post('/model', payload);
@@ -82,13 +84,20 @@ export function selectSession(path?: string): Promise<void> {
 }
 
 /**
- * 注入模型密钥：只在本次运行内生效，宿主不写入磁盘。
+ * 注入模型密钥：`persist` 为 true 时保存到本机 Pi 凭据存储（重启后仍然生效），
+ * 否则只在本进程内生效。
  *
  * 密钥只出现在这一次请求里，不写 localStorage，也不回显。
  */
-export function submitCredential(provider: string, key: string): Promise<void> {
-  const payload: CredentialPayload = { provider, key };
+export function submitCredential(provider: string, key: string, persist: boolean): Promise<void> {
+  const payload: CredentialPayload = { provider, key, persist };
   return post('/credentials', payload);
+}
+
+/** 清除本机保存的密钥；环境变量与 `models.json` 内联密钥不受影响。 */
+export function clearCredential(provider: string): Promise<void> {
+  const payload: ClearCredentialPayload = { provider };
+  return post('/credentials/clear', payload);
 }
 
 /**

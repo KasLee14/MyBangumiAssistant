@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { Provider } from 'react-redux';
+import { MainPage } from './page/mainPage';
+import { store } from './store';
 import './styles/tokens.css';
 import './styles/frame.css';
 import './styles/composer.css';
@@ -16,6 +18,8 @@ if (!container) throw new Error('缺少 #root 容器。');
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    <Provider store={store}>
+      <MainPage />
+    </Provider>
   </StrictMode>,
 );

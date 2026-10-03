@@ -1,13 +1,5 @@
 import type { ReactNode } from 'react';
-import type { SessionOptionView } from '../../../bangumi/src/web/protocol';
-
-interface SidebarProps {
-  collapsed: boolean;
-  sessions: SessionOptionView[];
-  onToggle(): void;
-  onNewSession(): void;
-  onResume(session: SessionOptionView): void;
-}
+import { useActions, useAppSelector } from '../../../store/hooks';
 
 /* 图标统一 16px、fill/stroke 走 currentColor，与上游图标槽一致。 */
 const ICON = { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': true } as const;
@@ -24,30 +16,32 @@ function PlusIcon(): ReactNode {
  * 侧栏只承载会话：品牌行与折叠、新建会话、历史会话列表。
  *
  * 模型、密钥、代理线路与 Bangumi 登录状态都收进了顶栏的设置弹窗，
- * 因此这里不再有对应的功能行。
+ * 因此这里不再有对应的功能行。会话列表、折叠状态与动作都来自 store。
  */
-export function Sidebar(props: SidebarProps): ReactNode {
-  const { collapsed } = props;
+export function Sidebar(): ReactNode {
+  const actions = useActions();
+  const collapsed = useAppSelector(state => state.ui.collapsed);
+  const sessions = useAppSelector(state => state.catalog.sessions);
   return (
     <aside className="sidebar">
       <div className="logoRow">
         <span className="brandName">Bangumi 助手</span>
-        <button type="button" className="iconButton" onClick={props.onToggle} title={collapsed ? '展开侧栏' : '收起侧栏'} aria-label={collapsed ? '展开侧栏' : '收起侧栏'}>
+        <button type="button" className="iconButton" onClick={actions.toggleSidebar} title={collapsed ? '展开侧栏' : '收起侧栏'} aria-label={collapsed ? '展开侧栏' : '收起侧栏'}>
           <PanelIcon />
         </button>
       </div>
-      <button type="button" className="newSession" onClick={props.onNewSession} title="新建会话">
+      <button type="button" className="newSession" onClick={() => { void actions.newSession().catch(() => { /* 失败已提示。 */ }); }} title="新建会话">
         <PlusIcon />
         <span className="label">新建会话</span>
       </button>
       <div className="regionArea">
         <div className="regionLabel">历史会话</div>
-        {props.sessions.length ? props.sessions.map(session => (
+        {sessions.length ? sessions.map(session => (
           <button
             key={session.path}
             type="button"
             className={`sessionRow${session.current ? ' selected' : ''}`}
-            onClick={() => props.onResume(session)}
+            onClick={() => { void actions.resumeSession(session).catch(() => { /* 失败已提示。 */ }); }}
             title={`${session.name || '新会话'} · ${session.modified} · ${session.messageCount} 条消息`}
           >
             <span className="title">{session.name || '新会话'}</span>

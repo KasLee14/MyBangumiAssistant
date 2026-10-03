@@ -1,5 +1,5 @@
 import { memo, useEffect, useState, type ReactNode } from 'react';
-import { Markdown } from '../markdown';
+import { Markdown } from '../../content/markdown';
 
 /**
  * 会话流里的原子行：用户气泡、提示行、错误行、会话头。

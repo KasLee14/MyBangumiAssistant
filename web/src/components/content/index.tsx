@@ -1,62 +1,39 @@
 import { memo, type ReactNode } from 'react';
-import type { TranscriptItemView } from '../../../../bangumi/src/web/protocol';
-import { Callout } from './Callout';
-import { CompareTable } from './CompareTable';
-import { DataTable } from './DataTable';
-import { Gallery } from './Gallery';
-import { InfoBox } from './InfoBox';
-import { LinkList } from './LinkList';
-import { ProgressView } from './ProgressView';
-import { QuoteBlock } from './QuoteBlock';
-import { StatsCard } from './StatsCard';
-import { SubjectCards } from './SubjectCards';
-import { TagCloud } from './TagCloud';
-import { Timeline } from './Timeline';
+import { ContentFallback } from './ContentFallback';
+import { contentRenderer, type ContentItemView } from './registry';
+import { validateTranscriptItem } from './validate';
 
 /**
  * 内容条目联合类型。
  *
- * 用 `Extract` 从协议里「挑」出 12 个内容成员，而不是把类型重写一遍：协议新增
- * 或调整字段时，这里会自动跟着变，不会出现两份定义漂移。
+ * 从 `registry` 转出，调用点的 import 路径不需要变（`TurnView` 从这里取）。
  */
-export type ContentItemView = Extract<TranscriptItemView,
-  | { kind: 'subjects' } | { kind: 'stats' } | { kind: 'progress' } | { kind: 'infobox' }
-  | { kind: 'table' } | { kind: 'timeline' } | { kind: 'tags' } | { kind: 'gallery' }
-  | { kind: 'compare' } | { kind: 'quote' } | { kind: 'callout' } | { kind: 'links' }>;
+export type { ContentItemView } from './registry';
 
 /**
  * 内容条目分发器。
  *
- * 用 `switch` 而不是「kind → 组件」映射表：每种条目的载荷字段名不同，只有逐个
- * 分支才能让编译器把 `item` 收窄成对应成员，从而在传参处发现拼错的字段。
+ * 分发本身由注册表完成（`registry.ts` 的 `kind → 渲染器`），这里只做三件事：
+ * 接收侧校验、未知 kind 丢弃、非法载荷降级。
  *
- * `default` 里的穷尽性检查是刻意的：一旦协议新增第 13 个 kind，`item` 就不再是
- * `never`，这里的类型断言会立刻编译失败——提醒维护者来这里补一个分支，而不是
- * 让新条目在界面上静默消失。
+ * 为什么在渲染前再校验一次：宿主映射、历史回放、调试面板粘贴的数据都可能与当前
+ * 协议有出入，接收侧这道检查是唯一能兜住版本漂移的地方。`memo` 保证它只在条目
+ * 引用变化时执行，流式帧（只改标量）不会带来额外的校验开销。
  *
- * `memo`：内容条目的载荷来自 `TranscriptItemView`，宿主只在条目本身变化时才发新
- * 对象。流式帧只改标量，历史内容的这一层因此可以整块跳过。各具体组件不需要再
- * 单独包一层——它们只由这里渲染。
+ * 失败不回退成「什么都不显示」——那会让宿主以为渲染成功——而是换成可读提示加
+ * 折叠的原始数据；只有 `kind` 未知才整条丢弃（未知类型没有可依据的载荷语义）。
  */
 export const ContentItem = memo(function ContentItem({ item }: { item: ContentItemView }): ReactNode {
-  switch (item.kind) {
-    case 'subjects': return <SubjectCards view={item.subjects} />;
-    case 'stats': return <StatsCard view={item.stats} />;
-    case 'progress': return <ProgressView view={item.progress} />;
-    case 'infobox': return <InfoBox view={item.info} />;
-    case 'table': return <DataTable view={item.table} />;
-    case 'timeline': return <Timeline view={item.timeline} />;
-    case 'tags': return <TagCloud view={item.tags} />;
-    case 'gallery': return <Gallery view={item.gallery} />;
-    case 'compare': return <CompareTable view={item.compare} />;
-    case 'quote': return <QuoteBlock view={item.quote} />;
-    case 'callout': return <Callout view={item.callout} />;
-    case 'links': return <LinkList view={item.links} />;
-    default: {
-      // 运行时兜底：宿主将来下发了本组件库未覆盖的 kind，就当没有这条，不炸整棵会话树。
-      const unknown: never = item;
-      void unknown;
-      return null;
-    }
+  const outcome = validateTranscriptItem(item);
+  if (outcome.status === 'dropped') {
+    // 开发期告警：宿主下发了本组件库未覆盖的 kind。丢弃是刻意的（未知类型没有可
+    // 依据的载荷语义），但静默丢弃会让宿主的映射错误一直没人发现。
+    console.warn(`[content] 未登记的内容 kind「${outcome.kind}」，该条目已丢弃。`);
+    return null;
   }
+  if (outcome.status === 'degraded') {
+    return <ContentFallback kind={outcome.kind} issues={outcome.issues} raw={item} />;
+  }
+  const render = contentRenderer(item.kind);
+  return render === undefined ? null : render(item);
 });
