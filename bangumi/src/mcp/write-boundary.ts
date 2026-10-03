@@ -11,7 +11,7 @@ import { checkResourceResponse, record, positive, type Data } from './resource-o
 import { resourceOutputSchema } from './resource-schemas.js';
 import { checkOutput, checkSubjectResponse } from './subject-output.js';
 import { checkSubmission } from './submission.js';
-import { confirmWrite } from './confirm.js';
+import type { InteractionChannel } from '../interaction.js';
 
 type State = 'success' | 'failed' | 'unknown' | 'unchanged';
 interface Binding {
@@ -62,7 +62,8 @@ function index(value: unknown, id: number, accountId: number): Data {
 export function createWriteHandler(
   client: McpCallClient,
   getInput: () => { text: string; generation: number },
-  onRecord?: (record: unknown) => void,
+  onRecord: ((record: unknown) => void) | undefined,
+  channel: InteractionChannel,
 ): McpWriteHandler {
   let generation: number | undefined;
   const completed = new Map<string, AgentToolResult<unknown>>();
@@ -241,9 +242,10 @@ export function createWriteHandler(
       if (equal(binding.before, binding.after)) {
         const unchanged = result({ ...base, state: 'unchanged', networkAttempted: false }); completed.set(fingerprint, unchanged); return unchanged;
       }
-      if (ctx.mode !== 'tui' || !ctx.hasUI) throw new AppError('AUTHORIZATION_REQUIRED', '每次写入需要本地 Pi 完整预览确认；非交互模式不提交修改。');
+      // 预览必须由能完整显示它的人确认；没有可用通道时宁可不提交。
+      if (!channel.canConfirm()) throw new AppError('AUTHORIZATION_REQUIRED', '每次写入需要一个能完整显示预览的交互终端或已连接的 Web 终端；当前没有可用确认通道。');
       const preview = JSON.stringify({ accountId, tool: name, target: binding.target, before: binding.before, after: binding.after, effects: binding.effects }, null, 2);
-      const accepted = await confirmWrite(ctx, preview, signal);
+      const accepted = await channel.confirm(ctx, preview, signal);
       signal?.throwIfAborted();
       if (!accepted) throw new AppError('CANCELLED', '用户取消，未提交修改。');
       const latest = getInput();

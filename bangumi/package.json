@@ -12,9 +12,12 @@
     "bangumi-agent": "dist/src/main.js"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/src/main.js"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p ../web/tsconfig.json --noEmit",
+    "build": "npm run build:web && tsc -p tsconfig.json",
+    "build:web": "vite build",
+    "dev:web": "vite build --watch",
+    "start": "node dist/src/main.js",
+    "web": "node dist/src/main.js web"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "file:../pi/packages/coding-agent",
@@ -24,10 +27,16 @@
     "@modelcontextprotocol/sdk": "1.31.0",
     "ajv": "8.20.0",
     "playwright-core": "1.63.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "undici": "7.30.0"
   },
   "devDependencies": {
     "@types/node": "24.19.0",
-    "typescript": "5.9.3"
+    "@types/react": "19.2.0",
+    "@types/react-dom": "19.2.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.2"
   }
 }

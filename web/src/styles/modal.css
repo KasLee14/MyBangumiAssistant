@@ -1,0 +1,169 @@
+/*
+ * 弹窗（凭据与登录）。
+ *
+ * 复用 harness（MIT）的两件事：MenuSurface 的材质做法（底色与模糊放在子层，
+ * 卡片只负责几何与描边），以及 elevation 三件套里的 prominent 档。
+ */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
+}
+
+.modalSurface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: min(80vh, 640px);
+  padding: 18px 20px 16px;
+  border-radius: var(--dsw-radius-xl);
+  box-shadow: var(--dsw-elevation-prominent);
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+}
+
+.modalSurface[data-wide='true'] {
+  width: min(660px, 100%);
+}
+
+.modalEyebrow {
+  margin-bottom: 4px;
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xxs-12);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modalHeader h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: 500 16px/24px var(--dsw-font-family);
+  overflow-wrap: anywhere;
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.modalFooter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.modalFooter .note {
+  flex: 1;
+  min-width: 0;
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xxs-12);
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modalField label {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+}
+
+.modalInput {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  outline: none;
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-14);
+}
+
+.modalInput:focus {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.modalInput::placeholder {
+  color: var(--dsw-alias-label-caption);
+}
+
+.modalCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+  cursor: pointer;
+}
+
+.modalCheck input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--dsw-alias-state-business-primary);
+}
+
+.modalCheck[data-disabled='true'] {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: not-allowed;
+}
+
+.modalHint,
+.modalError {
+  margin: 0;
+  font: var(--dsw-font-xxs-12);
+}
+
+.modalHint {
+  color: var(--dsw-alias-label-caption);
+}
+
+.modalError {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.modalStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+  overflow-wrap: anywhere;
+}
+
+.modalStatus .dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-state-idle-primary);
+}
+
+.modalStatus[data-configured='true'] .dot {
+  background: var(--dsw-alias-state-success-primary);
+}

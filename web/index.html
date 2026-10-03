@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5f5" />
+    <title>Bangumi 助手 Web 终端</title>
+    <style>
+      /* 浅色是唯一外观：固定 color-scheme，并在样式表加载前预涂同值底色，避免白闪。 */
+      :root { color-scheme: light; }
+      body { margin: 0; background: #f5f5f5; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

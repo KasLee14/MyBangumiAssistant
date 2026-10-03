@@ -7,17 +7,25 @@ import {
   type Args, InteractiveMode, parseArgs, runPrintMode, runRpcMode, SessionManager, VERSION,
 } from '@earendil-works/pi-coding-agent';
 import { createBangumiExtension } from './extension.js';
+import { createTerminalChannel, type InteractionChannel } from './interaction.js';
+import { AccountSessionStore } from './login/index.js';
 import { createBangumiRuntime } from './pi-host.js';
 import { createPiTransport } from './pi-transport.js';
 import { AppError, safeError } from './support/errors.js';
-import {
-  environmentProxy, policyFor, readWindowsProxy, windowsProxy, type ProxyOptions, type ProxyPolicy,
-} from './support/proxy.js';
+import { policyFor, type ProxyOptions } from './support/proxy.js';
+import { discoverProxy, ProxyController, type ProxyMode } from './support/proxy-controller.js';
+import { startWebTerminal } from './web/server.js';
+import { WebInteractionChannel, WebSession } from './web/session.js';
 
-export interface LauncherOptions { pi: Args; dataDir: string; timeoutMs: number; proxy?: ProxyOptions }
+export interface WebOptions { port: number; open: boolean }
 
-/** 通用参数仍由 Pi 解析，只提取本应用的隔离目录和网络策略。 */
-export function parseLauncherArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): LauncherOptions {
+export interface LauncherOptions { pi: Args; dataDir: string; timeoutMs: number; proxy?: ProxyOptions; web?: WebOptions }
+
+/** Web 终端的默认端口与两个入口专属开关。 */
+const DEFAULT_WEB_PORT = 8787;
+
+/** 只解析本应用自己的参数，其余交给 Pi；web 子命令先摘掉自己的开关。 */
+function parsePiArgs(argv: string[], env: NodeJS.ProcessEnv): Omit<LauncherOptions, 'web'> {
   const piArgs: string[] = [];
   let dataDir = env.BANGUMI_PI_HOME ?? join(env.LOCALAPPDATA ?? join(homedir(), '.local', 'share'), 'MyBangumiAssistant-Pi');
   let timeoutMs = 60_000;
@@ -48,21 +56,35 @@ export function parseLauncherArgs(argv: string[], env: NodeJS.ProcessEnv = proce
   return { pi, dataDir: resolve(dataDir), timeoutMs, ...(proxy === undefined ? {} : { proxy }) };
 }
 
-async function discoverProxy(explicit?: ProxyOptions): Promise<ProxyPolicy> {
-  if (explicit !== undefined) return policyFor(explicit);
-  if (process.env.BANGUMI_AGENT_PROXY !== undefined) return policyFor(process.env.BANGUMI_AGENT_PROXY, 'app-env');
-  const environment = environmentProxy(process.env);
-  if (environment) return environment;
-  if (process.platform === 'win32') {
-    const system = windowsProxy(await readWindowsProxy());
-    if (system) return system;
+export function parseLauncherArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): LauncherOptions {
+  if (argv[0] === 'web') {
+    let port = DEFAULT_WEB_PORT;
+    let open = true;
+    const rest: string[] = [];
+    for (let index = 1; index < argv.length; index++) {
+      const arg = argv[index]!;
+      if (arg === '--no-open') { open = false; continue; }
+      if (arg === '--port') {
+        const value = argv[++index];
+        const parsed = Number(value);
+        if (!value || !Number.isSafeInteger(parsed) || parsed < 1 || parsed > 65535) throw new AppError('INVALID_ARGUMENT', '--port 需要 1～65535 的整数。');
+        port = parsed;
+        continue;
+      }
+      rest.push(arg);
+    }
+    return { ...parsePiArgs(rest, env), web: { port, open } };
   }
-  return policyFor(null, 'direct');
+  return parsePiArgs(argv, env);
 }
 
 const help = `MyBangumiAssistant · Pi ${VERSION}
 用法：my-bangumi-assistant [Pi 参数] [消息]
+      my-bangumi-assistant web [--port 8787] [--no-open] [Pi 参数]
 
+  web                     启动本机浏览器 Web 终端；默认自动打开带令牌的地址
+  --port <端口>           Web 终端端口，默认 ${DEFAULT_WEB_PORT}，被占用时顺延
+  --no-open               只打印地址，不自动打开浏览器
   --print, -p <消息>       Pi 单次文本输出
   --mode json|rpc         Pi 原生 JSON 事件或 RPC
   --provider <提供方>     Pi models.json 中的提供方
@@ -87,11 +109,14 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   const args = options.pi;
   if (args.help) { process.stdout.write(help); return 0; }
   if (args.version) { process.stdout.write(`MyBangumiAssistant Pi ${VERSION}\n`); return 0; }
-  const interactive = !args.print && args.mode === undefined && process.stdin.isTTY && process.stdout.isTTY;
-  if (!interactive && args.mode !== 'rpc' && !args.listModels && args.messages.length === 0) {
-    throw new AppError('TTY_REQUIRED', '交互模式需要终端；单次运行请使用 --print "消息"。');
+  const interactive = !options.web && !args.print && args.mode === undefined && process.stdin.isTTY && process.stdout.isTTY;
+  if (!interactive && options.web === undefined && args.mode !== 'rpc' && !args.listModels && args.messages.length === 0) {
+    throw new AppError('TTY_REQUIRED', '交互模式需要终端；单次运行请使用 --print "消息"，浏览器界面请使用 web 子命令。');
   }
-  const proxy = await discoverProxy(options.proxy);
+  // 启动时定一次线路，之后可以在 Web 终端里运行内切换（只影响本次运行）。
+  // 同时记住启动时用的是哪种配置项，供设置弹窗回显（自动发现 / 直连 / 手动指定）。
+  const proxyMode: ProxyMode = options.proxy === undefined ? 'auto' : options.proxy === null ? 'direct' : 'manual';
+  const proxy = new ProxyController(await discoverProxy(options.proxy), proxyMode);
   const agentDir = join(options.dataDir, 'pi');
   const authDir = join(options.dataDir, 'auth');
   mkdirSync(agentDir, { recursive: true });
@@ -106,13 +131,18 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   } else if (args.noSession) sessionManager = SessionManager.inMemory(cwd);
   else if (args.continue) sessionManager = SessionManager.continueRecent(cwd, sessionDir);
   else sessionManager = SessionManager.create(cwd, sessionDir);
-  const transport = createPiTransport(proxy);
+  const transport = createPiTransport(proxy.current);
+  // 换线路时先更新 dispatcher：Pi 侧已注入的 fetch 会立刻走新线路，无需重建运行时。
+  proxy.onChange(candidate => transport.update(candidate));
+  // Web 终端需要在浏览器里确认写入与输入登录字段，终端模式沿用原地的 Pi 组件。
+  const webChannel = options.web ? new WebInteractionChannel() : undefined;
+  const channel: InteractionChannel = webChannel ?? createTerminalChannel();
   let runtime;
   let printOwnsDisposal = false;
   try {
     runtime = await createBangumiRuntime({
       cwd, agentDir, sessionManager, fetch: transport.fetch,
-      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy }),
+      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel }),
       ...(args.provider === undefined ? {} : { provider: args.provider }),
       ...(args.model === undefined ? {} : { model: args.model }),
       ...(args.thinking === undefined ? {} : { thinkingLevel: args.thinking }),
@@ -124,6 +154,15 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
         const name = `${model.provider}/${model.id}`;
         if (!pattern || name.toLowerCase().includes(pattern)) process.stdout.write(`${name}\n`);
       }
+      return 0;
+    }
+    if (options.web && webChannel) {
+      const session = new WebSession({ runtime, channel: webChannel, store: new AccountSessionStore(authDir), cwd, sessionDir, proxy, timeoutMs: options.timeoutMs });
+      webChannel.attach(session);
+      await session.start();
+      const terminal = await startWebTerminal({ session, channel: webChannel, port: options.web.port, open: options.web.open });
+      await terminal.closed;
+      await session.dispose();
       return 0;
     }
     if (args.mode === 'rpc') return await runRpcMode(runtime);
@@ -145,6 +184,7 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
       ...(initialMessage === undefined ? {} : { initialMessage }),
     });
   } finally {
+    // print 模式自行处置运行时；其余分支（含 Web 终端退出后）由这里统一释放。
     if (runtime && !printOwnsDisposal) await runtime.dispose();
     await transport.close();
   }

@@ -10,11 +10,9 @@
 从 `pi` 分支克隆并执行固定源码初始化：
 
 ```powershell
-git clone --branch pi --recurse-submodules https://github.com/KasLee14/MyBangumiAssistant.git
-cd MyBangumiAssistant
 node bootstrap-pi.mjs --proxy http://127.0.0.1:7890
 cd bangumi
-npm start
+npm start -- web
 ```
 
 初始化脚本安装锁定依赖、验证固定模型目录 SHA-256、运行官方 hydrate 与 Pi 原生离线构建，再构建 Bangumi 应用。已有缓存仍会核对哈希。未递归克隆时，脚本会初始化固定子模块；不使用 GitHub ZIP 代替 Git 克隆。

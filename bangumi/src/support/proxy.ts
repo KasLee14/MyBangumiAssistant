@@ -90,8 +90,12 @@ export function decodeProxyPolicy(raw: string): ProxyPolicy {
     return { source: value.source, http: value.http === null ? null : proxyAddress(value.http), https: value.https === null ? null : proxyAddress(value.https), bypass: bypassList(value.bypass.join(','), value.source === 'windows') };
   } catch { return invalid(); }
 }
+/** 只描述地址部分（不含来源），供界面上「配置项 + 地址」两段式展示；直连时为空串。 */
+export function proxyAddresses(options: ProxyOptions): string {
+  const p = policyFor(options);
+  return p.http === p.https ? p.https ?? "" : `HTTPS ${p.https ?? '直连'}；HTTP ${p.http ?? '直连'}`;
+}
 export function proxySummary(options: ProxyOptions): string {
   const p = policyFor(options); const labels: Record<ProxySource, string> = { config: '应用配置', 'app-env': '应用环境变量', environment: '标准环境变量', windows: 'Windows 系统代理', direct: '未发现代理' };
-  const addresses = p.http === p.https ? p.https ?? '直连' : `HTTPS ${p.https ?? '直连'}；HTTP ${p.http ?? '直连'}`;
-  return `${addresses}（来源：${labels[p.source]}${p.bypass.length ? `；绕过规则 ${p.bypass.length} 条` : ''}）`;
+  return `${proxyAddresses(p) || '直连'}（来源：${labels[p.source]}${p.bypass.length ? `；绕过规则 ${p.bypass.length} 条` : ''}）`;
 }

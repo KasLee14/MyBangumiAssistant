@@ -1,0 +1,877 @@
+/*
+ * 页面框架与会话区。
+ *
+ * 数值取自 deepseek-harness（MIT）的对应样式表，逐项对齐：
+ *   ui-layout/AppFrame（grid 轨道、区域背景与分隔）
+ *   ui-sidebar/SidebarRoot（侧栏内边距、logo 行、新建会话、面板行）
+ *   ui-workspace/rows/Rows（会话行 32px、标题与时间字号）
+ *   ui-conversation/skeleton/ConversationRoot（会话头 76px、滚动体、composer 座位）
+ *   ui-chat/chat/ChatView + AssistumMarkdown + MessageItem（列宽轴、行距、气泡、正文）
+ *   ui-chat/chat/ChatGroupSeat + TurnProcessNodeView（过程折叠块）
+ *   ui-chat/chat/TurnNavigator（右侧 turn 导轨）
+ *   ui-conversation/skeleton/HeroShell（空会话首屏）
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-14);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- 框架 */
+
+.frame {
+  --dsh-sidebar-width: 280px;
+  --dsh-sidebar-inline-padding: 12px;
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: var(--dsh-sidebar-width) minmax(400px, 1fr);
+  height: 100%;
+  overflow: hidden;
+}
+
+.frame[data-sidebar='collapsed'] {
+  --dsh-sidebar-width: 56px;
+}
+
+@media (max-width: 1024px) {
+  .frame {
+    --dsh-sidebar-width: 56px;
+  }
+}
+
+/* ---------------------------------------------------------------- 侧栏 */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 6px var(--dsh-sidebar-inline-padding);
+  overflow: hidden;
+  background: var(--dsw-specific-sidebar-fill);
+  border-right: 0.5px solid var(--dsw-alias-border-l3);
+  color: var(--dsw-alias-label-primary);
+}
+
+.frame[data-sidebar='collapsed'] .sidebar {
+  padding: 18px 10px 6px;
+}
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 60px;
+  padding: 8px 0 8px 4px;
+  margin-bottom: 4px;
+}
+
+.frame[data-sidebar='collapsed'] .logoRow {
+  height: 36px;
+  margin-bottom: 12px;
+  justify-content: center;
+  padding: 0;
+}
+
+.brandName {
+  font-family: var(--dsw-font-family-brand);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+}
+
+.frame[data-sidebar='collapsed'] .brandName {
+  display: none;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.frame[data-sidebar='collapsed'] .iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--dsw-radius-md);
+}
+
+.newSession {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 8px 12px;
+  margin: 0 2px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-button-elevated-fill);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-14);
+  cursor: pointer;
+}
+
+.newSession:hover {
+  background: var(--dsw-alias-button-floating-hover);
+}
+
+.frame[data-sidebar='collapsed'] .newSession {
+  justify-content: center;
+  padding: 8px;
+}
+
+.frame[data-sidebar='collapsed'] .newSession .label {
+  display: none;
+}
+
+/* 会话浏览器座位：抵消 shell 内缩，让滚动条贴列边（上游 .regionArea） */
+.regionArea {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-height: 0;
+  margin-left: -4px;
+  margin-right: calc(-1 * var(--dsh-sidebar-inline-padding));
+  padding-left: 4px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.regionLabel {
+  padding: 8px 8px 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+}
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 8px;
+  margin: 0 2px;
+  border: 0;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sessionRow:hover,
+.sessionRow.selected {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.sessionRow .title {
+  flex: 1;
+  min-width: 0;
+  margin: 0 6px 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--dsw-font-s-14);
+}
+
+.sessionRow .time {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.frame[data-sidebar='collapsed'] .regionArea {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- 会话主区 */
+
+.conversation {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--dsw-alias-bg-base);
+}
+
+.conversationHeader {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 10px 28px 0 20px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 30px;
+}
+
+.titleRow .title {
+  font: var(--dsw-font-m-18);
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleRow .tab {
+  position: relative;
+  padding: 0 0 9px;
+  color: var(--dsw-alias-label-tertiary);
+  font: 500 13px/16px var(--dsw-font-family);
+}
+
+.titleRow .tab[aria-selected='true'] {
+  color: var(--dsw-alias-label-primary);
+}
+
+.titleRow .tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+}
+
+.headerMeta .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 28ch;
+  padding: 0 8px;
+  min-height: 28px;
+  border-radius: var(--dsw-radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerMeta .chip .dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-state-idle-primary);
+}
+
+.headerMeta .chip[data-state='on'] .dot {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.headerMeta .chip[data-state='off'] .dot {
+  background: var(--dsw-alias-state-error-primary);
+}
+
+/* 滚动体与列宽轴：.body 是尺寸容器，cqw 供列宽与 composer 卡宽度轴使用 */
+.body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.scrollBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  margin-right: 2px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.scrollBody[data-phase='hero'] {
+  justify-content: center;
+}
+
+.scroll {
+  padding: 16px calc(var(--dsh-composer-side-clearance) + 16px);
+}
+
+.column {
+  /* 上游：content = clamp(680px, 列宽 × 0.64, 920px)，卡宽 = content + 32px */
+  --dsh-chat-content-width: min(calc(100cqw - 32px), clamp(680px, 64cqw, 920px));
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--dsh-chat-content-width);
+  margin: 0 auto;
+}
+
+/* 行距不用 flex gap，用相邻兄弟 margin-top：过程紧凑、回答分开 */
+.flowItem + .flowItem {
+  margin-top: var(--dsh-chat-flow-gap, 6px);
+}
+
+/*
+ * 屏外轮次跳过绘制与布局。
+ *
+ * 长会话切换时最大的开销不是 Markdown 解析（实测 2.2ms/帧），而是让上万个 DOM
+ * 节点参与布局与绘制。`content-visibility: auto` 让视口外的轮次不参与这两步。
+ *
+ * 这里**不**配 `contain-intrinsic-size`：给它一个固定估算高度虽然能让首帧更快，
+ * 但会话切换后「滚到最新一条」会按估算高度落位，等真实高度算出来后视图就停在
+ * 历史中段（实测偏差可达 3000px 以上）。滚动位置正确比省这一次布局更值得。
+ */
+.scrollBody[data-phase='active'] > .scroll > .column > .flowItem {
+  content-visibility: auto;
+}
+
+.turnStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 回答与过程块相对用户消息再让开一档（上游 12px / 16px 两级） */
+.turnStack > .assistantRow,
+.turnStack > .noticeRow,
+.turnStack > .errorRow {
+  margin-top: 12px;
+}
+
+.turnStack > .processGroup {
+  margin-top: 16px;
+}
+
+.turnStack > .planCard {
+  margin-top: 12px;
+}
+
+.flowItem[data-gap='response'] {
+  margin-top: 12px;
+}
+
+.flowItem[data-gap='process'] {
+  margin-top: 16px;
+}
+
+/* ---------------------------------------------------------------- 消息 */
+
+.userRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.userStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: min(calc(var(--dsh-chat-content-width, 748px) * 0.702), 82%);
+}
+
+.bubble {
+  padding: 10px 16px;
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-specific-bubble);
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: calc(22px + var(--dsh-content-font-delta, 0px));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.assistantRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.assistantBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-markdown-base);
+}
+
+.stopped {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+/* 流式：上游用 mask 扫光而不是闪烁光标 */
+.shimmer {
+  -webkit-mask-image: linear-gradient(105deg, transparent 0%, black 40%, black 60%, transparent 100%);
+  mask-image: linear-gradient(105deg, transparent 0%, black 40%, black 60%, transparent 100%);
+  -webkit-mask-size: 200% 100%;
+  mask-size: 200% 100%;
+  animation: dsh-shimmer 1.5s steps(48, end) 0.3s infinite;
+}
+
+@keyframes dsh-shimmer {
+  0% {
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
+
+  100% {
+    -webkit-mask-position: -100% 0;
+    mask-position: -100% 0;
+  }
+}
+
+/* 提示、错误与通知 */
+.noticeRow,
+.errorRow {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(22px + var(--dsh-content-font-delta-secondary, 0px));
+  white-space: pre-wrap;
+}
+
+.noticeRow {
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.errorRow {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.sessionBanner {
+  margin: 0;
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xs-13);
+  font-family: var(--ds-font-family-code);
+  white-space: pre-wrap;
+}
+
+/* 运行中状态：上游 RunningStatus —— 分隔线 + 深潜色文字 */
+.running {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 10px;
+  color: var(--dsw-alias-label-deep-diving);
+  font-size: calc(var(--dsh-content-font-size, 14px) - 2px);
+  line-height: calc(22px + var(--dsh-content-font-delta, 0px));
+  font-variant-numeric: tabular-nums;
+}
+
+.runningDivider {
+  height: 0.5px;
+  margin: 8px 0 10px;
+  background: color-mix(in srgb, var(--dsw-alias-border-l1) 75%, var(--dsw-alias-border-l2));
+}
+
+/* ---------------------------------------------------------------- 过程折叠 */
+
+.processGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.processTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0 0 8px;
+  border: 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-s-14);
+  text-align: left;
+  cursor: pointer;
+  transition: color 100ms ease;
+}
+
+.processTitle:hover {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.processTitle .chevron {
+  flex: none;
+  transition: transform 100ms ease;
+}
+
+.processGroup[data-open='true'] .processTitle .chevron {
+  transform: rotate(180deg);
+}
+
+.processTitle .count {
+  margin-left: auto;
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xs-13);
+}
+
+.processBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: min(400px, 50vh);
+  overflow-y: auto;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.activityRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+}
+
+/* 失败的工具调用才标红；running/ok 走默认与成功色 */
+.activityRow[data-state='error'] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.activityRow .mark {
+  flex: none;
+  width: 12px;
+}
+
+/* ---------------------------------------------------------------- turn 导轨 */
+
+.railSlot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 0;
+  z-index: 7;
+}
+
+/* 导轨垂直居中于可视区 */
+.railSlot {
+  top: 50%;
+}
+
+.turnRail {
+  position: absolute;
+  right: 12px;
+  width: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  transform: translateY(-50%);
+  max-height: min(420px, 60vh);
+  overflow: hidden;
+}
+
+.turnRail button {
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.turnRail button::before {
+  content: '';
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l4);
+  transform: scaleX(0.6);
+  transform-origin: right center;
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.turnRail button[data-active='true']::before {
+  transform: scaleX(1);
+  background: var(--dsw-alias-label-primary);
+}
+
+.turnRail button:hover::before {
+  transform: scaleX(1);
+  background: var(--dsw-alias-label-tertiary);
+}
+
+@container (max-width: 900px) {
+  .railSlot,
+  .turnRail {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- 空会话首屏 */
+
+.hero {
+  /* 与 .column / .composerSeat 同源的宽度轴，供 hero 内的输入卡使用 */
+  --dsh-chat-content-width: min(calc(100cqw - 32px), clamp(680px, 64cqw, 920px));
+  --dsh-composer-card-max-width: calc(var(--dsh-chat-content-width) + 32px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(calc(var(--dsh-composer-card-max-width) + 32px), 100%);
+  margin: 0 auto;
+  padding: 0 24px 32px;
+}
+
+.heroStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: var(--dsh-composer-card-max-width);
+}
+
+.heroHeadline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 10px;
+  row-gap: 12px;
+  font: 500 26px/32px var(--dsw-font-family-brand);
+  color: var(--dsw-alias-label-primary);
+}
+
+.heroBadge {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 1px 7px 0;
+  border: 0.5px solid var(--dsw-alias-interactive-bg-hover);
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-label-primary-bluish);
+  font-family: var(--ds-font-family-code);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.heroHint {
+  margin: 0;
+  text-align: center;
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xs-13);
+}
+
+/*
+ * 首屏的输入卡。
+ *
+ * 输入卡现在只有一个挂载点（`.composerSeat`，见 App.tsx），首屏与活动态靠
+ * `.body[data-phase]` 切换外观。原先是把同一个元素渲染到 `.heroStack`、活动态再
+ * 渲染到 `.composerSeat`，状态翻转会让 textarea 被卸载重建，输入焦点与 IME
+ * 组合态一起丢失。
+ *
+ * 这里的取值对齐原来的 `.heroStack`：宽度轴同为 `--dsh-composer-card-max-width`，
+ * 因此两种状态下输入卡的几何完全一致，只有垂直位置不同（首屏居中、活动态吸底）。
+ */
+.body[data-phase='hero'] .composerSeat {
+  position: static;
+  /* 首屏不需要吸底遮罩带 */
+  background: none;
+  width: min(calc(var(--dsh-composer-card-max-width) + 2 * var(--dsh-composer-side-clearance)), 100%);
+  padding: 0 var(--dsh-composer-side-clearance);
+}
+
+/* ---------------------------------------------------------------- Markdown */
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown p {
+  margin: 16px 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  margin: 32px 0 16px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.markdown h1 {
+  font: var(--dsw-font-markdown-h1);
+}
+
+.markdown h2 {
+  font: var(--dsw-font-markdown-h2);
+}
+
+.markdown h3 {
+  font: var(--dsw-font-markdown-h3);
+}
+
+.markdown h4 {
+  margin: 16px 0;
+  font: var(--dsw-font-markdown-h4);
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 16px 0;
+  padding-left: 18px;
+}
+
+.markdown blockquote {
+  margin: 16px 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--dsw-alias-border-l3);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.markdown blockquote p {
+  margin: 0;
+}
+
+.markdown li + li {
+  margin-top: 6px;
+}
+
+.markdown strong {
+  font-weight: 600;
+}
+
+.markdown a {
+  color: var(--dsw-alias-link);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.markdown a:hover {
+  text-decoration: underline;
+}
+
+.markdown :not(pre) > code {
+  padding: 0 5px;
+  border: 0.5px solid var(--dsw-alias-border-l1);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-markdown-inline-code);
+  font: var(--dsw-font-markdown-code);
+  font-size: 0.875em;
+}
+
+.markdown pre {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-markdown-code-block);
+  font: var(--dsw-font-markdown-code-block);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+
+.markdown .markdownTableWrap {
+  margin: 16px 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.markdown table {
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+/* 四列以上按内容自然宽度铺开，超出列宽时由外层容器横向滚动；更窄的表格随列宽换行填充。 */
+.markdown .markdownTableWide table {
+  width: max-content;
+}
+
+.markdown th,
+.markdown td {
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.markdown th {
+  font: var(--dsw-font-markdown-table-head);
+  white-space: nowrap;
+}
+
+.markdown td {
+  font: var(--dsw-font-markdown-table);
+}
+
+.markdown hr {
+  margin: 24px 0;
+  border: 0;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+/* ---------------------------------------------------------------- 响应式 */
+
+@media (max-width: 720px) {
+  .conversationHeader {
+    padding: 10px 16px 0;
+    min-height: 64px;
+  }
+
+  .scroll {
+    padding: 12px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
