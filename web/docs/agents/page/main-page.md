@@ -1,6 +1,30 @@
 # 主页面（`main.tsx` + `page/mainPage/index.tsx`）
 
-> 上层：[readme.md](readme.md)。相关：[../store/hooks-and-stream.md](../store/hooks-and-stream.md)、[../components/main-page.md](../components/main-page.md)。
+## 使用说明
+
+### 这份文档是什么
+
+`MainPage` 的装配细节：构建入口、四个生命周期订阅、从 store 到 props 的接线契约，以及常见改动场景。
+
+上层：[readme.md](readme.md)。相关：[../store/hooks-and-stream.md](../store/hooks-and-stream.md)、[../components/main-page.md](../components/main-page.md)。
+
+### 怎么读（章节 → 场景）
+
+| 章节 | 什么时候读 |
+|---|---|
+| §`web/src/main.tsx`（构建入口） | 改 Provider、样式引入顺序、挂载方式时 |
+| §`MainPage` → 四个订阅 | **加或改全局副作用（订阅、快捷键、resize）时必读** |
+| §`MainPage` → 从 store 取出的数据 | 给会话视图加字段、调整 props 接线时 |
+| §`MainPage` → JSX 骨架 | 改外壳结构、加浮层挂载点时 |
+| §输入区槽位为什么只给一个组件 | 动输入区接管逻辑之前 |
+| §常见改动场景 | 不知道从哪下手时的入口表 |
+
+### 必须遵守的规则
+
+本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
+
+1. **`composer` 槽位只给组件，不写分支** —— 违反后果：新增接管形态要回改页面，「页面不写分支逻辑」被破坏。
+2. **接管卡片替换 `.composerSeat` 内部内容，容器本身不换** —— 违反后果：textarea 丢失焦点与 IME 组合态。
 
 ## `web/src/main.tsx`（构建入口）
 

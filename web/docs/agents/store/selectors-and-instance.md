@@ -1,6 +1,30 @@
 # 选择器与 store 实例（`store/selectors.ts` + `store/index.ts`）
 
-> 上层：[readme.md](readme.md)。相关：[reducers.md](reducers.md)、[hooks-and-stream.md](hooks-and-stream.md)。
+## 使用说明
+
+### 这份文档是什么
+
+selector 清单与新增规则、store 实例与 `preloadedState`、类型导出，以及"稳定引用"这条硬要求。
+
+上层：[readme.md](readme.md)。相关：[reducers.md](reducers.md)、[hooks-and-stream.md](hooks-and-stream.md)。
+
+### 怎么读（章节 → 场景）
+
+| 章节 | 什么时候读 |
+|---|---|
+| §选择器清单 | 找现成 selector、判断要不要新增时 |
+| §两个派生 selector | 改首屏判定（`selectHeroPhase`）或设置行提供方回落逻辑时 |
+| §稳定引用要求 | **写 selector 前必读**（三条反例与对应做法） |
+| §store 实例 | 改初值、`preloadedState`、类型导出时 |
+| §新增一个 selector | 加 selector 时逐步照做 |
+
+### 必须遵守的规则
+
+本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
+
+1. **selector 不得新建对象或数组** —— 违反后果：每帧判定"变了"，整棵树重渲染（见本层「selector 不得新建引用」）。
+2. **`selectHeroPhase` 的条件不得只看 `items.length`** —— 违反后果：有通知或流式输出时被首屏遮住。
+3. **`preloadedState` 只覆盖 `collapsed`** —— 违反后果：把浏览器环境读取散进 reducer，破坏纯函数。
 
 ## 选择器清单（`selectors.ts`）
 

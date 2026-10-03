@@ -1,6 +1,30 @@
 # 内容组件库样式与品牌覆盖层（`content.css` / `bgm.css`）
 
-> 上层：[readme.md](readme.md)。相关：[../components/content.md](../components/content.md)。
+## 使用说明
+
+### 这份文档是什么
+
+`bgm.css`（品牌覆盖层：`--bgm-*` 令牌、`--dsw-*` 别名重定向、形态覆盖与视觉规范）与 `content.css`（内容组件库样式）的约定，以及两者的改动分工。
+
+上层：[readme.md](readme.md)。相关：[../components/content.md](../components/content.md)。
+
+### 怎么读（章节 → 场景）
+
+| 章节 | 什么时候读 |
+|---|---|
+| §`bgm.css` → 它做什么 / 为什么是覆盖层 | **改品牌色或形态前必读**（理解为什么不能重写 `tokens.css`） |
+| §`bgm.css` → 视觉规范要点 | 核对某个形态的正确值（弹窗圆角、胶囊、hover、chip） |
+| §`content.css` | 改内容条目样式时（只用 `--bgm-*`、`content` 前缀） |
+| §两者的改动规则 | 判断该改令牌、覆盖层还是组件样式 |
+
+### 必须遵守的规则
+
+本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
+
+1. **`bgm.css` 必须在 `tokens/frame/composer/cards/modal` 之后引入** —— 违反后果：重定向失效，颜色与圆角回到 DSH 默认（见本层「引入顺序固定」）。
+2. **只重定向组件实际引用到的别名**，不顺手加无关条目 —— 违反后果：后续核对变难。
+3. **`content.css` 只用 `--bgm-*`、类名 `content` 前缀、不写主题分支** —— 违反后果：与品牌层脱节或样式污染。
+4. **派生色用 `color-mix()` 就地算，并保留不支持时的固定值兜底** —— 违反后果：写死色值后换令牌不跟随。
 
 ## `bgm.css`（~770 行）：Bangumi 风格覆盖层
 

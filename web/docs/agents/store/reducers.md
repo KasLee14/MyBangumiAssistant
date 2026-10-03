@@ -1,6 +1,31 @@
 # 切片与 reducer（`store/reducers/`）
 
-> 上层：[readme.md](readme.md)。相关：[actions-and-operations.md](actions-and-operations.md)、[../utils/api.md](../utils/api.md)。
+## 使用说明
+
+### 这份文档是什么
+
+三个切片的字段与全部 action、帧合并的核心不变式、根 reducer 为什么手写，以及新增 action 的步骤。
+
+上层：[readme.md](readme.md)。相关：[actions-and-operations.md](actions-and-operations.md)、[../utils/api.md](../utils/api.md)。
+
+### 怎么读（章节 → 场景）
+
+| 章节 | 什么时候读 |
+|---|---|
+| §根 reducer 为什么手写 | 想改用 `combineReducers`、或遇到 `never` 推断报错时 |
+| §`stream` 切片 | 加或改流字段时；**改帧处理前必读「帧合并（核心不变式）」** |
+| §`catalog` 切片 | 动目录数据、改命令合并时机时 |
+| §`ui` 切片 | 加弹窗开关、提示、布局状态时 |
+| §新增一个 action 的步骤 | 加 action 时逐步照做 |
+
+### 必须遵守的规则
+
+本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
+
+1. **帧合并三条规则缺一不可**（标量每帧覆盖 / 条目按 `id` 合并 / 会话切换整表替换）—— 违反后果：界面残留旧状态，React key 重复。
+2. **乐观回显的撤下条件只写在这里**（出现同文本 user 条目，或帧的 `sessionId` 与记录不一致）—— 违反后果：气泡不消失或过早消失。
+3. **命令合并放在 `catalog` reducer，不放 selector** —— 违反后果：每帧返回新数组，整棵树重渲染（见本层「selector 不得新建引用」）。
+4. **每个切片接收完整 `AppAction`，未命中 `return state`** —— 违反后果：无关组件被无谓重渲染（见本层「reducer 无变化时返回原 state」）。
 
 ## 根 reducer 为什么手写
 

@@ -1,6 +1,29 @@
 # 轮次投影（`utils/turns.ts`）
 
-> 上层：[readme.md](readme.md)。使用方：`components/mainPage/conversation/ConversationView.tsx`（`useMemo` 固定引用）与 `TurnView.tsx`（消费 `TurnGroup`）。
+## 使用说明
+
+### 这份文档是什么
+
+把宿主下发的平铺条目投影成"轮次"的规则：`TurnGroup` 结构、四条投影规则、以及使用与扩展约定。
+
+上层：[readme.md](readme.md)。使用方：`components/mainPage/conversation/ConversationView.tsx`（`useMemo` 固定引用）与 `TurnView.tsx`（消费 `TurnGroup`）。
+
+### 怎么读（章节 → 场景）
+
+| 章节 | 什么时候读 |
+|---|---|
+| §结构 | 改 `TurnGroup` 字段时 |
+| §投影规则 | **改分组规则（哪些算过程、前导内容归属）时必读** |
+| §使用约定 | 动轮次渲染性能或轮次导航时 |
+| §加字段或改规则时 | 扩展投影前的自检清单 |
+
+### 必须遵守的规则
+
+本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
+
+1. **只做形状转换**：不过滤、不排序、不回写宿主语义 —— 违反后果：界面与宿主状态不一致（涉及确认判定时尤其危险）。
+2. **必须在 `ConversationView` 里用 `useMemo` 固定引用** —— 违反后果：流式帧每帧重算，历史轮次全部重渲染。
+3. **轮次导航只统计 `user !== null` 的轮次** —— 违反后果：导轨上出现点不到内容的空轮。
 
 ## 定位
 

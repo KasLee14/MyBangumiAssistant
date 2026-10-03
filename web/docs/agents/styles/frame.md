@@ -1,6 +1,29 @@
 # 页面框架与会话区（`styles/frame.css`）
 
-> 上层：[readme.md](readme.md)。这份样式与 `page/mainPage` + `components/mainPage/conversation/` 的 DOM 结构是**契约关系**。
+## 使用说明
+
+### 这份文档是什么
+
+外壳与会话区的样式：覆盖范围、四个必须理解的技术点（网格、容器查询、屏外优化、贴底跟随）、DOM 契约表与常见改动场景。
+
+上层：[readme.md](readme.md)。这份样式与 `page/mainPage` + `components/mainPage/conversation/` 的 DOM 结构是**契约关系**。
+
+### 怎么读（章节 → 场景）
+
+| 章节 | 什么时候读 |
+|---|---|
+| §覆盖范围 | 想知道某段规则对齐的是上游哪个组件 |
+| §四个必须理解的技术点 | **改外壳或会话区布局前必读**（改错会同时破坏列宽、屏外优化与贴底） |
+| §DOM 契约表 | **改类名或层级前必读**（逐项列出谁依赖它） |
+| §常见改动场景 | 改列宽、侧栏折叠、首屏、轮次导轨时 |
+
+### 必须遵守的规则
+
+本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
+
+1. **不得移动 `.body` / `.scrollBody` / `.scroll` / `.column` / `.flowItem` 的层级** —— 违反后果：容器查询与 `content-visibility` 屏外优化同时失效。
+2. **宽度轴三处同源**（`.column`、`.composerSeat`、`.cardSeat` 上的 `--dsh-chat-content-width`）—— 违反后果：输入卡与正文错位。
+3. **不改 `.frame[data-sidebar]` 的语义** —— 它是样式钩子，由 `ui.collapsed` 映射而来。
 
 ## 覆盖范围
 

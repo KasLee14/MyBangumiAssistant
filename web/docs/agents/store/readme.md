@@ -1,6 +1,30 @@
 # 状态层（`web/src/store/`）
 
-> 上层入口：[../../AGENTS.md](../../../AGENTS.md)。本文件是状态层的索引与边界规则。
+## 使用说明
+
+### 这份文档是什么
+
+状态层的规则与索引：全局状态的边界、文件分工、三切片结构，以及新增动作与选择器的入口。
+
+**不覆盖**：组件如何消费状态（见 [../components/readme.md](../components/readme.md)）。上层入口：[AGENTS.md](../../../AGENTS.md)。
+
+### 怎么读（文件 → 场景）
+
+| 文件 | 什么时候读 |
+|---|---|
+| 本文件 | 判断"这个状态该放 store 还是组件"、找文件分工时 |
+| [reducers.md](reducers.md) | 加 action、改帧合并 / 会话切换 / 乐观回显语义时 |
+| [actions-and-operations.md](actions-and-operations.md) | 加异步动作、决定错误处理方式时 |
+| [hooks-and-stream.md](hooks-and-stream.md) | 加生命周期订阅、改 SSE 订阅、加全局快捷键时 |
+| [selectors-and-instance.md](selectors-and-instance.md) | 加 selector、改 store 初值或类型导出时 |
+
+### 必须遵守的规则
+
+1. **改全局状态只能经 `store/` 的动作**：组件不得绕过动作层自己发请求并写状态。违反后果：状态更新散落各处，提示与错误处理不一致。见 §依赖方向。
+2. **`useState` 只承载组件私有状态**：跨组件共享或来自宿主的数据必须进 store。违反后果：状态出现第二个真相，流式帧与界面不同步。判据见 §状态边界。
+3. **selector 不得新建引用**：不得在 selector 里 `map` / `filter` / 构造对象或数组。违反后果：`useSelector` 每帧判定"变了"，整棵树每帧重渲染。见 [selectors-and-instance.md](selectors-and-instance.md)。
+4. **reducer 无变化时返回原 state**：违反后果：无关组件被无谓重渲染。见 [reducers.md](reducers.md)。
+5. **不引入中间件**：异步动作是闭包 `dispatch` 的普通函数。违反后果：与既有约定分叉，两种异步风格并存。见 §没有中间件的后果。
 
 ## 这一层的职责
 
@@ -62,9 +86,3 @@
 - 不存在 `dispatch(asyncFn)` 这种写法，也不要尝试自己写一个 thunk 中间件——需要新能力时优先加动作，而不是加中间件；
 - 每个动作自己负责错误处理，约定见 [actions-and-operations.md](actions-and-operations.md)。
 
-## 子文档
-
-- [reducers.md](reducers.md)：三切片的字段与全部 action、帧合并语义、根 reducer 为什么手写。
-- [actions-and-operations.md](actions-and-operations.md)：`Actions` 接口全表、两种错误处理约定、新增动作模板。
-- [hooks-and-stream.md](hooks-and-stream.md)：类型化 hooks、`useActions` 的绑定、SSE 订阅与三个生命周期 hook。
-- [selectors-and-instance.md](selectors-and-instance.md)：selector 清单与"稳定引用"要求、store 实例与类型导出。

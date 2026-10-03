@@ -1,6 +1,31 @@
 # 动作层（`store/actions.ts` + `store/operations.ts`）
 
-> 上层：[readme.md](readme.md)。相关：[../utils/api.md](../utils/api.md)、[reducers.md](reducers.md)。
+## 使用说明
+
+### 这份文档是什么
+
+动作层的两层分工与全部动作：action creator 与异步编排的边界、`Actions` 接口全表、两种错误处理约定、新增动作的模板。
+
+上层：[readme.md](readme.md)。相关：[../utils/api.md](../utils/api.md)、[reducers.md](reducers.md)。
+
+### 怎么读（章节 → 场景）
+
+| 章节 | 什么时候读 |
+|---|---|
+| §两层分工 | 不确定某段逻辑该放 `actions.ts` 还是 `operations.ts` 时 |
+| §`Actions` 接口全表 | 查现有能力（目录、弹窗、模型、登录、提示） |
+| §两种错误处理约定 | **新增动作前必读**：先决定用 `notifyFailure` 还是 `notifyOnly` |
+| §新增一个异步动作的模板 | 加动作时照抄结构 |
+| §规则小结 | 收尾核对（四条） |
+
+### 必须遵守的规则
+
+本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
+
+1. **action creator 保持纯数据**，任何判断都不要塞进去 —— 违反后果：同步动作带副作用，难测试。
+2. **不吞错误**：要么 `notifyFailure`（提示并抛出）、要么 `notifyOnly`（只提示）、要么把异常交给调用方 —— 违反后果：无人接管的 rejection 或静默失败。
+3. **组件不得绕过 `useActions()` 直接 `import utils/api`** —— 违反后果：提示与状态更新不一致（见本层「改全局状态只能经 store/ 的动作」）。
+4. **提示文案用中文、以句号结尾** —— 违反后果：与既有文案风格不一致。
 
 ## 两层分工
 
