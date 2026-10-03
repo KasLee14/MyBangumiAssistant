@@ -1,4 +1,4 @@
-# MyBangumiAssistant · Pi
+# MyBangumiAssistant
 
 MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然语言，你可以查询作品、获取推荐，以及管理自己的收藏、评分、标签、观看进度和目录。它提供浏览器 Web 界面和命令行 CLI，两种入口使用同一套模型配置、工具和会话管理能力。
 
@@ -8,7 +8,7 @@ MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然�
 - “把《某部动画》第 3 集标记为看过。”
 - “创建一个目录，把这些作品加入进去。”
 
-## 1、如何安装并启动
+## 1、部署与启动
 
 ### 准备环境与安装
 
@@ -26,7 +26,7 @@ node bootstrap-pi.mjs
 node bootstrap-pi.mjs --proxy http://127.0.0.1:7890
 ```
 
-### 启动 Web
+### 启动 Web端
 
 在项目根目录执行：
 
