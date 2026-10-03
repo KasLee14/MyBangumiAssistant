@@ -1,4 +1,4 @@
-import type { TranscriptItemView } from '../../bangumi/src/web/protocol';
+import type { TranscriptItemView } from '../../../bangumi/src/web/protocol';
 
 type TextItem = Extract<TranscriptItemView, { kind: 'user' | 'assistant' | 'notice' | 'error' }>;
 

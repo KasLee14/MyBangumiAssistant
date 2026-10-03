@@ -835,6 +835,12 @@ export class WebSession {
     }
   }
 
+  /**
+   * 切换当前模型，并写成本机 Pi 的默认模型。
+   *
+   * `settings.json` 里的 `defaultProvider`/`defaultModel` 让重启后沿用这次选择；恢复
+   * 旧会话时仍以会话内的模型变更条目为准，这里不改变那条语义。
+   */
   async setModel(provider: string, model: string): Promise<void> {
     const found = this.runtime.session.modelRuntime
       .getAvailableSnapshot()
@@ -845,6 +851,10 @@ export class WebSession {
     if (!found)
       throw new AppError("MODEL_NOT_FOUND", "该模型不在当前可用列表中。");
     await this.runtime.session.setModel(found);
+    this.runtime.services.settingsManager.setDefaultModelAndProvider(
+      provider,
+      model,
+    );
     this.emit();
   }
 
@@ -968,24 +978,46 @@ export class WebSession {
       sessions,
       commands,
       providers,
-      canPersistCredentials: false,
+      canPersistCredentials: true,
     };
   }
 
 
   /**
-   * 在本次运行内为某个提供方注入模型密钥。
+   * 为某个提供方注入模型密钥。
    *
-   * 走 Pi 的运行时凭据（`setRuntimeApiKey`）：只重新组装该提供方并刷新可用模型
-   * 快照，**不写入任何文件**，进程重启后必须重新填写。密钥不进入会话条目、不进入
-   * 日志，回执里也只出现提供方名称。
+   * `persist` 为 true 时走 Pi 的凭据登录流程写入本机 `auth.json`（该流程只向交互层
+   * 索要一次密钥，这里直接返回浏览器提交的值），重启后仍然生效；为 false 时维持原有
+   * 语义，只注入本次运行的运行时凭据。两种方式都不进入会话条目、不进入日志，回执里
+   * 也只出现提供方名称。
    */
-  async setCredential(provider: string, key: string): Promise<void> {
+  async setCredential(
+    provider: string,
+    key: string,
+    persist: boolean,
+  ): Promise<void> {
     const modelRuntime = this.runtime.session.modelRuntime;
     if (!modelRuntime.getProviders().some((candidate) => candidate.id === provider)) {
       throw new AppError("PROVIDER_NOT_FOUND", "该提供方不在 Pi 的模型目录中。");
     }
-    await modelRuntime.setRuntimeApiKey(provider, key);
+    if (persist) {
+      try {
+        await modelRuntime.login(provider, "api_key", {
+          prompt: async () => key,
+          notify: () => {},
+        });
+      } catch (error) {
+        // OAuth-only 提供方没有 api-key 登录方法，Pi 会直接拒绝保存。
+        throw new AppError(
+          "CREDENTIAL_PERSIST_FAILED",
+          `无法把密钥保存到本机：${safeError(error).message}；可以改用「仅本次运行」。`,
+        );
+      }
+      // 落盘后撤掉本次运行的临时覆盖，否则凭据来源会一直显示成「本次运行已填入」。
+      modelRuntime.removeRuntimeApiKey(provider);
+    } else {
+      await modelRuntime.setRuntimeApiKey(provider, key);
+    }
     // 填完密钥后若当前模型仍不可用（例如启动时根本没有可用模型），自动切到第一个
     // 可用模型，否则界面会继续停在 unknown/unknown 上，让人以为密钥没生效。
     const available = modelRuntime.getAvailableSnapshot();
@@ -1007,8 +1039,26 @@ export class WebSession {
       }
     }
     this.pushNotice(
-      `已为 ${provider} 填入密钥，仅本次运行生效${switched}；重启后需要重新填写。`,
+      persist
+        ? `已为 ${provider} 保存密钥到本机，重启后仍然生效${switched}。`
+        : `已为 ${provider} 填入密钥，仅本次运行生效${switched}；重启后需要重新填写。`,
     );
+    this.emit();
+  }
+
+  /**
+   * 清除某个提供方保存在本机的密钥。
+   *
+   * 只删除 Pi 凭据存储（`auth.json`）里的条目：环境变量与 `models.json` 内联密钥都
+   * 不受影响，清除后该提供方可能仍然可用，只是换回了另一个来源。
+   */
+  async clearCredential(provider: string): Promise<void> {
+    const modelRuntime = this.runtime.session.modelRuntime;
+    if (!modelRuntime.getProviders().some((candidate) => candidate.id === provider)) {
+      throw new AppError("PROVIDER_NOT_FOUND", "该提供方不在 Pi 的模型目录中。");
+    }
+    await modelRuntime.logout(provider);
+    this.pushNotice(`已清除 ${provider} 保存在本机的密钥。`);
     this.emit();
   }
 

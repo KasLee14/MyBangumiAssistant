@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { ConfirmationView } from '../../../bangumi/src/web/protocol';
+import type { ConfirmationView } from '../../../../../bangumi/src/web/protocol';
 
 interface ConfirmationCardProps {
   confirmation: ConfirmationView;

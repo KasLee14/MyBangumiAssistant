@@ -1,24 +1,18 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { cancelLogin, startLogin } from '../api';
+import { useActions, useAppSelector } from '../../store/hooks';
 import { Modal } from './Modal';
-
-interface BangumiLoginDialogProps {
-  /** 宿主是否正在登录；进度由状态帧下发。 */
-  busy: boolean;
-  /** 宿主下发的登录进度文本。 */
-  status: string;
-  onClose(): void;
-  onNotice(message: string): void;
-}
 
 /**
  * 设置弹窗里的登录弹窗：邮箱与密码一次提交，进度留在弹窗内。
  *
  * 与 `/bangumi-login` 命令路径的区别是不经过会话输入，因此会话流里不会出现命令
- * 回显与宿主提示。人机验证仍在系统默认浏览器里完成，这里只显示进度；关掉弹窗会
- * 中止宿主侧还在跑的登录。
+ * 回显与宿主提示。人机验证仍在系统默认浏览器里完成，这里只显示进度（由状态帧
+ * 下发 `loginBusy` / `loginStatus`）；关掉弹窗会中止宿主侧还在跑的登录。
  */
-export function BangumiLoginDialog({ busy, status, onClose, onNotice }: BangumiLoginDialogProps): ReactNode {
+export function BangumiLoginDialog(): ReactNode {
+  const actions = useActions();
+  const busy = useAppSelector(state => state.stream.loginBusy);
+  const status = useAppSelector(state => state.stream.loginStatus);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -34,10 +28,9 @@ export function BangumiLoginDialog({ busy, status, onClose, onNotice }: BangumiL
     setSubmitting(true);
     setError(null);
     try {
-      await startLogin(email.trim(), password);
+      await actions.startBangumiLogin(email.trim(), password);
       if (!alive.current) return;
-      onNotice('Bangumi 登录成功。');
-      onClose();
+      actions.closePane();
     } catch (failure) {
       if (!alive.current) return;
       // 失败时保留邮箱、清空密码，改一下密码就能直接重试。
@@ -50,8 +43,8 @@ export function BangumiLoginDialog({ busy, status, onClose, onNotice }: BangumiL
 
   const close = (): void => {
     // 关掉弹窗就中止宿主侧还在跑的登录，避免留下挂起的请求。
-    if (pending) void cancelLogin().catch(() => { /* 已经结束的登录不必再取消。 */ });
-    onClose();
+    if (pending) actions.cancelBangumiLogin();
+    actions.closePane();
   };
 
   return (

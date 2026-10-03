@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import type { ContextUsageView, TokenUsageView } from '../../../bangumi/src/web/protocol';
+import type { ContextUsageView, TokenUsageView } from '../../../../../bangumi/src/web/protocol';
 
 /**
  * 输入卡底栏：token 胶囊与上下文占用环。

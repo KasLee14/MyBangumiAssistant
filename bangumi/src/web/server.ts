@@ -253,8 +253,15 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
     }
     if (pathname === '/api/credentials') {
       const payload = objectValue(body, '模型密钥');
-      // 密钥只在本次运行内注入 Pi 的运行时凭据，不写文件；长度上限防止误贴大段文本。
-      await session.setCredential(textValue(payload.provider, '提供方', 200), textValue(payload.key, 'API Key', 4000));
+      // 默认只注入本次运行的运行时凭据；persist 为 true 才写入本机 Pi 凭据存储。
+      // 长度上限防止误贴大段文本。
+      const persist = payload.persist === undefined ? false : booleanValue(payload.persist, '保存到本机');
+      await session.setCredential(textValue(payload.provider, '提供方', 200), textValue(payload.key, 'API Key', 4000), persist);
+      return;
+    }
+    if (pathname === '/api/credentials/clear') {
+      const payload = objectValue(body, '清除模型密钥');
+      await session.clearCredential(textValue(payload.provider, '提供方', 200));
       return;
     }
     if (pathname === '/api/proxy') {

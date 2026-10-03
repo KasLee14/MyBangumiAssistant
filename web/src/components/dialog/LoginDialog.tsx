@@ -1,17 +1,17 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { submitLoginInput } from '../api';
+import type { LoginInputPayload } from '../../../../bangumi/src/web/protocol';
+import { useActions } from '../../store/hooks';
 import { Modal } from './Modal';
 
 /**
  * `/bangumi-login` 命令路径的凭据弹窗：邮箱与密码在同一个弹窗里一次提交。
  *
  * 输入只发往本机宿主（宿主再经 HTTPS 直发 Bangumi），不进聊天记录、不进模型；
- * 取消发 `{ id, cancelled: true }`，与终端里的 Esc 一致。
+ * 取消发 `{ id, cancelled: true }`，与终端里的 Esc 一致。`prompt.id` 变化即代表换了
+ * 一次登录请求。
  */
-export function LoginDialog({ prompt, onNotice }: {
-  prompt: { id: number };
-  onNotice(message: string): void;
-}): ReactNode {
+export function LoginDialog({ prompt }: { prompt: { id: number } }): ReactNode {
+  const actions = useActions();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -20,12 +20,12 @@ export function LoginDialog({ prompt, onNotice }: {
   // 换一次登录请求就清空输入，避免上一次的凭据留在框里。
   useEffect(() => { setEmail(''); setPassword(''); setError(null); }, [prompt.id]);
 
-  const send = (body: { id: number; email?: string; password?: string; cancelled?: boolean }, done: string): void => {
+  const send = (body: LoginInputPayload, done: string): void => {
     if (busy) return;
     setBusy(true);
     setError(null);
-    void submitLoginInput(body)
-      .then(() => { setEmail(''); setPassword(''); onNotice(done); })
+    void actions.answerLoginInput(body, done)
+      .then(() => { setEmail(''); setPassword(''); })
       .catch((failure: unknown) => setError(failure instanceof Error ? failure.message : '请求失败。'))
       .finally(() => setBusy(false));
   };

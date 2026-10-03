@@ -363,7 +363,7 @@ export interface CatalogView {
   sessions: SessionOptionView[];
   commands: CommandOptionView[];
   providers: ProviderOptionView[];
-  /** 是否支持把密钥保存到本机；当前恒为 false，密钥只在本次运行内有效。 */
+  /** 是否支持把密钥保存到本机（Pi 的 `auth.json`）；为 false 时浏览器只提供「仅本次运行」。 */
   canPersistCredentials: boolean;
 }
 
@@ -384,8 +384,13 @@ export interface LoginInputPayload { id: number; email?: string; password?: stri
 export interface ModelPayload { provider: string; model: string }
 /** 思考强度切换；级别必须来自宿主下发的可用列表。 */
 export interface ThinkingPayload { level: ThinkingLevelName }
-/** 模型密钥：只在本次运行内注入 Pi 的运行时凭据，不写入磁盘。 */
-export interface CredentialPayload { provider: string; key: string }
+/**
+ * 模型密钥：`persist` 为 true 时写入本机 Pi 凭据存储（`auth.json`），重启后仍然生效；
+ * 缺省或 false 时只注入本次运行的运行时凭据。两种方式都不进入会话条目与日志。
+ */
+export interface CredentialPayload { provider: string; key: string; persist?: boolean }
+/** 清除某个提供方保存在本机的密钥；环境变量与 `models.json` 内联密钥不受影响。 */
+export interface ClearCredentialPayload { provider: string }
 /** 网络线路切换；`manual` 时 `url` 必填，形如 `http://127.0.0.1:7890`。 */
 export interface ProxyPayload { mode: 'auto' | 'direct' | 'manual'; url?: string }
 /** 新建会话或恢复指定会话。 */

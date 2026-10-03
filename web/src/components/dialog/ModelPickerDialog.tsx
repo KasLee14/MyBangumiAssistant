@@ -1,14 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import type { ModelOptionView } from '../../../bangumi/src/web/protocol';
-import { selectModel } from '../api';
+import type { ModelOptionView } from '../../../../bangumi/src/web/protocol';
+import { useActions, useAppSelector } from '../../store/hooks';
+import { selectModels } from '../../store/selectors';
 import { Modal } from './Modal';
-
-interface ModelPickerDialogProps {
-  /** 可用模型；为空时调用方不会打开这个弹窗。 */
-  models: ModelOptionView[];
-  onClose(): void;
-  onNotice(message: string): void;
-}
 
 const message = (error: unknown): string => (error instanceof Error ? error.message : '请求失败。');
 
@@ -19,9 +13,11 @@ const keyOf = (model: ModelOptionView): string => `${model.provider}\u0000${mode
  * 「模型选择」弹窗：单个模型下拉，直接切换当前生效的模型。
  *
  * 与「模型配置」分开：只有当宿主报告了可用模型（即某个提供方的凭据已配置）时，
- * 设置行才允许进入这里，因此打开时下拉里一定有数据。
+ * 设置行才允许进入这里，因此打开时下拉里一定有数据。切换会同时写成本机默认模型。
  */
-export function ModelPickerDialog({ models, onClose, onNotice }: ModelPickerDialogProps): ReactNode {
+export function ModelPickerDialog(): ReactNode {
+  const actions = useActions();
+  const models = useAppSelector(selectModels);
   const [selected, setSelected] = useState(() => {
     const active = models.find(model => model.current) ?? models[0];
     return active ? keyOf(active) : '';
@@ -37,9 +33,8 @@ export function ModelPickerDialog({ models, onClose, onNotice }: ModelPickerDial
     setBusy(true);
     setError(null);
     try {
-      await selectModel(provider, model);
-      onNotice(`已切换到 ${provider}/${model}。`);
-      onClose();
+      await actions.pickModel(provider, model);
+      actions.closePane();
     } catch (failure) {
       setError(message(failure));
     } finally {
@@ -50,11 +45,11 @@ export function ModelPickerDialog({ models, onClose, onNotice }: ModelPickerDial
   return (
     <Modal
       title="模型选择"
-      onClose={onClose}
+      onClose={actions.closePane}
       footer={(
         <>
-          <span className="note">切换只影响本次运行，不写入磁盘。</span>
-          <button type="button" className="button ghost" disabled={busy} onClick={onClose}>取消</button>
+          <span className="note">选择会保存为本机默认模型；恢复旧会话时以会话内的记录为准。</span>
+          <button type="button" className="button ghost" disabled={busy} onClick={actions.closePane}>取消</button>
           <button type="button" className="button primary" disabled={!canSubmit} onClick={() => void apply()}>
             应用
           </button>

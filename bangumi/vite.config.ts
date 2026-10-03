@@ -12,8 +12,8 @@ const modules = resolve(here, 'node_modules');
  *
  * 依赖只装在 `bangumi/node_modules`，而前端源码位于仓库根的 `web/`：Node 与
  * Vite 的解析都是从 importer 逐级向上找 `node_modules`，不会拐进兄弟目录，
- * 因此这里显式把 React 指到已安装的位置，避免依赖仓库根多出一份 `node_modules`。
- * 前缀别名同时覆盖 `react/jsx-runtime` 与 `react-dom/client`。
+ * 因此这里显式把前端依赖（React、Redux）指到已安装的位置，避免依赖仓库根多出一份
+ * `node_modules`。前缀别名同时覆盖 `react/jsx-runtime` 与 `react-dom/client`。
  */
 export default defineConfig({
   root: webRoot,
@@ -23,6 +23,8 @@ export default defineConfig({
     alias: {
       react: resolve(modules, 'react'),
       'react-dom': resolve(modules, 'react-dom'),
+      redux: resolve(modules, 'redux'),
+      'react-redux': resolve(modules, 'react-redux'),
     },
   },
   build: {
