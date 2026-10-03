@@ -16,7 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p ../web/tsconfig.json --noEmit",
     "build": "npm run build:web && tsc -p tsconfig.json && node scripts/copy-strategy-skills.mjs",
     "build:web": "vite build",
-    "dev:web": "vite build --watch",
+    "dev:web": "node dev-web.mjs",
     "web": "node dist/src/main.js web",
     "start": "node dist/src/main.js"
   },

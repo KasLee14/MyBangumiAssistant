@@ -13,6 +13,9 @@ export const streamFatal = (message: string): StreamAction => ({ type: 'stream/f
 export const connectionChanged = (connected: boolean): StreamAction => ({ type: 'stream/connected', connected });
 export const pendingEchoSet = (echo: PendingEcho): StreamAction => ({ type: 'stream/pendingEchoSet', echo });
 export const pendingEchoCleared = (): StreamAction => ({ type: 'stream/pendingEchoClear' });
+/** 某条确认的应答请求已发出；`answerSettled` 与它配对，用于解禁按钮。 */
+export const answerStarted = (id: string): StreamAction => ({ type: 'stream/answerStarted', id });
+export const answerSettled = (id: string): StreamAction => ({ type: 'stream/answerSettled', id });
 
 /* ---------------------------------------------------------------- 目录 */
 

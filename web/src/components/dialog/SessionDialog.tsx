@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useActions, useAppSelector } from '../../store/hooks';
 import { selectSessions } from '../../store/selectors';
+import { relativeTimeLabel } from '../../utils/relativeTime';
 import { Modal } from './Modal';
 
 /** `/sessions` 的居中选择弹窗；左侧栏的历史会话列表是同一件事的常驻入口。 */
@@ -8,6 +9,8 @@ export function SessionDialog(): ReactNode {
   const actions = useActions();
   const sessions = useAppSelector(selectSessions);
   const sessionId = useAppSelector(state => state.stream.sessionId);
+  // 与侧栏同一套措辞与同一时刻：换入口不换文案。
+  const now = Date.now();
   return (
     <Modal
       title="历史会话"
@@ -33,7 +36,7 @@ export function SessionDialog(): ReactNode {
             >
               <span className="title">{session.name || '新会话'}</span>
               <span className="meta">{session.awaitingConfirmation ? '待确认' : session.awaitingLogin ? '待登录'
-                : session.busy ? '运行中' : session.id === sessionId ? '当前' : `${session.messageCount} 条 · ${session.modified}`}</span>
+                : session.busy ? '运行中' : session.id === sessionId ? '当前' : relativeTimeLabel(session.modified, now)}</span>
             </button>
           ))}
         </div>

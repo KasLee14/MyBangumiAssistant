@@ -45,7 +45,12 @@ export function useResponsiveCollapse(): void {
   }, [dispatch]);
 }
 
-/** Esc：本轮进行中则停止本轮，否则拒绝待确认的写入。 */
+/**
+ * Esc：有待确认的写入则拒绝它，否则本轮进行中时停止本轮。
+ *
+ * 顺序不能反：待确认时 `busy` 也为真（确认发生在工具执行期间），先判 `busy` 会把
+ * Esc 变成「中止整轮」，而用户按 Esc 的意图是拒绝这次写入。
+ */
 export function useEscapeShortcut(): void {
   const actions = useActions();
   const busy = useAppSelector(state => state.stream.busy);
@@ -55,8 +60,8 @@ export function useEscapeShortcut(): void {
     const onKey = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
       if (switching) return;
-      if (busy) { actions.stopRound(); return; }
-      if (pending) actions.reject(pending.id);
+      if (pending) { actions.reject(pending.id); return; }
+      if (busy) actions.stopRound();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

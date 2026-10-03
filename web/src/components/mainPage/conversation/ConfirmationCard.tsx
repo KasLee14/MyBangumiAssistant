@@ -3,7 +3,14 @@ import type { ConfirmationView } from '../../../../../bangumi/src/web/protocol';
 
 interface ConfirmationCardProps {
   confirmation: ConfirmationView;
-  busy: boolean;
+  /**
+   * 本条确认的应答请求是否在途。
+   *
+   * 只用来在「已点下、宿主还没返回」这一小段里禁用按钮，防止重复提交。它**不是**
+   * 宿主的 `busy`：写入确认本来就发生在工具执行期间（`busy` 恒为真），拿 `busy`
+   * 当禁用条件会让按钮永远点不动。
+   */
+  answering: boolean;
   /** 接管输入区时显示确认与取消；会话里的历史条目只显示结果。 */
   showActions: boolean;
   onConfirm(id: string): void;
@@ -23,8 +30,11 @@ const STATE_LABEL: Record<ConfirmationView['state'], string> = {
  *
  * preview 是宿主生成的完整预览文本：按等宽、保留换行地整体呈现，
  * 浏览器不做截断也不改写内容，只有 pending 才给动作按钮。
+ *
+ * 按钮的禁用只跟 `answering`（本条应答在途）有关，与「本轮是否进行中」无关：
+ * 确认本来就是在一轮的中途发生的，用 `busy` 会让按钮恒为禁用。
  */
-export function ConfirmationCard({ confirmation, busy, showActions, onConfirm, onReject }: ConfirmationCardProps): ReactNode {
+export function ConfirmationCard({ confirmation, answering, showActions, onConfirm, onReject }: ConfirmationCardProps): ReactNode {
   const pending = confirmation.state === 'pending';
   const actions = showActions && pending;
   return (
@@ -40,8 +50,8 @@ export function ConfirmationCard({ confirmation, busy, showActions, onConfirm, o
       </div>
       {actions ? (
         <div className="planActions">
-          <button type="button" className="button outline reject" disabled={busy} onClick={() => onReject(confirmation.id)}>取消</button>
-          <button type="button" className="button primary" disabled={busy} onClick={() => onConfirm(confirmation.id)}>{confirmation.confirmLabel ?? '确认修改'}</button>
+          <button type="button" className="button outline reject" disabled={answering} onClick={() => onReject(confirmation.id)}>取消</button>
+          <button type="button" className="button primary" disabled={answering} onClick={() => onConfirm(confirmation.id)}>{confirmation.confirmLabel ?? '确认修改'}</button>
         </div>
       ) : null}
     </section>

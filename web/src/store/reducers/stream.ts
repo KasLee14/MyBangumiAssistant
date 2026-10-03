@@ -44,6 +44,15 @@ export interface StreamState extends ChatScalarsView {
   items: TranscriptItemView[];
   connected: boolean;
   pendingEcho: PendingEcho | null;
+  /**
+   * 前端本地状态：正在应答中的确认 id，null 表示没有应答在途。
+   *
+   * 它**不能**用宿主标量 `busy` 代替：写入确认必然出现在工具执行期间，此时
+   * `busy` 恒为真，拿它禁用按钮会让确认卡永远点不动。这里只表示「本条确认的
+   * 应答请求已经发出、还没落地」，因此存 id 而不是布尔值——旧确认的应答不会
+   * 误禁用到新确认卡上。
+   */
+  answering: string | null;
 }
 
 export const INITIAL_STREAM_STATE: StreamState = {
@@ -53,6 +62,7 @@ export const INITIAL_STREAM_STATE: StreamState = {
   items: [],
   connected: false,
   pendingEcho: null,
+  answering: null,
 };
 
 /**
@@ -81,7 +91,9 @@ export type StreamAction =
   | { type: 'stream/fatal'; message: string }
   | { type: 'stream/connected'; connected: boolean }
   | { type: 'stream/pendingEchoSet'; echo: PendingEcho }
-  | { type: 'stream/pendingEchoClear' };
+  | { type: 'stream/pendingEchoClear' }
+  | { type: 'stream/answerStarted'; id: string }
+  | { type: 'stream/answerSettled'; id: string };
 
 /**
  * 会话流 reducer。
@@ -104,16 +116,28 @@ export function streamReducer(state: StreamState = INITIAL_STREAM_STATE, action:
         && items.some(item => item.kind === 'user' && item.text === echo.text);
       const otherSession = echo !== null && frame.state.sessionId !== echo.sessionId;
       const pendingEcho = echo === null || settledByHost || otherSession ? null : echo;
-      return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame.revision, items, connected: true, pendingEcho };
+      // 应答在途：宿主已经给出结论（本帧的 pending 不再是那一条）或整体换了会话时
+      // 撤下。宿主下发结论比应答请求的 promise 落地更权威，因此这里清一次，避免
+      // 请求悬挂时按钮一直停在禁用态。
+      const answering = state.answering !== null
+        && (switched || frame.state.pending?.id !== state.answering)
+        ? null
+        : state.answering;
+      return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame.revision, items, connected: true, pendingEcho, answering };
     }
     case 'stream/fatal':
-      return { ...state, status: action.message, connected: false };
+      return { ...state, status: action.message, connected: false, answering: null };
     case 'stream/connected':
       return state.connected === action.connected ? state : { ...state, connected: action.connected };
     case 'stream/pendingEchoSet':
       return { ...state, pendingEcho: action.echo };
     case 'stream/pendingEchoClear':
       return state.pendingEcho === null ? state : { ...state, pendingEcho: null };
+    case 'stream/answerStarted':
+      return state.answering === action.id ? state : { ...state, answering: action.id };
+    case 'stream/answerSettled':
+      // 只清掉自己那一条：应答期间换到新确认卡时，旧应答的落地不该解禁新卡。
+      return state.answering === action.id ? { ...state, answering: null } : state;
     default:
       return state;
   }

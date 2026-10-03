@@ -23,6 +23,8 @@ import {
 } from '../utils/api';
 import { helpText, type CommandHint } from '../utils/commands';
 import {
+  answerStarted,
+  answerSettled,
   catalogLoaded,
   collapsedToggled,
   credentialProviderSet,
@@ -190,6 +192,20 @@ export function createActions(store: AppStore): Actions {
     }
   };
 
+  /**
+   * 应答一条写入确认。
+   *
+   * 在途标记由这里置位与回落：请求发出后按钮禁用、避免重复提交，落地（成功、失败
+   * 或宿主先一步下发结论）都会解禁。失败只提示，宿主那边仍是待确认状态，用户可以
+   * 重试——`answerConfirmation` 对已作废的 id 会被宿主忽略。
+   */
+  const answer = (id: string, accepted: boolean): void => {
+    dispatch(answerStarted(id));
+    void answerConfirmation(id, accepted)
+      .catch(notifyOnly)
+      .finally(() => { dispatch(answerSettled(id)); });
+  };
+
   return {
     loadCatalog,
     send,
@@ -214,8 +230,8 @@ export function createActions(store: AppStore): Actions {
     toggleSidebar: () => { dispatch(collapsedToggled()); },
 
     localCommand,
-    confirm: id => { void answerConfirmation(id, true).catch(notifyOnly); },
-    reject: id => { void answerConfirmation(id, false).catch(notifyOnly); },
+    confirm: id => { answer(id, true); },
+    reject: id => { answer(id, false); },
     stopRound: () => { void cancelRound().catch(notifyOnly); },
 
     applyCredential: async (provider, key, persist) => {

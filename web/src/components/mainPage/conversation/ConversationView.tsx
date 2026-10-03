@@ -171,7 +171,6 @@ export function ConversationView({
                   key={turn.id}
                   turn={turn}
                   running={busy && index === turns.length - 1}
-                  busy={busy}
                   reveal={reveal}
                   onConfirm={onConfirm}
                   onReject={onReject}

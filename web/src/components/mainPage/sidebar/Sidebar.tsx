@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useActions, useAppSelector } from '../../../store/hooks';
+import { relativeTimeLabel } from '../../../utils/relativeTime';
 
 /* 图标统一 16px、fill/stroke 走 currentColor，与上游图标槽一致。 */
 const ICON = { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': true } as const;
@@ -17,12 +18,17 @@ function PlusIcon(): ReactNode {
  *
  * 模型、密钥、代理线路与 Bangumi 登录状态都收进了顶栏的设置弹窗，
  * 因此这里不再有对应的功能行。会话列表、折叠状态与动作都来自 store。
+ *
+ * 每行右侧是「最后对话时间」的相对文案（与 dsh 的会话列表一致）；当前会话那格
+ * 仍是「当前」，因为它是状态而不是时间。绝对时间与轮次数留在悬停提示里。
  */
 export function Sidebar(): ReactNode {
   const actions = useActions();
   const collapsed = useAppSelector(state => state.ui.collapsed);
   const sessions = useAppSelector(state => state.catalog.sessions);
   const sessionId = useAppSelector(state => state.stream.sessionId);
+  // 一屏里的多行共用一个时刻，避免相邻两行落在不同的时间档上。
+  const now = Date.now();
   return (
     <aside className="sidebar">
       <div className="logoRow">
@@ -47,7 +53,7 @@ export function Sidebar(): ReactNode {
           >
             <span className="title">{session.name || '新会话'}</span>
             <span className="time">{session.awaitingConfirmation ? '待确认' : session.awaitingLogin ? '待登录'
-              : session.busy ? '运行中' : session.id === sessionId ? '当前' : session.messageCount}</span>
+              : session.busy ? '运行中' : session.id === sessionId ? '当前' : relativeTimeLabel(session.modified, now)}</span>
           </button>
         )) : <div className="regionLabel">暂无历史会话</div>}
       </div>
