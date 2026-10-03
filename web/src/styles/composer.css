@@ -1,0 +1,615 @@
+/*
+ * 输入区与浮层。
+ *
+ * 数值取自 deepseek-harness（MIT）：
+ *   ui-conversation/skeleton/InputBar.module.css（卡片 28px 圆角、内边距、发送键 34×34）
+ *   ui-input-trigger/MenuView + ui-commands/PopupSelectView（命令弹窗：锚点、行高 34px、分组标题）
+ *   ui-primitives/Menu.module.css（MenuSurface：材质子层承载底色与模糊）
+ *   ui-model-selection/ModelSelect.module.css（触发器 28px 高）
+ */
+
+.composerSeat {
+  /* 与 .column 同源：卡宽 = 内容宽 + 32px */
+  --dsh-chat-content-width: min(calc(100cqw - 32px), clamp(680px, 64cqw, 920px));
+  --dsh-composer-card-max-width: calc(var(--dsh-chat-content-width) + 32px);
+  position: sticky;
+  bottom: 0;
+  z-index: 7;
+  width: min(calc(var(--dsh-composer-card-max-width) + 2 * var(--dsh-composer-side-clearance)), 100%);
+  margin: 0 auto;
+  padding: 0 var(--dsh-composer-side-clearance) var(--dsh-composer-dock-inset);
+  /* 遮罩带：36px 内由透明过渡到背景色，浮在滚动内容之上。底栏读数在带外，
+     它自带实心底（见 .statsDock），因此这里不必为了它拉长渐变。 */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--dsw-alias-bg-base) 0%, transparent) 0px,
+    var(--dsw-alias-bg-base) 36px
+  );
+}
+
+/* 输入卡与它下面的底栏读数：同一栈、同一宽度轴，卡片在上、读数在下 */
+.composerStack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.composerCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: var(--dsh-composer-card-max-width);
+  margin: 0 auto;
+  padding-top: 8px;
+  border-radius: var(--dsw-radius-panel);
+  background: var(--dsw-specific-input-major);
+  box-shadow: var(--dsw-elevation-soft);
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+}
+
+.composerNotice {
+  margin: 0 12px 6px;
+  padding: 4px 8px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* 弹层锚点：卡片顶边的零高条带，弹层由此向上展开 */
+.overlayAnchor {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0;
+}
+
+.composerScroll {
+  max-height: var(--dsh-composer-text-max-height, 336px);
+  margin-right: 4px;
+  overflow-y: auto;
+}
+
+.composerInput {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 8px 0 14px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  caret-color: var(--dsw-alias-state-business-primary);
+}
+
+.composerInput::placeholder {
+  color: var(--dsw-alias-label-caption);
+}
+
+.composerHero .composerInput {
+  min-height: 52px;
+}
+
+.composerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 8px 6px;
+  container-type: inline-size;
+}
+
+@container (max-width: 560px) {
+  .composerRow {
+    gap: 8px;
+  }
+}
+
+.composerTools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.composerHint {
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xxs-12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 本地校验提示（未知命令等）：只出现在输入卡内，不进会话记录 */
+.composerProblem {
+  flex: none;
+  color: var(--dsw-alias-state-error-primary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.composerTrailing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ------------------------------------------------------------ 思考强度入口 */
+
+.thinkingAnchor {
+  position: relative;
+  display: inline-flex;
+}
+
+/* 常驻标签：与发送键同一行，形态是一枚描边胶囊；置灰表示当前不能切换 */
+.thinkingTrigger {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 100ms ease, border-color 100ms ease;
+}
+
+.thinkingTrigger:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+  border-color: var(--dsw-alias-label-caption);
+}
+
+.thinkingTrigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 菜单向上展开：输入卡贴在视口底部，向下展开会跑出屏幕（与命令弹窗同一处理） */
+.thinkingMenu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 100;
+  min-width: 190px;
+  padding: 4px;
+  border-radius: var(--dsw-radius-lg);
+  box-shadow: var(--dsw-elevation-panel);
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+}
+
+/* 发送与停止共用同一按钮位（上游 .primary）：34×34 圆形，上抬 2px */
+.sendButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--dsw-alias-button-info-fill);
+  color: #fff;
+  transform: translateY(-2px);
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.sendButton:hover:not(:disabled) {
+  background: var(--dsw-alias-button-info-hover);
+}
+
+.sendButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sendButton svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* ---------------------------------------------------------------- 命令弹窗 */
+
+.composerPopup {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 100;
+  padding: 4px;
+  max-height: 400px;
+  border-radius: var(--dsw-radius-lg);
+  box-shadow: var(--dsw-elevation-panel);
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+}
+
+/* 表面色与模糊放在材质子层，卡片本身只负责定位与几何（上游 MenuSurface 做法） */
+.composerPopupMaterial,
+.menuMaterial {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--dsw-specific-menu);
+  backdrop-filter: var(--dsw-menu-backdrop-filter);
+  box-shadow: var(--dsw-elevation-stroke);
+}
+
+.composerPopupViewport {
+  max-height: 376px;
+  overflow-y: auto;
+  padding-right: 2px;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  --dsh-scrollbar-width: 6px;
+  --dsh-scrollbar-track-margin: 12px;
+}
+
+.popupSection {
+  min-height: 23px;
+  padding: 5px 8px 2px;
+  color: var(--dsw-alias-label-caption);
+  font: 500 11px/16px var(--dsw-font-family);
+}
+
+.popupItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: 13px/20px var(--dsw-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.popupItem.active {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.popupItem .value {
+  font-family: var(--ds-font-family-code);
+}
+
+.popupItem .hint {
+  margin-left: auto;
+  color: var(--dsw-alias-label-caption);
+}
+
+/* ---------------------------------------------------------------- 锚定菜单 */
+
+.menuAnchor {
+  position: relative;
+}
+
+.menuSurface {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 100;
+  min-width: 240px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 4px;
+  border-radius: var(--dsw-radius-lg);
+  box-shadow: var(--dsw-elevation-panel);
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+}
+
+.menuViewport {
+  max-height: min(360px, calc(100vh - 96px));
+  overflow-y: auto;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  --dsh-scrollbar-width: 6px;
+  --dsh-scrollbar-track-margin: 12px;
+}
+
+.menuLabel {
+  padding: 6px 8px;
+  color: var(--dsw-alias-label-caption);
+  font: 500 11px/15px var(--dsw-font-family);
+}
+
+.menuSeparator {
+  height: 0.5px;
+  margin: 3px 2px;
+  background: var(--dsw-alias-border-l2);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: 13px/20px var(--dsw-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover:not(:disabled),
+.menuItem:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
+}
+
+.menuItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.menuItem .hint {
+  margin-left: auto;
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xs-13);
+  font-family: var(--ds-font-family-code);
+}
+
+/* ------------------------------------------------------------ 底栏读数
+ *
+ * 输入卡最后一行：累计 token 胶囊与上下文占用环，居中排列。形态与交互对齐
+ * deepseek-harness 的 composer 统计条（StatsPills / ContextMeter），配色改成
+ * Bangumi 令牌，浮层 portal 到 body 后 fixed 定位——输入卡在 `.scrollBody`
+ * （overflow-y: auto）里，留在卡内的绝对定位浮层会被那个滚动容器裁掉。
+ * ------------------------------------------------------------ */
+
+.statsDock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 100%;
+  /* 卡外读数：上方留出与卡片的间距，左右不额外留白（宽度由 .composerStack 决定） */
+  padding: 6px 0 2px;
+  /* 读数行自带实心底：它落在座内遮罩带之外，透明会让滚动内容压到文字下面 */
+  background: var(--dsw-alias-bg-base);
+  /* 读数比正文低一档：辅助信息 12px */
+  font: var(--dsw-font-xxs-12);
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 浮层锚点：收缩到触发器大小，面板位置以它的视口矩形为基准 */
+.statsAnchor {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.statsPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 1px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--bgm-r-pill);
+  background: transparent;
+  color: var(--bgm-text-weak);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--bgm-fast);
+}
+
+.statsPill svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/* 交互反馈用站点的交互蓝：整行填充 + 白字 */
+.statsPill:hover,
+.statsPill[aria-expanded='true'] {
+  background: var(--bgm-interactive);
+  border-color: var(--bgm-interactive);
+  color: #fff;
+}
+
+.statsLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statsSep {
+  margin: 0 6px;
+  opacity: .55;
+}
+
+.contextAnchor {
+  /* 环是固定宽度的读数，不参与弹性收缩 */
+  flex: none;
+}
+
+.contextTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--bgm-r-pill);
+  background: transparent;
+  color: var(--bgm-text-weak);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--bgm-fast);
+}
+
+.contextTrigger:hover,
+.contextTrigger[aria-expanded='true'] {
+  background: var(--bgm-interactive);
+  border-color: var(--bgm-interactive);
+  color: #fff;
+}
+
+.contextTrigger[data-warn='true'] {
+  color: var(--bgm-warn);
+}
+
+.contextTrack {
+  fill: none;
+  stroke: var(--bgm-border);
+  stroke-width: 2;
+}
+
+.contextFill {
+  fill: none;
+  stroke: var(--bgm-text-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.contextTrigger[data-warn='true'] .contextFill {
+  stroke: var(--bgm-warn);
+}
+
+/* 浮层：站点卡片形态（1px 淡描边 + 15px 圆角 + 轻投影），不做玻璃模糊，
+   否则下面的对话会透上来，看起来像浮层被写进了输入卡里 */
+.statsPanel {
+  position: fixed;
+  z-index: 1100;
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: var(--bgm-r-lg);
+  font: var(--dsw-font-xxs-12);
+  line-height: 18px;
+  color: var(--bgm-text-muted);
+  cursor: default;
+}
+
+/* 表面色放在子层：面板本体只负责定位与几何（与命令弹窗、思考菜单同一做法） */
+.statsPanelMaterial {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid var(--bgm-border);
+  border-radius: inherit;
+  background: var(--bgm-surface);
+  box-shadow: var(--bgm-shadow-soft);
+}
+
+.statsPanelBody {
+  position: relative;
+}
+
+.statsTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bgm-border-soft);
+  color: var(--bgm-text-strong);
+  font-weight: 700;
+}
+
+.statsTitleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.statsTitleLabel svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.statsTitleValue {
+  font-variant-numeric: tabular-nums;
+}
+
+.statsRows {
+  margin: 0;
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 0;
+}
+
+.statsRow dt {
+  color: var(--bgm-text-muted);
+}
+
+.statsRow dd {
+  margin: 0;
+  color: var(--bgm-text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 上下文面板比用量面板窄：它只有一行读数与一条进度条 */
+.contextPanel {
+  width: min(264px, calc(100vw - 24px));
+}
+
+.contextHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contextHeadline {
+  color: var(--bgm-text-muted);
+}
+
+.contextPercent {
+  color: var(--bgm-text-strong);
+  font-weight: 700;
+}
+
+.contextFigures {
+  margin-left: auto;
+  color: var(--bgm-text-strong);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.contextBar {
+  display: flex;
+  height: 4px;
+  margin: 10px 0 2px;
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-border-soft);
+  overflow: hidden;
+}
+
+.contextSegment {
+  height: 100%;
+  min-width: 2px;
+  border-radius: 1px;
+  background: var(--bgm-primary);
+}
+
+.contextSegment[data-warn='true'] {
+  background: var(--bgm-warn);
+}

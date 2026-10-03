@@ -14,7 +14,7 @@ git clone --branch pi --recurse-submodules https://github.com/KasLee14/MyBangumi
 cd MyBangumiAssistant
 node bootstrap-pi.mjs --proxy http://127.0.0.1:7890
 cd bangumi
-npm start
+npm start -- web
 ```
 
 初始化脚本安装锁定依赖、验证固定模型目录 SHA-256、运行官方 hydrate 与 Pi 原生离线构建，再构建 Bangumi 应用。已有缓存仍会核对哈希。未递归克隆时，脚本会初始化固定子模块；不使用 GitHub ZIP 代替 Git 克隆。
@@ -22,6 +22,14 @@ npm start
 初始化的 `--proxy` 可省略。应用运行时自动发现标准环境和 Windows 代理，`--proxy` 显式指定，`--direct` 显式直连，不自动换线路。
 
 默认运行数据目录为 `%LOCALAPPDATA%/MyBangumiAssistant-Pi`；用 `--data-dir` 或 `BANGUMI_PI_HOME` 单独指定。不会自动读取旧项目的配置、会话或登录文件。
+
+## Web 交互界面
+
+在 `bangumi/` 执行 `npm start -- web`，默认打开本机 8787 端口；`--port` 指定端口，`--no-open` 只打印访问地址。浏览器与终端共用 Pi SDK、隔离配置和会话。首次访问使用启动时的随机令牌换取 HttpOnly Cookie，服务仅监听 `127.0.0.1`。
+
+Web 支持流式聊天、历史会话、模型密钥与模型选择、思考强度、代理切换、独立登录弹窗和写入确认卡。输入的模型密钥及代理切换仅本次运行有效；思考强度保存为本机默认。Token累计消耗与当前上下文占用分别展示。12类富内容组件暂为展示预留，宿主还未自动生成这些条目。详见 `web/README.md`。
+
+Web 沿用下面的确认政策与唯一写计划入口：普通单项免二次确认、作品短评及批量一次确认；没有浏览器连接时任何写入都拒绝，连接在提交前断开则停止。终端的 print/json/RPC 仍不提交写入。查询 Skills 保留，支持 `/skill:bangumi-query`。
 
 ## 配置模型
 
@@ -163,6 +171,6 @@ npm run typecheck
 npm run build
 ```
 
-公开分支仅包含安装、构建和运行所需文件。本地开发测试、规划文档和机器来源清单不发布，不提供缺失测试材料的 `npm test`。当前实现已通过203项本地离线验证，并有Windows终端冒烟证据。真实模型工具组合、登录和网站持久化仍待验收。
+公开分支仅包含安装、构建和运行所需文件。本地开发测试、规划文档和机器来源清单不发布，不提供缺失测试材料的 `npm test`。当前合并实现已通过212项本地离线验证，并有隔离空目录下的浏览器界面冒烟证据。真实模型工具组合、登录和网站持久化仍待验收。
 
 Pi 上游为 MIT；迁入的 Bangumi 应用源码保留 AGPL-3.0-only。两者许可证分别保留。

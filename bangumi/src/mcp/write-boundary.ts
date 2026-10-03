@@ -11,7 +11,7 @@ import { checkResourceResponse, record, positive, type Data } from './resource-o
 import { resourceOutputSchema } from './resource-schemas.js';
 import { checkOutput, checkSubjectResponse } from './subject-output.js';
 import { checkSubmission } from './submission.js';
-import { confirmWrite } from './confirm.js';
+import { createTerminalChannel, type InteractionChannel } from '../interaction.js';
 import { formatWritePreview, WRITE_LABELS } from './write-preview.js';
 import type { ExtensionToolContext } from '@earendil-works/pi-coding-agent';
 import { confirmationForPlan } from './confirmation-policy.js';
@@ -99,6 +99,7 @@ export function createWriteBoundary(
   client: McpCallClient,
   getInput: () => { text: string; generation: number },
   onRecord?: (record: unknown) => void,
+  channel: InteractionChannel = createTerminalChannel(),
 ) {
   let generation: number | undefined;
   const completed = new Map<string, AgentToolResult<unknown>>();
@@ -330,10 +331,10 @@ export function createWriteBoundary(
       if (equal(binding.before, binding.after)) {
         const unchanged = result({ ...base, state: 'unchanged', networkAttempted: false }); completed.set(fingerprint, unchanged); return unchanged;
       }
-      if (ctx.mode !== 'tui' || !ctx.hasUI) throw new AppError('AUTHORIZATION_REQUIRED', '写入限本地Pi交互入口，非交互模式不提交修改。');
+      if (!channel.canConfirm(ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要本地Pi交互终端或已连接的Web终端，非交互模式不提交修改。');
       const account = record(await read('get_current_user', {}, signal));
       const confirmation = confirmationForPlan([{ name, args: binding.args, before: binding.before, after: binding.after }]);
-      const accepted = approved || !confirmation.required ? true : await confirmWrite(ctx, formatWritePreview(account, [{ name, ...binding }]), signal, { confirmLabel: `确认${WRITE_LABELS[name] ?? '修改'}` });
+      const accepted = approved || !confirmation.required ? true : await channel.confirm(ctx, formatWritePreview(account, [{ name, ...binding }]), signal, { confirmLabel: `确认${WRITE_LABELS[name] ?? '修改'}` });
       signal?.throwIfAborted();
       if (!accepted) throw new AppError('CANCELLED', '用户取消，未提交修改。');
       const latest = getInput();
@@ -345,6 +346,7 @@ export function createWriteBoundary(
       signal?.throwIfAborted();
       const finalInput = getInput();
       if (finalInput.generation !== input.generation || finalInput.text !== input.text) throw new AppError('STALE_PREVIEW', '核对期间用户输入改变，未提交旧预览。');
+      if (!channel.canConfirm(ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '交互通道已断开，未提交修改。');
       if (!onRecord) throw new AppError('WRITE_RECORD_REQUIRED', '未连接Pi提交事实记录，不能安全提交可恢复会话中的修改。');
       onRecord({ kind: 'bangumi-write', phase: 'started', fingerprint, generation: input.generation, tool: name, toolCallId, accountId, target: binding.target, args: binding.args });
       submittedGeneration = input.generation;
@@ -441,7 +443,7 @@ export function createWriteBoundary(
   }
   async function assertReady(ctx: ExtensionToolContext, input: WriteInput, accountId: number, signal?: AbortSignal) {
     checkInput(input); signal?.throwIfAborted();
-    if (ctx.mode !== 'tui' || !ctx.hasUI) throw new AppError('AUTHORIZATION_REQUIRED', '写入限本地Pi交互入口；非交互模式不提交。');
+    if (!channel.canConfirm(ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要本地Pi交互终端或已连接的Web终端；非交互模式不提交。');
     if (!onRecord) throw new AppError('WRITE_RECORD_REQUIRED', '未连接Pi执行事实记录，不能提交批量修改。');
     if (record(await read('get_current_user', {}, signal)).id !== accountId) throw new AppError('ACCOUNT_CHANGED', '当前账户与计划账户不一致。');
     const facts = new Map<string, Data>();
@@ -464,7 +466,7 @@ export function createWriteBoundary(
     const baseline = structuredClone(initial);
     const skipped = frozen.filter(s => equal(s.binding.before, s.binding.after)).length;
     const confirmation = confirmationForPlan(frozen.map(s => ({ name: s.name, args: s.binding.args, before: s.binding.before, after: s.binding.after })));
-    if (confirmation.required && !await confirmWrite(ctx, formatWritePreview(account, frozen.map(s => ({ name: s.name, ...s.binding })), skipped), signal,
+    if (confirmation.required && !await channel.confirm(ctx, formatWritePreview(account, frozen.map(s => ({ name: s.name, ...s.binding })), skipped), signal,
       { title: 'Bangumi 整批修改预览', confirmLabel: `确认执行全部${frozen.length - skipped}项修改` })) throw new AppError('CANCELLED', '用户取消整批授权，未提交修改。');
     await assertReady(ctx, input, accountId, signal);
     const actual = new Map<string, unknown>();

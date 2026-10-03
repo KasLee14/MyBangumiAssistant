@@ -1,4 +1,4 @@
-import type { ExtensionToolContext } from '@earendil-works/pi-coding-agent';
+import type { ExtensionContext } from '@earendil-works/pi-coding-agent';
 import { Text, matchesKey, truncateToWidth, type Component } from '@earendil-works/pi-tui';
 import { AppError } from '../support/errors.js';
 
@@ -110,7 +110,7 @@ export class WritePreviewComponent implements Component {
 }
 
 /** 不回退到可能裁切长文本且默认Yes的原生confirm。 */
-export async function confirmWrite(ctx: ExtensionToolContext, preview: string, signal?: AbortSignal, options: WriteConfirmOptions = {}): Promise<boolean> {
+export async function confirmWrite(ctx: ExtensionContext, preview: string, signal?: AbortSignal, options: WriteConfirmOptions = {}): Promise<boolean> {
   signal?.throwIfAborted();
   if (ctx.mode !== 'tui' || !ctx.hasUI || typeof ctx.ui.custom !== 'function') throw new AppError('AUTHORIZATION_REQUIRED', '写入需要能完整显示预览的本地 Pi 交互终端。');
   let component: WritePreviewComponent | undefined;

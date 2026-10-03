@@ -1,17 +1,20 @@
 import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
-import { AccountSessionStore, createLoginPrompt, login } from './login/index.js';
+import { AccountSessionStore, login } from './login/index.js';
+import { createTerminalChannel, type InteractionChannel } from './interaction.js';
 import { LocalMcpClient, type McpCallClient } from './mcp/client.js';
 import { createReadTools } from './mcp/pi-tools.js';
 import { createWriteBoundary } from './mcp/write-boundary.js';
 import { createBatchWriteTool } from './mcp/batch-write.js';
 import { credentialValues, redact, safeError } from './support/errors.js';
-import type { ProxyOptions } from './support/proxy.js';
+import { policyFor, type ProxyOptions } from './support/proxy.js';
+import { ProxyController } from './support/proxy-controller.js';
 import { createSkillReadTool } from './strategies/native-skills.js';
 
 export interface BangumiExtensionConfig {
   authDir: string;
   timeoutMs: number;
-  proxy: ProxyOptions;
+  proxy: ProxyOptions | ProxyController;
+  channel?: InteractionChannel;
   /** 仅用于本地集成测试，不加载真实账户。 */
   client?: McpCallClient & { close?(): Promise<void> };
   store?: AccountSessionStore;
@@ -25,12 +28,24 @@ const instructions = `你是中文Bangumi助手，依据工具事实回答。可
 /** 注册登录/MCP及受限原生Skill读取；对话、模型、会话和终端全部由Pi拥有。 */
 export function createBangumiExtension(config: BangumiExtensionConfig): ExtensionFactory {
   return pi => {
-    const client = config.client ?? new LocalMcpClient({ authDir: config.authDir, timeoutMs: config.timeoutMs, proxy: config.proxy });
+    const proxy = config.proxy instanceof ProxyController ? config.proxy : new ProxyController(policyFor(config.proxy));
+    const channel = config.channel ?? createTerminalChannel();
+    const createClient = () => new LocalMcpClient({ authDir: config.authDir, timeoutMs: config.timeoutMs, proxy: proxy.current });
+    let client: McpCallClient & { close?(): Promise<void> } = config.client ?? createClient();
+    const facade: McpCallClient = {
+      call: (name, args, signal, guard) => client.call(name, args, signal, guard),
+      close: async () => { await client.close?.(); },
+    };
+    const unsubscribeProxy = config.client ? undefined : proxy.onChange(async () => {
+      const previous = client;
+      client = createClient();
+      try { await previous.close?.(); } catch { /* 旧子进程可能已退出。 */ }
+    });
     const store = config.store ?? new AccountSessionStore(config.authDir);
     let input = { text: '', generation: 0 };
-    const boundary = createWriteBoundary(client, () => input, record => pi.appendEntry('bangumi/write', record));
+    const boundary = createWriteBoundary(facade, () => input, record => pi.appendEntry('bangumi/write', record), channel);
     // 固定MCP写映射只在宿主计划内执行，模型不能拆成逐项写调用绕过整批政策。
-    for (const tool of createReadTools(client)) pi.registerTool(tool);
+    for (const tool of createReadTools(facade)) pi.registerTool(tool);
     pi.registerTool(createBatchWriteTool(boundary, record => pi.appendEntry('bangumi/batch', record)));
     pi.registerTool(createSkillReadTool(process.cwd()));
 
@@ -39,18 +54,18 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     });
     pi.on('before_agent_start', event => ({ systemPrompt: `${event.systemPrompt}\n\n${instructions}` }));
     pi.on('session_start', () => { input = { text: '', generation: input.generation + 1 }; });
-    pi.on('session_shutdown', async () => { input = { text: '', generation: input.generation + 1 }; await client.close?.(); });
+    pi.on('session_shutdown', async () => { input = { text: '', generation: input.generation + 1 }; unsubscribeProxy?.(); await client.close?.(); });
 
     pi.registerCommand('bangumi-login', {
       description: 'Bangumi独立邮箱、隐藏密码与浏览器验证码登录；参数manual使用本地辅助',
       handler: async (args, ctx) => {
-        if (!ctx.hasUI) { ctx.ui.notify('登录需要Pi交互终端，密码不会进入聊天或模型。', 'error'); return; }
+        if (!channel.canLogin(ctx)) { channel.notify(ctx, '登录需要Pi交互终端或已连接的Web终端，密码不会进入聊天或模型。', 'error'); return; }
         try {
           const user = await login(store, { signal: ctx.signal ?? new AbortController().signal,
-            proxy: config.proxy, requestTimeoutMs: config.timeoutMs, prompt: createLoginPrompt(ctx),
-            manual: args.trim() === 'manual', notice: message => ctx.ui.notify(message, 'info') });
-          ctx.ui.notify(`Bangumi已登录：${user.username}（#${user.id}）`, 'info');
-        } catch (error) { ctx.ui.notify(safeError(error).message, 'error'); }
+            proxy: proxy.current, requestTimeoutMs: config.timeoutMs, prompt: (kind, signal) => channel.login(ctx, kind, signal),
+            manual: args.trim() === 'manual', notice: message => channel.notify(ctx, message, 'info') });
+          channel.notify(ctx, `Bangumi已登录：${user.username}（#${user.id}）`, 'info');
+        } catch (error) { channel.notify(ctx, safeError(error).message, 'error'); }
       },
     });
     pi.registerCommand('bangumi-login-status', {
@@ -58,13 +73,13 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       handler: async (_args, ctx) => {
         try {
           const saved = await store.load();
-          ctx.ui.notify(saved ? `Bangumi账户：${saved.username}（#${saved.accountId}）；${saved.expiresAt > Date.now() ? '本地会话未过期' : '已过期，请重新登录'}，尚未在线核实。` : 'Bangumi未登录。', 'info');
-        } catch (error) { ctx.ui.notify(safeError(error).message, 'error'); }
+          channel.notify(ctx, saved ? `Bangumi账户：${saved.username}（#${saved.accountId}）；${saved.expiresAt > Date.now() ? '本地会话未过期' : '已过期，请重新登录'}，尚未在线核实。` : 'Bangumi未登录。', 'info');
+        } catch (error) { channel.notify(ctx, safeError(error).message, 'error'); }
       },
     });
     pi.registerCommand('bangumi-logout', {
       description: '仅清除本应用保存的Bangumi登录会话',
-      handler: async (_args, ctx) => { await store.clear(); ctx.ui.notify('已清除本应用Bangumi登录会话。', 'info'); },
+      handler: async (_args, ctx) => { await store.clear(); channel.notify(ctx, '已清除本应用Bangumi登录会话。', 'info'); },
     });
   };
 }
