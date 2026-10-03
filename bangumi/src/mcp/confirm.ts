@@ -2,6 +2,8 @@ import type { ExtensionToolContext } from '@earendil-works/pi-coding-agent';
 import { Text, matchesKey, truncateToWidth, type Component } from '@earendil-works/pi-tui';
 import { AppError } from '../support/errors.js';
 
+export interface WriteConfirmOptions { title?: string; confirmLabel?: string }
+
 /** 仅负责一个写入预览的分页查看与明确确认，不持有对话或修改任务。 */
 export class WritePreviewComponent implements Component {
   private readonly text: Text;
@@ -22,6 +24,7 @@ export class WritePreviewComponent implements Component {
     private readonly requestRender: () => void,
     private readonly getRows: () => number,
     private readonly done: (accepted: boolean) => void,
+    private readonly options: WriteConfirmOptions = {},
   ) { this.text = new Text(preview, 0, 0); }
 
   private viewedAll(): boolean { return this.seen.length > 0 && this.seen.every(Boolean); }
@@ -94,9 +97,10 @@ export class WritePreviewComponent implements Component {
     }, 0);
     this.timers.add(timer);
     const ready = this.viewedAll() && this.atEnd();
-    const choice = ready ? this.selectedConfirm ? '取消    [确认修改]' : '[取消]    确认修改' : '[取消]    确认未解锁';
+    const label = this.options.confirmLabel ?? '确认修改';
+    const choice = ready ? this.selectedConfirm ? `取消    [${label}]` : `[取消]    ${label}` : '[取消]    确认未解锁';
     return [
-      truncateToWidth('Bangumi 修改预览', width),
+      truncateToWidth(this.options.title ?? 'Bangumi 修改预览', width),
       truncateToWidth(`第 ${start + 1}-${end}/${this.lines.length} 行 · ${ready ? '完整预览已显示' : '请查看全部内容'}`, width),
       ...this.lines.slice(start, end),
       truncateToWidth('↑↓ / PgUp PgDn 翻页 · ←→ 选择 · Enter 执行选择', width),
@@ -106,7 +110,7 @@ export class WritePreviewComponent implements Component {
 }
 
 /** 不回退到可能裁切长文本且默认Yes的原生confirm。 */
-export async function confirmWrite(ctx: ExtensionToolContext, preview: string, signal?: AbortSignal): Promise<boolean> {
+export async function confirmWrite(ctx: ExtensionToolContext, preview: string, signal?: AbortSignal, options: WriteConfirmOptions = {}): Promise<boolean> {
   signal?.throwIfAborted();
   if (ctx.mode !== 'tui' || !ctx.hasUI || typeof ctx.ui.custom !== 'function') throw new AppError('AUTHORIZATION_REQUIRED', '写入需要能完整显示预览的本地 Pi 交互终端。');
   let component: WritePreviewComponent | undefined;
@@ -114,7 +118,7 @@ export async function confirmWrite(ctx: ExtensionToolContext, preview: string, s
   signal?.addEventListener('abort', abort, { once: true });
   try {
     const accepted = await ctx.ui.custom<boolean>((tui, _theme, _keys, done) => {
-      component = new WritePreviewComponent(preview, () => tui.requestRender(), () => tui.terminal.rows, done);
+      component = new WritePreviewComponent(preview, () => tui.requestRender(), () => tui.terminal.rows, done, options);
       if (signal?.aborted) queueMicrotask(abort);
       return component;
     }, { overlay: true, overlayOptions: { width: '100%', maxHeight: '100%', margin: 0, anchor: 'top-left' } });

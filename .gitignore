@@ -10,6 +10,9 @@ scripts/
 .github/
 bangumi/tests/
 bangumi/scripts/
+!bangumi/scripts/
+bangumi/scripts/*
+!bangumi/scripts/copy-strategy-skills.mjs
 bangumi/tsconfig.test.json
 **/source-manifest.json
 **/test-source-manifest.json
