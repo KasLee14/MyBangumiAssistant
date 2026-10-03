@@ -327,7 +327,7 @@ export interface ModelOptionView {
   current: boolean;
 }
 
-/** 历史会话；`id` 既用于展示也用于恢复。 */
+/** 历史会话；`name` 用于展示，`path` 用于恢复，`id` 保留会话身份。 */
 export interface SessionOptionView {
   id: string;
   path: string;

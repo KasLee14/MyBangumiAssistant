@@ -18,6 +18,7 @@ import {
 } from "../support/errors.js";
 import { policyFor } from "../support/proxy.js";
 import { discoverProxy, type ProxyController } from "../support/proxy-controller.js";
+import { sessionDisplayName } from "../session-title.js";
 import type {
   ActivityItemView,
   CatalogView,
@@ -950,11 +951,16 @@ export class WebSession {
     const sessions: SessionOptionView[] = infos.map((info) => ({
       id: info.id,
       path: info.path,
-      name: info.name ?? "",
+      name: sessionDisplayName(info.name, info.firstMessage),
       modified: info.modified.toISOString(),
       messageCount: info.messageCount,
       current: sessionFile !== undefined && info.path === sessionFile,
     }));
+    // 首条消息尚未落盘时也展示当前会话；命名事件随后驱动浏览器刷新列表。
+    if (sessionFile && !sessions.some(info => info.current)) {
+      sessions.unshift({ id: session.sessionId, path: sessionFile, name: sessionDisplayName(session.sessionName, ''),
+        modified: new Date().toISOString(), messageCount: 0, current: true });
+    }
     const commands: CommandOptionView[] = session.extensionRunner
       .getRegisteredCommands()
       .map((command) => ({

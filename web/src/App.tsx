@@ -45,6 +45,7 @@ export function App(): ReactNode {
   /** rAF 句柄与「滚动停止」防抖句柄。 */
   const pendingFrame = useRef(0);
   const scrollIdle = useRef(0);
+  const catalogRequest = useRef(0);
 
   // 投影只在条目真正变化时重算：流式帧只改标量（liveText 等），items 引用不变，
   // 于是 turns 引用稳定，配合各层的 memo 让历史轮次整体跳过重渲染。
@@ -168,15 +169,16 @@ export function App(): ReactNode {
   }, []);
 
   const loadCatalog = useCallback(async (): Promise<CatalogView> => {
+    const request = ++catalogRequest.current;
     const next = await fetchCatalog();
-    setCatalog(next);
+    if (request === catalogRequest.current) setCatalog(next);
     return next;
   }, []);
 
   useEffect(() => {
-    // 会话切换后模型与历史会话列表都可能变化；列表失败不影响对话本身。
+    // 会话切换和后台命名都会改变历史列表；列表失败不影响对话本身。
     void loadCatalog().catch(() => { /* 打开设置或会话弹窗时会再取一次。 */ });
-  }, [loadCatalog, state.sessionId]);
+  }, [loadCatalog, state.sessionId, state.sessionName]);
 
   /** 提交给宿主；返回 promise 以便输入区在失败时回滚草稿。 */
   const send = useCallback((input: string): Promise<void> => {

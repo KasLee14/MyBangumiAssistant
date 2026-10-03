@@ -48,9 +48,9 @@ export function Sidebar(props: SidebarProps): ReactNode {
             type="button"
             className={`sessionRow${session.current ? ' selected' : ''}`}
             onClick={() => props.onResume(session)}
-            title={`${session.path} · ${session.modified} · ${session.messageCount} 条消息`}
+            title={`${session.name || '新会话'} · ${session.modified} · ${session.messageCount} 条消息`}
           >
-            <span className="title">{session.name || session.id}</span>
+            <span className="title">{session.name || '新会话'}</span>
             {session.current ? <span className="time">当前</span> : <span className="time">{session.messageCount}</span>}
           </button>
         )) : <div className="regionLabel">暂无历史会话</div>}

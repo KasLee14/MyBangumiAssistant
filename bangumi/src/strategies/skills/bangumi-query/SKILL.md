@@ -19,7 +19,7 @@ description: Bangumi条件检索、作品推荐、相似查询及按个人收藏
 - 找具体作品使用keyword；按题材推荐使用filter.tag/meta_tags，纯筛选时keyword为空字符串并提供有效filter。多标签及不同筛选条件为且；“搞笑或喜剧”等或条件分别检索后按作品ID合并去重，不能直接把同义标签一起传入且条件。
 - 评分使用filter.rating，评分人数使用filter.rating_count；sort只决定排序，不证明相似或评分接近。评分接近须依据基准作品真实评分限定范围并比较分差；相似推荐先核实基准作品，再选少量有证据的题材或风格维度。
 - browse_subjects的cat表示作品形式，不表示题材；动画TV使用适用的cat，不能把platform或series传给动画浏览。get_subject_relations用于核实实际作品关系，不能直接当作相似度排序。
-- 优先结构化筛选并按评分排序，按返回的nextOffset续页。search_subjects已有服务分页适配，不反复探索页大小或手工绕过。仅使用实际登记工具，不假定存在复合工具、批量收藏查询、宿主索引或缓存。
+- 优先结构化筛选并按评分排序，按返回的nextOffset续页。search_subjects、search_persons、search_characters共用服务分页适配，每次HTTP请求最多20条并补齐工具请求范围，不反复探索页大小或手工绕过。仅使用实际登记工具，不假定存在复合工具、批量收藏查询、宿主索引或缓存。
 
 三、按需核实
 - 先按已有评分、人数、形式等便宜字段过滤，再对可能入选的作品核实收藏、简介、地区或前后作。get_subject_details的include按需选择；不需要简介时用include=[]，不默认展开所有可选字段。

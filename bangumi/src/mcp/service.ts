@@ -3,7 +3,7 @@ import { findToolDefinition, validateToolArguments } from './catalog.js';
 import type { McpTransport } from './transport.js';
 import { preparedBaseline, type PreparedBaseline } from './prepared.js';
 import { subjectDetails, subjectSummary, subjectPage, collectionPage, indexSubjectPage, checkOutput, checkSubjectResponse, type SubjectInclude } from './subject-output.js';
-import { resourceResult, checkResourceResponse } from './resource-output.js';
+import { resourceResult, checkResourceResponse, entitySummary } from './resource-output.js';
 import { SubmissionTracker, checkSubmission } from './submission.js';
 
 export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline }
@@ -105,20 +105,28 @@ export class BangumiMcpService {
     return { ...item, data: item.data, total: item.total, limit, offset };
   }
   /** 搜索接口每次最多20条；补齐工具请求范围，不放宽双端分页契约。 */
-  private async searchSubjects(args: ObjectValue, body: ObjectValue, signal?: AbortSignal): Promise<ObjectValue> {
+  private async searchPage(name: 'search_subjects' | 'search_characters' | 'search_persons', args: ObjectValue, body: ObjectValue, signal?: AbortSignal): Promise<ObjectValue> {
     const limit = Number(args.limit); const offset = Number(args.offset);
     const data: unknown[] = []; const seen = new Set<number>(); let total: number | undefined;
+    const kind = name === 'search_characters' ? 'character' : 'person';
+    const entitySchema = name === 'search_subjects' ? undefined : {
+      type: 'array', maxItems: 20, items: { $ref: `#/$defs/${kind === 'character' ? 'CharacterSummary' : 'PersonSummary'}` },
+      $defs: findToolDefinition(name).outputSchema!.$defs,
+    };
     for (let batch = 0; batch < Math.ceil(limit / 20); batch++) {
       signal?.throwIfAborted();
       const batchLimit = Math.min(20, limit - data.length); const batchOffset = offset + data.length;
-      const page = this.page(await this.transport.public('/v0/search/subjects', {
+      const page = this.page(await this.transport.public(`/v0/search/${name.slice('search_'.length)}`, {
         method: 'POST', query: { limit: batchLimit, offset: batchOffset }, body,
       }, signal), batchLimit, batchOffset);
       signal?.throwIfAborted();
       if (total !== undefined && total !== page.total) throw new AppError('INCOMPLETE_DATA', '搜索总数在分页读取期间变化。');
       total = page.total;
-      // 每页先核对作品身份及筛选范围，异常页不能推动下一次读取。
-      subjectPage(page, { ...args, limit: batchLimit, offset: batchOffset });
+      // 每页先核对对应实体及固定输出契约，异常页不能推动下一次读取。
+      const pageArgs = { ...args, limit: batchLimit, offset: batchOffset };
+      if (name === 'search_subjects') subjectPage(page, pageArgs);
+      // 内部补页offset可以超过模型参数上限；这里只校验实体，最终合并结果仍完整校验原始scope。
+      else checkOutput(entitySchema!, page.data.map(raw => entitySummary(raw, kind)));
       for (const raw of page.data) {
         const id = positive(obj(raw).id);
         if (seen.has(id)) throw new AppError('INCOMPLETE_DATA', '搜索分页记录重复。');
@@ -236,12 +244,11 @@ export class BangumiMcpService {
       return { data, limit, offset, complete: data.every(day => day.complete), kind: 'weekly_schedule' };
     }
     if (name === 'get_current_user') return this.transport.currentUser(signal);
-    if (['search_subjects', 'search_characters', 'search_persons'].includes(name)) {
+    if (name === 'search_subjects' || name === 'search_characters' || name === 'search_persons') {
       const entity = name.slice('search_'.length); const filter = entity === 'subjects' ? searchFilter(args)
         : entity === 'characters' ? compact({ nsfw: args.nsfw_filter }) : compact({ career: args.career_filter });
       const body = compact({ keyword: args.keyword, sort: args.sort, filter });
-      if (name === 'search_subjects') return this.searchSubjects(args, body, signal);
-      return publicCall(`/v0/search/${entity}`, { method: 'POST', query: { limit, offset }, body });
+      return this.searchPage(name, args, body, signal);
     }
     if (name === 'browse_subjects') return publicCall('/v0/subjects', { query: compact({ type: args.subject_type, cat: args.cat, series: args.series, platform: args.platform, sort: args.sort, year: args.year, month: args.month, limit, offset }) });
     if (name === 'get_subject_details') return ratedSubject(await publicCall(`/v0/subjects/${id('subject_id')}`));

@@ -30,10 +30,10 @@ export function SessionDialog({ sessions, onPick, onClose }: SessionDialogProps)
               key={session.path}
               type="button"
               className={`pickerRow${session.current ? ' selected' : ''}`}
-              title={session.path}
+              title={session.name || '新会话'}
               onClick={() => onPick(session)}
             >
-              <span className="title">{session.name || session.id}</span>
+              <span className="title">{session.name || '新会话'}</span>
               <span className="meta">{session.current ? '当前' : `${session.messageCount} 条 · ${session.modified}`}</span>
             </button>
           ))}

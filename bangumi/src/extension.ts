@@ -9,6 +9,7 @@ import { credentialValues, redact, safeError } from './support/errors.js';
 import { policyFor, type ProxyOptions } from './support/proxy.js';
 import { ProxyController } from './support/proxy-controller.js';
 import { createSkillReadTool } from './strategies/native-skills.js';
+import { registerSessionTitles, type SessionTitleGenerator } from './session-title.js';
 
 export interface BangumiExtensionConfig {
   authDir: string;
@@ -18,6 +19,8 @@ export interface BangumiExtensionConfig {
   /** 仅用于本地集成测试，不加载真实账户。 */
   client?: McpCallClient & { close?(): Promise<void> };
   store?: AccountSessionStore;
+  /** 离线测试可注入标题生成器，不请求真实模型。 */
+  generateSessionTitle?: SessionTitleGenerator;
 }
 
 const instructions = `你是中文Bangumi助手，依据工具事实回答。可自由组合已登记MCP工具查询五类作品、角色、人物、目录、章节、公开用户及修订资料，并基于资料讨论和推荐。用户选择、追问和指代结合当前Pi对话历史理解；对象不明确时询问，不编造ID。本人使用username="-"，第三方只读公开资料。
@@ -30,6 +33,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
   return pi => {
     const proxy = config.proxy instanceof ProxyController ? config.proxy : new ProxyController(policyFor(config.proxy));
     const channel = config.channel ?? createTerminalChannel();
+    registerSessionTitles(pi, config.generateSessionTitle, (ctx, message, type) => channel.notify(ctx, message, type));
     const createClient = () => new LocalMcpClient({ authDir: config.authDir, timeoutMs: config.timeoutMs, proxy: proxy.current });
     let client: McpCallClient & { close?(): Promise<void> } = config.client ?? createClient();
     const facade: McpCallClient = {
