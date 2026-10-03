@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import { Composer } from '../../components/mainPage/composer/Composer';
-import { ConfirmationCard } from '../../components/mainPage/conversation/ConfirmationCard';
+import { ComposerSlot } from '../../components/mainPage/composer/ComposerSlot';
 import { ConversationView } from '../../components/mainPage/conversation/ConversationView';
 import { Hero } from '../../components/mainPage/conversation/Hero';
 import { UserBubble } from '../../components/mainPage/conversation/MessageParts';
@@ -46,36 +45,10 @@ export function MainPage(): ReactNode {
   const cancelling = useAppSelector(state => state.stream.cancelling);
   const startedAt = useAppSelector(state => state.stream.startedAt);
   const sessionId = useAppSelector(state => state.stream.sessionId);
-  const pending = useAppSelector(state => state.stream.pending);
   const pendingEcho = useAppSelector(state => state.stream.pendingEcho);
   const reveal = useAppSelector(state => state.ui.reveal);
   const collapsed = useAppSelector(state => state.ui.collapsed);
   const heroPhase = useAppSelector(selectHeroPhase);
-
-  // 需要用户决定时接管输入区。写入确认只可能出现在工具执行期间（此时 busy
-  // 为真），因此这里不能再看 busy，否则确认按钮永远不会出现。
-  const takeover = pending ? (
-    <div className="cardSeat">
-      <ConfirmationCard
-        confirmation={pending}
-        busy={busy}
-        showActions
-        onConfirm={actions.confirm}
-        onReject={actions.reject}
-      />
-    </div>
-  ) : null;
-
-  /**
-   * 输入卡挂载在唯一位置（`.composerSeat`），首屏与活动态只靠容器的 `data-phase`
-   * 切换外观。原先首屏把同一个元素渲染在 `.heroStack`、活动态渲染在 `.composerSeat`，
-   * 状态翻转会让 textarea 被卸载重建，输入焦点与 IME 组合态一起丢失。
-   */
-  const composer = (
-    <div className="composerSeat">
-      {takeover ?? <Composer />}
-    </div>
-  );
 
   return (
     <div className="frame" data-sidebar={collapsed ? 'collapsed' : 'expanded'}>
@@ -83,7 +56,9 @@ export function MainPage(): ReactNode {
       <main className="conversation">
         <Header />
         {/* 会话视图的两个槽位：内容由页面决定，渲染位置与形态仍在 ConversationView 内，
-            因此首屏引导与乐观回显不会各自长成另一份实现。 */}
+            因此首屏引导与乐观回显不会各自长成另一份实现。
+            输入区槽位只给组件：输入卡与接管卡片（如写入确认）之间的取舍由 ComposerSlot
+            自己判定并渲染，页面这里不做分支。 */}
         <ConversationView
           items={items}
           liveText={liveText}
@@ -96,7 +71,7 @@ export function MainPage(): ReactNode {
           reveal={reveal}
           onConfirm={actions.confirm}
           onReject={actions.reject}
-          composer={composer}
+          composer={<ComposerSlot />}
           hero={heroPhase ? <Hero /> : undefined}
           pendingEcho={pendingEcho === null ? undefined : <UserBubble key="pending-echo" text={pendingEcho.text} />}
         />
