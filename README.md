@@ -84,33 +84,7 @@ npm start -- web --port 8788 --no-open
 
 `defaultProvider` 与上面的提供方名称一致，`defaultModel` 与模型 `id` 一致；`defaultThinkingLevel` 可选，`off` 表示关闭思考。
 
-## 3、执行轨迹与 MCP 分析
-
-每次 Agent 执行默认在应用数据目录的 `tracelog` 中保存独立轨迹，与 Pi 的完整会话文件分开。轨迹包括实际 prompt、API 可见思考、模型工具及宿主内部 MCP 调用、写入回读和最终输出；多会话各自保存，后台标题另行记录。
-
-每份轨迹包含 `events.jsonl`、`summary.json` 和 `payloads/`，摘要直接提供调用次数、耗时、结果体积、搜索增量和重复查询等分析。凭据和宿主授权对象会在落盘前脱敏。
-
-在 `bangumi/` 目录运行：
-
-```powershell
-npm start -- web --trace off
-npm start -- web --trace-dir "E:\BangumiTrace"
-npm start -- trace-analyze "E:\BangumiTrace\2026-10-04\SESSION_ID\TRACE_ID"
-```
-
-日志开关独立于 `--no-session`。目录配置、完整字段、格式和覆盖范围见 [Tracelog 说明](bangumi/TRACING.md)。
-
-## 4、收藏范围查询与账户权限
-
-“整理我看过的 2026 年 4 月开播动画”使用 `query_user_collections`：宿主按动画、看过状态和开播日期范围完整分页，只向模型返回匹配项、排序及覆盖情况。明确补入的跨月作品单独核实，未知日期会使完整性标记为 false。收藏更新时间不能代替开播日期。
-
-登录后，Bangumi 操作统一先核实当前账户及 NSFW 权限。本人收藏使用账户接口保留私密记录；第三方资料仍限于该用户公开范围。认证失效、网络失败或预检失败不会自动降级匿名查询。未登录的公开收藏范围查询可使用网页开播日期倒序，在严格越过日期下界后停止，同日跨页仍完整读取。
-
-工具结果的 `accessContext.nsfw` 分别报告显示偏好 `preference`、实际权限 `allowed`，以及 `enabled`、`disabled`、`unknown` 状态；偏好开启不等于具有权限。全站搜索和浏览默认保留账户范围：NSFW开启时，日期、小数评分、评分人数等上游不可靠筛选，以及遗漏R18摘要的浏览明确返回 `SEARCH_CAPABILITY_UNSUPPORTED`，不忽略条件或自动换成匿名结果。仅用户明确排除R18时提供 `nsfw=exclude`；NSFW本已关闭或未登录时，也可查询非R18范围。`accessContext.queryCoverage` 报告实际范围、NSFW覆盖、估计总数及来源限制，搜索 `page.complete` 只表示源内分页耗尽。修订资料仍使用公开来源并标记限制。这些操作均先完成账户预检，应用不会自动修改NSFW开关。完整契约见 [MCP工具文档](bangumi/mcp.md)。
-
-写入批次的 `failures` 列出各失败的阶段、原步骤编号、操作、对象和来源读取工具，`failure` 兼容首项。`summary` 分别计数已核实、无需修改、跳过、失败、未知、依赖阻塞和未执行；`stageResults` 保留复合操作的子项结果。`networkAttempted` 与 `writeNetworkAttempted` 均仅指写入尝试；`skipped`、`blocked` 或所有步骤 `not_executed` 不表示创建步骤失败，也不表示预检没有发送读取请求。社区正文与分页引用绑定读取时的账户及 NSFW 权限，权限改变后需要重新读取来源。
-
-## 5、致谢
+## 3、致谢
 
 - [Pi](https://github.com/earendil-works/pi)：提供模型接入、对话循环、会话管理和终端交互能力。
 - [Bangumi](https://bgm.tv/) 与 [Bangumi API](https://github.com/bangumi/api)：提供作品、章节、人物、目录和收藏相关的数据与服务。
