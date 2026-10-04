@@ -6,6 +6,7 @@ import { ContentItem, type ContentItemView } from '../../content';
 import { isContentKind } from '../../content/registry';
 import { ConfirmationCard } from '../../mainPage/conversation/ConfirmationCard';
 import { ErrorRow, NoticeRow, SessionBanner, UserBubble } from '../../mainPage/conversation/MessageParts';
+import { ToolActivity } from '../../mainPage/conversation/ToolActivity';
 import { AnimatedContent } from '../../motion/vendor/AnimatedContent';
 
 /**
@@ -36,14 +37,6 @@ function Chevron({ className }: { className: string }): ReactNode {
   );
 }
 
-/* 工具活动的三种状态：进行中不给勾叉，避免把未结束的调用读成成功。 */
-const ACTIVITY_MARK: Record<ActivityItemView['state'], string> = { running: '·', ok: '✓', error: '×' };
-const ACTIVITY_TEXT: Record<ActivityItemView['state'], string> = {
-  running: '进行中',
-  ok: '完成',
-  error: '失败',
-};
-
 /** 过程折叠块：与 v1 的分支逻辑、reveal 语义、展开默认值完全一致，只有类名与外观不同。 */
 function ProcessGroup({ items, running, reveal }: { items: ActivityItemView[]; running: boolean; reveal: number }): ReactNode {
   const [open, setOpen] = useState(running);
@@ -58,15 +51,7 @@ function ProcessGroup({ items, running, reveal }: { items: ActivityItemView[]; r
       </button>
       {open ? (
         <div className="processBody">
-          {items.map(item => (
-            <div key={item.id} className="activityRow" data-state={item.state}>
-              <span className="mark" aria-hidden="true">{ACTIVITY_MARK[item.state]}</span>
-              <span>
-                {item.label}（{ACTIVITY_TEXT[item.state]}）
-                {item.state !== 'ok' && item.detail ? `：${item.detail}` : ''}
-              </span>
-            </div>
-          ))}
+          {items.map(item => <ToolActivity key={item.id} item={item} />)}
         </div>
       ) : null}
     </div>

@@ -201,12 +201,13 @@ for (const row of cases) for (const mode of ['interrupted', 'response_lost', 're
     const interruptedEpisodes = row.tool === 'update_episode_collection' && mode !== 'readback_failed';
     if (interruptedEpisodes) {
       assert.equal(writeCount, 1, '原计划只发出第一集请求，后续集未提交');
-      assert.equal(first.items[0].submission.items[1].submissionState, 'not_attempted');
+      assert.equal(first.items[0].stageResults[1].state, 'blocked');
+      assert.equal(first.items[0].stageResults[1].writeNetworkAttempted, false);
       assert.equal(f.episodes.find(ep => ep.id === 1).collection.status, 2);
       assert.equal(f.episodes.find(ep => ep.id === 2).collection.status, 0);
     }
     const original = JSON.stringify(f.entries);
-    const originalLast = f.entries.filter(entry => entry.customType === 'bangumi/write').at(-1);
+    const originalLast = f.entries.filter(entry => entry.customType === 'bangumi/write' && entry.data.writeNetworkAttempted === true).at(-1);
     assert.equal(originalLast.data.state, 'unknown');
     Object.assign(f.faults, { failVerify: false, loseReceipt: false, loseReceiptWithId: false, interrupt: false });
     const observation = await f.read(...row.read);
@@ -222,7 +223,8 @@ for (const row of cases) for (const mode of ['interrupted', 'response_lost', 're
       assert.equal(f.writes.length, writeCount + 1, '新用户计划只提交未达成的第二集');
       assert.equal(f.writes.filter(write => write.path === '/p1/collections/episodes/1').length, 1, '已核实第一集不重发');
       assert.equal(f.writes.filter(write => write.path === '/p1/collections/episodes/2').length, 1);
-      assert.ok(reconciled.some(entry => entry.data.state === 'failed' && entry.data.resolution === 'observed_partial'), JSON.stringify(reconciled));
+      assert.ok(reconciled.some(entry => entry.data.state === 'success' && entry.data.resolution === 'observed_applied'
+        && entry.data.args.episode_ids?.length === 1 && entry.data.args.episode_ids[0] === 1), JSON.stringify(reconciled));
     } else {
       assert.equal(recovered.state, 'unchanged', JSON.stringify(recovered));
       assert.equal(f.writes.length, writeCount, '恢复核实和已达成的新计划均不得重发原操作');
@@ -247,21 +249,21 @@ test('真实新轮评分 8→7→8 及人物 收藏→取消→再收藏不被�
   }
 });
 
-test('硬中断只留下部分ack的submission阶段未决事实，重启仍须核实而不能当已结案', async () => {
+test('硬中断只留下已提交子阶段的submission事实，重启仍须核实且只补未尝试集', async () => {
   const f = fixture(); f.faults.failVerify = true; f.faults.interrupt = true;
   const original = { tool: 'update_episode_collection', args: { subject_id: 101, episode_ids: [1, 2], collection_type: 2 } };
   await f.run([original]);
-  const lastSubmission = f.entries.findLastIndex(entry => entry.customType === 'bangumi/write' && entry.data.phase === 'submission');
+  const lastSubmission = f.entries.findLastIndex(entry => entry.customType === 'bangumi/write' && entry.data.phase === 'submission' && entry.data.writeNetworkAttempted === true);
   assert.ok(lastSubmission >= 0);
-  assert.equal(f.entries[lastSubmission].data.state, 'unknown');
+  assert.equal(f.entries[lastSubmission].data.state, 'submitted');
   assert.equal(f.entries[lastSubmission].data.submission.items[0].submissionState, 'acknowledged');
-  assert.equal(f.entries[lastSubmission].data.submission.items[1].submissionState, 'not_attempted');
+  assert.equal(f.entries[lastSubmission].data.submission.items.length, 1);
   // 保留真实提交阶段事实，删除进程崩溃后本应不存在的完成/回读条目。
   f.entries.splice(lastSubmission + 1);
   f.faults.failVerify = false; f.faults.interrupt = false; f.nextTurn(); f.restart();
   const value = await f.run([{ tool: 'update_episode_collection', args: { subject_id: 101, episode_ids: [2], collection_type: 2 } }]);
   assert.equal(value.state, 'success', JSON.stringify(value));
-  assert.ok(f.entries.some(entry => entry.data.phase === 'reconciled' && entry.data.resolution === 'observed_partial'));
+  assert.ok(f.entries.some(entry => entry.data.phase === 'reconciled' && entry.data.resolution === 'observed_applied'));
   assert.equal(f.writes.filter(write => write.path === '/p1/collections/episodes/1').length, 1);
   assert.equal(f.writes.filter(write => write.path === '/p1/collections/episodes/2').length, 1);
 });
@@ -279,7 +281,8 @@ for (const applied of [true, false]) test(`阶段2 started硬中断：未知阶�
     && entry.data.phase === 'started' && entry.data.stageId?.endsWith('/2'));
   assert.ok(startedIndex >= 0);
   const started = f.entries[startedIndex].data;
-  assert.deepEqual(started.submission.items.map(item => item.submissionState), ['acknowledged', 'unknown', 'not_attempted']);
+  assert.deepEqual(started.submission.items.map(item => item.submissionState), ['unknown']);
+  assert.deepEqual(started.args.episode_ids, [2]);
   assert.ok(Array.isArray(started.baselineBefore) && Array.isArray(started.expected));
   assert.equal(started.expected.find(([key]) => key === 'episode:2')[1].collection_type, 2,
     '硬中断核实视图必须包含当前未知阶段目标，不能只保留先前ack前缀');
@@ -290,7 +293,7 @@ for (const applied of [true, false]) test(`阶段2 started硬中断：未知阶�
   const next = await f.run([{ tool: 'update_episode_collection', args: { subject_id: 101, episode_ids: [3], collection_type: 2 } }]);
   if (applied) {
     assert.equal(next.state, 'success', JSON.stringify(next));
-    assert.ok(f.entries.some(entry => entry.data.phase === 'reconciled' && entry.data.resolution === 'observed_partial'));
+    assert.ok(f.entries.some(entry => entry.data.phase === 'reconciled' && entry.data.resolution === 'observed_applied' && entry.data.args.episode_ids?.[0] === 2));
     for (const id of [1, 2, 3]) assert.equal(f.writes.filter(write => write.path === `/p1/collections/episodes/${id}`).length, 1,
       '当前已达成阶段不重发，新用户只提交未发的第三阶段');
   } else {

@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { Data } from './resource-output.js';
 
-export interface WritePreviewItem { name: string; target: Data; before: unknown; after: unknown; effects: string[] }
+export interface WritePreviewItem { name: string; target: Data; before: unknown; after: unknown; effects: string[]; stepId?: number }
 interface PreviewNames { ids: Map<string, Set<number>>; newIndexes: Map<number, number> }
 interface PreviewOperation { key: string; title(count: number): string; rows: string[]; note?: string }
 
@@ -56,7 +56,7 @@ function namesFor(items: WritePreviewItem[]): PreviewNames {
   items.forEach((item, i) => {
     const t = item.target;
     if (t.kind === 'newIndex') {
-      const id = -(i + 1);
+      const id = -(item.stepId ?? i + 1);
       names.newIndexes.set(id, names.newIndexes.size + 1);
       remember('目录', data(item.after).title, id);
     }
@@ -169,12 +169,12 @@ export function formatWriteItem(item: WritePreviewItem, number?: number): string
   const preview = operation(item, namesFor([item]), number ?? 1);
   return [preview.title(1), ...preview.rows.map(row => `• ${row}`), preview.note].filter(Boolean).join('\n');
 }
-export function formatWritePreview(account: Data, items: WritePreviewItem[]): string {
+export function formatWritePreview(account: Data, items: WritePreviewItem[], excluded: Data[] = []): string {
   const names = namesFor(items); const skipped: string[] = [];
   const groups: { operation: PreviewOperation; count: number }[] = [];
   items.forEach((item, i) => {
     if (isDeepStrictEqual(item.before, item.after)) { skipped.push(unchangedTarget(item, names)); return; }
-    const preview = operation(item, names, i + 1); const previous = groups.at(-1);
+    const preview = operation(item, names, item.stepId ?? i + 1); const previous = groups.at(-1);
     // 仅合并相邻可共用动作摘要的操作；逐项明细保留排序、正文与原计划先后关系。
     if (previous?.operation.key === preview.key) { previous.operation.rows.push(...preview.rows); previous.count++; }
     else groups.push({ operation: preview, count: 1 });
@@ -185,5 +185,10 @@ export function formatWritePreview(account: Data, items: WritePreviewItem[]): st
     ...group.operation.rows.map(row => `• ${row}`), group.operation.note].filter(Boolean).join('\n')).join('\n\n');
   return [groups.length ? summary : '本次操作范围内的内容均无需修改。', `使用账户：${line(account.username) || `账户 #${account.id}`}`,
     groups.length ? `操作范围：\n${scope}` : '', skipped.length ? `以下内容无需修改，将跳过：\n${skipped.map(target => `• ${target}`).join('\n')}` : '',
-    groups.length ? '请确认是否授权本次操作。' : ''].filter(Boolean).join('\n\n');
+    excluded.length ? `原计划另有 ${excluded.length} 项未执行，将跳过或阻断：\n${excluded.map(item => {
+      const target = data(item.target), error = data(item.error);
+      const label = target.name ?? target.title ?? (target.kind === 'episode' ? `章节 #${target.id}` : target.subjectId ? `作品 #${target.subjectId}` : target.id ? `对象 #${target.id}` : `操作 ${item.tool}`);
+      return `• 第 ${item.step} 步 ${line(label)}：${line(item.reason ?? error.message ?? '前置操作未完成')}`;
+    }).join('\n')}` : '',
+    groups.length ? '执行中遇到条目错误将跳过，依赖步骤会阻断，其余安全操作继续；未知结果不重发。\n请确认是否授权本次操作。' : ''].filter(Boolean).join('\n\n');
 }

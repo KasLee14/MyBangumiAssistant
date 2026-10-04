@@ -2,7 +2,7 @@
 
 ## 1. 范围与实现基准
 
-本文件记录 MyBangumiAssistant 当前工作区中的 Bangumi MCP 工具、作用、输入输出 Schema、字段约束及宿主运行时规则。记录日期为 **2026-10-04（Asia/Hong_Kong）**；源码基准为 Git HEAD `13168e0` 加当前工作区改动，包含尚未提交的收藏范围查询、社区读取和账户权限相关实现。
+本文件记录 MyBangumiAssistant 当前工作区中的 Bangumi MCP 工具、作用、输入输出 Schema、字段约束及宿主运行时规则。记录日期为 **2026-10-04（Asia/Hong_Kong）**；源码基准为 Git HEAD `0706996` 加当前工作区改动，包含尚未提交的收藏范围查询、社区读取和账户权限相关实现。
 
 底层 MCP 目录共 **64 项工具：50 项读取、14 项写入**，均具有 `inputSchema` 和 `outputSchema`。应用实际向模型注册 50 项 MCP 读取工具及宿主工具 `execute_write_batch`。14 项底层写工具由宿主在完整修改计划内调用。另行注册的 Skill 读取能力不属于本文件的 Bangumi MCP 工具目录。
 
@@ -365,7 +365,7 @@ p1 能力限制包括：日期筛选的类型语义不兼容、评分人数未�
 
 普通单项及章节修改在用户指令范围内执行。是否弹出确认不改变宿主账户、交互通道、对象绑定、现状复核、提交事实记录和独立回读要求；非交互模式或交互通道断开不能提交有变化的写入。
 
-执行按计划顺序串行进行，同账户写入和登录相关操作还受宿主账户队列约束。所有计划在开始时统一完成账户、NSFW 和完整对象预检；中间各项只提交冻结快照，不重复逐项预检或回读；末尾统一读取完整最终状态。失败、取消或未知会停止后续步骤，已提交部分仍进入末尾回读。当前用户轮次开始提交后不能追加另一计划；授权不持久化、不随恢复/分支复用。记录已执行的完整计划不会被再次提交。目录创建及添加由原生 bangumi-index Skill 按需指导范围收齐、index_from 依赖和最终结果报告。
+执行按原计划顺序串行进行，同账户写入和登录相关操作受宿主账户队列约束。开始统一核实账户、NSFW及各对象；条目预检错误记录skipped，依赖失败记录blocked，完整预览展示可执行范围和跳过原因。明确拒绝不重试，安全独立范围继续；未知投递隔离冲突域，不重发。账户/权限/授权变化、用户取消或事实持久化失败停止整批，已提交范围仍独立回读。当前用户轮次开始提交后不能追加另一计划；授权不持久化、不随恢复/分支复用。目录创建及添加由bangumi-index Skill指导完整范围和index_from依赖。
 
 ### 5.4 章节修改与派生进度
 
@@ -383,11 +383,13 @@ p1 能力限制包括：日期筛选的类型语义不兼容、评分人数未�
 | --- | --- |
 | `success` | 独立回读确认目标及保护条件 |
 | `unchanged` | 准备的前后状态相同，未发送修改请求 |
+| `skipped` | 对象预检未通过或无需发送的错误项；保留原范围、原因及未写入事实 |
+| `blocked` | 前序依赖失败或同冲突范围未知，本项未提交，blockedBy列原依赖步骤 |
 | `failed` | 执行或可核实结果未满足要求；具体阶段由错误/回读说明 |
 | `unknown` | 可能已经提交但不能核实最终结果，不自动重发 |
-| `not_executed` | 本项未执行；可因更早的准备、确认、执行或取消而出现 |
+| `not_executed` | 整批停止或取消时尚未执行的项；条目跳过与依赖阻塞另以skipped/blocked表示 |
 
-整批汇总对 `success/submitted/unchanged/failed/unknown/not_executed` 分别计数；submitted 是提交阶段尚待完整末尾回读的中间事实。整批终态 `state` 为 `success`、`unchanged`、`failed` 或 `unknown`；执行中更新可能为 `running`。`partial` 表示已有成功项且后续停止，不能解释为所有失败项均已提交。
+整批汇总对 success/submitted/unchanged/skipped/failed/unknown/blocked/not_executed 分别计数；submitted只是提交阶段待核实的中间事实。终态state为success、unchanged、partial、failed或unknown；执行进度为running。partial表示部分范围已核实但仍有跳过、失败、阻塞或未执行项，不表示全部完成。items保留原step，reason/error解释缺口，blockedBy列原依赖步骤，stageResults记录复合子项。failures包含全部已定位错误，failure兼容首项；未知对象仍不能自动重发。
 
 当前冻结批次项的 `networkAttempted/writeNetworkAttempted` 均按可信提交回执或明确未发请求事实判断：回执 `not_attempted` 或错误明确 `networkAttempted=false` 时为false，否则可能已提交的失败保持未知。整批按各项汇总；步骤没有显式 `writeNetworkAttempted` 时仍回退读取 `networkAttempted`。预检读取不计入这些写入标记，调用写工具也不证明已发送写请求，发送请求更不保证网站已经接收或持久化。步骤明确未发请求的执行失败可定位为 `failure.phase=preflight`。后续 `not_executed` 或全部未执行不能定位第一项创建失败，须读取 `failure.phase/step/tool/sourceTool`。
 
@@ -56399,6 +56401,7 @@ coverage.sourceUnit 为 character（p1）或 appearance（v0）；sourceTotal/so
 
 - subject_id 与 episode_ids 必填；episode_ids 1～100、去重且每项正安全整数；collection_type 默认 2，允许 0/1/2/3。
 - 宿主核实所有章节同属该作品，父作品为已收藏动画/三次元；先核实完整请求范围再逐 ID 提交，出现失败或未知停止后续。
+- 上述失败/未知停止后续是底层单次MCP调用的契约；execute_write_batch宿主先拆分已核实的章节阶段，明确条目失败可继续安全独立阶段，未知仍隔离父作品及相关冲突范围，stageResults保留逐集结果。
 - 独立回读目标状态和父收藏保护字段，网站派生 ep_status 变化单列 parentProgress。
 
 成功业务结果为底层 `submission` 回执；错误分支可携带同工具回执。持久化结果由第 5 章宿主独立回读判定。
@@ -102872,15 +102875,16 @@ coverage.sourceUnit 为 character（p1）或 appearance（v0）；sourceTotal/so
 
 | 字段路径 | 当前类型/取值 | 返回条件与含义 |
 | --- | --- | --- |
-| `/value/state` | `success/unchanged/failed/unknown`；执行更新可为 `running` | 常规终态、失败或历史记录拒绝结果包含状态；执行更新使用 running |
+| `/value/state` | `success/unchanged/partial/failed/unknown`；执行更新可为 `running` | 包含正常、部分完成及未知终态；不能据顶层单一状态忽略各项与子阶段结果 |
 | `/value/confirmation` | 对象 | 已计算政策时包含；有 required 布尔值、reasons 字符串数组 |
-| `/value/partial` | 布尔值 | 常规终态/捕获失败时包含；表示已有成功项且后续停止 |
-| `/value/summary` | 对象 | 常规结果及进度更新统计 success/submitted/unchanged/failed/unknown/not_executed 数量；submitted只用于待最终核实的中间事实 |
+| `/value/partial` | 布尔值 | 部分操作或子阶段已独立核实，但原完整范围仍有未完成项；不是全部完成 |
+| `/value/summary` | 对象 | 统计success/submitted/unchanged/skipped/failed/unknown/blocked/not_executed；按逻辑计划项计数，复合子阶段成功须另读stageResults |
 | `/value/items` | 数组 | 常规结果中的计划项；输入/预检早期失败可能为空，其他未执行项仍保留状态 |
 | `/value/networkAttempted` | 布尔值 | 按步骤可信回执或明确未发请求事实汇总的写入尝试；不包括账户和来源预检读取 |
 | `/value/writeNetworkAttempted` | 布尔值 | 汇总步骤实际写入尝试标记，排除回执明确 not_attempted；缺少步骤显式标记时回退 networkAttempted，历史计划拒绝分支未统一返回 |
 | `/value/accessContext` | 公共权限上下文 | 成功核实账户后或业务错误携带上下文时可包含 |
-| `/value/failure` | 对象 | 已定位执行失败或捕获异常时包含；取消导致循环停止时可能只有 error 而没有 failure |
+| `/value/failures` | 数组 | 各已定位错误的phase、原step、tool及可选target/sourceTool/error；不把所有未执行项归因于创建失败 |
+| `/value/failure` | 对象 | 兼容首个已定位错误；完整缺口读取failures与items，取消可能只有整批error |
 | `/value/failure/phase` | 字符串 | 当前阶段为 validation/preflight/authorization/execute/verification；明确未发写请求可定位为preflight |
 | `/value/failure/step` | 正整数 | 正在准备/执行某一步时可包含，序号从 1 开始 |
 | `/value/failure/tool` | 字符串 | 失败步骤对应的固定写工具；不等于 sourceTool |
@@ -102891,13 +102895,15 @@ coverage.sourceUnit 为 character（p1）或 appearance（v0）；sourceTotal/so
 | `/value/prior` | 已记录执行事实 | 历史同计划拒绝分支包含；不恢复或重发原计划 |
 | `/value/completedSteps,totalSteps` | 整数 | 执行中更新包含，表示当前完成步骤数和计划项数 |
 
-常规终态 `summary` 数量由 `items` 当前状态统计。整批存在 unknown 时 state=unknown；否则停止为 failed；未停止且至少一个 success 时为 success；其余正常无变化结果为 unchanged。同一代输入中的相同完整计划可返回缓存事实，不新增网络写入。
+常规终态summary按items统计，保留原逻辑步骤编号；有未知结果时state=unknown。已核实操作或子阶段与未完成范围共存时state=partial，即使该复合父项为failed且summary.success=0，仍由stageResults呈现已核实子项；无已核实部分且仍有失败/跳过/阻塞时为failed，全部目标核实时为success，全部无需修改时为unchanged。同一代输入中的相同完整计划返回缓存事实，不新增网络写入。
 
 ### 8.3 单项结果与回读字段
 
 | 项字段 | 当前含义 |
 | --- | --- |
 | `step/tool/state/networkAttempted` | 计划序号、固定写工具、步骤状态及按可信提交事实判断的写入尝试标记 |
+| `reason/blockedBy` | 条目跳过或阻塞原因，以及原计划依赖步骤编号数组；未静默删去失败对象 |
+| `stageResults/preflightSkipped` | 复合操作各子项的stage/state/target及可选提交、回读、实际状态和错误；预检不可见子项保留原章节ID与原因 |
 | `writeNetworkAttempted` | 可选实际写入尝试标记，回执明确 not_attempted 时为 false；整批汇总优先读取此值 |
 | `accountId` | 已绑定账户 ID；未进入绑定阶段时可缺失 |
 | `target` | 宿主可见目标；新目录依赖在创建前以 indexFrom 表示，成功后替换为真实 id/indexId |
@@ -102940,9 +102946,9 @@ Schema 存在声明与运行时规则两层：真实日期、范围先后、至�
 | 快照字段 | 值 |
 | --- | --- |
 | 基准日期 | 2026-10-04，Asia/Hong_Kong |
-| HEAD | `13168e0f0beaa531e46fb51b298077cde8391191`，包含当前工作区改动 |
+| HEAD | `070699636d3c29cf805782ce1be85663b0926773`，包含当前工作区改动 |
 | 工具与宿主输入契约 SHA-256 | `630c24770622c893faed1cc01dd093da03754762a51e489d6f8e5da86b97719d` |
-| 核对时 MCP/支持源码及 extension.ts SHA-256 | `f656d2ed4760c050ef885997d8d2552e21e9fb0b26e1a298180bb64729f0e172` |
+| 核对时 MCP/支持源码及 extension.ts SHA-256 | `9a0f3b944e6cef1160e80c53d7477bb0f501d98772e7010409e2cc295f356414` |
 | 底层工具数 | 64，读取 50 / 写入 14 |
 | 宿主输出 Schema | execute_write_batch 当前未声明 |
 

@@ -27,6 +27,8 @@
 6. **两版共用会话与授权语义**：`ComposerV2` 接入与 `Composer` 相同的会话草稿及发送保护；
    `ComposerSeatV2` 与 `ComposerSlot` 复用 `ConfirmationCard`，待授权只在输入区出现一次。
    v2 的视觉独立不意味着另建会话状态。详见 [main-page.md](main-page.md)。
+7. **批次活动统一使用 `ToolActivity`**：等待、部分完成、未知与失败分别呈现；成功时也显示宿主的批次计数。
+   不把浏览器里的原始 JSON 或提交回执当作批次主反馈，不在组件判断写入是否可以继续。
 
 ## 三类的边界
 
@@ -55,7 +57,7 @@
 |---|---|---|
 | `sidebar/` | 左栏 | `Sidebar.tsx` |
 | `header/` | 顶栏 | `Header.tsx`、`UiVariantToggle.tsx`（两版共用的外观切换控件） |
-| `conversation/` | 会话正文 | `ConversationView.tsx`、`TurnView.tsx`、`MessageParts.tsx`、`ConfirmationCard.tsx`、`Hero.tsx` |
+| `conversation/` | 会话正文 | `ConversationView.tsx`、`TurnView.tsx`、`ToolActivity.tsx`、`MessageParts.tsx`、`ConfirmationCard.tsx`、`Hero.tsx` |
 | `composer/` | 输入区 | `Composer.tsx`、`ComposerSlot.tsx`、`StatsDock.tsx`、`ThinkingPicker.tsx` |
 | `overlays/` | 浮层挂载点 | `DialogHost.tsx`、`Toast.tsx` |
 

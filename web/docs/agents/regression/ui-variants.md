@@ -104,6 +104,8 @@ document.querySelector('.v2SessionRow[data-current="true"]')?.dataset.current   
 
 ## V4 v1 零改动（共享组件后必跑）
 
+本次经用户授权的批次容错反馈同步两版，`ToolActivity` 属于共享功能修复；该项允许 v1 的活动文案与状态扩展，外壳、布局和动效约束仍按下列用例核对。
+
 **步骤**：切到 `旧版`，检查外壳、消息区与一个弹窗（顶栏设置）。
 
 **预期**

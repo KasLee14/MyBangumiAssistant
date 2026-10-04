@@ -32,7 +32,7 @@ function text(content) {
   return typeof content === 'string' ? content : content.filter(part => part.type === 'text').map(part => part.text).join('');
 }
 
-export async function fixture(t, { persisted = true } = {}) {
+export async function fixture(t, { persisted = true, toolName = 'hold' } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'bangumi-web-sessions-'));
   const gates = new Map();
   const runtimes = new Map();
@@ -43,7 +43,7 @@ export async function fixture(t, { persisted = true } = {}) {
     const last = context.messages.at(-1);
     if (last?.role === 'toolResult') return fauxAssistantMessage(`完成：${text(last.content)}`);
     const key = text(context.messages.findLast(message => message.role === 'user').content);
-    return fauxAssistantMessage([fauxText(`开始：${key}`), fauxToolCall('hold', { key })], { stopReason: 'toolUse' });
+    return fauxAssistantMessage([fauxText(`开始：${key}`), fauxToolCall(toolName, { key })], { stopReason: 'toolUse' });
   }));
   const modelRuntime = await ModelRuntime.create({ authPath: join(root, 'auth.json'), modelsPath: null, allowModelNetwork: false });
   modelRuntime.registerNativeProvider(faux.provider);
@@ -55,19 +55,20 @@ export async function fixture(t, { persisted = true } = {}) {
     const runtime = await createBangumiRuntime({ cwd: root, agentDir: root, sessionManager, modelRuntime,
       provider: 'faux', model: 'faux-1', extension: pi => {
         pi.on('session_shutdown', () => { shutdowns.push(sessionManager.getSessionId()); });
-        pi.registerTool({ name: 'hold', label: 'Hold', description: 'Controlled offline tool',
+        pi.registerTool({ name: toolName, label: 'Hold', description: 'Controlled offline tool',
           parameters: { type: 'object', properties: { key: { type: 'string' } }, required: ['key'], additionalProperties: false },
-          execute: async (_id, { key }, signal) => {
+          execute: async (_id, { key }, signal, onUpdate) => {
             const gate = gates.get(key);
             assert.ok(gate, `缺少 ${key} 的控制点`);
             gate.signal = signal;
+            gate.update = onUpdate;
             gate.started.resolve();
             const onAbort = () => { gate.aborted = true; gate.release.resolve(); };
             signal.addEventListener('abort', onAbort, { once: true });
             if (signal.aborted) onAbort();
             await gate.release.promise;
             signal.removeEventListener('abort', onAbort);
-            return { content: [{ type: 'text', text: key }], details: {} };
+            return gate.result ?? { content: [{ type: 'text', text: key }], details: {} };
           },
         });
       } });
@@ -143,5 +144,4 @@ export async function fixture(t, { persisted = true } = {}) {
   };
   return { manager, initial, runtimes, shutdowns, post, request, state, stream, begin, root, sessionDir, creation, gates, terminal };
 }
-
 

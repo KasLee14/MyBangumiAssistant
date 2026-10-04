@@ -117,6 +117,12 @@ async function fixture(t, { pending = null } = {}) {
     await page.screenshot({ path: join(directory, `${name}.png`), fullPage: true });
   };
   return { page, screenshot, confirmations, submissions, get eventConnections() { return eventConnections; },
+    showActivities(activities, busy = false) {
+      revision++;
+      state = { ...state, busy, pending: null, status: busy ? '正在等待写入额度' : '就绪' };
+      items = [{ id: 1, version: 1, kind: 'user', text: '离线批次反馈' }, ...activities];
+      broadcast();
+    },
     finishConfirmation() {
       assert.ok(confirmationResponse);
       revision++;
@@ -204,5 +210,33 @@ test('外观和会话切换保留各自草稿，迟到的发送失败只恢复�
   await page.locator('.v2SessionRow').filter({ hasText: '会话 A' }).click();
   await page.waitForFunction(() => document.querySelector('#composer-input')?.value === '失败的 A');
   assert.deepEqual(f.submissions, [{ input: '失败的 A', sessionId: 'a' }]);
+  assert.equal(f.eventConnections, 1);
+});
+
+test('两版活动行展示批次部分完成、未知与额度等待，成功计数仍可见', options, async t => {
+  const f = await fixture(t);
+  const { page } = f;
+  const rows = [
+    { id: 2, version: 1, kind: 'activity', label: '执行修改计划', state: 'partial', showDetail: true,
+      detail: '已核实 2 项，已跳过 1 项，依赖阻塞 1 项\n第 2 步 《不可见作品》：已跳过；当前可见范围未取得资源' },
+    { id: 3, version: 1, kind: 'activity', label: '执行修改计划', state: 'unknown', showDetail: true,
+      detail: '已核实 1 项，结果待核实 1 项' },
+    { id: 4, version: 1, kind: 'activity', label: '执行修改计划', state: 'ok', showDetail: true,
+      detail: '已核实 3 项' },
+  ];
+  f.showActivities(rows, true);
+  for (const label of ['新版', '旧版']) {
+    await page.getByRole('button', { name: label, exact: true }).click();
+    await page.locator('.activityRow[data-state="partial"]').waitFor();
+    assert.match(await page.locator('.activityRow[data-state="partial"]').textContent(), /未全部完成.*已跳过 1 项.*不可见作品/u);
+    assert.match(await page.locator('.activityRow[data-state="unknown"]').textContent(), /结果待核实/u);
+    assert.match(await page.locator('.activityRow[data-state="ok"]').textContent(), /已核实 3 项/u);
+    assert.equal(await page.locator('.activityRow[data-state="error"]').count(), 0);
+    assert.equal(await page.locator('.activityRow[data-state="partial"] br').count(), 1);
+  }
+  f.showActivities([{ id: 2, version: 2, kind: 'activity', label: '执行修改计划', state: 'waiting', showDetail: true,
+    detail: '目录编辑额度等待，预计 10/04 20:05:00 恢复（香港时间）；已提交待核实 15 项。可按 Esc 停止。' }], true);
+  await page.locator('.activityRow[data-state="waiting"]').waitFor();
+  assert.match(await page.locator('.activityRow[data-state="waiting"]').textContent(), /额度等待.*20:05:00.*Esc/u);
   assert.equal(f.eventConnections, 1);
 });

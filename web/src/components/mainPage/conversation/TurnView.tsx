@@ -6,6 +6,7 @@ import { ConfirmationCard } from './ConfirmationCard';
 import { ContentItem, type ContentItemView } from '../../content';
 import { isContentKind } from '../../content/registry';
 import { ErrorRow, NoticeRow, SessionBanner, UserBubble } from './MessageParts';
+import { ToolActivity } from './ToolActivity';
 
 /**
  * 把平铺条目收窄成组件库能接收的联合类型。
@@ -24,14 +25,6 @@ function Chevron({ className }: { className: string }): ReactNode {
     </svg>
   );
 }
-
-/* 工具活动的三种状态：进行中不给勾叉，避免把未结束的调用读成成功。 */
-const ACTIVITY_MARK: Record<ActivityItemView['state'], string> = { running: '·', ok: '✓', error: '×' };
-const ACTIVITY_TEXT: Record<ActivityItemView['state'], string> = {
-  running: '进行中',
-  ok: '完成',
-  error: '失败',
-};
 
 /**
  * 过程折叠块：这一轮的工具活动。
@@ -52,15 +45,7 @@ function ProcessGroup({ items, running, reveal }: { items: ActivityItemView[]; r
       </button>
       {open ? (
         <div className="processBody">
-          {items.map(item => (
-            <div key={item.id} className="activityRow" data-state={item.state}>
-              <span className="mark" aria-hidden="true">{ACTIVITY_MARK[item.state]}</span>
-              <span>
-                {item.label}（{ACTIVITY_TEXT[item.state]}）
-                {item.state !== 'ok' && item.detail ? `：${item.detail}` : ''}
-              </span>
-            </div>
-          ))}
+          {items.map(item => <ToolActivity key={item.id} item={item} />)}
         </div>
       ) : null}
     </div>

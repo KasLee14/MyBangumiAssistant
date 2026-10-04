@@ -77,6 +77,7 @@
 | 改样式文件 | `L1`、`L5`、`L6`、`L7`（`--dsw-*` 或品牌令牌改动则全量 `L`） |
 | 改 `utils/api.ts` 或协议 | 对应端点的用例（`C*` / `S*`）+ `L4` |
 | 改消息渲染 / 内容组件 | `S2`、`S3`、`S9` + [../components/content.md](../components/content.md) 的"新增 kind 清单"核对 |
+| 改批次活动 / 额度进度 | `S11` + `V3`、`V4`；离线展示通过与真实账户写入分别记录 |
 | 改 `page/mainPage/*`、`components/v2/**`、`components/motion/**`、`styles/v2/**` | `V1`–`V10`（其中 `V3`、`V7` 是本组的关键项） |
 | 改**共享组件**（`Modal`、`StatsDock`、`MessageParts`、`content/**`） | `V4` + 该组件所在链路的用例 |
 | 加动效或改动效令牌 | `V8`、`V9` + [../styles/readme.md](../styles/readme.md) 的引入顺序核对 |

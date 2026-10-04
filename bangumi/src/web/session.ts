@@ -18,6 +18,7 @@ import {
 import { policyFor } from "../support/proxy.js";
 import { discoverProxy, type ProxyController } from "../support/proxy-controller.js";
 import { sessionDisplayName } from "../session-title.js";
+import { projectWriteActivity } from "./write-activity.js";
 import type { TaskQueue } from "../support/task-queue.js";
 import type {
   ActivityItemView,
@@ -491,6 +492,10 @@ export class WebSession {
             text: redact(message.errorMessage, credentialValues()),
           });
         }
+      } else if (message.role === "toolResult" && message.toolName === "execute_write_batch") {
+        const projected = projectWriteActivity(message, true);
+        if (projected) this.push({ id: this.nextItemId++, kind: "activity", label: "执行修改计划",
+          ...projected, detail: redact(projected.detail, credentialValues()) });
       }
     }
   }
@@ -557,19 +562,34 @@ export class WebSession {
           this.push({
             id: this.nextItemId++,
             kind: "activity",
-            label: event.toolName,
+            label: event.toolName === "execute_write_batch" ? "执行修改计划" : event.toolName,
             state: "running",
             detail: "",
           }),
         );
         break;
       }
+      case "tool_execution_update": {
+        const item = this.activities.get(event.toolCallId);
+        const projected = event.toolName === "execute_write_batch" ? projectWriteActivity(event.partialResult) : undefined;
+        if (item?.kind === "activity" && projected) {
+          Object.assign(item, projected, { detail: redact(projected.detail, credentialValues()) });
+          item.version++;
+          this.status = projected.state === "waiting" ? "正在等待写入额度" : "正在执行修改计划";
+        }
+        break;
+      }
       case "tool_execution_end": {
         const item = this.activities.get(event.toolCallId);
         if (item?.kind === "activity") {
           const value = (event.result as { details?: { value?: { state?: string } } })?.details?.value;
-          item.state = event.isError || value?.state === "failed" || value?.state === "unknown" ? "error" : "ok";
-          item.detail = resultDetail(event.result);
+          const projected = event.toolName === "execute_write_batch" ? projectWriteActivity(event.result, true) : undefined;
+          if (projected) Object.assign(item, projected, { detail: redact(projected.detail, credentialValues()) });
+          else {
+            item.state = event.isError || value?.state === "failed" || value?.state === "unknown" ? "error" : "ok";
+            item.detail = resultDetail(event.result);
+          }
+          this.status = "正在处理";
           // 原地更新必须递增版本，否则增量帧不会再下发这一条，界面会停在「进行中」。
           item.version++;
         }

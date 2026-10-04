@@ -128,6 +128,31 @@ for (const heading of headingMatches.reverse()) {
 const batchPattern = /(<summary>完整 execute_write_batch 输入 Schema<\/summary>\n\n)```json\n[\s\S]*?\n```/;
 requireInvariant(batchPattern.test(rendered), '宿主batch输入Schema区块缺失。');
 rendered = rendered.replace(batchPattern, `$1\`\`\`json\n${JSON.stringify(BATCH_INPUT_SCHEMA, null, 2)}\n\`\`\``);
+// 宿主容错策略与结果语义跟随统一输入契约一起更新，保留底层64工具的固定能力。
+rendered = rendered.replace(/^执行按计划顺序串行进行[^\n]*$/m,
+  '执行按原计划顺序串行进行，同账户写入和登录相关操作受宿主账户队列约束。开始统一核实账户、NSFW及各对象；条目预检错误记录skipped，依赖失败记录blocked，完整预览展示可执行范围和跳过原因。明确拒绝不重试，安全独立范围继续；未知投递隔离冲突域，不重发。账户/权限/授权变化、用户取消或事实持久化失败停止整批，已提交范围仍独立回读。当前用户轮次开始提交后不能追加另一计划；授权不持久化、不随恢复/分支复用。目录创建及添加由bangumi-index Skill指导完整范围和index_from依赖。');
+rendered = rendered.replace(/^整批汇总对[^\n]*$/m,
+  '整批汇总对 success/submitted/unchanged/skipped/failed/unknown/blocked/not_executed 分别计数；submitted只是提交阶段待核实的中间事实。终态state为success、unchanged、partial、failed或unknown；执行进度为running。partial表示部分范围已核实但仍有跳过、失败、阻塞或未执行项，不表示全部完成。items保留原step，reason/error解释缺口，blockedBy列原依赖步骤，stageResults记录复合子项。failures包含全部已定位错误，failure兼容首项；未知对象仍不能自动重发。');
+if (!rendered.includes('| `skipped` |')) rendered = rendered.replace(/^\| `failed` \|/m,
+  '| `skipped` | 对象预检未通过或无需发送的错误项；保留原范围、原因及未写入事实 |\n| `blocked` | 前序依赖失败或同冲突范围未知，本项未提交，blockedBy列原依赖步骤 |\n| `failed` |');
+rendered = rendered.replace(/^\| `not_executed` \|[^\n]*$/m,
+  '| `not_executed` | 整批停止或取消时尚未执行的项；条目跳过与依赖阻塞另以skipped/blocked表示 |');
+rendered = rendered.replace(/^\| `\/value\/state` \|[^\n]*$/m,
+  '| `/value/state` | `success/unchanged/partial/failed/unknown`；执行更新可为 `running` | 包含正常、部分完成及未知终态；不能据顶层单一状态忽略各项与子阶段结果 |');
+rendered = rendered.replace(/^\| `\/value\/partial` \|[^\n]*$/m,
+  '| `/value/partial` | 布尔值 | 部分操作或子阶段已独立核实，但原完整范围仍有未完成项；不是全部完成 |');
+rendered = rendered.replace(/^\| `\/value\/summary` \|[^\n]*$/m,
+  '| `/value/summary` | 对象 | 统计success/submitted/unchanged/skipped/failed/unknown/blocked/not_executed；按逻辑计划项计数，复合子阶段成功须另读stageResults |');
+rendered = rendered.replace(/^\| `\/value\/failure` \|[^\n]*$/m,
+  '| `/value/failure` | 对象 | 兼容首个已定位错误；完整缺口读取failures与items，取消可能只有整批error |');
+if (!rendered.includes('| `/value/failures` |')) rendered = rendered.replace(/^\| `\/value\/failure` \|/m,
+  '| `/value/failures` | 数组 | 各已定位错误的phase、原step、tool及可选target/sourceTool/error；不把所有未执行项归因于创建失败 |\n| `/value/failure` |');
+rendered = rendered.replace(/^常规终态 `summary`[^\n]*$/m,
+  '常规终态summary按items统计，保留原逻辑步骤编号；有未知结果时state=unknown。已核实操作或子阶段与未完成范围共存时state=partial，即使该复合父项为failed且summary.success=0，仍由stageResults呈现已核实子项；无已核实部分且仍有失败/跳过/阻塞时为failed，全部目标核实时为success，全部无需修改时为unchanged。同一代输入中的相同完整计划返回缓存事实，不新增网络写入。');
+if (!rendered.includes('| `reason/blockedBy` |')) rendered = rendered.replace(/^\| `step\/tool\/state\/networkAttempted` \|([^\n]*)$/m,
+  '| `step/tool/state/networkAttempted` |$1\n| `reason/blockedBy` | 条目跳过或阻塞原因，以及原计划依赖步骤编号数组；未静默删去失败对象 |\n| `stageResults/preflightSkipped` | 复合操作各子项的stage/state/target及可选提交、回读、实际状态和错误；预检不可见子项保留原章节ID与原因 |');
+const episodeHostNote = '- 上述失败/未知停止后续是底层单次MCP调用的契约；execute_write_batch宿主先拆分已核实的章节阶段，明确条目失败可继续安全独立阶段，未知仍隔离父作品及相关冲突范围，stageResults保留逐集结果。';
+if (!rendered.includes(episodeHostNote)) rendered = rendered.replace(/(^- 宿主核实所有章节[^\n]*出现失败或未知停止后续。)$/m, `$1\n${episodeHostNote}`);
 const sourceHasher = createHash('sha256');
 for (const path of sourcePaths) {
   const source = sourceSnapshot.get(path);

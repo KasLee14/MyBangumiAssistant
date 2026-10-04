@@ -168,7 +168,9 @@ styles/v2/      v2 的 6 个样式文件（tokens / shell / conversation / compo
    motion 的 layout 动画会强制重排并让它们失效。
 4. **不做常驻循环动画**：没有呼吸、脉冲、无限扫光。`BorderGlow` 传 `animated={false}`；
    唯一例外是流式光标（它表达「还在写」，且只在流式期间存在）。
-5. **v1 不接受除「切换按钮」以外的改动**：`components/mainPage/header/Header.tsx` 里
+5. **v1 的外观保持冻结；用户授权的共享功能修复同步两版**：本次批次容错反馈经用户批准，
+   v1/v2 共用 `ToolActivity` 展示额度等待、部分完成和未知结果，未引入 v2 动效或样式。
+   除此类明确授权的功能改动外，`components/mainPage/header/Header.tsx` 里
    多了一个 `UiVariantToggle`，那是「能切回旧版」这个需求本身要求的入口；v1 其余组件
    与 8 个样式文件不改。
 

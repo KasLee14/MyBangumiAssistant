@@ -239,9 +239,11 @@ test('模拟创建目录与加入R18经账户预检、一次授权、提交及�
   assert.deepEqual(f.writes.map(w => w.path), ['/p1/indexes', '/p1/indexes/500/related']);
   assert.equal(value.accessContext.nsfw.state, 'enabled'); assert.equal(value.writeNetworkAttempted, true);
 });
-test('R18预检404定位具体加入步骤，创建步骤不被误报为失败，整批没有写入', async () => {
+test('R18预检404跳过加入步骤，并阻断没有可加入作品的附带空目录创建', async () => {
   const f = indexFixture({ fail: true }); const value = await f.execute();
-  assert.equal(value.state, 'failed'); assert.equal(value.summary.not_executed, 2); assert.equal(f.writes.length, 0);
-  assert.deepEqual(value.failure, { phase: 'preflight', step: 2, tool: 'add_subject_to_index', subjectId: 616453, sourceTool: 'get_subject_details' });
+  assert.equal(value.state, 'failed'); assert.equal(value.summary.skipped, 1); assert.equal(value.summary.blocked, 1); assert.equal(f.writes.length, 0);
+  assert.equal(value.items[0].state, 'blocked'); assert.equal(value.items[1].state, 'skipped');
+  assert.ok(value.failures.some(failure => failure.phase === 'preflight' && failure.step === 2
+    && failure.tool === 'add_subject_to_index' && failure.sourceTool === 'get_subject_details'));
   assert.equal(value.writeNetworkAttempted, false); assert.equal(value.accessContext.nsfw.state, 'disabled');
 });

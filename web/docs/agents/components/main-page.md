@@ -15,6 +15,7 @@
 | §一览 | 找某个外壳组件的位置，以及它读写哪些 store 字段 |
 | §座位模式：`ComposerSlot` | **加或改输入区接管形态时必读**（唯一的改动点） |
 | §会话视图的边界 | **改 `ConversationView` 的结构或槽位前必读**（边界与样式强耦合） |
+| §批次活动与进度 | 改修改计划的部分完成、跳过、未知、额度等待或历史结果显示时 |
 | §性能约定（流式期间） | 加流式显示块、怀疑流式卡顿时 |
 
 ### 必须遵守的规则
@@ -36,6 +37,7 @@
 | `header/` | `Header.tsx` | 标题行、连接状态 chip、设置入口 | `stream.connected` | `openSettings(null)` |
 | `conversation/` | `ConversationView.tsx` | 滚动容器、轮次列表、流式区、轮次导轨、贴底跟随 | —（props） | —（props） |
 | | `TurnView.tsx` | 一个轮次：用户气泡 + 过程折叠块 + 主体条目 | — | — |
+| | `ToolActivity.tsx` | 两版共用的活动行；宿主批次计数、缺口和等待时间按普通文本显示 | — | — |
 | | `MessageParts.tsx` | 原子行（用户气泡/提示/错误/会话头）+ 流式区 | — | — |
 | | `ConfirmationCard.tsx` | 写入预览卡；历史条目只显示结果、`answering` 恒为 `false` | — | — |
 | | `Hero.tsx` | 首屏引导块（无 props 的纯展示） | — | — |
@@ -103,3 +105,18 @@ v2 的对应组件是 `ComposerV2`、`ComposerSeatV2` 与 `SidebarV2`：草稿�
 3. 计时器（`.Clock`）与流式文本各自独立成组件，只有真正变化的那一块重渲染。
 
 新增流式相关的显示块时，请沿用同样做法：**拆成独立组件 + `memo`，不要塞进已有的大组件**。
+
+## 批次活动与进度
+
+`TurnView` 与 `TurnV2` 都使用 props 驱动的 `ToolActivity`，状态表只有一处：
+`running` 进行中、`waiting` 额度等待、`ok` 完成、`partial` 未全部完成、`unknown` 结果待核实、`error` 失败。
+部分完成与未知不投影成整批红叉；成功的批次仍显示已核实数量。`showDetail=true` 时保留宿主中文计数与缺口的换行，普通成功工具继续隐藏冗长详情。
+
+事实来源在宿主：`bangumi/src/web/write-activity.ts` 只读取 `summary/items/stageResults` 的公开字段，
+按原 `step` 显示对象及跳过原因、`blockedBy`；不展开 guard、提交回执、原收藏或长正文。
+`bangumi/src/web/session.ts` 消费 Pi 的 `tool_execution_update.partialResult`，进度只显示已提交待核实；
+额度等待显示类别、预计恢复时间（香港时间）与 Esc 停止提示，原活动项每次更新递增 `version`，供增量帧替换。
+结束与历史恢复都使用同一投影，模型回答与界面不能把 `submitted` 当作成功，也不能把部分完成说成完整整理。
+
+验证入口：`bangumi/test/web-write-activity.test.mjs`（离线纯投影、真实 Pi 工具事件、Web/SSE 与历史恢复）及
+`bangumi/test/web-ui-variants.test.mjs`（离线两版浏览器反馈）。这些测试不证明真实模型或 Bangumi 账户写入。

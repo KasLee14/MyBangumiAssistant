@@ -30,7 +30,7 @@ function fixture({ count = 26, failWrite, unknownAfterWrite, failVerify, afterWr
     currentUser: async () => viewer, close: async () => {}, public: async () => { throw Error('不应匿名读取'); },
     account: async (path, options = {}) => {
       assert.equal(options.expectedAccountId, 42);
-      const method = options.method ?? 'GET'; events.push({ kind: method === 'GET' ? 'read' : 'write', path, method });
+      const method = options.method ?? 'GET'; events.push({ kind: method === 'GET' ? 'read' : 'write', path, method, body: structuredClone(options.body) });
       if (method !== 'GET') {
         const number = events.filter(e => e.kind === 'write').length;
         if (number === failWrite) throw new AppError('BGM_HTTP_403', '模拟拒绝');
@@ -119,18 +119,24 @@ test('中途取消停止后续，统一回读已提交部分，不把未执行�
   assert.ok(value.items.slice(0, 3).every(item => item.verification.readbackCompleted));
 });
 
-test('未知响应停止后续且不重发，末尾读取可以核实已生效的作品', async () => {
+test('合法回执绑定的未知响应不重发，核查保护范围后继续其他作品并回读已生效结果', async () => {
   const f = fixture({ count: 3, unknownAfterWrite: 2 }); const value = await f.run();
-  assert.equal(value.state, 'failed', JSON.stringify(value)); assert.equal(value.summary.success, 2); assert.equal(value.summary.not_executed, 2);
-  assert.equal(f.events.filter(e => e.kind === 'write').length, 2); assert.equal(f.preflights, 2);
+  assert.equal(value.state, 'success', JSON.stringify(value)); assert.equal(value.summary.success, 4); assert.equal(value.summary.not_executed, 0);
+  assert.equal(f.events.filter(e => e.kind === 'write').length, 4);
+  assert.equal(f.events.filter(e => e.kind === 'write' && e.body?.sid === 101).length, 1, '结果未知的原请求不能重发');
+  const failedAt = f.events.findIndex(e => e.kind === 'write' && e.path === '/p1/indexes/500/related');
+  const nextAt = f.events.findIndex((e, i) => i > failedAt && e.kind === 'write');
+  assert.ok(f.events.slice(failedAt + 1, nextAt).some(e => e.kind === 'read' && e.path === '/p1/indexes/500/related'));
+  assert.deepEqual(f.relations.map(row => row.sid), [101, 102, 103]);
 });
 
-test('中途拒绝未达到目标，末尾统一回读仍准确保留前序已完成部分', async () => {
+test('中途条目HTTP错误保留未知，保护核查后其他作品继续且前序已完成结果保留', async () => {
   const f = fixture({ count: 4, failWrite: 3 }); const value = await f.run();
   assert.equal(value.state, 'unknown', JSON.stringify(value)); assert.equal(value.partial, true);
-  assert.equal(value.summary.success, 2); assert.equal(value.summary.unknown, 1); assert.equal(value.summary.not_executed, 2);
-  assert.equal(f.events.filter(e => e.kind === 'write').length, 3); assert.equal(f.preflights, 2);
+  assert.equal(value.summary.success, 4); assert.equal(value.summary.unknown, 1); assert.equal(value.summary.not_executed, 0);
+  assert.equal(f.events.filter(e => e.kind === 'write').length, 5); assert.deepEqual(f.relations.map(row => row.sid), [101, 103, 104]);
   assert.ok(value.items.slice(0, 2).every(item => item.verification.protectedFieldsMatched && item.state === 'success'));
+  assert.ok(value.items.slice(3).every(item => item.state === 'success'));
 });
 
 test('末尾发现范围外改动或回读失败，不把提交回执当成功', async () => {
