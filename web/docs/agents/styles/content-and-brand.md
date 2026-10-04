@@ -31,7 +31,7 @@
 
 ### 它做什么
 
-依据 `docs/bgm-design/ui-style.md`（bgm.tv r771 实测）与 `style-preview.html`，只做两件事：
+依据 `web/docs/agents/desgin/ui-style.md`（bgm.tv r771 实测）与 `style-preview.html`，只做两件事：
 
 1. 在 `:root` 定义 **40 个 `--bgm-*` 品牌令牌**（色板、表面、文字、描边、圆角、阴影、焦点、字体栈、关闭图标 `mask`）；
 2. 在 `:root` 把组件样式**实际引用到的 61 条 DSH 令牌重定向**到 `--bgm-*`——既有颜色、描边、圆角与阴影会成片跟着变。

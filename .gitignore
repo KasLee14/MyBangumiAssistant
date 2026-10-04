@@ -6,7 +6,6 @@ artifacts/
 runtime/
 AGENTS.md
 !web/AGENTS.md
-docs/
 !web/docs/
 tests/
 scripts/

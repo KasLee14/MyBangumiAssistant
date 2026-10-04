@@ -1,0 +1,1386 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bangumi 助手内容组件库 · 12 个消息展示组件</title>
+<style>
+/* ============================================================
+   Bangumi 助手 · 内容组件库文档
+   ------------------------------------------------------------
+   自包含单文件：无外部资源、双击可看（页尾有一段内联脚本负责「总览 ↔ 详情」与搜索过滤）。
+
+   这个文件由同目录的 component-library.template.html 生成（脚本按 BGM 前缀的占位符注入）：
+
+     1. 令牌一份（浅色 :root），与
+        docs/bgm-design/style-preview.html 一致；界面只有浅色一套外观，落地时由 web/src/styles/bgm.css 提供；
+     2. web/src/styles/content.css 全文（第 4 节），用来渲染每个组件的「渲染示例」——
+        与 React 组件用同一批类名、同一个 DOM 结构；
+     3. bangumi/src/web/protocol.ts 的类型摘录（逐字，只加语法着色）与示例 JSON。
+
+   脚本只做导航与过滤（总览 ↔ 详情、搜索）；表格排序、图片加载失败回落这类组件自身的状态
+   在静态页里表现为最终态。
+   ============================================================ */
+
+/* ---------- 1. 令牌：浅色，唯一外观（与 style-preview.html 一致）---------- */
+:root {
+  --bgm-primary: #f09199;
+  --bgm-primary-soft: #fdf0f1;
+  --bgm-interactive: #369cf8;
+  --bgm-link: #0084b4;
+  --bgm-danger: #c00;
+  --bgm-success: #4caf50;
+
+  --bgm-bg: #f5f5f5;
+  --bgm-surface: #fff;
+  --bgm-surface-alt: #fafafa;
+  --bgm-sunken: #f5f5f5;
+
+  --bgm-text: #444;
+  --bgm-text-strong: #333;
+  --bgm-text-muted: #666;
+  --bgm-text-weak: #999;
+  --bgm-text-disabled: #aaa;
+
+  --bgm-border: #ddd;
+  --bgm-border-soft: #eee;
+  --bgm-dotted: #e0e0e0;
+
+  --bgm-r-sm: 5px;
+  --bgm-r-md: 10px;
+  --bgm-r-lg: 15px;
+  --bgm-r-tag: 20px;
+  --bgm-r-pill: 999px;
+
+  --bgm-shadow-soft: 0 0 5px #ddd;
+  --bgm-focus: 0 0 0 2px rgba(54, 156, 248, .35);
+  --bgm-fast: all linear .1s;
+  --bgm-slow: all .25s ease-out;
+
+  --bgm-font: "SF Pro SC", "SF Pro Display", "PingFang SC", "Lucida Grande",
+    "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif, "Hiragino Sans GB";
+  --bgm-mono: Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+
+/* ---------- 3. 文档页自身的外壳（只作用于本页，不进入组件库）---------- */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 26px 20px 80px;
+  background: #eceff1;
+  color: #2f3a40;
+  font: 14px/1.7 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+.docHead { margin-bottom: 22px; }
+.docHead h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; letter-spacing: .01em; }
+.docHead p { margin: 0 0 6px; color: #5b6b75; font-size: 13px; }
+
+.docSection { margin-top: 34px; }
+.docSection > h2 {
+  margin: 0 0 12px;
+  padding-left: 9px;
+  border-left: 3px solid #f09199;
+  font-size: 16px;
+  font-weight: 700;
+  color: #37474f;
+}
+.docSection > h2 small { margin-left: 8px; font-size: 12px; font-weight: 400; color: #78909c; }
+
+.docCard {
+  background: #fff;
+  border: 1px solid #dbe2e6;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(38, 50, 56, .05);
+}
+.docCard + .docCard { margin-top: 12px; }
+.docCard > h3 { margin: 0 0 8px; font-size: 14px; color: #263238; }
+.docCard p { margin: 0 0 8px; font-size: 13px; color: #455a64; }
+.docCard ul, .docCard ol { margin: 0 0 8px; padding-left: 20px; font-size: 13px; color: #455a64; }
+.docCard li { margin-bottom: 3px; }
+
+table.doc { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.doc caption { caption-side: top; text-align: left; font-size: 12px; color: #78909c; padding-bottom: 6px; }
+table.doc th, table.doc td { border-bottom: 1px solid #e3e9ec; padding: 6px 8px; text-align: left; vertical-align: top; }
+table.doc thead th { border-bottom: 1px solid #b0bec5; background: #f7f9fa; color: #37474f; white-space: nowrap; }
+table.doc tbody tr:last-child td { border-bottom: 0; }
+table.doc code, .docCard code, .docHead code {
+  font: 12px/1.5 Menlo, Monaco, Consolas, "Courier New", monospace;
+  background: #eef2f4;
+  border: 1px solid #e0e6e9;
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+/* 组件示例画布：每个组件一块，带完整令牌作用域 */
+.canvases {
+  display: grid;
+  grid-template-columns: minmax(320px, 720px);
+  gap: 12px;
+  align-items: start;
+}
+.canvas {
+  min-width: 0;
+  border: 1px solid #cfd8dc;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bgm-bg);
+  color: var(--bgm-text);
+  font: 13px/1.6 var(--bgm-font);
+}
+
+.canvasLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--bgm-border);
+  background: var(--bgm-surface-alt);
+  font: 11px/1.6 var(--bgm-font);
+  color: var(--bgm-text-weak);
+}
+.canvasLabel b { font-size: 12px; font-weight: 700; color: var(--bgm-text-muted); }
+/* 组件在真实会话里没有外边距，这里补内边距只是为了不贴着画布边 */
+.canvasBody { padding: 10px 12px 12px; }
+.canvasBody > * + * { margin-top: 10px; }
+
+/* 代码块：类型摘录与示例 JSON */
+pre.code {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #e0e6e9;
+  border-radius: 8px;
+  background: #fbfcfd;
+  color: #37474f;
+  font: 12px/1.6 Menlo, Monaco, Consolas, "Courier New", monospace;
+  overflow-x: auto;
+  tab-size: 2;
+}
+pre.code .k { color: #c2185b; }
+pre.code .t { color: #1565c0; }
+pre.code .s { color: #2e7d32; }
+pre.code .n { color: #ad5700; }
+pre.code .p { color: #00695c; }
+pre.code .c { color: #90a4ae; font-style: italic; }
+pre.code .j { color: #546e7a; }
+
+.twoCol {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 860px) { .twoCol { grid-template-columns: minmax(0, 1fr); } }
+
+.subTitle { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: #546e7a; }
+.subTitle:first-child { margin-top: 0; }
+
+.toc { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 14px; margin: 0; padding: 0; list-style: none; }
+.toc a { color: #0084b4; text-decoration: none; font-size: 13px; }
+.toc a:hover { text-decoration: underline; }
+.toc code { font: 11px Menlo, Monaco, Consolas, monospace; color: #78909c; }
+
+.note {
+  border-left: 3px solid #f09199;
+  background: #fdf0f1;
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  color: #5b4a4c;
+  margin: 10px 0 0;
+}
+.note b { color: #a8575f; }
+
+/* ============================================================
+   4. content.css 原文内联（生成时注入 web/src/styles/content.css 全文）
+   ============================================================ */
+/* ============================================================
+   文档页外观：布局与交互参考 Ant Design 的组件总览页
+   （分组卡片网格 + 搜索过滤 + 点击进入详情），
+   配色仍全部走 Bangumi 令牌，不引入第二套色板。
+
+   这段写在 content.css 注入点之前：组件示例的样式必须压过文档样式。
+   ============================================================ */
+
+body {
+  background: var(--bgm-bg);
+  color: var(--bgm-text);
+  font: 14px/1.6 var(--bgm-font);
+  padding: 0;
+}
+.wrap { max-width: 1160px; margin: 0 auto; padding: 40px 24px 96px; }
+
+/* 页头 */
+.docHead { margin-bottom: 26px; }
+.docHead h1 { margin: 0 0 10px; font-size: 30px; font-weight: 700; color: var(--bgm-text-strong); letter-spacing: .01em; }
+.docHead p { margin: 0 0 8px; font-size: 14px; color: var(--bgm-text-muted); }
+.docHead code,
+.docCard code {
+  font: 12px var(--bgm-mono);
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* 搜索框（Ant 的 Input，聚焦走主色描边 + 柔光） */
+.docSearch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  height: 40px;
+  padding: 0 12px;
+  margin-bottom: 4px;
+  background: var(--bgm-surface);
+  border: 1px solid var(--bgm-border);
+  border-radius: 8px;
+  transition: var(--bgm-slow);
+}
+.docSearch:focus-within { border-color: var(--bgm-primary); box-shadow: 0 0 0 3px rgba(240, 145, 153, .18); }
+.docSearch svg { flex: none; color: var(--bgm-text-weak); }
+.docSearch input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--bgm-text);
+  font: 14px var(--bgm-font);
+}
+.docSearch input::placeholder { color: var(--bgm-text-weak); }
+
+/* 分组与卡片网格 */
+.docGroup { margin-top: 40px; }
+.docGroup > h2 { margin: 0 0 16px; font-size: 20px; font-weight: 600; color: var(--bgm-text-strong); }
+.docGroup[hidden] { display: none; }
+.docGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+
+/* 组件卡：白底 + 1px 细边 + 8px 圆角；hover 抬升并把边框换成主色 */
+.docTile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  background: var(--bgm-surface);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: var(--bgm-fast);
+}
+.docTile:hover { border-color: var(--bgm-primary); box-shadow: 0 6px 16px rgba(0, 0, 0, .08), 0 3px 6px -4px rgba(0, 0, 0, .12); }
+.docTile:focus-visible { outline: 0; border-color: var(--bgm-primary); box-shadow: var(--bgm-focus); }
+.docTile[hidden] { display: none; }
+.docTile .tileName { font-size: 15px; font-weight: 600; color: var(--bgm-text-strong); }
+.docTile .tileName code {
+  font: 12px var(--bgm-mono);
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 6px;
+}
+.docTile .tileDesc { font-size: 13px; color: var(--bgm-text-muted); }
+.docTile .tileFile { margin-top: auto; padding-top: 8px; font: 11px var(--bgm-mono); color: var(--bgm-text-weak); }
+
+.docEmpty { margin-top: 24px; font-size: 13px; color: var(--bgm-text-weak); }
+.docEmpty[hidden] { display: none; }
+
+/* 视图切换：总览与详情互斥，同一时刻只有一个 .docSection 可见 */
+body[data-view="overview"] .docSection { display: none; }
+body[data-view="overview"] .docOverview { display: block; }
+body[data-view="detail"] .docOverview { display: none; }
+body[data-view="detail"] .docSection { display: none; }
+body[data-view="detail"] .docSection.active { display: block; }
+
+/* 返回按钮（Ant 的 default Button 形态） */
+.docBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  margin-bottom: 18px;
+  background: var(--bgm-surface);
+  border: 1px solid var(--bgm-border);
+  border-radius: 6px;
+  color: var(--bgm-text-muted);
+  font: 13px var(--bgm-font);
+  cursor: pointer;
+  transition: var(--bgm-fast);
+}
+.docBack:hover { border-color: var(--bgm-primary); color: var(--bgm-primary-text); }
+.docBack:focus-visible { outline: 0; box-shadow: var(--bgm-focus); }
+
+/* 详情内的卡片与标题：Ant 的 Card 形态，去掉旧的左侧主色条 */
+.docSection > h2 { margin: 0 0 16px; padding: 0; border: 0; font-size: 20px; font-weight: 600; color: var(--bgm-text-strong); }
+.docSection > h2 small { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--bgm-text-weak); }
+.docCard { background: var(--bgm-surface); border: 1px solid var(--bgm-border-soft); border-radius: 8px; padding: 16px 18px; box-shadow: none; }
+.docCard + .docCard { margin-top: 16px; }
+.docCard > h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--bgm-text-strong); }
+.docCard p,
+.docCard ul,
+.docCard ol,
+.docCard li { font-size: 13px; color: var(--bgm-text-muted); }
+.docCard table.doc { width: 100%; border-collapse: collapse; font-size: 13px; }
+.docCard table.doc th { padding: 8px 10px; text-align: left; font-weight: 600; color: var(--bgm-text-strong); border-bottom: 1px solid var(--bgm-border); }
+.docCard table.doc td { padding: 8px 10px; color: var(--bgm-text-muted); border-bottom: 1px dotted var(--bgm-dotted); }
+
+/* ============================================================
+   三栏文档布局：左侧导航（常驻）+ 中间详情 + 右侧锚点
+   —— 布局与交互参考 Ant Design 的组件文档页，配色仍是 Bangumi 令牌。
+   ============================================================ */
+.wrap { max-width: 1320px; }
+.docLayout {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr) 188px;
+  gap: 32px;
+  align-items: start;
+}
+.docMain { min-width: 0; }
+
+/* 左侧导航 */
+.docNav {
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.docNav .docSearch { max-width: none; height: 36px; margin-bottom: 14px; }
+.docNavList { display: flex; flex-direction: column; gap: 2px; }
+.docNavGroup {
+  margin: 14px 0 4px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bgm-text-weak);
+}
+.docNavGroup[hidden] { display: none; }
+.docNavItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bgm-text-muted);
+  font: 13px var(--bgm-font);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--bgm-fast);
+}
+.docNavItem[hidden] { display: none; }
+.docNavItem code { font: 11px var(--bgm-mono); color: var(--bgm-text-weak); }
+.docNavItem:hover { background: var(--bgm-border-soft); color: var(--bgm-text); }
+.docNavItem.current {
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+  font-weight: 600;
+}
+.docNavItem.current code { color: var(--bgm-primary-text); }
+.docNavItem:focus-visible { outline: 0; box-shadow: var(--bgm-focus); }
+.docNavHome { margin-bottom: 2px; font-weight: 600; }
+
+/* 右侧锚点 */
+.docToc {
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border-left: 1px solid var(--bgm-border-soft);
+  padding-left: 14px;
+}
+.docTocTitle {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bgm-text-strong);
+}
+.docToc a {
+  display: block;
+  padding: 4px 0;
+  color: var(--bgm-text-weak);
+  font-size: 12px;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: var(--bgm-fast);
+}
+.docToc a:hover { color: var(--bgm-primary-text); }
+
+/* 详情标题与左栏对齐（左栏已承担导航，标题不再重复「返回」） */
+.docSection > h2 { padding-right: 8px; }
+.docCard { scroll-margin-top: 20px; }
+
+/* 窄屏：收起锚点，左栏改为顶部横向滚动 */
+@media (max-width: 1120px) {
+  .docLayout { grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
+  .docToc { display: none; }
+}
+@media (max-width: 860px) {
+  .docLayout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .docNav { position: static; max-height: none; overflow: visible; }
+  .docNavList { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .docNavGroup { width: 100%; margin: 10px 0 2px; padding: 0; }
+  .docNavItem { width: auto; border: 1px solid var(--bgm-border); }
+}
+
+/*BGM:content-css*/
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="docHead">
+    <h1>Bangumi 助手内容组件库</h1>
+    <p>
+      12 个用于<b>多样化消息展示</b>的 React 组件。宿主当前只下发
+      <code>header</code> / <code>user</code> / <code>assistant</code> / <code>notice</code> /
+      <code>error</code> / <code>activity</code> / <code>confirmation</code>，这些内容条目是协议里
+      <b>已经预留、浏览器侧已经能渲染</b>的能力；宿主只要按下面的结构下发，界面立刻生效。
+    </p>
+    <p>
+      契约：<code>bangumi/src/web/protocol.ts</code>（唯一类型来源，本页每节的「数据结构」都从它逐字摘录）·
+      组件：<code>web/src/components/content/</code> · 样式：<code>web/src/styles/content.css</code>
+    </p>
+  </div>
+
+  <div class="docLayout">
+    <!-- 左侧导航：条目由脚本按 .docTile 的分组与文案生成，避免同一份清单写两遍 -->
+    <nav class="docNav" id="docNav" aria-label="组件导航">
+      <div class="docSearch">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="6.8" cy="6.8" r="4.6" stroke="currentColor" stroke-width="1.5" />
+          <path d="M10.4 10.4L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+        <input id="docSearchInput" type="search" placeholder="搜索组件" aria-label="搜索组件" autocomplete="off" />
+      </div>
+      <div class="docNavList" id="docNavList"></div>
+    </nav>
+
+    <main class="docMain">
+
+      <!-- ================= 组件总览：分组卡片网格 ================= -->
+      <div class="docOverview" id="overview">
+
+    <section class="docGroup">
+      <h2>内容展示</h2>
+      <div class="docGrid">
+        <button type="button" class="docTile" data-target="sec-subjects" data-keywords="subjects 条目集合 条目 网格 封面墙 列表 搜索 收藏 SubjectCards">
+          <span class="tileName">条目集合<code>subjects</code></span>
+          <span class="tileDesc">搜索结果或收藏列表：封面墙与紧凑行两种布局，带评分、类型角标与「还有 N 条未展示」提示。</span>
+          <span class="tileFile">SubjectCards.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-gallery" data-keywords="gallery 横向列表 角色 人物 横滑 封面 Gallery">
+          <span class="tileName">横向列表<code>gallery</code></span>
+          <span class="tileDesc">一排横向滚动的卡片，用于角色、出演人物或关联条目；副标题可放声优与关系。</span>
+          <span class="tileFile">Gallery.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-infobox" data-keywords="infobox 键值栏 信息栏 元信息 属性 InfoBox">
+          <span class="tileName">键值信息栏<code>infobox</code></span>
+          <span class="tileDesc">条目页左栏那种「标签 + 值」的两列清单，行间点线分隔，适合放别名、话数、制作方。</span>
+          <span class="tileFile">InfoBox.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-quote" data-keywords="quote 引用块 原始输出 json 日志 QuoteBlock">
+          <span class="tileName">引用块<code>quote</code></span>
+          <span class="tileDesc">保真展示工具原始输出、JSON 或日志；等宽模式不折行不截断，中文段落用普通排版。</span>
+          <span class="tileFile">QuoteBlock.tsx</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="docGroup">
+      <h2>数据与结构</h2>
+      <div class="docGrid">
+        <button type="button" class="docTile" data-target="sec-stats" data-keywords="stats 统计 分布 直方图 评分 条形 StatsCard">
+          <span class="tileName">统计卡<code>stats</code></span>
+          <span class="tileDesc">一个主数字加一组分布：竖向柱状（评分分布）、横向条形或纯列表三种编码。</span>
+          <span class="tileFile">StatsCard.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-progress" data-keywords="progress 进度 章节 集数 观看 ProgressView">
+          <span class="tileName">进度<code>progress</code></span>
+          <span class="tileDesc">数值进度条加章节数字网格，已看 / 当前 / 未看三态用底色区分，状态文字常驻。</span>
+          <span class="tileFile">ProgressView.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-table" data-keywords="table 表格 结构化 章节 修订 DataTable">
+          <span class="tileName">结构化表格<code>table</code></span>
+          <span class="tileDesc">章节列表、目录条目、修订记录；表头可做本地排序，缺值留空而不补零。</span>
+          <span class="tileFile">DataTable.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-timeline" data-keywords="timeline 时间线 动态 时光机 修订 Timeline">
+          <span class="tileName">时间线<code>timeline</code></span>
+          <span class="tileDesc">按时间排列的动态与修订记录，左侧时间、右侧内容，动作发起人以弱化前缀显示。</span>
+          <span class="tileFile">Timeline.tsx</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="docGroup">
+      <h2>交互与反馈</h2>
+      <div class="docGrid">
+        <button type="button" class="docTile" data-target="sec-tags" data-keywords="tags 标签云 标签 计数 TagCloud">
+          <span class="tileName">标签云<code>tags</code></span>
+          <span class="tileDesc">胶囊标签带收藏人数，选中态反转为主色实心；纯展示，不伪装成可点按钮。</span>
+          <span class="tileFile">TagCloud.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-compare" data-keywords="compare 对比 修改前后 回读 变更 CompareTable">
+          <span class="tileName">前后对比<code>compare</code></span>
+          <span class="tileDesc">字段 / 修改前 / 修改后三列，变化的行用删除线与主色强调，未变字段弱化保留。</span>
+          <span class="tileFile">CompareTable.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-callout" data-keywords="callout 提示 四态 进行中 成功 警告 失败 Callout">
+          <span class="tileName">三段式提示<code>callout</code></span>
+          <span class="tileDesc">进行中 / 成功 / 警告 / 失败四态语义提示，带状态词与可选补充说明。</span>
+          <span class="tileFile">Callout.tsx</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-links" data-keywords="links 链接 列表 外链 LinkList">
+          <span class="tileName">链接列表<code>links</code></span>
+          <span class="tileDesc">相关条目与参考资料：每行一个链接，主文本加右侧来源提示。</span>
+          <span class="tileFile">LinkList.tsx</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="docGroup">
+      <h2>接入</h2>
+      <div class="docGrid">
+        <button type="button" class="docTile" data-target="sec-intro" data-keywords="说明 总览 启用 令牌 属性 这个库解决什么">
+          <span class="tileName">这个库解决什么<code>启用方式</code></span>
+          <span class="tileDesc">纯文本回答的四个短板、宿主开启步骤，以及组件只消费的这批设计令牌。</span>
+          <span class="tileFile">总览说明</span>
+        </button>
+        <button type="button" class="docTile" data-target="sec-checklist" data-keywords="接入 清单 字段 必备 可选 落地 顺序">
+          <span class="tileName">宿主接入清单<code>12 个 kind</code></span>
+          <span class="tileDesc">12 个 kind 的必备与可选字段一览，以及建议的落地顺序。</span>
+          <span class="tileFile">接入清单</span>
+        </button>
+      </div>
+    </section>
+
+    <p class="docEmpty" id="docEmpty" hidden>没有匹配的组件，换个关键词试试。</p>
+  </div>
+
+  <!-- ================= 0. 总览 ================= -->
+  <div class="docSection" id="sec-intro">
+    <h2>0. 这个库解决什么 <small>以及宿主怎么启用</small></h2>
+
+    <div class="docCard">
+      <h3>解决的问题</h3>
+      <p>
+        纯文本回答在「列表 / 分布 / 对照 / 原始输出」这四类内容上都很吃力：搜索结果堆成一段文字不好扫，
+        收藏统计说成「7 分 12 部、8 分 44 部…」不如一排柱子，写入结果说成「已把评分从 7 改成 8」不如一张前后对照表。
+        这 12 个组件把这些结构从模型文本里拿出来，交给界面渲染：
+      </p>
+      <ul>
+        <li><b>看得快</b>：封面墙、条形、章节网格、前后对照各自用最适合的编码方式。</li>
+        <li><b>可核对</b>：数字用等宽字体、原始输出保真不截断、修改前后并排可辨。</li>
+        <li><b>不改前端就能上线</b>：宿主换个 <code>kind</code> 即可，浏览器不需要再发版。</li>
+      </ul>
+    </div>
+
+    <div class="docCard">
+      <h3>宿主如何启用</h3>
+      <ol>
+        <li>
+          在 SSE 帧的 <code>items</code> 里追加一条内容条目（或全量帧里带上它）：
+          <code>{ id, version, kind: 'subjects', subjects: { … } }</code>。
+          <b>不需要改 <code>TranscriptItemView</code>，也不需要前端发版</b>——12 个 <code>kind</code> 已经在协议联合类型里，
+          <code>ContentItem</code> 按 <code>kind</code> 分派。
+        </li>
+        <li>
+          在 <code>TurnView</code> / 轮次分组那一侧把内容条目当作正文条目渲染：
+          <code>&lt;ContentItem item={item} /&gt;</code>（<code>item</code> 的类型是
+          <code>ContentItemView</code>）。这一步属于接入动作，不在本库范围内。
+        </li>
+        <li>
+          <code>id</code> 用会话内唯一且递增的条目号；<code>version</code> 在被原地更新（例如进度 11 → 12）时递增。
+          浏览器按 <code>id</code> 替换、按 <code>version</code> 判断是否需要重发，不会重复追加。
+        </li>
+        <li>
+          未知 <code>kind</code> 会被安全忽略（渲染为 <code>null</code>），所以宿主可以灰度：先只发 <code>subjects</code>，
+          其余留到后面。
+        </li>
+      </ol>
+      <div class="note">
+        <b>需要你决定的一件事</b>：内容条目与文本回答混排的粒度。建议「一轮正文里最多 1–2 个内容条目 + 一段说明文字」，
+        内容条目承担结构、文本承担结论；否则会话流会变成卡片瀑布。
+      </div>
+    </div>
+
+    <div class="docCard">
+      <h3>属性与令牌</h3>
+      <p>
+        组件只消费下面这批令牌（由 <code>web/src/styles/bgm.css</code> 提供；界面只有浅色一套外观）。
+        <code>content.css</code> 里没有写死颜色，全部走令牌：
+      </p>
+      <table class="doc">
+        <thead><tr><th>类别</th><th>令牌</th><th>本库里的用法</th></tr></thead>
+        <tbody>
+          <tr><td>主色</td><td><code>--bgm-primary</code> <code>--bgm-primary-soft</code></td><td>选中/已看/强调数字、「修改后」列、进度条</td></tr>
+          <tr><td>交互</td><td><code>--bgm-interactive</code> <code>--bgm-link</code></td><td>hover、表头排序按钮、链接与标签描边</td></tr>
+          <tr><td>语义</td><td><code>--bgm-success</code> <code>--bgm-danger</code></td><td>callout 的成功/失败态；警告态用组件内部派生的变量</td></tr>
+          <tr><td>分层</td><td><code>--bgm-bg</code> <code>--bgm-surface</code> <code>--bgm-surface-alt</code> <code>--bgm-sunken</code></td><td>卡片底、条槽底、引用块底</td></tr>
+          <tr><td>文字</td><td><code>--bgm-text</code> <code>--bgm-text-strong</code> <code>--bgm-text-muted</code> <code>--bgm-text-weak</code></td><td>正文 / 标题 / 说明 / 时间与计数</td></tr>
+          <tr><td>边框</td><td><code>--bgm-border</code> <code>--bgm-border-soft</code> <code>--bgm-dotted</code></td><td>表头 1px 实线、行间点线、卡片 1px 边框</td></tr>
+          <tr><td>圆角</td><td><code>--bgm-r-sm</code> <code>--bgm-r-md</code> <code>--bgm-r-tag</code> <code>--bgm-r-pill</code></td><td>封面 5px、卡片 10px、标签 20px、条与胶囊 999px</td></tr>
+          <tr><td>其余</td><td><code>--bgm-focus</code> <code>--bgm-fast</code> <code>--bgm-mono</code> <code>--bgm-font</code></td><td>键盘焦点环、100ms linear 过渡、数字与 JSON 的等宽字体</td></tr>
+        </tbody>
+      </table>
+
+      <div class="subTitle">本库相对原型的取舍</div>
+      <ul>
+        <li><b>不用 hover 承载信息</b>（交互文档 §13 明确要求规避）：章节状态、标签计数、链接 hint、修改前后都常驻可见。</li>
+        <li><b>标签是纯展示</b>：用 <code>span</code> 而不是 <code>button</code>，不可点就不装作可点。</li>
+        <li><b>数字一律等宽</b>：评分、进度、计数、章节号，位数对齐才好扫。</li>
+        <li><b>表格与画廊不隐藏滚动条</b>：横向溢出用滚动条本身说明「还有内容」。</li>
+        <li><b>图片 <code>loading="lazy"</code> + 失败回落</b>：占位块与图片同尺寸，卡片不跳版。</li>
+      </ul>
+
+      <div class="subTitle">12 个 kind 一览</div>
+      <ul class="toc">
+        <li><a href="#sec-subjects"><code>subjects</code> 条目集合</a></li>
+        <li><a href="#sec-stats"><code>stats</code> 统计卡</a></li>
+        <li><a href="#sec-progress"><code>progress</code> 进度</a></li>
+        <li><a href="#sec-infobox"><code>infobox</code> 键值栏</a></li>
+        <li><a href="#sec-table"><code>table</code> 结构化表格</a></li>
+        <li><a href="#sec-timeline"><code>timeline</code> 时间线</a></li>
+        <li><a href="#sec-tags"><code>tags</code> 标签云</a></li>
+        <li><a href="#sec-gallery"><code>gallery</code> 横向列表</a></li>
+        <li><a href="#sec-compare"><code>compare</code> 前后对比</a></li>
+        <li><a href="#sec-quote"><code>quote</code> 引用块</a></li>
+        <li><a href="#sec-callout"><code>callout</code> 三段式提示</a></li>
+        <li><a href="#sec-links"><code>links</code> 链接列表</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 1. subjects ================= -->
+  <div class="docSection" id="sec-subjects">
+    <h2>1. <code>subjects</code> 条目集合 <small>SubjectCards.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> layout: grid（上）/ list（下）</div>
+        <div class="canvasBody">
+          <!--BGM:render:subjects-grid-->
+          <!--BGM:render:subjects-list-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:SubjectKind-->
+        <!--BGM:types:SubjectCardView-->
+        <!--BGM:types:SubjectCollectionView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:subjects-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：<code>search_subjects</code> / <code>browse_subjects</code> → <code>layout: 'grid'</code>（浏览、候选）；<code>get_user_collections</code> / <code>get_index_subjects</code> / <code>get_subject_relations</code> → <code>layout: 'list'</code>（核对、清单）。</li>
+        <li><b>必填</b>：<code>items[].id</code>、<code>items[].name</code>、<code>items[].kind</code>、<code>layout</code>。</li>
+        <li><b>可选</b>：<code>title</code>、<code>total</code>、<code>hint</code>，以及卡片上的 <code>nameCn</code> / <code>image</code> / <code>score</code> / <code>scoreCount</code> / <code>rank</code> / <code>date</code> / <code>summary</code> / <code>tags</code> / <code>url</code>。</li>
+        <li><b>kind 映射</b>：Bangumi 的 <code>subjectType</code> 1/2/3/4/6 → <code>book</code>/<code>anime</code>/<code>music</code>/<code>game</code>/<code>real</code>，宿主侧统一映射一次，浏览器不再判断数字。</li>
+        <li><b>total 与分页</b>：工具的 <code>page.total</code> 是真实总数、<code>data</code> 是本页条目。把 <code>total</code> 原样带上，界面才会在末尾提示「还有 N 条未展示」；只发本页数字会被读成总数。</li>
+        <li><b>缺失值</b>：没有评分就不要填 <code>0</code>（0 分是合法评分），字段直接省略；<code>image</code> 缺失或加载失败都会回落成同尺寸占位块。</li>
+        <li><b>单位与格式</b>：<code>score</code> 是 0–10 的数值（界面保留一位小数），<code>scoreCount</code>/<code>rank</code> 是整数，<code>date</code> 是已格式化的文本。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 2. stats ================= -->
+  <div class="docSection" id="sec-stats">
+    <h2>2. <code>stats</code> 统计卡 <small>StatsCard.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> histogram（上）/ bars（中）/ list（下）</div>
+        <div class="canvasBody">
+          <!--BGM:render:stats-histogram-->
+          <!--BGM:render:stats-bars-->
+          <!--BGM:render:stats-list-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:StatEntryView-->
+        <!--BGM:types:StatsView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:stats-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：<code>get_user_collections</code> 的本地聚合（评分分布、收藏状态分布）、<code>get_subject_details</code> 的 <code>ratingDistribution</code>（全站评分分布）。</li>
+        <li><b>必填</b>：<code>entries[].label</code>、<code>entries[].value</code>（字符串，单位由宿主写进文本，界面不换算）、<code>mode</code>。</li>
+        <li><b>可选</b>：<code>title</code>、<code>headline</code>、<code>note</code>、<code>entries[].ratio</code>、<code>entries[].hint</code>、<code>entries[].tone</code>。</li>
+        <li><b>ratio 怎么算</b>：0–1 的相对量，柱长 = <code>ratio × 100%</code>。用「该项人数 ÷ 最大项人数」或「该项人数 ÷ 总人数」都可以，但同一张卡里要用同一种口径；越界值会被夹到 0–1，不会出现 NaN 宽度。</li>
+        <li><b>mode 选择</b>：<code>histogram</code> 用于 1–10 分这类等距分档（按传入顺序渲染，站点原型是 10→1）；<code>bars</code> 用于不等距项（收藏状态、标签 Top N）；<code>list</code> 用于平均值、计数这类不构成分布的数据。</li>
+        <li><b>tone</b>：<code>default</code> 弱灰柱、<code>primary</code> 主色柱、<code>muted</code> 更弱的灰柱（例如「未评分」「1 分」这类空档）。<code>headline</code> 只用于一个主数字。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 3. progress ================= -->
+  <div class="docSection" id="sec-progress">
+    <h2>3. <code>progress</code> 进度 <small>ProgressView.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> 数值进度 + 章节网格</div>
+        <div class="canvasBody">
+          <!--BGM:render:progress-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:ProgressView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:progress-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：<code>get_user_episode_collection</code>（章节列表 + 个人状态）→ 数值进度与 <code>episodes</code>；<code>get_single_episode_collection</code>（单章节）→ 只给 <code>episodes</code> 一项；<code>get_user_subject_collection</code> 的 <code>ep_status</code>/<code>vol_status</code> 与 <code>totalEpisodes</code>/<code>totalVolumes</code> → <code>current</code>/<code>total</code>。</li>
+        <li><b>必填</b>：无。数值进度、章节网格、<code>note</code> 都是可选的，但至少要有一项，否则界面显示「没有可展示的进度」。</li>
+        <li><b>可选</b>：<code>title</code>、<code>current</code>、<code>total</code>、<code>unit</code>、<code>episodes</code>、<code>note</code>。</li>
+        <li><b>current / total 必须成对</b>：只给一个不画进度条（避免「12 / ?」这种半截信息）；<code>total</code> 为 0 也不画，防止除零。</li>
+        <li><b>unit</b>：动画写「话」、书籍写「卷」或「章」，会作为文本后缀出现在「12 / 28 话」里，同时用于进度条的 <code>aria-label</code>。</li>
+        <li><b>episodes[].state</b>：<code>done</code>（已看：主色浅底 + 主色描边）/ <code>current</code>（当前：主色实心）/ <code>todo</code>（未看：弱文本）。Bangumi 的章节收藏码是 0 未收藏 / 1 想看 / 2 看过 / 3 抛弃，映射时「抛弃」应归到 <code>todo</code>，不要混进 <code>done</code>。</li>
+        <li><b>label 是字符串</b>：章节号请宿主补齐两位（<code>01</code>…<code>12</code>），界面不补零、不按数字排序。</li>
+        <li><b>注意分页</b>：章节接口默认每页 100 条。只发一页时请在 <code>note</code> 里说明，别让网格看起来像全部章节。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 4. infobox ================= -->
+  <div class="docSection" id="sec-infobox">
+    <h2>4. <code>infobox</code> 键值栏 <small>InfoBox.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> 左标签右值，行间点线</div>
+        <div class="canvasBody">
+          <!--BGM:render:infobox-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:InfoBoxView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:infobox-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：<code>get_subject_details</code> 显式请求 <code>include: ['infobox']</code> 后的 <code>infobox</code> 数组；<code>get_character_details</code> / <code>get_person_details</code> 的基础资料同理。</li>
+        <li><b>必填</b>：<code>rows[].label</code>、<code>rows[].value</code>。</li>
+        <li><b>可选</b>：<code>title</code>、<code>rows[].tone</code>（<code>muted</code> 用弱文本色，适合「暂无」「未知」这类占位值）。</li>
+        <li><b>嵌套值必须展平</b>：协议里 infobox 的 <code>value</code> 可以是字符串或 <code>{ k, v }[]</code>（例如「别名」下的多语言名）。界面只接受 <code>string</code>，宿主请拼成一行文本再用分隔符连接；<b>不要</b>把数组交给界面。</li>
+        <li><b>顺序保留</b>：数组顺序就是展示顺序（Bangumi 的 infobox 有固定顺序：中文名、别名、话数…），界面不排序、不去重。</li>
+        <li><b>缺值处理</b>：值为空串时干脆不要这一行，空值行比缺行更显残缺。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 5. table ================= -->
+  <div class="docSection" id="sec-table">
+    <h2>5. <code>table</code> 结构化表格 <small>DataTable.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> 表头可点排序（「放送日期」列右对齐且当前按升序）</div>
+        <div class="canvasBody">
+          <!--BGM:render:table-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:TableView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:table-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：<code>get_episodes</code>（章节清单）、<code>get_index_subjects</code>（目录条目 + 短评）、<code>get_subject_revisions</code>（修订记录）、<code>get_user_episode_collection</code>（逐话状态）。</li>
+        <li><b>必填</b>：<code>columns[].key</code>、<code>columns[].label</code>、<code>rows</code>（每行的键必须与某个 <code>key</code> 同名）。</li>
+        <li><b>可选</b>：<code>title</code>、<code>note</code>、<code>columns[].align</code>（<code>right</code> 用于数字/日期列）。</li>
+        <li><b>行序即默认序</b>：<code>rows</code> 的顺序由宿主决定（章节号、修订时间倒序…）。用户点表头只改变本地呈现顺序，不回写数据、不发请求，会话重建后回到宿主顺序。</li>
+        <li><b>单元格缺值留空</b>：某行缺某个 key 时渲染空单元格，不写「undefined」「-」；空单元格的含义由列名与 <code>note</code> 承担。</li>
+        <li><b>值必须是字符串</b>：数字请宿主格式化成文本（小数位、千分位都由宿主定），界面不做数字格式化与单位换算。</li>
+        <li><b>列数控制</b>：窄容器下表格会横向滚动。列超过 5–6 个时建议拆成两张表，滚动的表比挤成一团的表更难读。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 6. timeline ================= -->
+  <div class="docSection" id="sec-timeline">
+    <h2>6. <code>timeline</code> 时间线 <small>Timeline.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> 左侧时间，右侧文本（actor 为弱化前缀）</div>
+        <div class="canvasBody">
+          <!--BGM:render:timeline-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:TimelineView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:timeline-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：用户的「时光机」动态、<code>get_subject_revisions</code>（编辑历史）、<code>get_daily_broadcast</code>（放送日历按时间摊平）。</li>
+        <li><b>必填</b>：<code>entries[].time</code>、<code>entries[].text</code>。</li>
+        <li><b>可选</b>：<code>title</code>、<code>entries[].actor</code>（用户名、操作者；以弱文本前缀出现在正文前）。</li>
+        <li><b>time 是展示文本</b>：<code>MM-DD HH:mm</code>、「3 天前」、「2023 年 10 月」都行，宽度保持在 76px 内（约 12 个半角字符）最好看。界面不解析、不排序。</li>
+        <li><b>谁在排序</b>：宿主。近期动态通常倒序（新→旧）、放送日历通常正序，别让界面猜。</li>
+        <li><b>一条一个动作</b>：Bangumi 的动态一行常含「收藏了 X / 评分 8」，请合并成一句 <code>text</code>，不要用换行塞多条。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 7. tags ================= -->
+  <div class="docSection" id="sec-tags">
+    <h2>7. <code>tags</code> 标签云 <small>TagCloud.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> 描边蓝字；<code>count</code> 作为后缀；选中为主色实心</div>
+        <div class="canvasBody">
+          <!--BGM:render:tags-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:TagCloudView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:tags-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：<code>get_subject_details</code> 的 <code>tags</code>（作品标签）与 <code>include: ['tagStats']</code> 的 <code>tagStats</code>（带人数的标签统计）、<code>get_user_collections</code> 的 <code>personalTags</code>（个人标签）。</li>
+        <li><b>必填</b>：<code>tags[].name</code>。</li>
+        <li><b>可选</b>：<code>tags[].count</code>（作为后缀显示，例如「动画 806」）、<code>tags[].selected</code>。</li>
+        <li><b>只读展示</b>：组件不带点击行为。用户说「按 治愈 标签再找」时，让模型调 <code>search_subjects</code> 重查，不要把它做成前端筛选——那样界面状态会与宿主上下文不一致。</li>
+        <li><b>count 的口径</b>：<code>tags</code> 只有名字；<code>tagStats.count</code> 是该标签的收藏人数、<code>totalCount</code> 是总数——本库只显示 <code>count</code>，两个都发时请把想显示的那个映射进 <code>count</code>。</li>
+        <li><b>数量上限</b>：一次别超过 30–40 个（<code>tagStats</code> 协议上限 100），超过就按人数截断，否则标签云会占掉半屏。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 8. gallery ================= -->
+  <div class="docSection" id="sec-gallery">
+    <h2>8. <code>gallery</code> 横向列表 <small>Gallery.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> 横向滚动，滚动条可见（容器可 Tab 聚焦后用方向键滚）</div>
+        <div class="canvasBody">
+          <!--BGM:render:gallery-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:GalleryView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:gallery-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：<code>get_subject_characters</code>（角色）、<code>get_subject_persons</code>（制作人员）、<code>get_subject_relations</code>（关联作品）、<code>get_daily_broadcast</code>（每日放送）。</li>
+        <li><b>必填</b>：<code>items[].id</code>、<code>items[].name</code>。</li>
+        <li><b>可选</b>：<code>title</code>、<code>items[].image</code>、<code>items[].subtitle</code>、<code>items[].url</code>。</li>
+        <li><b>subtitle 放什么</b>：角色卡放声优（「CV：…」）、关联作品卡放关系（「续集」）、人物卡放职业（「原作」）。一行、短、别换行。</li>
+        <li><b>图片</b>：用官方图片地址（<code>get_character_image</code> / <code>get_person_image</code> / <code>get_subject_image</code> 等）；没有就省略字段，界面回落占位块，不要填外链。</li>
+        <li><b>数量</b>：这是「扫一眼」的组件，10–20 张合适；关系列表很长时用 <code>table</code> 或 <code>subjects</code>（list 布局）更合适。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 9. compare ================= -->
+  <div class="docSection" id="sec-compare">
+    <h2>9. <code>compare</code> 前后对比 <small>CompareTable.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> 变化行：改前删除线弱化 + 改后主色强调</div>
+        <div class="canvasBody">
+          <!--BGM:render:compare-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:CompareView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:compare-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：写入类工具的提交回执 + 独立回读结果：<code>update_subject_collection</code>（评分/短评/标签/私密/进度）、<code>update_episode_collection</code> 与 <code>update_single_episode_collection</code>（章节状态）、<code>update_index</code> / <code>update_index_subject</code>（目录与短评）。</li>
+        <li><b>必填</b>：<code>rows[].label</code>、<code>rows[].before</code>、<code>rows[].after</code>、<code>rows[].changed</code>。</li>
+        <li><b>可选</b>：<code>title</code>、<code>note</code>。</li>
+        <li><b>changed 的判定在宿主</b>：界面不比较文本。<code>false</code> 的行仍然展示（说明「这个字段核对过、没变」），只是不加删除线与主色。</li>
+        <li><b>只读回显，不带确认按钮</b>：写入前的确认走已有的 <code>confirmation</code> 条目；<code>compare</code> 用在写入<b>之后</b>回显实际结果。建议保留一两行未变字段，免得用户怀疑没核对。</li>
+        <li><b>值一律是文本</b>：布尔值请写成「私密 / 公开」，空串写成「（空）」，否则删除线作用在空文本上什么也看不见。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 10. quote ================= -->
+  <div class="docSection" id="sec-quote">
+    <h2>10. <code>quote</code> 引用块 <small>QuoteBlock.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> mono（上）/ 普通文本（下）；都不截断</div>
+        <div class="canvasBody">
+          <!--BGM:render:quote-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:QuoteView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:quote-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：需要保真的证据——工具返回的 JSON 片段、Bangumi 的 BBCode 原文、错误堆栈、目录简介原文。</li>
+        <li><b>必填</b>：<code>text</code>、<code>mono</code>。</li>
+        <li><b>可选</b>：<code>title</code>。</li>
+        <li><b>mono 何时为真</b>：JSON、日志、代码、BBCode 为 <code>true</code>；引用的中文段落、目录简介为 <code>false</code>。为真时用等宽字体并保留缩进与空白。</li>
+        <li><b>不截断是有意的</b>：界面不裁剪长文本，超宽交给外层滚动。请宿主自己控制长度——转发工具原始输出时建议截到几百行内，并在 <code>text</code> 末尾注明「（已截断）」。</li>
+        <li><b>不要放需要渲染的 Markdown</b>：引用块是逐字呈现；模型解释文字属于 <code>assistant</code> 文本，两者别混。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 11. callout ================= -->
+  <div class="docSection" id="sec-callout">
+    <h2>11. <code>callout</code> 三段式提示 <small>Callout.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> progress / success / warning / error</div>
+        <div class="canvasBody">
+          <!--BGM:render:callout-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:CalloutView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:callout-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：工具调用的阶段状态——写入前的「正在保存…」、提交后的「已提交，等待回读核对」、校验失败的 <code>SchemaInputError</code>、网络超时的 <code>AppError</code>。</li>
+        <li><b>必填</b>：<code>tone</code>、<code>text</code>。</li>
+        <li><b>可选</b>：<code>detail</code>（更小字号的补充，比如错误码、下一步建议）。</li>
+        <li><b>与现有 kind 的分工</b>：<code>error</code> / <code>notice</code> 是纯文本行，适合整轮失败；<code>callout</code> 是带语义色与状态词的结构化提示，适合工具结果里的阶段反馈。同一件事不要既发 <code>notice</code> 又发 <code>callout</code>。</li>
+        <li><b>tone 的口径</b>：<code>progress</code> 蓝（进行中）、<code>success</code> 绿（已确认完成）、<code>warning</code> 黄（部分成功 / 需用户决定）、<code>error</code> 红（失败）。<b>不要</b>用 <code>success</code> 表示「已提交但未回读」，那属于 <code>progress</code> 或 <code>warning</code>。</li>
+        <li><b>文案稳定</b>：状态词由界面固定（进行中/成功/注意/失败），宿主的 <code>text</code> 保持稳定措辞，不用随机语气词，避免宽度跳动。</li>
+        <li><b>播报</b>：组件带 <code>role="status"</code>，插入会话流时读屏器会主动播报，所以不要把它用在会高频替换的条目上；更新场景请递增 <code>version</code>，不要新发条目。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 12. links ================= -->
+  <div class="docSection" id="sec-links">
+    <h2>12. <code>links</code> 链接列表 <small>LinkList.tsx</small></h2>
+
+    <div class="canvases">
+      <div class="canvas">
+        <div class="canvasLabel"><b>示例</b> label 为主文本，hint 为弱文本，行间点线</div>
+        <div class="canvasBody">
+          <!--BGM:render:links-->
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px">
+      <div class="docCard">
+        <h3>数据结构 · protocol.ts</h3>
+        <!--BGM:types:LinkListView-->
+      </div>
+      <div class="docCard">
+        <h3>示例 JSON</h3>
+        <!--BGM:json:links-->
+      </div>
+    </div>
+
+    <div class="docCard" style="margin-top:12px">
+      <h3>接入说明</h3>
+      <ul>
+        <li><b>数据从哪来</b>：相关条目（<code>get_subject_relations</code>）、参考资料（目录、讨论帖、维基）、人物的外部链接。</li>
+        <li><b>必填</b>：<code>links[].label</code>、<code>links[].url</code>。</li>
+        <li><b>可选</b>：<code>title</code>、<code>links[].hint</code>。</li>
+        <li><b>url 必须能直接打开</b>：用 <code>https://bgm.tv/…</code> 这类绝对地址（工具的 <code>url</code> 字段已经是绝对地址），界面不拼站内相对路径。</li>
+        <li><b>一律新窗口打开</b>：组件固定 <code>target="_blank" rel="noreferrer"</code>，宿主不需要也不应该传目标窗口。</li>
+        <li><b>hint 放什么</b>：区分同名链接的信息——「续集 / 2024 年」「讨论帖 · 32 回复」「外部链接」。纯装饰性的 hint 不如不放。</li>
+        <li><b>条数</b>：链接列表是收尾组件，3–8 条合适。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 13. 宿主接入清单 ================= -->
+  <div class="docSection" id="sec-checklist">
+    <h2>13. 宿主接入清单 <small>12 个 kind 的载荷字段</small></h2>
+
+    <div class="docCard">
+      <p>
+        所有条目都带公共字段 <code>id</code>（会话内唯一、递增）与 <code>version</code>（原地更新时递增）。
+        下表的「必填」指该字段缺失会让组件退化成空态或占位，「可选」指缺失时界面自动回落、不需要宿主补默认值。
+      </p>
+      <table class="doc">
+        <thead>
+          <tr><th>kind</th><th>载荷字段</th><th>必填</th><th>可选</th><th>典型来源工具</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>subjects</code></td><td><code>subjects</code></td>
+            <td><code>items[].id</code> <code>items[].name</code> <code>items[].kind</code> <code>layout</code></td>
+            <td><code>title</code> <code>total</code> <code>hint</code> · 卡片上 <code>nameCn</code> <code>image</code> <code>score</code> <code>scoreCount</code> <code>rank</code> <code>date</code> <code>summary</code> <code>tags</code> <code>url</code></td>
+            <td><code>search_subjects</code> <code>browse_subjects</code> <code>get_user_collections</code> <code>get_index_subjects</code> <code>get_subject_relations</code></td>
+          </tr>
+          <tr>
+            <td><code>stats</code></td><td><code>stats</code></td>
+            <td><code>entries[].label</code> <code>entries[].value</code> <code>mode</code></td>
+            <td><code>title</code> <code>headline</code> <code>note</code> · 条目上 <code>ratio</code> <code>hint</code> <code>tone</code></td>
+            <td><code>get_user_collections</code> 聚合、<code>get_subject_details</code>（<code>ratingDistribution</code>）</td>
+          </tr>
+          <tr>
+            <td><code>progress</code></td><td><code>progress</code></td>
+            <td>至少一项：<code>current</code>+<code>total</code>，或 <code>episodes</code></td>
+            <td><code>title</code> <code>unit</code> <code>note</code> · <code>episodes[].state</code>（缺省按未看处理）</td>
+            <td><code>get_user_episode_collection</code> <code>get_single_episode_collection</code> <code>get_user_subject_collection</code></td>
+          </tr>
+          <tr>
+            <td><code>infobox</code></td><td><code>info</code></td>
+            <td><code>rows[].label</code> <code>rows[].value</code></td>
+            <td><code>title</code> <code>rows[].tone</code></td>
+            <td><code>get_subject_details</code>（<code>include: ['infobox']</code>）、<code>get_character_details</code> <code>get_person_details</code></td>
+          </tr>
+          <tr>
+            <td><code>table</code></td><td><code>table</code></td>
+            <td><code>columns[].key</code> <code>columns[].label</code> <code>rows</code></td>
+            <td><code>title</code> <code>note</code> <code>columns[].align</code></td>
+            <td><code>get_episodes</code> <code>get_user_episode_collection</code> <code>get_index_subjects</code> <code>get_subject_revisions</code></td>
+          </tr>
+          <tr>
+            <td><code>timeline</code></td><td><code>timeline</code></td>
+            <td><code>entries[].time</code> <code>entries[].text</code></td>
+            <td><code>title</code> <code>entries[].actor</code></td>
+            <td>用户时光机动态、<code>get_subject_revisions</code>、<code>get_daily_broadcast</code></td>
+          </tr>
+          <tr>
+            <td><code>tags</code></td><td><code>tags</code></td>
+            <td><code>tags[].name</code></td>
+            <td><code>tags[].count</code> <code>tags[].selected</code></td>
+            <td><code>get_subject_details</code>（<code>tags</code> / <code>tagStats</code>）、<code>get_user_collections</code>（<code>personalTags</code>）</td>
+          </tr>
+          <tr>
+            <td><code>gallery</code></td><td><code>gallery</code></td>
+            <td><code>items[].id</code> <code>items[].name</code></td>
+            <td><code>title</code> <code>items[].image</code> <code>items[].subtitle</code> <code>items[].url</code></td>
+            <td><code>get_subject_characters</code> <code>get_subject_persons</code> <code>get_subject_relations</code> <code>get_daily_broadcast</code></td>
+          </tr>
+          <tr>
+            <td><code>compare</code></td><td><code>compare</code></td>
+            <td><code>rows[].label</code> <code>rows[].before</code> <code>rows[].after</code> <code>rows[].changed</code></td>
+            <td><code>title</code> <code>note</code></td>
+            <td><code>update_subject_collection</code> <code>update_episode_collection</code> <code>update_single_episode_collection</code> <code>update_index</code> <code>update_index_subject</code></td>
+          </tr>
+          <tr>
+            <td><code>quote</code></td><td><code>quote</code></td>
+            <td><code>text</code> <code>mono</code></td>
+            <td><code>title</code></td>
+            <td>任意工具的原始输出、目录/简介原文、错误堆栈</td>
+          </tr>
+          <tr>
+            <td><code>callout</code></td><td><code>callout</code></td>
+            <td><code>tone</code> <code>text</code></td>
+            <td><code>detail</code></td>
+            <td>所有 <code>effect: 'write'</code> 工具的阶段回执、校验失败与网络错误</td>
+          </tr>
+          <tr>
+            <td><code>links</code></td><td><code>links</code></td>
+            <td><code>links[].label</code> <code>links[].url</code></td>
+            <td><code>title</code> <code>links[].hint</code></td>
+            <td><code>get_subject_relations</code>、目录与讨论帖地址、人物外部链接</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="subTitle">落地顺序建议</div>
+      <ol>
+        <li><b>第一批（收益最大、映射最简单）</b>：<code>subjects</code>（grid + list）、<code>callout</code>、<code>table</code>。</li>
+        <li><b>第二批（依赖已有聚合逻辑）</b>：<code>stats</code>、<code>progress</code>、<code>compare</code>、<code>links</code>。</li>
+        <li><b>第三批（细节最多）</b>：<code>infobox</code>（嵌套值展平）、<code>gallery</code>（图片地址）、<code>timeline</code>（时间格式）、<code>tags</code>（计数口径）、<code>quote</code>（长度控制）。</li>
+      </ol>
+      <div class="note">
+        <b>还没做的事（留给接入方）</b>：会话流里目前没有任何页面渲染 <code>ContentItem</code>——本库只提供组件、样式与文档，
+        把内容条目接进 <code>TurnView</code> 的正文渲染属于接入工作。在那之前，即使宿主下发了这 12 个 kind，界面也不会显示它们。
+      </div>
+    </div>
+  </div>
+
+  <div class="docHead" style="margin-top:28px">
+    <p>
+      本页由 <code>docs/bgm-design/component-library.template.html</code> 经
+      <code>docs/bgm-design/build-component-library.py</code> 生成：
+      第 4 节内联的是 <code>web/src/styles/content.css</code> 全文，各节的「数据结构」逐字摘录自
+      <code>bangumi/src/web/protocol.ts</code>（由脚本注入，避免文档与契约漂移）。
+      类名与 DOM 结构与 <code>web/src/components/content/</code> 下的 React 组件一致；本页的脚本只负责
+      「总览 ↔ 详情」与搜索过滤，所以表格排序、图片加载失败回落这类组件自身的状态在静态页里表现为最终态。
+    </p>
+    </main>
+
+    <!-- 右侧锚点目录：内容随当前详情重建 -->
+    <aside class="docToc" id="docToc" aria-label="本页目录"></aside>
+  </div>
+
+</div>
+<script>
+/* 文档页的导航：左侧常驻导航切换右侧内容，右侧锚点定位到详情内的分块。
+   不引入框架——整页状态只有「当前项」与「搜索词」两处，用 class 与 hidden 表达即可。 */
+(function () {
+  var body = document.body;
+  var tiles = Array.prototype.slice.call(document.querySelectorAll('.docTile'));
+  var sections = Array.prototype.slice.call(document.querySelectorAll('.docSection[id]'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.docGroup'));
+  var navList = document.getElementById('docNavList');
+  var toc = document.getElementById('docToc');
+  var empty = document.getElementById('docEmpty');
+  var search = document.getElementById('docSearchInput');
+  var navItems = [];
+
+  /* 左栏由总览卡片重建：卡片是组件清单的唯一手写来源，避免同一份列表写两遍。 */
+  var home = document.createElement('button');
+  home.type = 'button';
+  home.className = 'docNavItem docNavHome current';
+  home.dataset.target = 'overview';
+  home.textContent = '组件总览';
+  home.addEventListener('click', function () { show('overview'); });
+  navList.appendChild(home);
+  navItems.push(home);
+
+  groups.forEach(function (group) {
+    var heading = document.createElement('p');
+    heading.className = 'docNavGroup';
+    heading.textContent = group.querySelector('h2').textContent;
+    navList.appendChild(heading);
+    Array.prototype.forEach.call(group.querySelectorAll('.docTile'), function (tile) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'docNavItem';
+      item.dataset.target = tile.dataset.target;
+      item.dataset.keywords = tile.dataset.keywords || '';
+      var nameNode = tile.querySelector('.tileName');
+      var label = document.createElement('span');
+      label.textContent = (nameNode.childNodes[0].textContent || '').trim();
+      item.appendChild(label);
+      var code = nameNode.querySelector('code');
+      if (code) {
+        var kind = document.createElement('code');
+        kind.textContent = code.textContent;
+        item.appendChild(kind);
+      }
+      item.addEventListener('click', function () { show(tile.dataset.target); });
+      navList.appendChild(item);
+      navItems.push(item);
+    });
+  });
+
+  /* 右侧锚点直接取当前详情里的分块标题，不另外维护一份目录。 */
+  function buildToc(section) {
+    toc.textContent = '';
+    if (!section) return;
+    var title = document.createElement('p');
+    title.className = 'docTocTitle';
+    title.textContent = '本页目录';
+    toc.appendChild(title);
+    /* 详情顶部就是渲染示例；那一块不是 .docCard，选择器取不到，单独补一项。 */
+    var head = document.createElement('a');
+    head.href = '#' + section.id;
+    head.textContent = '渲染示例';
+    head.addEventListener('click', function (event) {
+      event.preventDefault();
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    toc.appendChild(head);
+    Array.prototype.forEach.call(section.querySelectorAll('.docCard > h3'), function (h3, index) {
+      var card = h3.parentElement;
+      var id = section.id + '-part-' + index;
+      card.id = id;
+      var link = document.createElement('a');
+      link.href = '#' + id;
+      link.textContent = h3.textContent;
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      toc.appendChild(link);
+    });
+  }
+
+  function show(target) {
+    var section = target === 'overview' ? null : document.getElementById(target);
+    body.dataset.view = section ? 'detail' : 'overview';
+    sections.forEach(function (node) { node.classList.toggle('active', node === section); });
+    navItems.forEach(function (item) {
+      item.classList.toggle('current', item.dataset.target === (section ? section.id : 'overview'));
+    });
+    history.replaceState(null, '', section ? '#' + section.id : location.pathname);
+    window.scrollTo(0, 0);
+    buildToc(section);
+  }
+
+  tiles.forEach(function (tile) {
+    tile.addEventListener('click', function () { show(tile.dataset.target); });
+  });
+
+  function filter() {
+    var query = search.value.trim().toLowerCase();
+    var visible = 0;
+    navItems.forEach(function (item) {
+      if (item.dataset.target === 'overview') { item.hidden = query !== ''; return; }
+      var haystack = (item.dataset.keywords || '') + ' ' + item.textContent;
+      item.hidden = query !== '' && haystack.toLowerCase().indexOf(query) === -1;
+    });
+    /* 整组都被过滤掉时连组标题一起收起。 */
+    var children = Array.prototype.slice.call(navList.children);
+    children.forEach(function (node, index) {
+      if (!node.classList.contains('docNavGroup')) return;
+      var any = false;
+      for (var next = index + 1; next < children.length; next++) {
+        if (children[next].classList.contains('docNavGroup')) break;
+        if (!children[next].hidden) { any = true; break; }
+      }
+      node.hidden = !any;
+    });
+    tiles.forEach(function (tile) {
+      var haystack = (tile.dataset.keywords || '') + ' ' + tile.textContent;
+      tile.hidden = query !== '' && haystack.toLowerCase().indexOf(query) === -1;
+      if (!tile.hidden) visible++;
+    });
+    groups.forEach(function (group) {
+      group.hidden = group.querySelectorAll('.docTile:not([hidden])').length === 0;
+    });
+    empty.hidden = visible !== 0;
+    // 搜索结果只在总览里可见，所以输入时先切回总览。
+    if (body.dataset.view !== 'overview') show('overview');
+  }
+  search.addEventListener('input', filter);
+  search.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && search.value !== '') { search.value = ''; filter(); }
+  });
+
+  window.addEventListener('hashchange', function () {
+    var id = location.hash.slice(1);
+    show(id && document.getElementById(id) ? id : 'overview');
+  });
+
+  var initial = location.hash.slice(1);
+  show(initial && document.getElementById(initial) ? initial : 'overview');
+})();
+</script>
+</body>
+</html>

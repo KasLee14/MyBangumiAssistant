@@ -241,4 +241,6 @@ tokens → frame → composer → cards → modal → bgm → content
 
 ## 4. 设计历史与外部文档
 
-设计过程中的方案与验收记录不在本知识库内（它们位于被 gitignore 的仓库根 `docs/`）：`modularization-plan.md`（分层方案）、`modularization-record.md`（实施与验收记录）、`model-credential-persistence.md`（模型配置持久化）、`bgm-design/*`（内容组件库与视觉规范）。
+设计规范中的视觉与交互两份文档**已迁入本知识库**：[ui-style.md](docs/agents/desgin/ui-style.md)（bgm.tv r771 实测的视觉规范）、[interaction-style.md](docs/agents/desgin/interaction-style.md)（交互语汇与动效刻度），实测截图在 `docs/agents/desgin/assets/`。
+
+设计过程中的方案与验收记录不在本知识库内（它们位于未被 git 跟踪的仓库根 `docs/`）：`modularization-plan.md`（分层方案）、`modularization-record.md`（实施与验收记录）、`model-credential-persistence.md`（模型配置持久化）；内容组件库的生成物也仍在根 `docs/bgm-design/`（`component-library.html`、`component-library.template.html`、`build-component-library.py`）。

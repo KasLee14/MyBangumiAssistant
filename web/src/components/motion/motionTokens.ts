@@ -4,7 +4,7 @@
  * 与 `styles/tokens.css` 里的 CSS 变量一一对应：那边给 CSS 过渡用，这边给 motion
  * 的 `transition` 用。**改一处必须同时改另一处**，否则同一个界面会出现两条缓动曲线。
  *
- * 刻度取自已确认的 Bangumi 交互语汇（`docs/bgm-design/interaction-style.md`）：
+ * 刻度取自已确认的 Bangumi 交互语汇（`web/docs/agents/desgin/interaction-style.md`）：
  * 高频 hover 反馈 100ms、容器展开与主题切换 200–300ms。这里只补齐动效需要的
  * 慢档，不引入更长的时长——长动画会让一个高密度工具界面显得拖沓。
  */

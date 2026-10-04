@@ -6,7 +6,7 @@
 
 样式层的规则与索引：7 个文件的职责与引入顺序、三条令牌体系、按作用对象分文件的约定与改动步骤。
 
-**不覆盖**：具体组件的视觉规格（见四个子文档与 `docs/bgm-design/ui-style.md`）。上层入口：[AGENTS.md](../../../AGENTS.md)。
+**不覆盖**：具体组件的视觉规格（见四个子文档与 `web/docs/agents/desgin/ui-style.md`）。上层入口：[AGENTS.md](../../../AGENTS.md)。
 
 ### 怎么读（文件 → 场景）
 
