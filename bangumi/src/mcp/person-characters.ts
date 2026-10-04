@@ -14,6 +14,8 @@ export interface PersonCharactersReadOptions {
   scopeKey: string;
   readAccount: (path: string, options: McpRequestOptions) => Promise<unknown>;
   verifyScope?: () => Promise<void>;
+  /** 仅发现R18匹配边时由宿主懒核权限；模型不能提供。 */
+  resolveNsfw?: () => Promise<boolean>;
 }
 type BoundReadOptions = PersonCharactersReadOptions & { assertCurrent: () => void };
 export interface AppearanceCoverage {
@@ -68,22 +70,22 @@ function character(value: unknown, path: string): Data {
 function subject(value: unknown, path: string): Data {
   const raw = record(value, path); id(raw.id, `${path}/id`);
   if (raw.type !== undefined && raw.type !== null && subjectType(raw.type) === null) invalid(`${path}/type`, '有效作品类型或空值');
+  if (raw.nsfw !== undefined && raw.nsfw !== null && typeof raw.nsfw !== 'boolean') invalid(`${path}/nsfw`, '布尔值或未知');
   const normalized = normalizeSubject(raw);
   return { id: normalized.id, name: normalized.name, name_cn: normalized.name_cn, type: normalized.type,
     date: normalized.date, platform: normalized.platform, meta_tags: normalized.meta_tags,
     rating: normalized.rating, score: normalized.score, ratingCount: normalized.ratingCount, nsfw: normalized.nsfw };
 }
-function subjectReference(raw: Data): Data { return { id: raw.id, name: raw.name, name_cn: raw.name_cn, type: raw.type }; }
-function checkNsfw(raw: Data, context: AccessContext): void {
-  if (context.account && context.nsfw.allowed === false && raw.nsfw === true) throw new AppError('NSFW_SCOPE_MISMATCH', '人物出演源包含当前账户 NSFW 权限之外的资料，未返回不一致的结果。');
-}
+function subjectReference(raw: Data): Data { return { id: raw.id, name: raw.name, name_cn: raw.name_cn, type: raw.type, nsfw: raw.nsfw }; }
 function edgeKey(edge: Edge): string { return JSON.stringify([edge.character.id, edge.subject.id, edge.appearanceRole.code, edge.staff]); }
 function enhanced(args: Data): boolean {
   return ['subject_type', 'appearance_role', 'subject_form', 'include', 'snapshot_ref'].some(key => Object.hasOwn(args, key));
 }
 function binding(args: Data, context: AccessContext, scope: string): string {
-  return JSON.stringify([scope, context.mode, context.account?.id ?? null, context.account?.username ?? null,
-    context.nsfw.preference, context.nsfw.allowed, context.nsfw.state, args.person_id,
+  return JSON.stringify([context.source === 'p1' ? scope : 'public', context.source,
+    context.source === 'p1' ? context.account?.id ?? null : null,
+    context.source === 'p1' ? context.account?.username ?? null : null,
+    args.person_id,
     args.subject_type ?? null, args.appearance_role ?? null, args.subject_form ?? null,
     [...(Array.isArray(args.include) ? args.include as string[] : [])].sort()]);
 }
@@ -178,7 +180,8 @@ export class PersonCharactersQuery {
     const include = Array.isArray(args.include) ? args.include as string[] : [];
     if (include.includes('own_collection') && !context.account) throw new AppError('BGM_AUTH_REQUIRED', '读取本人收藏状态须先登录；未使用匿名收藏推断未收藏。');
     if (args.subject_form !== undefined && args.subject_type !== 2) throw new AppError('INVALID_INPUT', 'subject_form 仅适用于 subject_type=2 的动画查询。');
-    context.source = context.account ? 'p1' : 'v0'; context.nsfwApplied = context.account !== null;
+    if (include.includes('own_collection')) context.source = 'p1';
+    context.nsfwApplied = context.source === 'p1' && context.nsfw.allowed === true && context.nsfw.preference !== false;
     const key = binding(args, context, options.scopeKey), wantsEnhanced = enhanced(args);
     if (args.snapshot_ref !== undefined) {
       const ref = String(args.snapshot_ref), snapshot = this.snapshots.get(ref);
@@ -195,13 +198,27 @@ export class PersonCharactersQuery {
     const failed = this.failures.get(key); if (failed) throw failed.error;
     try {
       const result = await this.read(args, context, signal, boundOptions);
+      const restricted = (row: Data) => row.nsfw === true || (row.subject as Data).nsfw === true;
+      if (result.rows.some(restricted)) {
+        assertCurrent();
+        const allowed = context.account !== null && (context.nsfw.allowed === true && context.nsfw.preference !== false
+          || await options.resolveNsfw?.() === true);
+        assertCurrent();
+        if (!allowed) {
+          const blocked = result.rows.filter(restricted).map(row => Number((row.subject as Data).id));
+          result.rows = result.rows.filter(row => !restricted(row));
+          result.coverage = { ...result.coverage, complete: false, matchedRelationTotal: result.rows.length,
+            matchedSubjectTotal: new Set(result.rows.map(row => (row.subject as Data).id)).size,
+            unavailableSubjectIds: [...new Set([...result.coverage.unavailableSubjectIds, ...blocked])].sort((a, b) => a - b) };
+        }
+      }
       await verifyScope();
       const ref = randomBytes(16).toString('hex');
       const size = Buffer.byteLength(JSON.stringify(result), 'utf8');
       if (size > MAX_SNAPSHOT_BYTES) throw new AppError('FIELD_LIMIT', '人物出演完整快照超过内存范围，未截断关系或覆盖缺口。');
       while (this.snapshots.size >= MAX_SNAPSHOTS || this.snapshotBytes + size > MAX_SNAPSHOT_BYTES) this.removeSnapshot(this.snapshots.keys().next().value!);
       const snapshot: Snapshot = { key, ...result, expires: Date.now() + TTL_MS, enhanced: wantsEnhanced,
-        readAt: new Date().toISOString(), account: structuredClone(context.account), size };
+        readAt: new Date().toISOString(), account: include.includes('own_collection') ? structuredClone(context.account) : null, size };
       assertCurrent();
       this.snapshots.set(ref, snapshot); this.snapshotBytes += size;
       return this.page(snapshot, ref, args);
@@ -219,14 +236,12 @@ export class PersonCharactersQuery {
     const personId = Number(args.person_id), edges: Edge[] = [], seen = new Set<string>();
     let sourceBytes = 0;
     const append = (edge: Edge) => {
-      checkNsfw(edge.character, context);
-      checkNsfw(edge.subject, context);
       const key = edgeKey(edge); if (seen.has(key)) invalid('/relations', '无重复的角色、作品及出演关系组合');
       sourceBytes += Buffer.byteLength(JSON.stringify(edge), 'utf8');
       if (sourceBytes > MAX_SNAPSHOT_BYTES) throw new AppError('FIELD_LIMIT', '人物出演关系展开超过内存范围，未截断角色组或作品关系。');
       seen.add(key); edges.push(edge);
     };
-    if (!context.account) {
+    if (context.source !== 'p1') {
       options.assertCurrent();
       const raw = await this.transport.public(`/v0/persons/${personId}/characters`, {}, signal); options.assertCurrent();
       if (!Array.isArray(raw)) invalid('/data', '公共出演关系数组');
@@ -246,6 +261,7 @@ export class PersonCharactersQuery {
       });
       return { edges, sourceTotal: raw.length, sourceReturnedCount: raw.length, sourceUnit: 'appearance' };
     }
+    if (!context.account) throw new AppError('BGM_AUTH_REQUIRED', '账户出演源需要已核实身份。');
     const characterIds = new Set<number>(); let total: number | undefined, returned = 0;
     const role = args.appearance_role as AppearanceMeaning | undefined;
     const roleCode = role === undefined || role === 'unknown' ? undefined : meanings.indexOf(role);
@@ -305,12 +321,11 @@ export class PersonCharactersQuery {
             || needsForm && summaryFacts.form === null || includeOwn);
           if (needDetail) {
             try {
-              const raw = context.account
+              const raw = context.source === 'p1' && context.account
                 ? await options.readAccount(`/p1/subjects/${subjectId}`, { expectedAccountId: context.account.id })
                 : await this.transport.public(`/v0/subjects/${subjectId}`, {}, signal);
               options.assertCurrent(); detail = record(raw, `/subjects/${subjectId}`);
               if (detail.id !== subjectId) invalid(`/subjects/${subjectId}/id`, '与请求相同的作品ID');
-              checkNsfw(detail, context);
               const detailedType = subjectType(detail.type);
               if (detail.type !== undefined && detailedType === null || summaryType !== null && detailedType !== null && summaryType !== detailedType) invalid(`/subjects/${subjectId}/type`, '与关系摘要一致的合法作品类型');
               // 详情是一次独立读取的作品证据，不把旧摘要的冲突标签混进新详情。

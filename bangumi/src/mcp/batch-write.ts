@@ -193,7 +193,8 @@ export function createBatchWriteTool(boundary: WriteBoundary, onRecord: (value: 
           ...(failures[0] ? { failure: failures[0] } : {}), ...(accessContext ? { accessContext } : {}), networkAttempted: false, writeNetworkAttempted: false,
           ...(recoveredTargets.length || boundary.recoveryIssues().length ? { recovery: { createdTargets: recoveredTargets, blockers: boundary.recoveryIssues(), action: 'replan_remaining' },
             ...(recoveredCreates.size ? { error: safeError(new AppError('RECOVERED_CREATE_REPLAN_REQUIRED', '已恢复真实目录，未重复创建。')) } : recoveryBlocked.size ? { error: safeError(new AppError('PREVIOUS_WRITE_UNKNOWN', '关联对象的旧修改尚未核实，本次未提交。')) } : {}) } : {}) });
-        const account = viewer;
+        // R18对象的惰性检查可能已升级本批权限；冻结时取得实际使用的上下文。
+        const account = record(await boundary.read('get_current_user', {}, signal));
         accessContext = account.accessContext as AccessContext | undefined ?? accessContext;
         if (account.id !== accountId) throw new AppError('ACCOUNT_CHANGED', '计划期间账户改变，未提交。');
         confirmation = confirmationForPlan(steps.map(step => ({ name: step.name, args: step.binding.args, before: step.binding.before, after: step.binding.after })), operations.map(op => op.tool));

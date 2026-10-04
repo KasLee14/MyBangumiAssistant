@@ -9,6 +9,7 @@ import { resourceOutputSchema } from './resource-schemas.js';
 import { isCommunityTool } from './community-schemas.js';
 import { checkCommunityResponse } from './community-output.js';
 import { checkAccessResponse } from './access-context.js';
+import { diagnoseReadError } from './read-recovery.js';
 
 /** 写入接入由应用宿主实现，不向模型开放账户guard或授权标记。 */
 export type McpWriteHandler = (
@@ -35,7 +36,14 @@ export function createMcpTools(client: McpCallClient, writeHandler?: McpWriteHan
       ? { outputSchema: structuredClone(definition.outputSchema) as ToolDefinition['parameters'] } : {}),
     executionMode: 'sequential' as const,
     // 在Pi的兼容类型转换之前执行；不删除非法字段、不转换类型、不回显原始值。
-    prepareArguments: (raw: unknown) => validateToolArguments(definition.name, raw),
+    prepareArguments: (raw: unknown) => {
+      try { return validateToolArguments(definition.name, raw); }
+      catch (error) {
+        // Pi在准备阶段只序列化Error.message；应用桥接提供同源JSON且保留严格失败。
+        throw new AppError('INVALID_INPUT', JSON.stringify({ error: safeError(diagnoseReadError(definition.name,
+          raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : {}, error)) }));
+      }
+    },
     async execute(toolCallId, raw, signal, _onUpdate, ctx) {
       try {
         const args = validateToolArguments(definition.name, raw);
@@ -51,7 +59,8 @@ export function createMcpTools(client: McpCallClient, writeHandler?: McpWriteHan
         }
         return jsonResult({ value });
       } catch (error) {
-        let result = { error: safeError(error) };
+        let result = { error: safeError(definition.effect === 'read' ? diagnoseReadError(definition.name,
+          raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : {}, error) : error) };
         if (definition.effect === 'read' && definition.outputSchema) {
           try {
             if (result.error.sourceTool !== undefined && result.error.sourceTool !== definition.name

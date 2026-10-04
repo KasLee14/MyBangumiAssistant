@@ -1,5 +1,5 @@
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
-import { AppError } from '../support/errors.js';
+import { AppError, READ_DIAGNOSIS_SCHEMA } from '../support/errors.js';
 import { isDeepStrictEqual } from 'node:util';
 import { SEARCH_LIMITATIONS, type QueryCoverage } from './search-capabilities.js';
 
@@ -12,7 +12,7 @@ export const submissionRejectionSchema: JsonSchema = { type: 'object', additiona
 export interface AccessContext {
   mode: 'account' | 'anonymous' | 'unverified';
   account: { id: number; username: string } | null;
-  nsfw: { preference: boolean | null; allowed: boolean | null; state: 'enabled' | 'disabled' | 'unknown' };
+  nsfw: { preference: boolean | null; allowed: boolean | null; state: 'enabled' | 'disabled' | 'unknown' | 'not_checked' };
   source: 'p1' | 'v0' | 'web';
   nsfwApplied: boolean;
   checkedAt: string;
@@ -27,7 +27,7 @@ export const accessContextSchema: JsonSchema = {
       id: { type: 'integer', minimum: 1 }, username: { type: 'string', minLength: 1, maxLength: 200 },
     }, required: ['id', 'username'] }] },
     nsfw: { type: 'object', additionalProperties: false, properties: {
-      preference: nullableBoolean, allowed: nullableBoolean, state: { enum: ['enabled', 'disabled', 'unknown'] },
+      preference: nullableBoolean, allowed: nullableBoolean, state: { enum: ['enabled', 'disabled', 'unknown', 'not_checked'] },
     }, required: ['preference', 'allowed', 'state'] },
     source: { enum: ['p1', 'v0', 'web'] }, nsfwApplied: { type: 'boolean' }, checkedAt: { type: 'string', maxLength: 50 },
     queryCoverage: { type: 'object', additionalProperties: false, properties: {
@@ -47,14 +47,16 @@ export const accessContextSchema: JsonSchema = {
       then: { properties: { queryCoverage: { type: 'object', properties: { actual: { const: 'sfw_only' }, nsfw: { const: 'excluded' } } } } } },
     { if: { properties: { mode: { const: 'account' } } }, then: { properties: { account: { type: 'object' } } },
       else: { properties: { account: { type: 'null' } } } },
-    ...(['enabled', 'disabled', 'unknown'] as const).map(state => ({
+    ...(['enabled', 'disabled', 'unknown', 'not_checked'] as const).map(state => ({
       if: { properties: { nsfw: { type: 'object', properties: { state: { const: state } } } } },
-      then: { properties: { nsfw: { type: 'object', properties: { allowed: { const: state === 'unknown' ? null : state === 'enabled' } } } } },
+      then: { properties: { nsfw: { type: 'object', properties: { allowed: { const: state === 'unknown' || state === 'not_checked' ? null : state === 'enabled' },
+        ...(state === 'not_checked' ? { preference: { const: null } } : {}) } },
+        ...(state === 'not_checked' ? { nsfwApplied: { const: false } } : {}) } },
     })),
   ],
 };
 export function anonymousContext(): AccessContext {
-  return { mode: 'anonymous', account: null, nsfw: { preference: null, allowed: false, state: 'disabled' },
+  return { mode: 'anonymous', account: null, nsfw: { preference: null, allowed: null, state: 'not_checked' },
     source: 'v0', nsfwApplied: false, checkedAt: new Date().toISOString() };
 }
 export function unverifiedContext(): AccessContext {
@@ -71,7 +73,8 @@ export function checkAccessResponse(name: string, value: unknown, requireContext
   if (!compileSchema(accessContextSchema)(raw.accessContext)) invalid('MCP成功业务结果缺少有效权限上下文。');
   const context = raw.accessContext as AccessContext;
   if (context.mode === 'unverified') invalid('未核实的权限上下文不能作为成功结果。');
-  if (context.nsfw.allowed === false || context.queryCoverage?.nsfw === 'excluded') {
+  if (context.mode !== 'account' || context.source !== 'p1' || !context.nsfwApplied
+    || context.nsfw.allowed !== true || context.queryCoverage?.nsfw === 'excluded') {
     const visit = (item: unknown): void => {
       if (Array.isArray(item)) { item.forEach(visit); return; }
       if (!record(item)) return;
@@ -104,6 +107,7 @@ export function withAccessContext(schema: JsonSchema): JsonSchema {
         properties.networkAttempted = { type: 'boolean', const: false };
         properties.rejection = submissionRejectionSchema;
         properties.sourceTool = { type: 'string', minLength: 1, maxLength: 100 };
+        properties.diagnosis = READ_DIAGNOSIS_SCHEMA;
         properties.recovery = { type: 'object', additionalProperties: false, properties: {
           stage: { type: 'string', const: 'response_contract' }, retryable: { type: 'boolean', const: false },
         }, required: ['stage', 'retryable'] };

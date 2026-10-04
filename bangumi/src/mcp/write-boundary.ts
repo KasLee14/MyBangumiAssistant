@@ -121,6 +121,10 @@ interface Permit {
   outcomes: Map<number, Data>; blockedDomains: Map<string, Data>; pendingEffects: Map<string, PendingEffect>;
   requestId: string; batchId: string; account: Data;
 }
+function usesNsfw(account: Data): boolean {
+  const context = record(account.accessContext ?? {});
+  return context.nsfwApplied === true && record(context.nsfw ?? {}).allowed === true;
+}
 export function createWriteBoundary(
   client: McpCallClient,
   getInput: () => WriteInput,
@@ -765,10 +769,10 @@ export function createWriteBoundary(
     if (!requested.length) return;
     if (batch?.phase === 'submit') {
       await endBatch();
-      const viewer = await beginBatch(signal);
+      const viewer = await beginBatch(signal, usesNsfw(permit.account));
       if (viewer.id !== permit.accountId) throw new AppError('ACCOUNT_CHANGED', '保护核查时账户改变，旧授权已撤销。');
       const original = record(permit.account.accessContext ?? {}), current = record(viewer.accessContext ?? {});
-      if (!equal(original.nsfw, current.nsfw) || original.nsfwApplied !== current.nsfwApplied) throw new AppError('NSFW_SCOPE_CHANGED', '保护核查时权限改变，旧授权已撤销。');
+      if (usesNsfw(permit.account) && (!equal(original.nsfw, current.nsfw) || original.nsfwApplied !== current.nsfwApplied)) throw new AppError('NSFW_SCOPE_CHANGED', '保护核查时权限改变，旧授权已撤销。');
     }
     const snapshots = await observedView(requested, permit.accountId, signal);
     updateDerivedProgress(permit, snapshots.observed);
@@ -877,10 +881,10 @@ export function createWriteBoundary(
         });
         if (closing) {
           await closing; if (closeError) throw closeError;
-          const viewer = await beginBatch(signal);
+          const viewer = await beginBatch(signal, usesNsfw(permit.account));
           if (viewer.id !== permit.accountId) throw new AppError('ACCOUNT_CHANGED', '额度等待后账户改变，旧授权已撤销。');
           const previousAccess = record(permit.account.accessContext ?? {}), currentAccess = record(viewer.accessContext ?? {});
-          if (!equal(previousAccess.nsfw, currentAccess.nsfw) || previousAccess.nsfwApplied !== currentAccess.nsfwApplied) throw new AppError('NSFW_SCOPE_CHANGED', '额度等待后权限改变，旧授权已撤销。');
+          if (usesNsfw(permit.account) && (!equal(previousAccess.nsfw, currentAccess.nsfw) || previousAccess.nsfwApplied !== currentAccess.nsfwApplied)) throw new AppError('NSFW_SCOPE_CHANGED', '额度等待后权限改变，旧授权已撤销。');
           // 等待后仅重核当前阶段的活动保护域，故障对象不能连带阻断独立对象。
           try { await checkpoint(permit, scope, signal); } catch (error) { checkpointFailed = true; throw error; }
         }
@@ -995,12 +999,12 @@ export function createWriteBoundary(
     permit.outcomes.set(stepId, item.value);
     return result(visibleWriteValue(item.value));
   }
-  async function beginBatch(signal?: AbortSignal): Promise<Data> {
+  async function beginBatch(signal?: AbortSignal, checkNsfw = false): Promise<Data> {
     if (batch) throw new AppError('BATCH_SCOPE_ACTIVE', '宿主已有进行中的修改计划。');
     const input = getInput();
     if (generation !== input.generation) { generation = input.generation; completed.clear(); unknownWrite = false; }
     batch = { id: randomUUID(), phase: 'prepare' }; subjectCache.clear();
-    return record(await read('get_current_user', {}, signal));
+    return record(await read('get_current_user', checkNsfw ? { check_nsfw: true } : {}, signal));
   }
   async function endBatch(): Promise<void> {
     const current = batch; batch = undefined; subjectCache.clear();
@@ -1040,7 +1044,7 @@ export function createWriteBoundary(
         account = record(await read('get_current_user', {}, signal));
         if (account.id !== permit.accountId) throw new AppError('ACCOUNT_CHANGED', '整批结束时账户改变。');
         const original = record(permit.account.accessContext ?? {}), current = record(account.accessContext ?? {});
-        if (!equal(original.nsfw, current.nsfw) || original.nsfwApplied !== current.nsfwApplied) throw new AppError('NSFW_SCOPE_CHANGED', '独立回读时账户权限改变，不能报告旧范围已核实。');
+        if (usesNsfw(permit.account) && (!equal(original.nsfw, current.nsfw) || original.nsfwApplied !== current.nsfwApplied)) throw new AppError('NSFW_SCOPE_CHANGED', '独立回读时账户权限改变，不能报告旧范围已核实。');
         const keys = new Set([...permit.expected.keys(), ...[...permit.pendingEffects.values()].map(effect => effect.key)]);
         const snapshots = await observedView(keys, permit.accountId, signal);
         observed = snapshots.observed; readErrors = snapshots.errors;

@@ -1,9 +1,28 @@
 import type { AccessContext } from '../mcp/access-context.js';
+export const DIAGNOSIS_CATEGORIES = ['input', 'authentication', 'capability', 'transient', 'not_found', 'incomplete', 'cancelled', 'contract', 'other'] as const;
+export const DIAGNOSIS_STAGES = ['input', 'access', 'fetch', 'response_contract', 'execution'] as const;
+export const CAPABILITY_SUGGESTIONS = ['correct_parameters', 'use_public_sfw', 'use_account_source', 'relogin', 'inspect_permissions', 'narrow_scope', 'read_alternate_source', 'report_gap', 'stop'] as const;
+/** 固定宿主诊断；字段、合法值来自本地目录，不包含远端正文或建议工具名。 */
+export interface ReadDiagnosis {
+  category: typeof DIAGNOSIS_CATEGORIES[number]; stage: typeof DIAGNOSIS_STAGES[number]; effect: 'read' | 'write' | 'unknown';
+  blockedFields: string[]; allowedValues: { field: string; values: (string | number | boolean | null)[] }[];
+  capabilitySuggestions: typeof CAPABILITY_SUGGESTIONS[number][]; replanAllowed: boolean; retryable: boolean;
+}
+export const READ_DIAGNOSIS_SCHEMA: Record<string, unknown> = { type: 'object', additionalProperties: false, properties: {
+  category: { type: 'string', enum: [...DIAGNOSIS_CATEGORIES] }, stage: { type: 'string', enum: [...DIAGNOSIS_STAGES] }, effect: { enum: ['read', 'write', 'unknown'] },
+  blockedFields: { type: 'array', maxItems: 8, uniqueItems: true, items: { type: 'string', maxLength: 200 } },
+  allowedValues: { type: 'array', maxItems: 8, items: { type: 'object', additionalProperties: false, properties: {
+    field: { type: 'string', maxLength: 200 }, values: { type: 'array', maxItems: 100, items: { anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }, { type: 'null' }] } },
+  }, required: ['field', 'values'] } },
+  capabilitySuggestions: { type: 'array', maxItems: 9, uniqueItems: true, items: { type: 'string', enum: [...CAPABILITY_SUGGESTIONS] } },
+  replanAllowed: { type: 'boolean' }, retryable: { type: 'boolean' },
+}, required: ['category', 'stage', 'effect', 'blockedFields', 'allowedValues', 'capabilitySuggestions', 'replanAllowed', 'retryable'] };
 export class AppError extends Error {
   readonly networkAttempted?: false;
   readonly rejection?: SubmissionRejection;
   readonly sourceTool?: string;
   readonly recovery?: { stage: 'response_contract'; retryable: false };
+  readonly diagnosis?: ReadDiagnosis;
   constructor(public readonly code: string, message: string, public readonly accessContext?: AccessContext) {
     super(message);
     this.name = 'AppError';
@@ -42,7 +61,7 @@ export class SubmissionError extends AppError {
     if (isSubmissionRejection(rejection)) Object.defineProperty(this, 'rejection', { value: structuredClone(rejection) });
   }
 }
-export interface SafeError { code: string; message: string; issues?: readonly InputIssue[]; networkAttempted?: false; rejection?: SubmissionRejection; submission?: SubmissionReceipt; accessContext?: AccessContext; sourceTool?: string; recovery?: { stage: 'response_contract'; retryable: false } }
+export interface SafeError { code: string; message: string; issues?: readonly InputIssue[]; networkAttempted?: false; rejection?: SubmissionRejection; submission?: SubmissionReceipt; accessContext?: AccessContext; sourceTool?: string; recovery?: { stage: 'response_contract'; retryable: false }; diagnosis?: ReadDiagnosis }
 const localSecrets = new Set<string>();
 /** 本地凭据也参与模型、日志和终端的统一裁剪，原值不进入配置或会话。 */
 export function registerCredentials(values: readonly string[]): void { for (const value of values) if (value) localSecrets.add(value); }
@@ -96,9 +115,9 @@ export function credentialValues(env: NodeJS.ProcessEnv = process.env): string[]
 export function safeError(error: unknown): SafeError {
   const context = error instanceof AppError ? { ...(error.accessContext ? { accessContext: structuredClone(error.accessContext) } : {}), ...(error.sourceTool ? { sourceTool: error.sourceTool } : {}),
     ...(isSubmissionRejection(error.rejection) ? { rejection: structuredClone(error.rejection) } : {}),
-    ...(error.recovery ? { recovery: structuredClone(error.recovery) } : {}), ...(error.networkAttempted === false ? { networkAttempted: false as const } : {}) } : {};
+    ...(error.recovery ? { recovery: structuredClone(error.recovery) } : {}), ...(error.diagnosis ? { diagnosis: structuredClone(error.diagnosis) } : {}), ...(error.networkAttempted === false ? { networkAttempted: false as const } : {}) } : {};
   if (error instanceof SubmissionError) return { code: error.code, message: redact(error.message, credentialValues()), submission: structuredClone(error.submission), ...context };
-  if (error instanceof SchemaInputError) return { code: error.code, message: redact(error.message, credentialValues()), issues: error.issues, networkAttempted: false };
+  if (error instanceof SchemaInputError) return { code: error.code, message: redact(error.message, credentialValues()), issues: error.issues, networkAttempted: false, ...context };
   if (error instanceof AppError) return { code: error.code, message: redact(error.message, credentialValues()), ...context };
   if (error instanceof Error && error.name === 'AbortError') return { code: 'CANCELLED', message: '操作已取消。' };
   return { code: 'INTERNAL_ERROR', message: '操作失败；请检查配置、网络或输入。' };

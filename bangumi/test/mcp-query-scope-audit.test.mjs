@@ -8,6 +8,7 @@ import { resourceResult, checkResourceResponse } from '../dist/src/mcp/resource-
 import { findToolDefinition, validateToolArguments } from '../dist/src/mcp/catalog.js';
 
 const context = () => ({ mode: 'account', account: { id: 42, username: 'tester' }, nsfw: { preference: true, allowed: true, state: 'enabled' }, source: 'p1', nsfwApplied: true, checkedAt: new Date().toISOString() });
+const identityContext = () => ({ ...context(), nsfw: { preference: null, allowed: null, state: 'not_checked' }, nsfwApplied: false });
 test('成功搜索覆盖事实绑定本次条件，缺失、换来源、范围和精确总数伪报均拒绝', () => {
   const args = { keyword: '作品', subject_type: 2, filter: { nsfw: 'exclude', rating: { min: 7.5 } } };
   const ctx = context(); applySearchPlan(ctx, compileSubjectSearch({ keyword: args.keyword, filter: { type: [2], nsfw: 'exclude', rating: ['>=7.5'] } }, ctx));
@@ -21,19 +22,25 @@ test('游戏平台公开浏览保留来源限制，不因已登录而错误要�
   checkSubjectQueryCoverage('browse_subjects', { subject_type: 4, platform: 'PC', nsfw: 'exclude' }, { accessContext: ctx });
   assert.ok(ctx.queryCoverage.limitations.includes('v0_anonymous_source'));
 });
-test('所有普通账户读取在发布前核实不可变范围，失败也关闭独立scope', async () => {
+test('普通账户读取只核实不可变身份，失败也关闭独立scope', async () => {
   let verified = 0, closed = 0;
-  const service = new BangumiMcpService({ preflight: async () => context(), close: async () => {},
-    bindReadScope: async () => ({ key: 'fixed', verify: async () => { verified++; throw new AppError('NSFW_SCOPE_CHANGED', '权限变化'); }, close: async () => { closed++; }, account: async () => { throw Error('不能作为业务请求'); } }) });
-  await assert.rejects(service.call('get_current_user', {}), error => error.code === 'NSFW_SCOPE_CHANGED');
+  const service = new BangumiMcpService({ preflight: async () => identityContext(), close: async () => {},
+    bindReadScope: async () => ({ key: 'fixed', verify: async options => { verified++; assert.equal(options?.usedNsfw ?? false, false); throw new AppError('ACCOUNT_CHANGED', '身份变化'); }, close: async () => { closed++; }, account: async () => { throw Error('不能作为业务请求'); } }) });
+  await assert.rejects(service.call('get_current_user', {}), error => error.code === 'ACCOUNT_CHANGED');
   assert.equal(verified, 1); assert.equal(closed, 1);
 });
 test('公开收藏列表与范围查询拒绝私密字段非法类型，评分人数不能转换为未知', async () => {
   for (const scopeTool of ['get_user_collections', 'query_user_collections']) for (const patch of [{ private: true }, { private: 'false' }, { private: 0 }, { rating: { total: '10', score: 7 } }]) {
-    const row = { id: 123, type: 2, name: '测试', nameCN: '测试', airtime: { date: '2026-04-01' }, nsfw: false, eps: 12, volumes: 0, rating: { total: 10, score: 7 }, interest: { type: 2, rate: 0, tags: [], comment: '', epStatus: 0, volStatus: 0 }, ...patch };
-    const service = new BangumiMcpService({ preflight: async () => context(), close: async () => {}, account: async () => ({ data: [row], total: 1 }) });
+    const row = { subject_id: 123, subject_type: 2, type: 2, rate: 0, tags: [], comment: '', ep_status: 0, vol_status: 0, private: false,
+      subject: { id: 123, type: 2, name: '测试', name_cn: '测试', date: '2026-04-01', nsfw: false, eps: 12, volumes: 0, rating: patch.rating ?? { total: 10, score: 7 } },
+      ...(Object.hasOwn(patch, 'private') ? { private: patch.private } : {}) };
+    let checkedAccount = 0;
+    const service = new BangumiMcpService({ preflight: async () => { checkedAccount++; return identityContext(); }, close: async () => {},
+      account: async () => { throw Error('第三方公开收藏不得读取账户源'); },
+      public: async path => { assert.equal(path, '/v0/users/someone/collections'); return { data: [row], total: 1 }; } });
     const args = { username: 'someone', subject_type: 2, collection_type: 2, ...(scopeTool === 'query_user_collections' ? { air_date: { min: '2026-04-01', max: '2026-04-30' } } : {}) };
-    await assert.rejects(service.call(scopeTool, args), error => ['PRIVATE_SCOPE', 'INVALID_RESPONSE'].includes(error.code));
+    await assert.rejects(service.call(scopeTool, args), error => ['PRIVATE_SCOPE', 'INVALID_RESPONSE'].includes(error.code), `${scopeTool}:${JSON.stringify(patch)}`);
+    assert.equal(checkedAccount, 0);
   }
 });
 test('账户十档评分数组与公开字典等价，非法档数和计数明确拒绝', () => {

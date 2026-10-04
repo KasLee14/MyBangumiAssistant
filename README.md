@@ -20,10 +20,6 @@ MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然�
 node bootstrap-pi.mjs
 ```
 
-Pi 源码和固定版本的模型目录已包含在本仓库中。脚本会校验内置模型目录、安装 npm 依赖，然后构建本地 Pi、Bangumi 应用和 Web 界面；不会克隆 Pi 仓库或下载模型目录。npm 依赖安装仍需联网。
-
-`pi/` 是由本项目自主维护的源码目录，可以直接修改并随本仓库提交，不会自动跟随上游升级。源码来源及维护方式见 [本地 Pi 维护说明](pi/LOCAL-MAINTENANCE.md)。
-
 ### 启动 Web端
 
 在项目根目录执行：
@@ -34,12 +30,6 @@ npm start -- web
 ```
 
 程序会自动打开默认浏览器，默认端口为 **8787**。如果浏览器未打开，复制终端打印的完整访问地址。首次使用按下一节配置模型，再从“设置 → 登录状态”登录 Bangumi；人机验证在浏览器中完成。
-
-需要指定端口或关闭自动打开浏览器时，在 `bangumi/` 目录执行：
-
-```powershell
-npm start -- web --port 8788 --no-open
-```
 
 ## 2、配置 API Key
 

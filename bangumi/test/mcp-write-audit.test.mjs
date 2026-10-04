@@ -304,7 +304,7 @@ test('批次末尾NSFW范围变化拒绝混用快照，无论权限收紧、扩�
   const enabled = { preference: true, allowed: true, state: 'enabled' };
   const disabled = { preference: false, allowed: false, state: 'disabled' };
   const unknown = { preference: null, allowed: null, state: 'unknown' };
-  for (const [initialNsfw, finalNsfw] of [[enabled, disabled], [disabled, enabled], [enabled, unknown],
+  for (const [initialNsfw, finalNsfw] of [[enabled, disabled], [enabled, unknown],
     [enabled, { ...enabled, preference: false }]]) {
     const f = fixture({ initialNsfw, finalNsfw });
     const value = await f.run([update]);
@@ -317,6 +317,14 @@ test('批次末尾NSFW范围变化拒绝混用快照，无论权限收紧、扩�
     assert.equal(f.reads.filter(read => read.final).length, 0);
     assert.equal(f.writes.length, 1);
   }
+});
+
+test('没有NSFW依赖的普通目录修改不因权限扩大而阻断', async () => {
+  const f = fixture({ initialNsfw: { preference: false, allowed: false, state: 'disabled' },
+    finalNsfw: { preference: true, allowed: true, state: 'enabled' } });
+  const value = await f.run([update]);
+  assert.equal(value.state, 'success', JSON.stringify(value));
+  assert.equal(f.writes.length, 1); assert.equal(value.items[0].verification.readbackCompleted, true);
 });
 
 test('NSFW范围应用状态变化及无变更计划同样不能假报完成', async () => {
@@ -339,9 +347,13 @@ test('开始预检范围保持独立副本，传输返回对象被修改也不�
     nsfw: { preference: true, allowed: true, state: 'enabled' }, source: 'p1', nsfwApplied: true,
     checkedAt: '2026-10-04T00:00:00.000Z' };
   const service = new BangumiMcpService({ preflight: async () => context, currentUser: async () => context.account,
-    close: async () => {}, account: async () => { throw Error('NSFW范围变更后不能开始读取业务对象'); } });
+    close: async () => {}, account: async path => {
+      assert.equal(path, '/p1/subjects/101');
+      return { id: 101, type: 2, name: '离线R18对象', nsfw: true, airtime: { date: '2026-04-01' } };
+    } });
   const scope = { id: '12345678-1234-1234-1234-123456789012', phase: 'prepare' };
   await service.call('get_current_user', {}, undefined, undefined, scope);
+  await service.call('get_subject_details', { subject_id: 101, include: [] }, undefined, undefined, scope);
   context.nsfw.allowed = false; context.nsfw.state = 'disabled';
   try {
     await assert.rejects(service.call('get_current_user', {}, undefined, undefined, { ...scope, phase: 'verify' }), { code: 'NSFW_SCOPE_CHANGED' });

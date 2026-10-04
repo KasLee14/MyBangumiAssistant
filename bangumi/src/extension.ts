@@ -17,6 +17,8 @@ import type { TaskQueue } from './support/task-queue.js';
 import { TraceRecorder } from './tracing/recorder.js';
 import { registerTraceHooks } from './tracing/pi-hooks.js';
 import type { TraceOptions } from './tracing/schema.js';
+import { TOOL_DEFINITIONS } from './mcp/catalog.js';
+import { clearReadRecoveryScope } from './mcp/read-recovery.js';
 
 export interface BangumiExtensionConfig {
   authDir: string;
@@ -55,9 +57,25 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     const createClient = () => new LocalMcpClient({ authDir: config.authDir, timeoutMs: config.timeoutMs, proxy: proxy.current,
       onTrace: event => trace.mcpDiagnostic(event) });
     let client: McpCallClient & { close?(): Promise<void> } = config.client ?? createClient();
+    let activeReadTurnId: string | undefined;
+    const clearReadTurn = () => {
+      const ending = activeReadTurnId; activeReadTurnId = undefined;
+      if (ending) {
+        clearReadRecoveryScope(ending);
+        try { void client.endReadContext?.(ending).catch(() => { /* 清理失败不改变已执行业务。 */ }); }
+        catch { /* 嵌入客户端同步清理失败亦不改变业务。 */ }
+      }
+    };
     const facade: McpCallClient = {
-      call: (name, args, signal, guard, batch) => trace.mcp(name, args, () => client.call(name, args, signal, guard, batch), guard?.accountId,
-        config.client === undefined && client instanceof LocalMcpClient),
+      call: (name, args, signal, guard, batch, read) => {
+        const scope = TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'read'
+          ? read ?? (activeReadTurnId ? { turnId: activeReadTurnId } : undefined) : undefined;
+        const expectedReadTurnId = activeReadTurnId;
+        const cancelled = () => { if (activeReadTurnId === expectedReadTurnId) clearReadTurn(); };
+        signal?.addEventListener('abort', cancelled, { once: true });
+        return trace.mcp(name, args, () => client.call(name, args, signal, guard, batch, scope), guard?.accountId,
+          config.client === undefined && client instanceof LocalMcpClient).finally(() => signal?.removeEventListener('abort', cancelled));
+      },
       close: async () => { await client.close?.(); },
     };
     const unsubscribeProxy = config.client ? undefined : proxy.onChange(async () => {
@@ -108,11 +126,14 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     pi.registerTool(trace.wrapTool(createSkillReadTool(process.cwd())));
 
     pi.on('input', event => {
+      if (event.source !== 'extension') clearReadTurn();
       input = { text: event.source === 'extension' ? '' : redact(event.text, credentialValues()), generation: input.generation + 1, requestId: randomUUID() };
+      if (event.source !== 'extension') activeReadTurnId = input.requestId;
     });
     pi.on('before_agent_start', event => ({ systemPrompt: `${event.systemPrompt}\n\n${instructions}` }));
-    pi.on('session_start', () => { input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; });
-    pi.on('session_shutdown', async () => { input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; unsubscribeProxy?.(); await client.close?.(); });
+    pi.on('agent_settled', () => { clearReadTurn(); });
+    pi.on('session_start', () => { clearReadTurn(); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; });
+    pi.on('session_shutdown', async () => { clearReadTurn(); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; unsubscribeProxy?.(); await client.close?.(); });
     if (config.trace) registerTraceHooks(pi, trace);
 
     pi.registerCommand('bangumi-login', {

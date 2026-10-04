@@ -1,5 +1,5 @@
 import type { JsonSchema } from '../support/tool-schema.js';
-import { subjectSummarySchema } from './subject-output.js';
+import { subjectSummarySchema, paginationExtraProperties } from './subject-output.js';
 import { withAccessContext, submissionRejectionSchema } from './access-context.js';
 
 // 固定生产契约；应用不读取本地设计文档。每个工具只发布其实际引用的定义。
@@ -117,6 +117,9 @@ const outputs: Record<string, JsonSchema> = {
 };
 
 // 人物出演扩充仍使用现有工具；角色实体类型与作品中的出演关系分别发布。
+Object.assign(definitions.PageMeta!.properties as Record<string, JsonSchema>, structuredClone(paginationExtraProperties));
+(definitions.SubjectRef!.properties as Record<string, JsonSchema>).nsfw = { anyOf: [{ type: 'boolean' }, { type: 'null' }] };
+(definitions.SubjectRef!.required as string[]).push('nsfw');
 const appearanceInteger = (minimum = 0): JsonSchema => ({ type: 'integer', minimum, maximum: Number.MAX_SAFE_INTEGER });
 const appearanceNullable = (schema: JsonSchema): JsonSchema => ({ anyOf: [schema, { type: 'null' }] });
 const appearanceClosed = (properties: Record<string, JsonSchema>, required = Object.keys(properties)): JsonSchema => ({ type: 'object', properties, required, additionalProperties: false });

@@ -12,10 +12,14 @@ import { isCommunityTool } from './community-schemas.js';
 import { checkCommunityResponse } from './community-output.js';
 import { anonymousContext, unverifiedContext, type AccessContext } from './access-context.js';
 import { accountRead, normalizeSubject } from './account-read.js';
-import { collectionMatch, dateMatches, fullDate, parseWebCollectionPage, type DateBounds } from './collection-query.js';
+import { collectionMatch, dateMatches, fullDate, type DateBounds } from './collection-query.js';
 import { batchScope, batchPreparation, type BatchPreparation, type McpBatchScope } from './batch-context.js';
 import { PersonCharactersQuery } from './person-characters.js';
 import { compileSubjectSearch, applySearchPlan, requireBrowseCoverage } from './search-capabilities.js';
+import { planRead } from './read-routing.js';
+import type { McpReadContext } from './read-context.js';
+import { executeReadRecovery, clearReadRecoveryScope } from './read-recovery.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline; batchPreparation?: BatchPreparation }
 type ObjectValue = Record<string, unknown>;
@@ -84,16 +88,69 @@ function canonicalRelated(value: unknown): ObjectValue {
   return { ...item, subject_id: item.subject_id ?? item.sid ?? subject?.id, comment: item.comment, order: item.order };
 }
 
-/** 所有业务调用统一预检；登录查询使用固定账户映射，匿名请求不携带会话，写入保留宿主授权边界。 */
+/** 公共读取独立于登录；本人/写入绑定账户，NSFW仅在需要时核实。 */
 export class BangumiMcpService {
   private readonly community: CommunityReader;
   private readonly personCharacters: PersonCharactersQuery;
-  private batchContext: { id: string; phase: McpBatchScope['phase']; context: AccessContext } | undefined;
+  private readonly readTurns = new Set<string>();
+  private readonly readContexts = new AsyncLocalStorage<McpReadContext>();
+  private batchContext: { id: string; phase: McpBatchScope['phase']; context: AccessContext; usedNsfw: boolean } | undefined;
   constructor(private readonly transport: McpTransport) {
     this.community = new CommunityReader(transport);
     this.personCharacters = new PersonCharactersQuery(transport);
   }
-  close(): Promise<void> { this.community.clear(); this.personCharacters.clear(); return this.transport.close(); }
+  close(): Promise<void> {
+    this.community.clear(); this.personCharacters.clear();
+    for (const turnId of this.readTurns) this.endReadContext(turnId);
+    return this.transport.close();
+  }
+  endReadContext(turnId: string): void {
+    clearReadRecoveryScope(turnId); this.transport.clearReadContext?.(turnId); this.readTurns.delete(turnId);
+  }
+  private async identity(signal?: AbortSignal): Promise<AccessContext> {
+    if (this.transport.identity) return this.transport.identity(signal);
+    // 兼容离线/嵌入客户端；生产传输不会在身份核实中读取NSFW设置。
+    if (this.transport.preflight) return this.transport.preflight(signal);
+    const account = await this.checkedAccount(signal);
+    return { ...anonymousContext(), mode: 'account', account, source: 'p1', nsfwApplied: false };
+  }
+  private async nsfw(context: AccessContext, signal?: AbortSignal, fresh = false): Promise<void> {
+    if (!context.account) return;
+    const checked = this.transport.ensureNsfw
+      ? await this.transport.ensureNsfw(context, signal, this.batchContext ? `batch:${this.batchContext.id}` : undefined, { fresh })
+      : this.transport.preflight ? await this.transport.preflight(signal) : context;
+    if (checked.account?.id !== context.account.id) throw new AppError('ACCOUNT_CHANGED', '权限核实时账户改变。');
+    context.nsfw = structuredClone(checked.nsfw); context.nsfwApplied = checked.nsfwApplied;
+    if (this.batchContext) {
+      this.batchContext.context.nsfw = structuredClone(context.nsfw);
+      this.batchContext.context.nsfwApplied = context.nsfwApplied;
+    }
+  }
+  private hasNsfw(value: unknown): boolean {
+    if (!value || typeof value !== 'object') return false;
+    if (Array.isArray(value)) return value.some(row => this.hasNsfw(row));
+    const row = value as ObjectValue;
+    return row.nsfw === true || Object.values(row).some(field => this.hasNsfw(field));
+  }
+  private async allowNsfw(context: AccessContext, signal?: AbortSignal): Promise<boolean> {
+    if (context.nsfw.state === 'not_checked') await this.nsfw(context, signal);
+    const allowed = context.nsfw.allowed === true && context.nsfw.preference !== false;
+    if (allowed && this.batchContext) this.batchContext.usedNsfw = true;
+    return allowed;
+  }
+  private async gateNsfw(value: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<ObjectValue> {
+    if (!this.hasNsfw(value)) return value;
+    if (context.account && await this.allowNsfw(context, signal)) return value;
+    if (Array.isArray(value.data)) {
+      const rows = value.data as unknown[]; const data = rows.filter(row => !this.hasNsfw(row));
+      const more = Boolean(value.sourceHasMore ?? (typeof value.total === 'number' && Number(value.offset ?? 0) + rows.length < value.total));
+      return { ...value, data, total: null, totalKind: 'unknown', excludedNsfwCount: rows.length - data.length,
+        sourceNextOffset: more ? value.sourceNextOffset ?? (Number(value.offset ?? 0) + Number(value.limit ?? rows.length)) : null,
+        sourceHasMore: more };
+    }
+    throw new AppError(context.nsfw.state === 'unknown' ? 'NSFW_PERMISSION_UNKNOWN' : 'NSFW_UNAVAILABLE',
+      '此对象需要NSFW可见范围，本次未取得可用权限；可跳过并继续其他对象。', context);
+  }
   private async checkedAccount(signal?: AbortSignal): Promise<{ id: number; username: string }> {
     const user = await this.transport.currentUser(signal, false);
     positive(user.id);
@@ -132,20 +189,17 @@ export class BangumiMcpService {
       try {
         return await this.personCharacters.call(args, context, signal, {
           scopeKey: scope.key, readAccount: scope.account, verifyScope: scope.verify,
+          resolveNsfw: () => this.allowNsfw(context, signal),
         });
       } finally { await scope.close(); }
     }
     // 离线/嵌入客户端仍核对当前账户和权限；生产 transport 总是使用独立的会话绑定。
     const verifyScope = async (): Promise<void> => {
-      if (this.transport.preflight) {
-        const latest = await this.transport.preflight(signal);
-        if (!isDeepStrictEqual(latest.account, context.account) || !isDeepStrictEqual(latest.nsfw, context.nsfw)) {
-          throw new AppError('ACCOUNT_CHANGED', '关系读取期间账户或 NSFW 权限改变。');
-        }
-      } else if (context.account) await this.assertAccount(context.account.id, signal);
+      if (context.account) await this.assertAccount(context.account.id, signal);
     };
     return this.personCharacters.call(args, context, signal, {
-      scopeKey: JSON.stringify([context.account, context.nsfw]), verifyScope,
+      scopeKey: JSON.stringify([context.account, this.readContexts.getStore()?.turnId ?? 'embedded']), verifyScope,
+      resolveNsfw: () => this.allowNsfw(context, signal),
       readAccount: (path, options) => this.transport.account(path, { ...options,
         ...(context.account ? { expectedAccountId: context.account.id } : {}) }, signal),
     });
@@ -153,6 +207,7 @@ export class BangumiMcpService {
   private async searchPage(name: 'search_subjects' | 'search_characters' | 'search_persons', args: ObjectValue, body: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<ObjectValue> {
     const limit = Number(args.limit); const offset = Number(args.offset);
     const data: unknown[] = []; const seen = new Set<number>(); let total: number | undefined;
+    let sourceOffset = offset; let sourceHasMore = true;
     const kind = name === 'search_characters' ? 'character' : 'person';
     const entitySchema = name === 'search_subjects' ? undefined : {
       type: 'array', maxItems: 20, items: { $ref: `#/$defs/${kind === 'character' ? 'CharacterSummary' : 'PersonSummary'}` },
@@ -162,16 +217,23 @@ export class BangumiMcpService {
     if (plan) applySearchPlan(context, plan);
     for (let batch = 0; batch < Math.ceil(limit / 20); batch++) {
       signal?.throwIfAborted();
-      const batchLimit = Math.min(20, limit - data.length); const batchOffset = offset + data.length;
+      const batchLimit = Math.min(20, limit - data.length); const batchOffset = sourceOffset;
       const options = { method: 'POST', query: { limit: batchLimit, offset: batchOffset }, body: plan?.body ?? body };
       const raw = plan ? plan.source === 'p1'
         ? await this.transport.account('/p1/search/subjects', { ...options, expectedAccountId: context.account!.id }, signal)
         : await this.transport.public('/v0/search/subjects', options, signal)
         : await this.readResource(`/v0/search/${name.slice('search_'.length)}`, options, context, signal);
-      const page = this.page(raw, batchLimit, batchOffset);
+      const payload = obj(raw);
+      if (!Array.isArray(payload.data) || payload.data.length > batchLimit || typeof payload.total !== 'number'
+        || !Number.isSafeInteger(payload.total) || payload.total < 0
+        || payload.limit !== undefined && payload.limit !== batchLimit || payload.offset !== undefined && payload.offset !== batchOffset) {
+        throw new AppError('INVALID_RESPONSE', '搜索分页身份、页长或估计总数不合法。');
+      }
+      const page = { ...payload, data: payload.data as unknown[], total: payload.total, limit: batchLimit, offset: batchOffset,
+        totalKind: 'estimated', sourceHasMore: payload.data.length > 0,
+        sourceNextOffset: payload.data.length > 0 ? batchOffset + batchLimit : null };
       if (plan?.source === 'p1') page.data = page.data.map(normalizeSubject);
       signal?.throwIfAborted();
-      if (total !== undefined && total !== page.total) throw new AppError('INCOMPLETE_DATA', '搜索总数在分页读取期间变化。');
       total = page.total;
       // 每页先核对对应实体及固定输出契约，异常页不能推动下一次读取。
       const pageArgs = { ...args, limit: batchLimit, offset: batchOffset };
@@ -183,9 +245,11 @@ export class BangumiMcpService {
         if (seen.has(id)) throw new AppError('INCOMPLETE_DATA', '搜索分页记录重复。');
         seen.add(id); data.push(raw);
       }
-      if (data.length === limit || offset + data.length >= total) return { data, total, limit, offset };
+      sourceOffset += batchLimit; sourceHasMore = page.sourceHasMore;
+      if (data.length === limit || page.data.length < batchLimit) break;
     }
-    throw new AppError('INCOMPLETE_DATA', '搜索分页未补齐请求范围。');
+    return { data, total: total ?? 0, limit, offset, totalKind: 'estimated', sourceHasMore,
+      sourceNextOffset: sourceHasMore ? sourceOffset : null };
   }
   private async allAccount(path: string, accountId: number, query: ObjectValue = {}, signal?: AbortSignal): Promise<unknown[]> {
     const all: unknown[] = []; const seen = new Set<number>(); let total: number | undefined;
@@ -249,7 +313,17 @@ export class BangumiMcpService {
     if (guard.expectedStatus !== undefined && obj(episode.collection).type !== guard.expectedStatus) throw new AppError('STALE_PREVIEW', '章节现状已变化，需重新预览。');
   }
 
-  async call(name: string, argumentsValue: unknown, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope): Promise<unknown> {
+  async call(name: string, argumentsValue: unknown, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope, readContext?: McpReadContext): Promise<unknown> {
+    const args = validateToolArguments(name, argumentsValue);
+    if (readContext) this.readTurns.add(readContext.turnId);
+    const operation = () => this.callScoped(name, args, signal, guard, batch);
+    const execute = () => executeReadRecovery(name, args, operation, {
+      ...(readContext ? { turnId: readContext.turnId } : {}), ...(signal ? { signal } : {}),
+      ...(batch ? { maxRetries: 0 } : {}),
+    });
+    return readContext ? this.readContexts.run(readContext, () => this.transport.withReadContext ? this.transport.withReadContext(readContext, execute) : execute()) : execute();
+  }
+  private async callScoped(name: string, argumentsValue: unknown, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope): Promise<unknown> {
     const args = validateToolArguments(name, argumentsValue);
     const definition = findToolDefinition(name);
     if (definition.effect === 'write' && !guard) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要宿主绑定账户及具体操作的授权。');
@@ -264,18 +338,19 @@ export class BangumiMcpService {
       const scope = batchScope(batch);
       if (!this.batchContext) {
         if (scope.phase !== 'prepare' || name !== 'get_current_user') throw new AppError('BATCH_CONTEXT_EXPIRED', '批次须从完整账户预检开始。');
-        const account = this.transport.preflight ? await this.transport.preflight(signal) : { ...anonymousContext(), mode: 'account' as const,
-          account: await this.transport.currentUser(signal, true), source: 'p1' as const, nsfwApplied: true };
+        const account = await this.identity(signal);
         if (!account.account) throw new AppError('BGM_AUTH_REQUIRED', '批次写入须先登录。');
         await this.transport.setBatchSession?.(true);
-        this.batchContext = { id: scope.id, phase: scope.phase, context: structuredClone(account) };
+        this.batchContext = { id: scope.id, phase: scope.phase, context: structuredClone(account), usedNsfw: false };
       }
       if (scope.id !== this.batchContext.id) throw new AppError('BATCH_SCOPE_ACTIVE', '已有宿主批次上下文，不能交叉使用。');
       if (scope.phase !== this.batchContext.phase) {
         if (scope.phase === 'verify' && name === 'get_current_user') {
-          const fresh = this.transport.preflight ? await this.transport.preflight(signal) : { ...this.batchContext.context, account: await this.transport.currentUser(signal, true) };
+          const previous = structuredClone(this.batchContext.context);
+          const fresh = await this.identity(signal);
+          if (this.batchContext.usedNsfw) await this.nsfw(fresh, signal, true);
           if (fresh.account?.id !== this.batchContext.context.account?.id) throw new AppError('ACCOUNT_CHANGED', '整批回读前账户改变，不能核实原账户写入。');
-          if (!isDeepStrictEqual(fresh.nsfw, this.batchContext.context.nsfw) || fresh.nsfwApplied !== this.batchContext.context.nsfwApplied) {
+          if (this.batchContext.usedNsfw && (!isDeepStrictEqual(fresh.nsfw, previous.nsfw) || fresh.nsfwApplied !== previous.nsfwApplied)) {
             throw new AppError('NSFW_SCOPE_CHANGED', '整批开始与回读的NSFW权限范围不同，未混用预检范围核实写入；已提交结果保留待核实。', fresh);
           }
           this.batchContext.context = structuredClone(fresh);
@@ -289,17 +364,26 @@ export class BangumiMcpService {
       context = structuredClone(this.batchContext.context);
     }
     else if (guard?.batchPreparation) throw new AppError('AUTHORIZATION_REQUIRED', '冻结快照只能在宿主批次上下文中提交。');
-    else if (this.transport.preflight) context = await this.transport.preflight(signal);
-    else if (definition.access === 'account' || args.username === '-' || args.own === true) {
-      const account = await this.checkedAccount(signal); context = { ...context, mode: 'account', account,
-        nsfw: { preference: null, allowed: null, state: 'unknown' }, source: 'p1', nsfwApplied: true };
+    else {
+      const route = planRead(name, args);
+      if (route.requiresIdentity || route.requiresNsfw) {
+        try {
+          context = await this.identity(signal);
+          if (route.requiresIdentity && !context.account) throw new AppError('BGM_AUTH_REQUIRED', '本人资料或修改需要先登录。');
+          if (route.requiresNsfw || name === 'get_current_user' && args.check_nsfw === true) await this.nsfw(context, signal, name === 'get_current_user');
+        } catch (error) {
+          if (route.requiresIdentity || signal?.aborted || error instanceof AppError && error.code === 'CANCELLED') throw error;
+          context = anonymousContext();
+        }
+      }
     }
+    if (batch && name === 'get_current_user' && args.check_nsfw === true) await this.nsfw(context, signal, true);
     checked = true;
     if (!batch && definition.effect === 'read' && context.account && name !== 'get_person_characters' && this.transport.bindReadScope) {
       readScope = await this.transport.bindReadScope(context, signal);
     }
     if (isCommunityTool(name)) {
-      context.source = 'p1'; context.nsfwApplied = context.account !== null;
+      context.source = 'p1'; context.nsfwApplied = context.account !== null && context.nsfw.allowed === true && context.nsfw.preference !== false;
       const result = { ...await this.community.call(name, args, signal, context), accessContext: context };
       checkCommunityResponse(name, result, args);
       await readScope?.verify();
@@ -307,13 +391,43 @@ export class BangumiMcpService {
     }
     if (guard && context.account?.id !== guard.accountId) throw new AppError('ACCOUNT_CHANGED', '当前账户与宿主授权账户不一致，未提交。');
     dispatched = true;
-    const value = await this.dispatch(name, args, context, signal, guard);
+    let value: unknown;
+    try { value = await this.dispatch(name, args, context, signal, guard); }
+    catch (error) {
+      const route = planRead(name, args);
+      if (batch || guard || context.account || !route.canFallbackToAccount || !(error instanceof AppError) || error.code !== 'BGM_HTTP_404') throw error;
+      const initial = error;
+      try {
+        const account = await this.identity(signal);
+        if (!account.account) throw initial;
+        await this.nsfw(account, signal);
+        if (account.nsfw.allowed !== true || account.nsfw.preference === false) throw initial;
+        context = account;
+        value = await this.dispatch(name, args, context, signal);
+      } catch (fallback) {
+        if (signal?.aborted || fallback instanceof AppError && fallback.code === 'CANCELLED') throw fallback;
+        throw initial;
+      }
+    }
+    if (definition.effect === 'read' && !context.account && this.hasNsfw(value) && planRead(name, args).canFallbackToAccount) {
+      try {
+        const account = await this.identity(signal);
+        if (account.account) {
+          await this.nsfw(account, signal);
+          if (account.nsfw.allowed === true && account.nsfw.preference !== false) {
+            context = account; value = await this.dispatch(name, args, context, signal);
+          }
+        }
+      } catch (error) { if (signal?.aborted || error instanceof AppError && error.code === 'CANCELLED') throw error; }
+    }
+    if (definition.effect === 'read' && value && typeof value === 'object' && !Array.isArray(value) && name !== 'query_user_collections') value = await this.gateNsfw(obj(value), context, signal);
     let result = value;
     if (name === 'get_subject_details') result = subjectDetails(value, args.include as SubjectInclude[], Number(args.subject_id));
     if (name === 'get_user_collections') result = collectionPage(value, args);
     if (name === 'get_index_subjects') result = indexSubjectPage(value, args);
     if (['search_subjects', 'browse_subjects', 'get_subject_relations', 'get_character_subjects', 'get_person_subjects'].includes(name)) {
-      result = subjectPage(value, args, !['search_subjects', 'browse_subjects'].includes(name));
+      const page = obj(value);
+      result = subjectPage({ ...page, ...(context.queryCoverage ? { totalKind: page.totalKind ?? context.queryCoverage.totalKind } : {}) }, args, !['search_subjects', 'browse_subjects'].includes(name));
     }
     if (name === 'get_daily_broadcast') {
       const raw = obj(value); const days = raw.data as ObjectValue[];
@@ -361,7 +475,10 @@ export class BangumiMcpService {
     } finally {
       try { await readScope?.close(); }
       catch { throw new AppError('INTERNAL_ERROR', '本地读取上下文关闭失败，未返回成功结果。', checked ? context : unverifiedContext()); }
-      if (batch?.phase === 'close' && this.batchContext?.id === batch.id) { this.batchContext = undefined; await this.transport.setBatchSession?.(false); }
+      if (batch?.phase === 'close' && this.batchContext?.id === batch.id) {
+        this.transport.clearReadContext?.(`batch:${batch.id}`);
+        this.batchContext = undefined; await this.transport.setBatchSession?.(false);
+      }
     }
   }
   private async dispatch(name: string, argumentsValue: unknown, context: AccessContext, signal?: AbortSignal, guard?: McpWriteGuard): Promise<unknown> {
@@ -459,6 +576,12 @@ export class BangumiMcpService {
         if (!account) {
           const raw = obj(await publicCall(`/v0/users/${urlUsername}/collections`, { query: compact({ subject_type: args.subject_type, type: args.collection_type, limit, offset }) }));
           if (!Array.isArray(raw.data)) throw new AppError('INVALID_RESPONSE', '公开收藏分页缺少数组。');
+          for (const value of raw.data) {
+            const row = obj(value); const interest = row.interest === undefined ? {} : obj(row.interest);
+            if (row.private !== undefined && row.private !== false || interest.private !== undefined && interest.private !== false) {
+              throw new AppError('PRIVATE_SCOPE', '公开收藏响应出现私密或非法可见性字段。');
+            }
+          }
           return context.account ? { ...raw, data: raw.data.map(value => {
             const item = obj(value); const interest = obj(item.interest, '公开收藏');
             if (item.private !== undefined && item.private !== false || interest.private !== undefined && interest.private !== false) throw new AppError('PRIVATE_SCOPE', '公开用户收藏响应出现私密或非法可见性字段。');
@@ -495,45 +618,18 @@ export class BangumiMcpService {
     const bounds = args.air_date as DateBounds; const extras = args.extra_subject_ids as number[];
     const matches: ReturnType<typeof collectionMatch>[] = []; const seen = new Set<number>();
     let total: number | undefined; let scannedCount = 0; let pagesRead = 0; let unknownDateCount = 0;
+    let excludedNsfwCount = 0; let unknownNsfwCount = 0;
     let stopReason: 'exhausted' | 'date_boundary' = 'exhausted';
     const self = args.username === '-'; const account = self ? await this.checkedAccount(signal) : null;
     const finish = (): ObjectValue => {
       const direction = args.sort === 'date_asc' ? 1 : -1;
       matches.sort((a, b) => direction * (a.date ?? '').localeCompare(b.date ?? '') || a.subjectId - b.subjectId);
       return { schemaVersion: 1, kind: 'collectionQuery', data: matches, matchedCount: matches.length, scope: { ...args },
-        coverage: { complete: unknownDateCount === 0, source: context.source, scannedCount, pagesRead, collectionTotal: total ?? 0,
-          unknownDateCount, stopReason, privateRecords: self ? 'included' : 'public_only' },
+        coverage: { complete: unknownDateCount === 0 && unknownNsfwCount === 0 && excludedNsfwCount === 0, source: context.source, scannedCount, pagesRead, collectionTotal: total ?? 0,
+          unknownDateCount, excludedNsfwCount, unknownNsfwCount, stopReason, privateRecords: self ? 'included' : 'public_only' },
         missingExtraSubjectIds: extras.filter(id => !matches.some(row => row.subjectId === id)), visibility: self ? 'self' : 'public', readAt: new Date().toISOString() };
     };
-    // 登录时不能用匿名网页替代账户读取。网页仅对未登录、明确状态的公开查询开放。
-    if (!context.account && !self && args.collection_type !== undefined && this.transport.webCollections) {
-      const media = ({ 1: 'book', 2: 'anime', 3: 'music', 4: 'game', 6: 'real' } as Record<number, string>)[Number(args.subject_type)]!;
-      const status = ['wish', 'collect', 'do', 'on_hold', 'dropped'][Number(args.collection_type) - 1]!;
-      let previousDate: string | undefined; context.source = 'web'; context.nsfwApplied = false;
-      try {
-        for (let number = 1; number <= 417; number++) {
-          signal?.throwIfAborted();
-          const page = parseWebCollectionPage(await this.transport.webCollections(String(args.username), media, status, number, signal), String(args.username), media, status, number);
-          if (total !== undefined && total !== page.total || page.total > 10000) throw new AppError('WEB_COLLECTION_INVALID', '公开收藏网页总数改变或超出完整读取上限。');
-          total = page.total; pagesRead++; let below = false;
-          for (const row of page.rows) {
-            if (seen.has(row.id) || row.date === null || previousDate !== undefined && row.date > previousDate) throw new AppError('WEB_COLLECTION_INVALID', '公开收藏网页重复、日期缺失或不是开播日期倒序。');
-            seen.add(row.id); scannedCount++; previousDate = row.date;
-            const explicit = extras.includes(row.id);
-            if (explicit || dateMatches(row.date, bounds)) matches.push(collectionMatch(subjectSummary({ id: row.id, type: args.subject_type, name: row.name, date: row.date }), Number(args.collection_type), null, explicit));
-            if (bounds.min !== undefined && row.date < bounds.min) below = true;
-          }
-          // 同一天可跨页：只有严格越过下界且补入项已核实，才停止后续分页。
-          if (below && extras.every(id => seen.has(id))) { stopReason = 'date_boundary'; return finish(); }
-          if (number === page.pageCount) return finish();
-        }
-        throw new AppError('INCOMPLETE_DATA', '公开收藏网页未完整覆盖请求范围。');
-      } catch (error) {
-        if (!(error instanceof AppError) || error.code !== 'WEB_COLLECTION_INVALID') throw error;
-        // 仅结构校验失败切换固定公开 API；认证/网络/超时/取消不重复或降级。
-        total = undefined; scannedCount = 0; pagesRead = 0; matches.length = 0; seen.clear(); context.source = 'v0';
-      }
-    }
+    // 第三方公开收藏直接走v0；本人完整记录始终保留p1账户身份。
     for (let offset = 0; offset < 10000; offset += 100) {
       signal?.throwIfAborted();
       const query = compact({ subject_type: args.subject_type, type: args.collection_type, limit: 100, offset });
@@ -553,8 +649,12 @@ export class BangumiMcpService {
         if (!self && (row.private !== undefined && row.private !== false || interest.private !== undefined && interest.private !== false)) throw new AppError('PRIVATE_SCOPE', '公开收藏查询不得包含私密或非法可见性记录。');
         seen.add(subject.id); scannedCount++;
         const date = fullDate(subject.date); const explicit = extras.includes(subject.id);
+        if (!explicit && date === null) { unknownDateCount++; continue; }
+        if (!explicit && date !== null && !dateMatches(date, bounds)) continue;
+        // 先排除本次日期范围之外的记录；不为无关R18条目触发权限检查。
+        if (subject.nsfw === true && (!context.account || !await this.allowNsfw(context, signal))) { excludedNsfwCount++; continue; }
+        if (subject.nsfw === null) { unknownNsfwCount++; continue; }
         if (explicit || date !== null && dateMatches(date, bounds)) matches.push(collectionMatch(subject, status, interest.rate, explicit));
-        else if (date === null) unknownDateCount++;
       }
       if (scannedCount === total) { if (account) await this.assertAccount(account.id, signal); return finish(); }
     }

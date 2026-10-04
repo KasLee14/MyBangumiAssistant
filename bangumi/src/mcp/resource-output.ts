@@ -1,6 +1,6 @@
 import { AppError } from '../support/errors.js';
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
-import { checkOutput } from './subject-output.js';
+import { checkOutput, pageMetadata, checkPageMetadata } from './subject-output.js';
 import { normalizeInfobox } from './infobox-output.js';
 import { isDeepStrictEqual } from 'node:util';
 
@@ -127,9 +127,11 @@ function subjectReference(value: Data): Data {
     return values[0] ?? null;
   };
   const id = positive(field('subject_id', 'id')); const type = field('subject_type', 'type', 'subjectType');
+  const nsfw = field('subject_nsfw', 'nsfw');
+  if (nsfw !== null && typeof nsfw !== 'boolean') throw new AppError('INVALID_RESPONSE', '关联作品NSFW事实类型无效。');
   if (type !== null && (typeof type !== 'number' || ![1,2,3,4,6].includes(type))) throw new AppError('INVALID_RESPONSE', '关联作品类型无效。');
   return { entity: 'subject', id, name: text(field('subject_name', 'name')), nameCn: text(field('subject_name_cn', 'name_cn', 'nameCN', 'nameCn')),
-    subjectType: typeof type === 'number' && [1,2,3,4,6].includes(type) ? type : null, url: `https://bgm.tv/subject/${id}` };
+    subjectType: typeof type === 'number' && [1,2,3,4,6].includes(type) ? type : null, nsfw, url: `https://bgm.tv/subject/${id}` };
 }
 const appearanceRoles = ['unknown', 'main', 'supporting', 'guest'] as const;
 /** 出演关系与实体类型独立；v0的type描述实体，不能用它推断主角。 */
@@ -217,9 +219,8 @@ function creatorReference(value: unknown): Data | null {
 function page(raw: Data, data: unknown[], args: Data, entity: string, visibility: string, current?: unknown): Data {
   const limit = Number(args.limit); const offset = Number(args.offset); const total = raw.total == null ? null : integer(raw.total);
   if (raw.total === undefined || data.length > limit || raw.total != null && total === null || raw.limit !== undefined && raw.limit !== limit || raw.offset !== undefined && raw.offset !== offset) throw new AppError('INVALID_RESPONSE', '分页总数、范围或数量无效。');
-  if (total !== null && data.length !== Math.min(limit, Math.max(0, total - offset))) throw new AppError('INCOMPLETE_DATA', '分页缺少记录。');
   return { schemaVersion: 1, kind: 'page', entity, data,
-    page: { total, limit, offset, returnedCount: data.length, nextOffset: total === null ? data.length === limit ? offset + data.length : null : offset + data.length < total ? offset + data.length : null, complete: offset === 0 && total !== null && data.length === total },
+    page: pageMetadata(raw, data.length, limit, offset),
     scope: { ...args }, visibility, readAt: now(), ...(visibility === 'self' ? { account: account(current) } : {}) };
 }
 function collectionState(value: unknown, kind: 'subject' | 'character' | 'person', args: Data): Data {
@@ -381,9 +382,7 @@ export function checkResourceResponse(name: string, value: unknown, args: Data, 
   if (raw.kind === 'page') {
     const p = record(raw.page), scope = record(raw.scope); const data = list(raw.data);
     if (p.limit !== args.limit || p.offset !== args.offset || p.returnedCount !== data.length || !isDeepStrictEqual(scope, args)) throw new AppError('MCP_INVALID_RESULT', '资料分页返回范围不一致。');
-    const offset = Number(p.offset), limit = Number(p.limit), total = p.total;
-    if (total !== null && data.length !== Math.min(limit, Math.max(0, Number(total) - offset))) throw new AppError('MCP_INVALID_RESULT', '资料分页数量与总数不一致。');
-    if (p.complete !== (offset === 0 && total !== null && data.length === total) || p.nextOffset !== (total === null ? data.length === limit ? offset + data.length : null : offset + data.length < Number(total) ? offset + data.length : null)) throw new AppError('MCP_INVALID_RESULT', '资料分页完整性错误。');
+    checkPageMetadata(p, data.length);
     const self = args.username === '-' || name === 'get_user_episode_collection' || name === 'get_person_characters' && (args.include as string[] | undefined)?.includes('own_collection');
     if (raw.visibility !== (self ? 'self' : 'public')) throw new AppError('MCP_INVALID_RESULT', '资料可见范围错误。');
     if (name === 'get_person_characters') checkAppearancePage(raw, args);

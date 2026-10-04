@@ -14,6 +14,7 @@ const fatalCodes = new Set([
 const localPreflightCodes = new Set([
   'BGM_HTTP_404', 'BGM_HTTP_403', 'PERMISSION_DENIED', 'COLLECTION_REQUIRED',
   'UNSUPPORTED_PROGRESS', 'INVALID_INPUT', 'INCOMPLETE_DATA', 'RESOURCE_UNAVAILABLE',
+  'NSFW_UNAVAILABLE', 'NSFW_PERMISSION_UNKNOWN',
 ]);
 
 /** 错误范围与投递事实分开判断；HTTP 写入错误绝不据此推导未生效。 */

@@ -6,11 +6,12 @@ import { anonymousContext } from '../dist/src/mcp/access-context.js';
 import { checkOutput } from '../dist/src/mcp/subject-output.js';
 import { checkResourceResponse } from '../dist/src/mcp/resource-output.js';
 import { AppError, safeError } from '../dist/src/support/errors.js';
+import { randomUUID } from 'node:crypto';
 
 const viewer = { id: 42, username: 'appearance_reader' };
 const accountContext = (allowed = true) => ({ mode: 'account', account: { ...viewer },
   nsfw: { preference: true, allowed, state: allowed === null ? 'unknown' : allowed ? 'enabled' : 'disabled' },
-  source: 'p1', nsfwApplied: true, checkedAt: new Date().toISOString() });
+  source: 'p1', nsfwApplied: allowed === true, checkedAt: new Date().toISOString() });
 const character = (id, type = 4) => ({ id, type, name: `角色${id}`, nameCN: `角色${id}` });
 const person = (id, type = 2) => ({ id, type, name: `人物${id}`, nameCN: `人物${id}`, careers: ['seiyu'] });
 const subject = (id, form = 'TV', extra = {}) => ({ id, type: 2, name: `作品${id}`, nameCN: `作品${id}`,
@@ -22,11 +23,13 @@ const interest = (type, extra = {}) => ({ type, rate: 8, tags: [], comment: '', 
 const group = (id, relations) => ({ character: character(id), relations });
 const relation = (id, type = 1, form = 'TV', extra = {}) => ({ subject: subject(id, form, extra), type });
 
-function fixture({ groups = [], details = [], anonymous = false, reverse = [], rawPublic, fail, mutatePage } = {}) {
+function fixture({ groups = [], details = [], anonymous = false, reverse = [], rawPublic, fail, mutatePage, uncheckedNsfw = false } = {}) {
   let context = anonymous ? anonymousContext() : accountContext();
-  const calls = []; const detailMap = new Map(details.map(row => [row.id, row]));
+  const calls = []; const checks = { identity: 0, nsfw: 0 }; const detailMap = new Map(details.map(row => [row.id, row]));
   const transport = {
     close: async () => {}, preflight: async () => structuredClone(context),
+    identity: async () => { checks.identity++; return uncheckedNsfw ? { ...structuredClone(context), nsfw: { preference: null, allowed: null, state: 'not_checked' }, nsfwApplied: false } : structuredClone(context); },
+    ensureNsfw: async () => { checks.nsfw++; return structuredClone(context); },
     currentUser: async () => { if (!context.account) throw new AppError('BGM_AUTH_REQUIRED', '未登录'); return { ...context.account }; },
     account: async (path, options = {}, signal) => {
       calls.push({ kind: 'account', path, options: structuredClone(options) });
@@ -50,7 +53,7 @@ function fixture({ groups = [], details = [], anonymous = false, reverse = [], r
     },
     public: async (path, options = {}, signal) => {
       calls.push({ kind: 'public', path, options: structuredClone(options) }); signal?.throwIfAborted();
-      assert.equal(anonymous, true, '登录路径不得降级匿名');
+      assert.equal(anonymous, true, '明确宿主账户准备范围不得改走匿名');
       if (fail) { const error = fail(path, options, signal); if (error) throw error; }
       if (path === '/v0/persons/71/characters' || path === '/v0/characters/11/persons') return structuredClone(rawPublic ?? []);
       const id = /^\/v0\/subjects\/(\d+)$/.exec(path)?.[1];
@@ -58,7 +61,15 @@ function fixture({ groups = [], details = [], anonymous = false, reverse = [], r
       throw Error(`未预期公开路径 ${path}`);
     },
   };
-  return { service: new BangumiMcpService(transport), calls, setContext: value => { context = value; } };
+  const service = new BangumiMcpService(transport), scope = { id: randomUUID(), phase: 'prepare' };
+  let prepared = false;
+  // p1结构测试使用明确宿主账户基线读取；普通公开默认路由由read-routing独立验证。
+  const controlled = { call: async (name, args, signal, guard) => {
+    if (anonymous) return service.call(name, args, signal, guard);
+    if (!prepared) { await service.call('get_current_user', {}, signal, undefined, scope); prepared = true; }
+    return service.call(name, args, signal, guard, scope);
+  } };
+  return { service: controlled, calls, checks, setContext: value => { context = value; } };
 }
 
 test('扩充既有出演工具，严格参数保持默认调用兼容并拒绝无绑定续页', () => {
@@ -180,7 +191,7 @@ test('本人收藏必须登录；未登录、401、429、取消或超时不能�
   }
 });
 
-test('分页快照绑定人物、筛选、账户和 NSFW 范围，改变任一条件不得沿旧偏移继续', async () => {
+test('分页快照绑定人物、筛选及固定账户；SFW续页不因权限状态检查变化失效', async () => {
   const f = fixture({ groups: [group(11, [relation(101), relation(102)])] });
   const args = { person_id: 71, subject_type: 2, include: [], limit: 1 };
   const first = await f.service.call('get_person_characters', args);
@@ -188,9 +199,10 @@ test('分页快照绑定人物、筛选、账户和 NSFW 范围，改变任一�
   await assert.rejects(f.service.call('get_person_characters', { ...continuation, appearance_role: 'main' }), e => e.code === 'SNAPSHOT_SCOPE_MISMATCH');
   await assert.rejects(f.service.call('get_person_characters', { ...continuation, include: ['subject_facts'] }), e => e.code === 'SNAPSHOT_SCOPE_MISMATCH');
   f.setContext({ ...accountContext(), account: { id: 99, username: 'another_reader' } });
-  await assert.rejects(f.service.call('get_person_characters', continuation), e => e.code === 'SNAPSHOT_SCOPE_MISMATCH');
+  await assert.rejects(f.service.call('get_person_characters', continuation), e => e.code === 'ACCOUNT_CHANGED');
   f.setContext(accountContext(false));
-  await assert.rejects(f.service.call('get_person_characters', continuation), e => e.code === 'SNAPSHOT_SCOPE_MISMATCH');
+  assert.equal((await f.service.call('get_person_characters', continuation)).data[0].subject.id, 102);
+  assert.equal(f.checks.nsfw, 0);
   f.setContext(accountContext());
   await assert.rejects(f.service.call('get_person_characters', { ...continuation, snapshot_ref: '0'.repeat(32) }), e => e.code === 'SNAPSHOT_EXPIRED');
   assert.equal(f.calls.length, 1);
@@ -244,13 +256,20 @@ test('同时含嵌套与扁平作品字段时拒绝身份、类型及名称冲�
   }
 });
 
-test('读取期间账户或 NSFW 变化不返回旧权限快照', async () => {
-  for (const changed of [{ ...accountContext(), account: { id: 99, username: 'another_reader' } }, accountContext(false)]) {
-    let f;
-    f = fixture({ groups: [group(11, [relation(101)])], fail: path => { if (path === '/p1/persons/71/casts') f.setContext(changed); } });
-    await assert.rejects(f.service.call('get_person_characters', { person_id: 71, include: [] }), e => e.code === 'ACCOUNT_CHANGED');
-    assert.equal(f.calls.length, 1);
-  }
+test('读取期间账户变化仍拒绝；只有SFW资料时无需读取NSFW设置', async () => {
+  let changed;
+  changed = fixture({ groups: [group(11, [relation(101)])], fail: path => {
+    if (path === '/p1/persons/71/casts') changed.setContext({ ...accountContext(), account: { id: 99, username: 'another_reader' } });
+  } });
+  await assert.rejects(changed.service.call('get_person_characters', { person_id: 71, include: [] }), e => e.code === 'ACCOUNT_CHANGED');
+  assert.equal(changed.calls.length, 1);
+  let sfw;
+  sfw = fixture({ groups: [group(11, [relation(101)])], uncheckedNsfw: true, fail: path => {
+    if (path === '/p1/persons/71/casts') sfw.setContext(accountContext(false));
+  } });
+  const value = await sfw.service.call('get_person_characters', { person_id: 71, include: [] });
+  assert.equal(value.data[0].subject.id, 101); assert.equal(value.accessContext.nsfw.state, 'not_checked');
+  assert.equal(value.accessContext.nsfwApplied, false); assert.equal(sfw.checks.nsfw, 0);
 });
 
 test('已授权写入尝试使本连接的本人状态快照失效，不能用旧快照续页', async () => {
@@ -263,19 +282,51 @@ test('已授权写入尝试使本连接的本人状态快照失效，不能用�
     e => e.code === 'SNAPSHOT_EXPIRED');
 });
 
-test('NSFW 权限关闭时在投影丢弃原始字段前拒绝上游夹带，未知权限仍明确保留未知', async () => {
+test('NSFW 权限关闭或未知时过滤R18关系，保留作品缺口而不包装成完整结果', async () => {
   const entityGroup = group(11, [relation(101)]); entityGroup.character.nsfw = true;
   const denied = fixture({ groups: [entityGroup] }); denied.setContext(accountContext(false));
-  await assert.rejects(denied.service.call('get_person_characters', { person_id: 71 }), { code: 'NSFW_SCOPE_MISMATCH' });
+  const excludedCharacter = await denied.service.call('get_person_characters', { person_id: 71, include: [] });
+  assert.deepEqual(excludedCharacter.data, []); assert.deepEqual(excludedCharacter.coverage.unavailableSubjectIds, [101]);
+  assert.equal(excludedCharacter.coverage.complete, false);
   const allowed = fixture({ groups: [entityGroup] });
   assert.equal((await allowed.service.call('get_person_characters', { person_id: 71 })).data[0].character.nsfw, true);
   for (const include of [[], ['own_collection']]) {
     const f = fixture({ groups: [group(11, [relation(101, 1, 'TV', { nsfw: true })])], details: [subject(101, 'TV', { nsfw: true })] });
     f.setContext(accountContext(false));
-    await assert.rejects(f.service.call('get_person_characters', { person_id: 71, include }), e => e.code === 'NSFW_SCOPE_MISMATCH');
+    const value = await f.service.call('get_person_characters', { person_id: 71, include });
+    assert.deepEqual(value.data, []); assert.deepEqual(value.coverage.unavailableSubjectIds, [101]); assert.equal(value.coverage.complete, false);
   }
   const unknown = fixture({ groups: [group(11, [relation(101, 1, 'TV', { nsfw: true })])] });
   unknown.setContext(accountContext(null));
-  const value = await unknown.service.call('get_person_characters', { person_id: 71, include: [] });
-  assert.equal(value.accessContext.nsfw.state, 'unknown');
+  const unavailable = await unknown.service.call('get_person_characters', { person_id: 71, include: [] });
+  assert.deepEqual(unavailable.data, []); assert.deepEqual(unavailable.coverage.unavailableSubjectIds, [101]); assert.equal(unavailable.coverage.complete, false);
+});
+test('R18作品首次lazy gate后合法续页复用同人物来源快照，角色SFW也保留作品NSFW事实', async () => {
+  const f = fixture({ uncheckedNsfw: true, groups: [group(11, [relation(101, 1, 'TV', { nsfw: true }), relation(102, 1, 'TV', { nsfw: true })])] });
+  const args = { person_id: 71, subject_type: 2, include: [], limit: 1 };
+  const first = await f.service.call('get_person_characters', args);
+  assert.equal(first.accessContext.nsfw.state, 'enabled'); assert.equal(first.data[0].subject.nsfw, true);
+  assert.equal(f.checks.nsfw, 1);
+  const second = await f.service.call('get_person_characters', { ...args, offset: first.page.nextOffset, snapshot_ref: first.page.snapshotRef });
+  assert.equal(second.data[0].subject.id, 102); assert.equal(second.data[0].subject.nsfw, true);
+  assert.equal(f.calls.filter(call => call.path === '/p1/persons/71/casts').length, 1); assert.equal(f.checks.nsfw, 1);
+});
+test('R18许可不足仅跳受限边，SFW匹配项继续并以既有coverage保留原来源事实', async () => {
+  for (const uncheckedNsfw of [false, true]) {
+    const f = fixture({ uncheckedNsfw, groups: [group(11, [relation(101), relation(102, 1, 'TV', { nsfw: true })]),
+      { ...group(12, [relation(103)]), character: { ...character(12), nsfw: true } }] });
+    f.setContext(accountContext(false));
+    const value = await f.service.call('get_person_characters', { person_id: 71, subject_type: 2, include: [], limit: 1 });
+    assert.deepEqual(value.data.map(row => row.subject.id), [101]);
+    assert.deepEqual(value.coverage.unavailableSubjectIds, [102, 103]);
+    assert.equal(value.coverage.sourceTotal, 2); assert.equal(value.coverage.relationTotal, 3);
+    assert.equal(value.coverage.matchedRelationTotal, 1); assert.equal(value.coverage.matchedSubjectTotal, 1);
+    assert.equal(value.coverage.sourceComplete, true); assert.equal(value.coverage.complete, false);
+    assert.equal(value.page.total, 1); assert.equal(value.page.nextOffset, null); assert.equal(f.checks.nsfw, uncheckedNsfw ? 1 : 0);
+  }
+});
+test('非法NSFW标志属于结构错误，不能当作未知过滤或通过', async () => {
+  const f = fixture({ groups: [group(11, [relation(101, 1, 'TV', { nsfw: 'true' })])] });
+  await assert.rejects(f.service.call('get_person_characters', { person_id: 71, include: [] }), error => error.code === 'INVALID_RESPONSE');
+  assert.equal(f.checks.nsfw, 0);
 });

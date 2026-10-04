@@ -2,6 +2,7 @@ import { AppError } from '../support/errors.js';
 import { object } from '../support/bangumi.js';
 import type { JsonSchema } from '../support/tool-schema.js';
 import type { SubjectSummary } from './subject-output.js';
+import type { AccessContext } from './access-context.js';
 
 export interface DateBounds { min?: string; max?: string }
 export function fullDate(value: unknown): string | null {
@@ -38,7 +39,8 @@ export function collectionQuerySchema(input: JsonSchema): JsonSchema {
     scope: closed(structuredClone(input.properties as Record<string, JsonSchema>), []),
     coverage: closed({ complete: { type: 'boolean' }, source: { enum: ['p1', 'v0', 'web'] }, scannedCount: count,
       pagesRead: count, collectionTotal: count, unknownDateCount: count,
-      stopReason: { enum: ['exhausted', 'date_boundary'] }, privateRecords: { enum: ['included', 'public_only'] } }),
+      stopReason: { enum: ['exhausted', 'date_boundary'] }, privateRecords: { enum: ['included', 'public_only'] }, excludedNsfwCount: count, unknownNsfwCount: count },
+      ['complete', 'source', 'scannedCount', 'pagesRead', 'collectionTotal', 'unknownDateCount', 'stopReason', 'privateRecords']),
     missingExtraSubjectIds: { type: 'array', maxItems: 100, uniqueItems: true, items: { ...count, minimum: 1 } },
     visibility: { enum: ['self', 'public'] }, readAt: { type: 'string', maxLength: 50 },
   }) }), closed({ error: closed({ code: { type: 'string', maxLength: 80 }, message: { type: 'string', maxLength: 3000 } }) })] };
@@ -74,9 +76,13 @@ export function checkCollectionQuery(value: unknown, args: Record<string, unknow
   for (const row of data) if (row.subjectType !== args.subject_type || args.collection_type !== undefined && row.collectionStatus !== args.collection_type
     || row.url !== `https://bgm.tv/subject/${row.subjectId}` || (row.matchBasis === 'explicit_subject' ? !extras.includes(Number(row.subjectId))
       : typeof row.date !== 'string' || !dateMatches(row.date, bounds))) throw new AppError('MCP_INVALID_RESULT', '收藏范围查询包含不符合明确条件的作品。');
-  if (coverage.complete !== (coverage.unknownDateCount === 0) || (coverage.scannedCount as number) < data.length
+  if (coverage.complete !== (coverage.unknownDateCount === 0 && (coverage.unknownNsfwCount ?? 0) === 0 && (coverage.excludedNsfwCount ?? 0) === 0) || (coverage.scannedCount as number) < data.length
     || (coverage.scannedCount as number) > (coverage.collectionTotal as number)
     || args.username === '-' && coverage.privateRecords !== 'included') throw new AppError('MCP_INVALID_RESULT', '收藏范围查询覆盖声明不一致。');
+  const excluded = Number(coverage.excludedNsfwCount ?? 0), unknown = Number(coverage.unknownNsfwCount ?? 0);
+  if (!Number.isSafeInteger(excluded) || excluded < 0 || !Number.isSafeInteger(unknown) || unknown < 0
+    || excluded + unknown > Number(coverage.scannedCount)
+    || (result.accessContext as AccessContext | undefined)?.queryCoverage?.nsfw === 'excluded' && data.some(row => row.nsfw !== false)) throw new AppError('MCP_INVALID_RESULT', '收藏范围查询NSFW筛除计数或范围不一致。');
   const direction = args.sort === 'date_asc' ? 1 : -1;
   for (let index = 1; index < data.length; index++) { const a = data[index - 1]!, b = data[index]!;
     if (direction * String(a.date ?? '').localeCompare(String(b.date ?? '')) > 0 || a.date === b.date && Number(a.subjectId) > Number(b.subjectId)) throw new AppError('MCP_INVALID_RESULT', '收藏范围查询排序不符合请求或同日顺序不稳定。'); }
