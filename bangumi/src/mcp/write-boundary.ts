@@ -12,11 +12,12 @@ import { resourceOutputSchema } from './resource-schemas.js';
 import { checkOutput, checkSubjectResponse } from './subject-output.js';
 import { checkSubmission } from './submission.js';
 import { createTerminalChannel, type InteractionChannel } from '../interaction.js';
-import { formatWritePreview, WRITE_LABELS } from './write-preview.js';
+import { formatWritePreview } from './write-preview.js';
 import type { ExtensionToolContext } from '@earendil-works/pi-coding-agent';
 import { confirmationForPlan } from './confirmation-policy.js';
 import { isEpisodeWrite, verifyWrittenState, type ReadbackVerification } from './write-verification.js';
 import { isWatchedUntil, MAX_PROGRESS_EPISODES, watchedUntilIds } from './episode-progress.js';
+import type { TraceHost } from '../tracing/schema.js';
 
 type State = 'success' | 'failed' | 'unknown' | 'unchanged';
 export interface Binding {
@@ -101,6 +102,7 @@ export function createWriteBoundary(
   getInput: () => { text: string; generation: number },
   onRecord?: (record: unknown) => void,
   channel: InteractionChannel = createTerminalChannel(),
+  trace?: TraceHost,
 ) {
   let generation: number | undefined;
   const completed = new Map<string, AgentToolResult<unknown>>();
@@ -197,7 +199,7 @@ export function createWriteBoundary(
       if (!progress) guard.prepared = { type: media[Number(info.subjectType)]!, collection: before === null ? null : {
         subjectId: id, status: Number(before.collection_type), rate: Number(before.rating), comment: String(before.comment), tags: before.tags as string[], private: before.private as boolean, chapters: Number(before.ep_status), volumes: Number(before.vol_status),
       } };
-      return { target: { kind: 'subject', id, name: info.nameCn ?? info.name }, before, after, args, guard,
+      return { target: { kind: 'subject', id, name: info.nameCn ?? info.name, subjectType: info.subjectType }, before, after, args, guard,
         effects: before === null ? ['创建收藏，未指定的评分/短评/标签/私密及进度采用预览中的初始值。'] : ['保留未修改的评分、短评、标签、私密及原生进度；收藏状态不会自动标记全部章节。'],
         readback: (_receipt, active) => subjectCollection(id, accountId, active) };
     }
@@ -319,9 +321,12 @@ export function createWriteBoundary(
   }
 
   async function prepare(name: string, args: Data, accountId: number, signal?: AbortSignal, view?: Map<string, unknown>): Promise<Binding> {
-    const baseline = new Map<string, unknown>();
-    const value = await bind(name, args, accountId, signal, view, baseline);
-    return { ...value, baseline };
+    const task = async () => {
+      const baseline = new Map<string, unknown>();
+      const value = await bind(name, args, accountId, signal, view, baseline);
+      return { ...value, baseline };
+    };
+    return trace ? trace.phase('preflight', task, { tool_name: name, account_id: accountId }) : task();
   }
   async function canonical(key: string, accountId: number, signal?: AbortSignal): Promise<unknown> {
     const [kind, id, entityId] = key.split(':');
@@ -398,7 +403,10 @@ export function createWriteBoundary(
       if (!channel.canConfirm(ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要本地Pi交互终端或已连接的Web终端，非交互模式不提交修改。');
       const account = record(await read('get_current_user', {}, signal));
       const confirmation = confirmationForPlan([{ name, args: binding.args, before: binding.before, after: binding.after }]);
-      const accepted = approved || !confirmation.required ? true : await channel.confirm(ctx, formatWritePreview(account, [{ name, ...binding }]), signal, { confirmLabel: `确认${WRITE_LABELS[name] ?? '修改'}` });
+      trace?.record('confirmation.policy', confirmation);
+      const confirmedBinding = binding;
+      const confirm = () => channel.confirm(ctx, formatWritePreview(account, [{ name, ...confirmedBinding }]), signal, { title: '操作授权', confirmLabel: '确认授权' });
+      const accepted = approved || !confirmation.required ? true : await (trace ? trace.phase('confirmation', confirm) : confirm());
       signal?.throwIfAborted();
       if (!accepted) throw new AppError('CANCELLED', '用户取消，未提交修改。');
       const latest = getInput();
@@ -417,7 +425,8 @@ export function createWriteBoundary(
       attempted = true;
       let receipt: SubmissionReceipt | undefined; let submissionError: unknown;
       try {
-        const submitted = await client.call(name, binding.args, signal, binding.guard);
+        const submit = () => client.call(name, binding!.args, signal, binding!.guard);
+        const submitted = await (trace ? trace.phase('submit', submit, { tool_call_id: toolCallId }) : submit());
         const definition = findToolDefinition(name);
         checkOutput(definition.outputSchema!, { value: submitted });
         checkSubmission(name, submitted, binding.args, accountId, binding.guard.subjectId, binding.guard.prepared);
@@ -436,44 +445,46 @@ export function createWriteBoundary(
       let verification: ReadbackVerification = { readbackCompleted: false, requestedStateMatched: false, protectedFieldsMatched: false, mismatchedFields: [] };
       // 独立生命周期；模型工具取消不会取消已提交操作的回读，不自动重试写入。
       try {
-        const verificationSignal = AbortSignal.timeout(60000);
-        if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '回读前账户已改变，不能验证原账户写入。');
-        actual = await binding.readback(receipt, verificationSignal);
-        if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '回读后账户已改变，不能报告原账户写入成功。');
-        verification = verifyWrittenState(name, binding.before, binding.after, actual, binding.target);
-        if (verification.requestedStateMatched && verification.protectedFieldsMatched) {
-          if (approved) {
-            const expected = structuredClone(binding.baseline ?? new Map<string, unknown>());
-            advanceWriteView(expected, { name, binding, ...(name === 'create_index' ? { createdIndex: positive(receipt?.createdId) } : {}) }, accountId);
-            // 汇总进度来自本次独立回读，不把网站派生更新当作未授权字段修改。
-            if (verification.parentProgress) {
-              const key = `collection:${verification.parentProgress.subjectId}`;
-              expected.set(key, { ...record(expected.get(key)), ep_status: verification.parentProgress.actual });
-            }
-            const observed = await canonicalView(expected.keys(), accountId, verificationSignal);
-            if (isEpisodeWrite(name)) {
-              // 两次读取之间网站仍可能推进汇总；使用最后完整回读，不要求派生计数冻结。
-              const subjectId = Number(binding.target.subjectId); const key = `collection:${subjectId}`;
-              const expectedState = record(binding.after);
-              actual = { episodes: (expectedState.episodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)), parentCollection: observed.get(key),
-                ...(expectedState.protectedEpisodes ? { protectedEpisodes: (expectedState.protectedEpisodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)) } : {}) };
-              verification = verifyWrittenState(name, binding.before, binding.after, actual, binding.target);
-              if (verification.parentProgress) expected.set(key, { ...record(expected.get(key)), ep_status: verification.parentProgress.actual });
-            }
-            if (!sameBaseline(observed, expected)) {
-              state = 'failed';
-              if (!isEpisodeWrite(name)) verification.protectedFieldsMatched = false;
-              verification.mismatchedFields.push('baseline');
-              verificationError = new AppError('UNEXPECTED_CHANGE', '完整回读与已确认计划不一致，已停止后续。');
-            }
-            else {
-              if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '完整回读后账户改变，不能报告成功。');
-              state = 'success';
-            }
-          } else state = 'success';
-        }
-        else if (receipt?.submissionState === 'acknowledged' || receipt?.submissionState === 'not_attempted') state = 'failed';
-        if (state === 'failed' && verification.mismatchedFields.length) verificationError ??= new AppError('READBACK_MISMATCH', `回读不符合预期：${verification.mismatchedFields.join('、')}。`);
+        const verifiedBinding = binding;
+        const verify = async () => {
+          const verificationSignal = AbortSignal.timeout(60000);
+          if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '回读前账户已改变，不能验证原账户写入。');
+          actual = await verifiedBinding.readback(receipt, verificationSignal);
+          if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '回读后账户已改变，不能报告原账户写入成功。');
+          verification = verifyWrittenState(name, verifiedBinding.before, verifiedBinding.after, actual, verifiedBinding.target);
+          if (verification.requestedStateMatched && verification.protectedFieldsMatched) {
+            if (approved) {
+              const expected = structuredClone(verifiedBinding.baseline ?? new Map<string, unknown>());
+              advanceWriteView(expected, { name, binding: verifiedBinding, ...(name === 'create_index' ? { createdIndex: positive(receipt?.createdId) } : {}) }, accountId!);
+              // 汇总进度来自本次独立回读，不把网站派生更新当作未授权字段修改。
+              if (verification.parentProgress) {
+                const key = `collection:${verification.parentProgress.subjectId}`;
+                expected.set(key, { ...record(expected.get(key)), ep_status: verification.parentProgress.actual });
+              }
+              const observed = await canonicalView(expected.keys(), accountId, verificationSignal);
+              if (isEpisodeWrite(name)) {
+                // 两次读取之间网站仍可能推进汇总；使用最后完整回读，不要求派生计数冻结。
+                const subjectId = Number(verifiedBinding.target.subjectId); const key = `collection:${subjectId}`;
+                const expectedState = record(verifiedBinding.after);
+                actual = { episodes: (expectedState.episodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)), parentCollection: observed.get(key),
+                  ...(expectedState.protectedEpisodes ? { protectedEpisodes: (expectedState.protectedEpisodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)) } : {}) };
+                verification = verifyWrittenState(name, verifiedBinding.before, verifiedBinding.after, actual, verifiedBinding.target);
+                if (verification.parentProgress) expected.set(key, { ...record(expected.get(key)), ep_status: verification.parentProgress.actual });
+              }
+              if (!sameBaseline(observed, expected)) {
+                state = 'failed';
+                if (!isEpisodeWrite(name)) verification.protectedFieldsMatched = false;
+                verification.mismatchedFields.push('baseline');
+                verificationError = new AppError('UNEXPECTED_CHANGE', '完整回读与已确认计划不一致，已停止后续。');
+              } else {
+                if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '完整回读后账户改变，不能报告成功。');
+                state = 'success';
+              }
+            } else state = 'success';
+          } else if (receipt?.submissionState === 'acknowledged' || receipt?.submissionState === 'not_attempted') state = 'failed';
+          if (state === 'failed' && verification.mismatchedFields.length) verificationError ??= new AppError('READBACK_MISMATCH', `回读不符合预期：${verification.mismatchedFields.join('、')}。`);
+        };
+        if (trace) await trace.phase('verify', verify, { tool_call_id: toolCallId }); else await verify();
       } catch (error) { verification.readbackCompleted = false; verificationError = error; }
       if (state === 'unknown') unknownWrite = true;
       const outcome = { ...base, state, networkAttempted: true, verification: { ...verification, state }, ...(actual === undefined ? {} : { actual }),
@@ -529,10 +540,13 @@ export function createWriteBoundary(
       target: structuredClone(step.binding.target), args: structuredClone(step.binding.args), guard: structuredClone(step.binding.guard), before: structuredClone(step.binding.before), after: structuredClone(step.binding.after),
       effects: [...step.binding.effects], baseline: structuredClone(step.binding.baseline) } }));
     const baseline = structuredClone(initial);
-    const skipped = frozen.filter(s => equal(s.binding.before, s.binding.after)).length;
     const confirmation = confirmationForPlan(frozen.map(s => ({ name: s.name, args: s.binding.args, before: s.binding.before, after: s.binding.after })));
-    if (confirmation.required && !await channel.confirm(ctx, formatWritePreview(account, frozen.map(s => ({ name: s.name, ...s.binding })), skipped), signal,
-      { title: 'Bangumi 整批修改预览', confirmLabel: `确认执行全部${frozen.length - skipped}项修改` })) throw new AppError('CANCELLED', '用户取消整批授权，未提交修改。');
+    trace?.record('confirmation.policy', confirmation);
+    if (confirmation.required) {
+      const confirm = () => channel.confirm(ctx, formatWritePreview(account, frozen.map(s => ({ name: s.name, ...s.binding }))), signal,
+        { title: '操作授权', confirmLabel: '确认授权' });
+      if (!await (trace ? trace.phase('confirmation', confirm) : confirm())) throw new AppError('CANCELLED', '用户取消整批授权，未提交修改。');
+    }
     await assertReady(ctx, input, accountId, signal);
     const actual = await canonicalView(baseline.keys(), accountId, signal);
     if (!sameBaseline(actual, baseline)) throw new AppError('STALE_PREVIEW', '确认期间网站现状改变，旧计划未提交，请重新核对完整范围。');

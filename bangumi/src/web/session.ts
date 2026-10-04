@@ -642,11 +642,11 @@ export class WebSession {
     const id = randomUUID();
     const view: ConfirmationView = {
       id,
-      title: options.title ?? "Bangumi 修改预览",
-      confirmLabel: options.confirmLabel ?? "确认修改",
+      title: options.title ?? "操作授权",
+      confirmLabel: options.confirmLabel ?? "确认授权",
       preview,
       state: "pending",
-      hint: "确认后才会提交；提交前会重新核对账户与网站现状。",
+      hint: "授权仅用于本次列出的操作。",
     };
     const item = this.push({
       id: this.nextItemId++,
@@ -662,7 +662,7 @@ export class WebSession {
         if (item.kind === "confirmation") item.version++;
         this.pushNotice(
           accepted
-            ? "已确认，正在提交并独立回读。"
+            ? "已授权，正在执行本次操作。"
             : "已取消本次修改，未提交。",
         );
         this.emit();

@@ -97,10 +97,10 @@ export class WritePreviewComponent implements Component {
     }, 0);
     this.timers.add(timer);
     const ready = this.viewedAll() && this.atEnd();
-    const label = this.options.confirmLabel ?? '确认修改';
+    const label = this.options.confirmLabel ?? '确认授权';
     const choice = ready ? this.selectedConfirm ? `取消    [${label}]` : `[取消]    ${label}` : '[取消]    确认未解锁';
     return [
-      truncateToWidth(this.options.title ?? 'Bangumi 修改预览', width),
+      truncateToWidth(this.options.title ?? '操作授权', width),
       truncateToWidth(`第 ${start + 1}-${end}/${this.lines.length} 行 · ${ready ? '完整预览已显示' : '请查看全部内容'}`, width),
       ...this.lines.slice(start, end),
       truncateToWidth('↑↓ / PgUp PgDn 翻页 · ←→ 选择 · Enter 执行选择', width),

@@ -59,7 +59,8 @@ export class LocalMcpClient implements McpCallClient {
   private initialization: Promise<void> | undefined;
   private closed = false;
   private broken = false;
-  constructor(private readonly options: { authDir: string; proxy: ProxyOptions; timeoutMs: number; entry?: string; env?: NodeJS.ProcessEnv }) {
+  constructor(private readonly options: { authDir: string; proxy: ProxyOptions; timeoutMs: number; entry?: string; env?: NodeJS.ProcessEnv;
+    onTrace?: (event: 'initializing' | 'initialized' | 'dispatch') => void }) {
     if (!Number.isInteger(options.timeoutMs) || options.timeoutMs < 1000 || options.timeoutMs > 300000) throw new AppError('INVALID_INPUT', 'MCP 超时须为1000～300000毫秒。');
     const entry = options.entry ?? fileURLToPath(new URL('./server.js', import.meta.url));
     if (!isAbsolute(entry) || !isAbsolute(options.authDir)) throw new AppError('INVALID_INPUT', 'MCP 服务及认证目录须使用绝对路径。');
@@ -80,12 +81,16 @@ export class LocalMcpClient implements McpCallClient {
   private usable(): void {
     if (this.closed || this.broken) throw new AppError('MCP_CONNECTION_CLOSED', '本地 MCP 连接已关闭，请重新启动本助手；未自动重发任何操作。');
   }
+  private diagnostic(event: 'initializing' | 'initialized' | 'dispatch'): void {
+    try { this.options.onTrace?.(event); } catch { /* 日志不能改变 MCP 提交或触发重试。 */ }
+  }
   private ready(): Promise<void> {
     this.usable();
     this.initialization ??= this.initialize();
     return this.initialization;
   }
   private async initialize(): Promise<void> {
+    this.diagnostic('initializing');
     try {
       await this.client.connect(this.transport, { timeout: this.options.timeoutMs });
       this.usable();
@@ -101,6 +106,7 @@ export class LocalMcpClient implements McpCallClient {
         }
         if (!result.nextCursor) {
           if (seen.size !== 55 || expected.size !== 55) throw new AppError('MCP_CATALOG_MISMATCH', '本地 MCP 未完整返回锁定的55项工具。');
+          this.diagnostic('initialized');
           return;
         }
         if (!result.tools.length || cursors.has(result.nextCursor)) throw new AppError('MCP_CATALOG_MISMATCH', 'MCP 工具分页未继续推进。');
@@ -128,6 +134,7 @@ export class LocalMcpClient implements McpCallClient {
     await awaitWithCancellation(this.ready(), signal); interrupted(signal); this.usable();
     let raw: unknown;
     try {
+      this.diagnostic('dispatch');
       raw = await this.client.callTool({ name, arguments: parameters, ...(metadata ? { _meta: { 'bangumi/guard': metadata } } : {}) }, undefined,
         { timeout: this.options.timeoutMs, ...(signal === undefined ? {} : { signal }) });
     } catch (error) {

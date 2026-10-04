@@ -7,6 +7,7 @@ import { TOOL_DEFINITIONS, validateToolArguments } from './catalog.js';
 import { record, positive, type Data } from './resource-output.js';
 import { advanceWriteView, submissionArguments, type Binding, type PlannedWrite, type WriteBoundary } from './write-boundary.js';
 import { confirmationForPlan, type ConfirmationDecision } from './confirmation-policy.js';
+import type { TraceHost } from '../tracing/schema.js';
 
 export const BATCH_TOOL_NAME = 'execute_write_batch';
 const stepId: JsonSchema = { type: 'integer', minimum: 1, maximum: 200 };
@@ -57,7 +58,7 @@ function stable(value: unknown): unknown {
 }
 
 /** 一个Pi工具调用内完成计划与执行；不持久化授权、不增加MCP能力、不维护对话状态机。 */
-export function createBatchWriteTool(boundary: WriteBoundary, onRecord: (value: Data) => void): ToolDefinition {
+export function createBatchWriteTool(boundary: WriteBoundary, onRecord: (value: Data) => void, trace?: TraceHost): ToolDefinition {
   let generation: number | undefined;
   const completed = new Map<string, AgentToolResult<unknown>>();
   return {
@@ -102,7 +103,8 @@ export function createBatchWriteTool(boundary: WriteBoundary, onRecord: (value: 
         let stopped = false;
         for (let i = 0; i < steps.length; i++) {
           if (signal?.aborted) { stopped = true; break; }
-          const outcome = await boundary.executeApproved(token, signal, `${toolCallId}/${i + 1}`);
+          const executeStep = () => boundary.executeApproved(token!, signal, `${toolCallId}/${i + 1}`);
+          const outcome = await (trace ? trace.operation('batch.step', executeStep, { step: i + 1, tool_name: steps[i]!.name, tool_call_id: `${toolCallId}/${i + 1}` }) : executeStep());
           const value = record(record(outcome.details).value);
           items[i] = { ...items[i], ...value, step: i + 1 };
           if (steps[i]!.name === 'create_index' && value.state === 'success') {

@@ -18,6 +18,7 @@ bangumi/tsconfig.test.json
 **/source-manifest.json
 **/test-source-manifest.json
 *.log
+**/tracelog/
 .env
 .env.*
 *.dpapi

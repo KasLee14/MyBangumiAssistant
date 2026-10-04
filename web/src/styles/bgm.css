@@ -303,14 +303,11 @@
 }
 .planStrip { border-bottom: 1px solid var(--bgm-border-soft); }
 .planNote { color: var(--bgm-text-muted); font-size: 12px; }
-.previewText {
+.planPreview {
   background: var(--bgm-sunken);
   border: 1px solid var(--bgm-border-soft);
   border-radius: var(--bgm-r-sm);
-  color: var(--bgm-text-muted);
-  font-family: var(--bgm-mono);
-  font-size: 11px;
-  line-height: 1.7;
+  color: var(--bgm-text);
 }
 
 /* 3.6 会话内提示与错误：沿用 DSH 的行内语汇，没有彩色横幅。

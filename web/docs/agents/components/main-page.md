@@ -26,6 +26,7 @@
 3. **会话视图必须含 `.body` 与 `.scrollBody`，不含 `.frame` / `.conversation`** —— 违反后果：容器查询与屏外优化同时失效。
 4. **流式显示块独立成组件并 `memo`** —— 违反后果：每帧重渲染整棵会话树。
 5. **会话行右侧的时间文案走 [`../utils/relativeTime.ts`](../utils/relativeTime.md)** —— 违反后果：侧栏与 `/sessions` 弹窗各算一份，两处措辞漂移（`now` 由组件注入一次，不让每行自己取时钟）。
+6. **待授权卡只在输入区呈现一次**：`ConfirmationCard` 的历史模式（`showActions=false`）在 `state=pending` 时返回 `null`，处理完成后才展示结果。宿主仍保留同一条授权记录，避免正文和输入区重复显示同一个请求。
 
 ## 一览
 
@@ -62,7 +63,9 @@ const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 - **顺序即优先级**：`SEAT_BRANCHES.find(...)` 取第一个命中项，更"强"的接管形态要排在前面。
 - 全部未命中 → 渲染默认输入卡（`<Composer key={sessionId} />`）；切换会话时重建输入卡，清理单次提交与补全状态，草稿仍由 `ui.drafts` 按会话保存。
 
-历史列表使用 `session.id` 作为 key，并与 `stream.sessionId` 比较判断选中项；右侧优先显示「待确认 / 待登录 / 运行中 / 当前」，其余显示相对时间。`ConfirmationCard` 保留宿主的 `confirmLabel`，未提供时使用「确认修改」。
+历史列表使用 `session.id` 作为 key，并与 `stream.sessionId` 比较判断选中项；右侧优先显示「待确认 / 待登录 / 运行中 / 当前」，其余显示相对时间。`ConfirmationCard` 保留宿主的 `confirmLabel`，未提供时使用「确认授权」。
+
+授权卡标题默认为「操作授权」，状态文案为「待授权 / 已授权 / 已取消 / 已过期」。宿主的 `preview` 仍是纯文本字符串，包含「需要进行的操作、使用账户、完整对象范围、是否授权」；组件用 `.planPreview` 普通正文呈现，保留换行，不解析字段或生成授权摘要。评分等只展示实际变化；长短评和简介保留最终正文，同名对象由宿主补充 ID，新目录依赖直接显示目录名称。相邻同类且变更相同的操作可合并展示，执行顺序与授权范围由宿主冻结。
 
 两个必须保留的约束：
 

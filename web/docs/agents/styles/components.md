@@ -33,9 +33,10 @@
 |---|---|
 | `.cardSeat` | 确认卡的"座位"：sticky 贴底，重算 `--dsh-chat-content-width`（与 `.column`、`.composerSeat` 三处同源） |
 | `.planCard` / `.planStrip` / `.planBody` / `.planNote` / `.planActions` | 确认卡本体：状态条由 `data-state` 着色（`pending` / `accepted` / `rejected` / `expired`） |
-| `.previewText` | 预览文本：等宽、保留换行（宿主给的完整预览原样呈现，前端不截断） |
+| `.planTitle` | 授权标题：正文标题字体，留出状态文案的位置 |
+| `.planPreview` | 授权正文：使用 `--dsw-font-s-14` 普通字体，保留换行（宿主操作说明及完整范围原样呈现，前端不截断） |
 
-注意 `.previewText` 与已移除的调试面板**无关**，它只服务确认卡的 `<pre>`；`bgm.css` 里也有同名覆盖。
+`.planPreview` 服务授权卡的纯文本 `<div>`，不用代码块或等宽字体；`bgm.css` 只覆盖底色、边框和正文颜色，字号与行高沿用正文令牌。长范围在 `.planBody` 内滚动，按钮始终留在独立的 `.planActions` 中。
 
 ## `composer.css`（~615 行）：输入区与浮层
 

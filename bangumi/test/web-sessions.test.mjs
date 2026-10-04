@@ -67,7 +67,12 @@ test('后台确认跨切换保留，确认 ID 不能在另一会话使用，断�
   const connection = await f.stream('tab');
   const a = (await f.state('tab')).sessionId;
   const confirmation = f.manager.get(a).requestConfirmation('修改A', undefined);
-  const id = f.manager.get(a).snapshot().pending.id;
+  const view = f.manager.get(a).snapshot().pending;
+  const id = view.id;
+  assert.equal(view.title, '操作授权');
+  assert.equal(view.confirmLabel, '确认授权');
+  assert.equal(view.preview, '修改A');
+  assert.equal(view.hint, '授权仅用于本次列出的操作。');
   const b = (await f.post('tab', 'session', { action: 'new' })).state.sessionId;
   assert.equal(f.manager.get(a).snapshot().pending.id, id);
   assert.equal((await f.request('tab', 'confirm', { id, accepted: true }, b)).status, 400);
@@ -179,4 +184,3 @@ test('账户操作排队：取消等待任务不会执行，也不会提前放�
   await Promise.all([first, third]);
   assert.deepEqual(sequence, ['first', 'third']);
 });
-

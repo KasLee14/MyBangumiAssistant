@@ -14,7 +14,7 @@ export interface ConfirmationView {
   title: string;
   /** 宿主按完整计划生成的确认按钮文案。 */
   confirmLabel?: string;
-  /** 宿主生成的完整预览文本，按等宽呈现。 */
+  /** 宿主生成的中文操作说明和完整范围，按普通正文呈现并保留换行。 */
   preview: string;
   state: 'pending' | 'accepted' | 'rejected' | 'expired';
   hint: string;

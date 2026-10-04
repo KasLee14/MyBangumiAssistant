@@ -200,7 +200,8 @@ test('章节与单项评分混合不算批量审批，作品短评仍整计划�
     assert.deepEqual(value.confirmation, { required, reasons: required ? ['发布或修改作品短评'] : [] });
     assert.equal(f.requests.length, 2);
     if (required) {
-      assert.match(f.previews[0], /设置看到此集/);
+      assert.match(f.previews[0], /将《测试动画》看到指定章节/);
+      assert.match(f.previews[0], /章节 #1、#2、#3、#4、#5、#6、#7：标记为看过/);
       assert.match(f.previews[0], /新的作品短评/);
     }
   }

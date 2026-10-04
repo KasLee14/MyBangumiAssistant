@@ -27,7 +27,7 @@
 
 ## 这是什么
 
-**文档化的回归用例**，覆盖 web 交互终端的主链路，是"照着做就能判定通过/失败"的清单。项目另有 Node 内置测试：在 `bangumi/` 先执行 `npm run build`，再执行 `npm run test:web`；离线自动测试与真实模型、真实登录的验收应分别记录。
+**文档化的回归用例**，覆盖 web 交互终端的主链路，是"照着做就能判定通过/失败"的清单。项目另有 Node 内置测试：在 `bangumi/` 先执行 `npm run build`，再执行 `npm run test:web`；授权文案和固定确认政策使用 `node --test test/write-preview.test.mjs test/confirmation-policy.test.mjs`。离线自动测试与真实模型、真实登录的验收应分别记录。
 
 设计目标有两个：
 

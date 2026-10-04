@@ -90,7 +90,23 @@ Web 端支持多个会话同时运行：新建或切换会话只改变当前查�
 
 `defaultProvider` 与上面的提供方名称一致，`defaultModel` 与模型 `id` 一致；`defaultThinkingLevel` 可选，`off` 表示关闭思考。
 
-## 3、致谢
+## 3、执行轨迹与 MCP 分析
+
+每次 Agent 执行默认在应用数据目录的 `tracelog` 中保存独立轨迹，与 Pi 的完整会话文件分开。轨迹包括实际 prompt、API 可见思考、模型工具及宿主内部 MCP 调用、写入回读和最终输出；多会话各自保存，后台标题另行记录。
+
+每份轨迹包含 `events.jsonl`、`summary.json` 和 `payloads/`，摘要直接提供调用次数、耗时、结果体积、搜索增量和重复查询等分析。凭据和宿主授权对象会在落盘前脱敏。
+
+在 `bangumi/` 目录运行：
+
+```powershell
+npm start -- web --trace off
+npm start -- web --trace-dir "E:\BangumiTrace"
+npm start -- trace-analyze "E:\BangumiTrace\2026-10-04\SESSION_ID\TRACE_ID"
+```
+
+日志开关独立于 `--no-session`。目录配置、完整字段、格式和覆盖范围见 [Tracelog 说明](bangumi/TRACING.md)。
+
+## 4、致谢
 
 - [Pi](https://github.com/earendil-works/pi)：提供模型接入、对话循环、会话管理和终端交互能力。
 - [Bangumi](https://bgm.tv/) 与 [Bangumi API](https://github.com/bangumi/api)：提供作品、章节、人物、目录和收藏相关的数据与服务。

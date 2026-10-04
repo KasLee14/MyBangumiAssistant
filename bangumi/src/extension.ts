@@ -11,6 +11,9 @@ import { ProxyController } from './support/proxy-controller.js';
 import { createSkillReadTool } from './strategies/native-skills.js';
 import { registerSessionTitles, type SessionTitleGenerator } from './session-title.js';
 import type { TaskQueue } from './support/task-queue.js';
+import { TraceRecorder } from './tracing/recorder.js';
+import { registerTraceHooks } from './tracing/pi-hooks.js';
+import type { TraceOptions } from './tracing/schema.js';
 
 export interface BangumiExtensionConfig {
   authDir: string;
@@ -24,6 +27,8 @@ export interface BangumiExtensionConfig {
   generateSessionTitle?: SessionTitleGenerator;
   /** Web 宿主的所有会话共用账户操作队列。 */
   accountQueue?: TaskQueue;
+  /** 启动器默认启用本地日志；嵌入宿主和离线测试可省略。 */
+  trace?: TraceOptions;
 }
 
 const instructions = `你是中文Bangumi助手，依据工具事实回答。可自由组合已登记MCP工具查询五类作品、角色、人物、目录、章节、公开用户及修订资料，并基于资料讨论和推荐。用户选择、追问和指代结合当前Pi对话历史理解；对象不明确时询问，不编造ID。本人使用username="-"，第三方只读公开资料。
@@ -36,11 +41,14 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
   return pi => {
     const proxy = config.proxy instanceof ProxyController ? config.proxy : new ProxyController(policyFor(config.proxy));
     const channel = config.channel ?? createTerminalChannel();
-    registerSessionTitles(pi, config.generateSessionTitle, (ctx, message, type) => channel.notify(ctx, message, type));
-    const createClient = () => new LocalMcpClient({ authDir: config.authDir, timeoutMs: config.timeoutMs, proxy: proxy.current });
+    const trace = new TraceRecorder(config.trace);
+    registerSessionTitles(pi, config.generateSessionTitle, (ctx, message, type) => channel.notify(ctx, message, type), trace);
+    const createClient = () => new LocalMcpClient({ authDir: config.authDir, timeoutMs: config.timeoutMs, proxy: proxy.current,
+      onTrace: event => trace.mcpDiagnostic(event) });
     let client: McpCallClient & { close?(): Promise<void> } = config.client ?? createClient();
     const facade: McpCallClient = {
-      call: (name, args, signal, guard) => client.call(name, args, signal, guard),
+      call: (name, args, signal, guard) => trace.mcp(name, args, () => client.call(name, args, signal, guard), guard?.accountId,
+        config.client === undefined && client instanceof LocalMcpClient),
       close: async () => { await client.close?.(); },
     };
     const unsubscribeProxy = config.client ? undefined : proxy.onChange(async () => {
@@ -50,22 +58,35 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     });
     const store = config.store ?? new AccountSessionStore(config.authDir);
     let input = { text: '', generation: 0 };
-    const boundary = createWriteBoundary(facade, () => input, record => pi.appendEntry('bangumi/write', record), channel);
+    const boundary = createWriteBoundary(facade, () => input, record => {
+      pi.appendEntry('bangumi/write', record);
+      trace.record('write.fact', record);
+    }, channel, trace);
     // 固定MCP写映射只在宿主计划内执行，模型不能拆成逐项写调用绕过整批政策。
-    for (const tool of createReadTools(facade)) pi.registerTool(tool);
-    const batchTool = createBatchWriteTool(boundary, record => pi.appendEntry('bangumi/batch', record));
+    for (const tool of createReadTools(facade)) pi.registerTool(trace.wrapTool(tool));
+    const batchTool = createBatchWriteTool(boundary, record => {
+      pi.appendEntry('bangumi/batch', record);
+      trace.record('batch.fact', record);
+    }, trace);
     const accountQueue = config.accountQueue;
-    pi.registerTool(accountQueue ? {
+    pi.registerTool(trace.wrapTool(accountQueue ? {
       ...batchTool,
       execute: (toolCallId, args, signal, onUpdate, ctx) => {
         const expected = input;
+        const queued = performance.now();
+        let acquired = false;
         return accountQueue.run(() => {
+          acquired = true;
+          trace.record('account_queue.wait', { duration_ms: performance.now() - queued, outcome: 'acquired' });
           if (input !== expected) throw new AppError('STALE_PREVIEW', '排队期间用户输入已改变，未提交旧计划。');
           return batchTool.execute(toolCallId, args, signal, onUpdate, ctx);
-        }, signal);
+        }, signal).catch(error => {
+          if (!acquired) trace.record('account_queue.wait', { duration_ms: performance.now() - queued, outcome: 'cancelled' });
+          throw error;
+        });
       },
-    } : batchTool);
-    pi.registerTool(createSkillReadTool(process.cwd()));
+    } : batchTool));
+    pi.registerTool(trace.wrapTool(createSkillReadTool(process.cwd())));
 
     pi.on('input', event => {
       input = { text: event.source === 'extension' ? '' : redact(event.text, credentialValues()), generation: input.generation + 1 };
@@ -73,6 +94,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     pi.on('before_agent_start', event => ({ systemPrompt: `${event.systemPrompt}\n\n${instructions}` }));
     pi.on('session_start', () => { input = { text: '', generation: input.generation + 1 }; });
     pi.on('session_shutdown', async () => { input = { text: '', generation: input.generation + 1 }; unsubscribeProxy?.(); await client.close?.(); });
+    if (config.trace) registerTraceHooks(pi, trace);
 
     pi.registerCommand('bangumi-login', {
       description: 'Bangumi独立邮箱、隐藏密码与浏览器验证码登录；参数manual使用本地辅助',
