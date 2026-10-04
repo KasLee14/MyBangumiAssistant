@@ -18,6 +18,8 @@ import { startWebTerminal } from './web/server.js';
 import { WebInteractionChannel } from './web/session.js';
 import { WebSessionManager } from './web/session-manager.js';
 import { TaskQueue } from './support/task-queue.js';
+import { restoreWriteRateLimits, WriteRateLimiter } from './mcp/write-rate-limit.js';
+import { WriteJournal } from './mcp/write-journal.js';
 import { analyzeTrace } from './tracing/analyze.js';
 import type { TraceOptions } from './tracing/schema.js';
 
@@ -158,13 +160,16 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   const webChannel = options.web ? new WebInteractionChannel() : undefined;
   const channel: InteractionChannel = webChannel ?? createTerminalChannel();
   const accountQueue = new TaskQueue();
+  const writeLimiter = new WriteRateLimiter();
+  const writeJournal = new WriteJournal(join(options.dataDir, 'writes', 'operations.jsonl'));
+  restoreWriteRateLimits(writeLimiter, writeJournal.entries());
   let runtime;
   let webSessions: WebSessionManager | undefined;
   let printOwnsDisposal = false;
   try {
     runtime = await createBangumiRuntime({
       cwd, agentDir, sessionManager, fetch: transport.fetch,
-      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel, accountQueue,
+      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel, accountQueue, writeLimiter, writeJournal,
         ...(trace ? { trace } : {}) }),
       ...(args.provider === undefined ? {} : { provider: args.provider }),
       ...(args.model === undefined ? {} : { model: args.model }),
@@ -185,7 +190,7 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
         store: new AccountSessionStore(authDir), cwd, sessionDir, proxy, timeoutMs: options.timeoutMs, accountQueue,
         createRuntime: (manager, sessionChannel) => createBangumiRuntime({
           cwd, agentDir, sessionManager: manager, modelRuntime, fetch: transport.fetch,
-          extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel: sessionChannel, accountQueue,
+          extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel: sessionChannel, accountQueue, writeLimiter, writeJournal,
             ...(trace ? { trace } : {}) }),
           ...(args.provider === undefined ? {} : { provider: args.provider }),
           ...(args.model === undefined ? {} : { model: args.model }),

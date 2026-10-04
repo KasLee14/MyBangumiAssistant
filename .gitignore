@@ -14,6 +14,7 @@ bangumi/scripts/
 !bangumi/scripts/
 bangumi/scripts/*
 !bangumi/scripts/copy-strategy-skills.mjs
+!bangumi/scripts/sync-mcp-doc.mjs
 bangumi/tsconfig.test.json
 **/source-manifest.json
 **/test-source-manifest.json

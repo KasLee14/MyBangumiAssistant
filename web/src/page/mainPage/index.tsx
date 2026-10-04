@@ -1,34 +1,31 @@
 import type { ReactNode } from 'react';
-import { ComposerSlot } from '../../components/mainPage/composer/ComposerSlot';
-import { ConversationView } from '../../components/mainPage/conversation/ConversationView';
-import { Hero } from '../../components/mainPage/conversation/Hero';
-import { UserBubble } from '../../components/mainPage/conversation/MessageParts';
-import { Header } from '../../components/mainPage/header/Header';
-import { DialogHost } from '../../components/mainPage/overlays/DialogHost';
-import { Toast } from '../../components/mainPage/overlays/Toast';
-import { Sidebar } from '../../components/mainPage/sidebar/Sidebar';
+import { useAppSelector } from '../../store/hooks';
+import { selectVariant } from '../../store/selectors';
 import {
-  useActions,
-  useAppSelector,
   useCatalogSync,
   useEscapeShortcut,
   useResponsiveCollapse,
 } from '../../store/hooks';
-import { selectHeroPhase } from '../../store/selectors';
 import { useStreamSubscription } from '../../store/stream';
+import { ShellV1 } from './ShellV1';
+import { ShellV2 } from './ShellV2';
 
 /**
- * 主界面：布局装配与生命周期订阅，不含业务状态。
+ * 主界面薄壳：生命周期订阅 + 外观版本分流。
  *
- * 四个订阅各管一件事，且都只在主界面挂载时生效：
+ * 四个订阅各管一件事，且都只在主界面挂载时生效（与新增 v2 之前完全一致）：
  * - `useStreamSubscription` 建立宿主事件流；
  * - `useCatalogSync` 在首屏与会话切换后重取目录；
  * - `useResponsiveCollapse` 按窗口宽度收放侧栏；
  * - `useEscapeShortcut` 处理 Esc 的「停止本轮 / 拒绝确认」。
  *
- * 其余一切（会话流、目录、弹窗、提示）都由 store 提供：这里只把切片接到
- * `ConversationView` 的 props 上；`ConversationView` 本身保持 props 驱动，
- * 不直接依赖 store。
+ * 订阅**必须留在这一层**：它们驱动的是 store 里的共享状态（会话流、目录、侧栏、
+ * Esc），与外观版本无关。放在外壳里会让切换版本时重建事件流——那是真的重连宿主，
+ * 不是一次外观切换。
+ *
+ * 这里只做一件事：按 `store.ui.variant` 选一棵外壳树。两棵树的组件、样式与动效
+ * 完全独立，共用同一份 store 与同一套订阅，因此「功能一致」由数据来源保证，
+ * 而不是靠两份代码手工对齐。
  */
 export function MainPage(): ReactNode {
   useStreamSubscription();
@@ -36,48 +33,6 @@ export function MainPage(): ReactNode {
   useResponsiveCollapse();
   useEscapeShortcut();
 
-  const actions = useActions();
-  const items = useAppSelector(state => state.stream.items);
-  const liveText = useAppSelector(state => state.stream.liveText);
-  const liveThinking = useAppSelector(state => state.stream.liveThinking);
-  const busy = useAppSelector(state => state.stream.busy);
-  const status = useAppSelector(state => state.stream.status);
-  const cancelling = useAppSelector(state => state.stream.cancelling);
-  const startedAt = useAppSelector(state => state.stream.startedAt);
-  const sessionId = useAppSelector(state => state.stream.sessionId);
-  const pendingEcho = useAppSelector(state => state.stream.pendingEcho);
-  const reveal = useAppSelector(state => state.ui.reveal);
-  const collapsed = useAppSelector(state => state.ui.collapsed);
-  const heroPhase = useAppSelector(selectHeroPhase);
-
-  return (
-    <div className="frame" data-sidebar={collapsed ? 'collapsed' : 'expanded'}>
-      <Sidebar />
-      <main className="conversation">
-        <Header />
-        {/* 会话视图的两个槽位：内容由页面决定，渲染位置与形态仍在 ConversationView 内，
-            因此首屏引导与乐观回显不会各自长成另一份实现。
-            输入区槽位只给组件：输入卡与接管卡片（如写入确认）之间的取舍由 ComposerSlot
-            自己判定并渲染，页面这里不做分支。 */}
-        <ConversationView
-          items={items}
-          liveText={liveText}
-          liveThinking={liveThinking}
-          busy={busy}
-          status={status}
-          cancelling={cancelling}
-          startedAt={startedAt}
-          sessionId={sessionId}
-          reveal={reveal}
-          onConfirm={actions.confirm}
-          onReject={actions.reject}
-          composer={<ComposerSlot />}
-          hero={heroPhase ? <Hero /> : undefined}
-          pendingEcho={pendingEcho === null ? undefined : <UserBubble key="pending-echo" text={pendingEcho.text} />}
-        />
-      </main>
-      <DialogHost />
-      <Toast />
-    </div>
-  );
+  const variant = useAppSelector(selectVariant);
+  return variant === 'v2' ? <ShellV2 /> : <ShellV1 />;
 }

@@ -144,8 +144,8 @@ function operation(item: WritePreviewItem, names: PreviewNames, step: number): P
       : `修改${target}的${keys.map(key => fields[key]).join('、')}`, rows: [withDetails(target, details(keys, before, after))] };
   }
   if (item.name === 'add_subject_to_index') {
-    const keys = ['comment', 'order'].filter(key => Boolean(after[key]));
-    return { key: JSON.stringify([item.name, t.indexId, keys.map(key => [key, after[key]])]), title: count => `向${target}添加以下 ${count} 部作品`,
+    const keys = ['comment', 'order'].filter(key => key === 'order' ? after[key] !== undefined : Boolean(after[key]));
+    return { key: JSON.stringify([item.name, t.indexId]), title: count => `向${target}添加以下 ${count} 部作品`,
       rows: [withDetails(subjectName(item, names), details(keys, {}, after, undefined, true))] };
   }
   if (item.name === 'remove_subject_from_index') {
@@ -175,7 +175,7 @@ export function formatWritePreview(account: Data, items: WritePreviewItem[]): st
   items.forEach((item, i) => {
     if (isDeepStrictEqual(item.before, item.after)) { skipped.push(unchangedTarget(item, names)); return; }
     const preview = operation(item, names, i + 1); const previous = groups.at(-1);
-    // 仅合并相邻同类且目标变更相同的操作，保留原计划的先后关系。
+    // 仅合并相邻可共用动作摘要的操作；逐项明细保留排序、正文与原计划先后关系。
     if (previous?.operation.key === preview.key) { previous.operation.rows.push(...preview.rows); previous.count++; }
     else groups.push({ operation: preview, count: 1 });
   });

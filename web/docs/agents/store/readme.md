@@ -25,6 +25,7 @@
 3. **selector 不得新建引用**：不得在 selector 里 `map` / `filter` / 构造对象或数组。违反后果：`useSelector` 每帧判定"变了"，整棵树每帧重渲染。见 [selectors-and-instance.md](selectors-and-instance.md)。
 4. **reducer 无变化时返回原 state**：违反后果：无关组件被无谓重渲染。见 [reducers.md](reducers.md)。
 5. **不引入中间件**：异步动作是闭包 `dispatch` 的普通函数。违反后果：与既有约定分叉，两种异步风格并存。见 §没有中间件的后果。
+6. **持久化不写进 reducer**：需要落盘的偏好（如外观版本 `variant`）由 `operations` 里的动作 `dispatch` + 写 `localStorage`，reducer 只改内存；读取也放在 action 创建之前（首屏初值）。违反后果：reducer 产生副作用，时序与可测性同时变差。范例：`setUiVariant`。
 
 ## 这一层的职责
 
@@ -53,7 +54,7 @@
 |---|---|---|
 | `stream` | 宿主下发的会话状态与条目（外加一个前端本地字段 `answering`） | `items`、`busy`、`liveText`、`pending`、`connected`、`pendingEcho`、`answering` |
 | `catalog` | 目录类数据（属于"有哪些东西可选"） | `models`、`sessions`、`providers`、`commands`、`canPersistCredentials` |
-| `ui` | 纯界面状态 | `settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider`、`switching`、`drafts` |
+| `ui` | 纯界面状态 | `settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider`、`switching`、`drafts`、`variant` |
 
 ## 状态边界（最容易犯错的地方）
 
@@ -63,8 +64,9 @@
 | 弹窗开合、`settingsPane` | `ui` | 多个组件要读写（`/model` 命令要能直达某一行） |
 | `notice` / `problem` | `ui` | 提示与输入区不在同一棵子树 |
 | `reveal`（`/details`） | `ui` | 命令（store）触发、会话视图消费 |
-| **输入草稿** | `ui.drafts[sessionId]` | 按会话保存；`Composer` 私有状态只承载提交标记、补全与菜单，切换会话时重建 |
-| **确认应答在途（`answering`）** | `stream` | 确认卡（`ComposerSlot`）读、`operations` 写，且必须随帧撤下（宿主给出结论时解禁）——见 [reducers.md](reducers.md) 的「应答在途的撤下条件」 |
+| **外观版本（`variant`）** | `ui` | 页面薄壳据此选旧版 / 新版外壳。**默认 `v2`（新版）**：初值由 `reducers/ui.ts` 的 `readStoredVariant()` 从 `localStorage` 读，只有显式存过 `'v1'` 才回落旧版，读失败或值被改坏同样给新版；写入只经 `operations.setUiVariant`（dispatch + 写同一个键），reducer 保持纯净 |
+| **输入草稿** | `ui.drafts[sessionId]` | `Composer` 与 `ComposerV2` 共用，切换外观或授权接管不丢失；组件私有状态只承载提交标记、补全与菜单，切换会话时重建 |
+| **确认应答在途（`answering`）** | `stream` | 确认卡座位（`ComposerSlot` / `ComposerSeatV2`）读、`operations` 写，且必须随帧撤下（宿主给出结论时解禁）——见 [reducers.md](reducers.md) 的「应答在途的撤下条件」 |
 | **弹窗内输入框、busy、error** | 各弹窗自己的 `useState` | 组件私有，只服务这一次编辑 |
 | **菜单开合、滚动位置、当前轮次** | 组件自己的 `useState` / `useRef` | 纯视觉细节，没有第二个读者 |
 | **命令补全游标** | `Composer` 自己的 `useState` | 仅服务当前输入卡 |

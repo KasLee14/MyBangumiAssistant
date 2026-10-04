@@ -1,14 +1,23 @@
 import { AppError, SubmissionError, safeError } from '../support/errors.js';
 import { findToolDefinition, validateToolArguments } from './catalog.js';
-import type { McpTransport } from './transport.js';
+import type { McpTransport, McpReadScope } from './transport.js';
 import { preparedBaseline, type PreparedBaseline } from './prepared.js';
 import { subjectDetails, subjectSummary, subjectPage, collectionPage, indexSubjectPage, checkOutput, checkSubjectResponse, type SubjectInclude } from './subject-output.js';
-import { resourceResult, checkResourceResponse, entitySummary } from './resource-output.js';
+import { resourceResult, checkResourceResponse, entitySummary, episodeCollectionStatus } from './resource-output.js';
 import { SubmissionTracker, checkSubmission } from './submission.js';
 import { isDeepStrictEqual } from 'node:util';
 import { isWatchedUntil, watchedUntilIds } from './episode-progress.js';
+import { CommunityReader } from './community-service.js';
+import { isCommunityTool } from './community-schemas.js';
+import { checkCommunityResponse } from './community-output.js';
+import { anonymousContext, unverifiedContext, type AccessContext } from './access-context.js';
+import { accountRead, normalizeSubject } from './account-read.js';
+import { collectionMatch, dateMatches, fullDate, parseWebCollectionPage, type DateBounds } from './collection-query.js';
+import { batchScope, batchPreparation, type BatchPreparation, type McpBatchScope } from './batch-context.js';
+import { PersonCharactersQuery } from './person-characters.js';
+import { compileSubjectSearch, applySearchPlan, requireBrowseCoverage } from './search-capabilities.js';
 
-export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline }
+export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline; batchPreparation?: BatchPreparation }
 type ObjectValue = Record<string, unknown>;
 function obj(value: unknown, label = 'Bangumi响应'): ObjectValue {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new AppError('INVALID_RESPONSE', `${label}必须是对象。`);
@@ -22,7 +31,7 @@ function compact(input: ObjectValue): ObjectValue { return Object.fromEntries(Ob
 /** 上界/下界由已验证的有类型参数编译；模型不能提交原始查询表达式。 */
 function searchFilter(args: ObjectValue): ObjectValue {
   const input = args.filter === undefined ? {} : obj(args.filter);
-  const result: ObjectValue = compact({ type: args.subject_type === undefined ? undefined : [args.subject_type], tag: input.tag, meta_tags: input.meta_tags });
+  const result: ObjectValue = compact({ type: args.subject_type === undefined ? undefined : [args.subject_type], tag: input.tag, meta_tags: input.meta_tags, nsfw: input.nsfw });
   for (const key of ['rating', 'rating_count', 'rank', 'air_date']) {
     if (input[key] === undefined) continue;
     const bounds = obj(input[key]);
@@ -33,25 +42,26 @@ function searchFilter(args: ObjectValue): ObjectValue {
 function ratedSubject(value: unknown): ObjectValue {
   const item = obj(value);
   const total = item.rating && typeof item.rating === 'object' ? obj(item.rating).total : undefined;
+  if (total !== undefined && total !== null && (typeof total !== 'number' || !Number.isSafeInteger(total) || total < 0)) throw new AppError('INVALID_RESPONSE', '评分人数必须是非负整数或未知。');
   return { ...item, ratingCount: typeof total === 'number' && Number.isSafeInteger(total) && total >= 0 ? total : null };
 }
 function canonicalSubject(value: unknown): ObjectValue {
-  const item = ratedSubject(value);
+  const item = ratedSubject(normalizeSubject(value));
   return { ...item, id: positive(item.id), name_cn: item.name_cn ?? item.nameCN ?? '', date: item.date ?? (item.airtime && obj(item.airtime).date), total_episodes: item.total_episodes ?? item.eps };
 }
 function canonicalEpisode(value: unknown): ObjectValue {
-  const item = obj(value); const collection = item.collection == null ? {} : obj(item.collection);
+  const item = obj(value); const checkedStatus = episodeCollectionStatus(item); const collection = item.collection == null ? {} : obj(item.collection);
   const id = positive(item.id); const owner = positive(item.subject_id ?? item.subjectID);
-  const status = item.collection == null ? 0 : collection.type ?? collection.status;
+  const status = checkedStatus;
   if (!Number.isInteger(status) || ![0, 1, 2, 3].includes(Number(status))) throw new AppError('INVALID_RESPONSE', '章节收藏状态不合法。');
   return { ...item, id, subject_id: owner, name_cn: item.name_cn ?? item.nameCN ?? '', collection: { ...collection, type: status } };
 }
 function canonicalCollection(value: unknown): ObjectValue {
   const item = obj(value); const interest = obj(item.interest, '个人收藏'); const subject = subjectSummary(canonicalSubject(item));
-  if (![1, 2, 3, 4, 5].includes(Number(interest.type))) throw new AppError('INVALID_RESPONSE', '个人收藏状态无效。');
+  if (typeof interest.type !== 'number' || ![1, 2, 3, 4, 5].includes(interest.type)) throw new AppError('INVALID_RESPONSE', '个人收藏状态无效。');
   return { subject, subject_id: subject.id, type: interest.type, rate: interest.rate, comment: interest.comment, tags: interest.tags,
     private: interest.private, ep_status: interest.epStatus ?? interest.ep_status, vol_status: interest.volStatus ?? interest.vol_status,
-    updated_at: interest.updatedAt ?? interest.updated_at };
+    updated_at: typeof (interest.updatedAt ?? interest.updated_at) === 'number' ? new Date(Number(interest.updatedAt ?? interest.updated_at) * 1000).toISOString() : interest.updatedAt ?? interest.updated_at };
 }
 /** 仅固定、已认证的作品详情可用省略 interest 表示未收藏；残缺作品不能取得空基线。 */
 function checkedUncollectedSubject(item: ObjectValue): void {
@@ -74,10 +84,16 @@ function canonicalRelated(value: unknown): ObjectValue {
   return { ...item, subject_id: item.subject_id ?? item.sid ?? subject?.id, comment: item.comment, order: item.order };
 }
 
-/** 固定 API 映射；公开请求不会携带账户会话，所有写入仅使用应用 p1 会话。 */
+/** 所有业务调用统一预检；登录查询使用固定账户映射，匿名请求不携带会话，写入保留宿主授权边界。 */
 export class BangumiMcpService {
-  constructor(private readonly transport: McpTransport) {}
-  close(): Promise<void> { return this.transport.close(); }
+  private readonly community: CommunityReader;
+  private readonly personCharacters: PersonCharactersQuery;
+  private batchContext: { id: string; phase: McpBatchScope['phase']; context: AccessContext } | undefined;
+  constructor(private readonly transport: McpTransport) {
+    this.community = new CommunityReader(transport);
+    this.personCharacters = new PersonCharactersQuery(transport);
+  }
+  close(): Promise<void> { this.community.clear(); this.personCharacters.clear(); return this.transport.close(); }
   private async checkedAccount(signal?: AbortSignal): Promise<{ id: number; username: string }> {
     const user = await this.transport.currentUser(signal, false);
     positive(user.id);
@@ -107,7 +123,34 @@ export class BangumiMcpService {
     return { ...item, data: item.data, total: item.total, limit, offset };
   }
   /** 搜索接口每次最多20条；补齐工具请求范围，不放宽双端分页契约。 */
-  private async searchPage(name: 'search_subjects' | 'search_characters' | 'search_persons', args: ObjectValue, body: ObjectValue, signal?: AbortSignal): Promise<ObjectValue> {
+  private async readResource(path: string, options: import('./transport.js').McpRequestOptions, context: AccessContext, signal?: AbortSignal): Promise<unknown> {
+    return context.account ? accountRead(this.transport, path, options, context, signal) : this.transport.public(path, options, signal);
+  }
+  private async personCharacterPage(args: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<unknown> {
+    if (context.account && this.transport.bindReadScope) {
+      const scope = await this.transport.bindReadScope(context, signal);
+      try {
+        return await this.personCharacters.call(args, context, signal, {
+          scopeKey: scope.key, readAccount: scope.account, verifyScope: scope.verify,
+        });
+      } finally { await scope.close(); }
+    }
+    // 离线/嵌入客户端仍核对当前账户和权限；生产 transport 总是使用独立的会话绑定。
+    const verifyScope = async (): Promise<void> => {
+      if (this.transport.preflight) {
+        const latest = await this.transport.preflight(signal);
+        if (!isDeepStrictEqual(latest.account, context.account) || !isDeepStrictEqual(latest.nsfw, context.nsfw)) {
+          throw new AppError('ACCOUNT_CHANGED', '关系读取期间账户或 NSFW 权限改变。');
+        }
+      } else if (context.account) await this.assertAccount(context.account.id, signal);
+    };
+    return this.personCharacters.call(args, context, signal, {
+      scopeKey: JSON.stringify([context.account, context.nsfw]), verifyScope,
+      readAccount: (path, options) => this.transport.account(path, { ...options,
+        ...(context.account ? { expectedAccountId: context.account.id } : {}) }, signal),
+    });
+  }
+  private async searchPage(name: 'search_subjects' | 'search_characters' | 'search_persons', args: ObjectValue, body: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<ObjectValue> {
     const limit = Number(args.limit); const offset = Number(args.offset);
     const data: unknown[] = []; const seen = new Set<number>(); let total: number | undefined;
     const kind = name === 'search_characters' ? 'character' : 'person';
@@ -115,12 +158,18 @@ export class BangumiMcpService {
       type: 'array', maxItems: 20, items: { $ref: `#/$defs/${kind === 'character' ? 'CharacterSummary' : 'PersonSummary'}` },
       $defs: findToolDefinition(name).outputSchema!.$defs,
     };
+    const plan = name === 'search_subjects' ? compileSubjectSearch(body, context) : undefined;
+    if (plan) applySearchPlan(context, plan);
     for (let batch = 0; batch < Math.ceil(limit / 20); batch++) {
       signal?.throwIfAborted();
       const batchLimit = Math.min(20, limit - data.length); const batchOffset = offset + data.length;
-      const page = this.page(await this.transport.public(`/v0/search/${name.slice('search_'.length)}`, {
-        method: 'POST', query: { limit: batchLimit, offset: batchOffset }, body,
-      }, signal), batchLimit, batchOffset);
+      const options = { method: 'POST', query: { limit: batchLimit, offset: batchOffset }, body: plan?.body ?? body };
+      const raw = plan ? plan.source === 'p1'
+        ? await this.transport.account('/p1/search/subjects', { ...options, expectedAccountId: context.account!.id }, signal)
+        : await this.transport.public('/v0/search/subjects', options, signal)
+        : await this.readResource(`/v0/search/${name.slice('search_'.length)}`, options, context, signal);
+      const page = this.page(raw, batchLimit, batchOffset);
+      if (plan?.source === 'p1') page.data = page.data.map(normalizeSubject);
       signal?.throwIfAborted();
       if (total !== undefined && total !== page.total) throw new AppError('INCOMPLETE_DATA', '搜索总数在分页读取期间变化。');
       total = page.total;
@@ -200,10 +249,65 @@ export class BangumiMcpService {
     if (guard.expectedStatus !== undefined && obj(episode.collection).type !== guard.expectedStatus) throw new AppError('STALE_PREVIEW', '章节现状已变化，需重新预览。');
   }
 
-  async call(name: string, argumentsValue: unknown, signal?: AbortSignal, guard?: McpWriteGuard): Promise<unknown> {
+  async call(name: string, argumentsValue: unknown, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope): Promise<unknown> {
     const args = validateToolArguments(name, argumentsValue);
-    const value = await this.dispatch(name, args, signal, guard);
     const definition = findToolDefinition(name);
+    if (definition.effect === 'write' && !guard) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要宿主绑定账户及具体操作的授权。');
+    // 私人状态只描述读取时的快照；任何已授权写入都会使本连接的关系快照失效。
+    if (definition.effect === 'write') this.personCharacters.clear();
+    let context = anonymousContext();
+    let checked = false;
+    let dispatched = false;
+    let readScope: McpReadScope | undefined;
+    try {
+    if (batch) {
+      const scope = batchScope(batch);
+      if (!this.batchContext) {
+        if (scope.phase !== 'prepare' || name !== 'get_current_user') throw new AppError('BATCH_CONTEXT_EXPIRED', '批次须从完整账户预检开始。');
+        const account = this.transport.preflight ? await this.transport.preflight(signal) : { ...anonymousContext(), mode: 'account' as const,
+          account: await this.transport.currentUser(signal, true), source: 'p1' as const, nsfwApplied: true };
+        if (!account.account) throw new AppError('BGM_AUTH_REQUIRED', '批次写入须先登录。');
+        await this.transport.setBatchSession?.(true);
+        this.batchContext = { id: scope.id, phase: scope.phase, context: structuredClone(account) };
+      }
+      if (scope.id !== this.batchContext.id) throw new AppError('BATCH_SCOPE_ACTIVE', '已有宿主批次上下文，不能交叉使用。');
+      if (scope.phase !== this.batchContext.phase) {
+        if (scope.phase === 'verify' && name === 'get_current_user') {
+          const fresh = this.transport.preflight ? await this.transport.preflight(signal) : { ...this.batchContext.context, account: await this.transport.currentUser(signal, true) };
+          if (fresh.account?.id !== this.batchContext.context.account?.id) throw new AppError('ACCOUNT_CHANGED', '整批回读前账户改变，不能核实原账户写入。');
+          if (!isDeepStrictEqual(fresh.nsfw, this.batchContext.context.nsfw) || fresh.nsfwApplied !== this.batchContext.context.nsfwApplied) {
+            throw new AppError('NSFW_SCOPE_CHANGED', '整批开始与回读的NSFW权限范围不同，未混用预检范围核实写入；已提交结果保留待核实。', fresh);
+          }
+          this.batchContext.context = structuredClone(fresh);
+        } else if (!(scope.phase === 'submit' && this.batchContext.phase === 'prepare') && scope.phase !== 'close') {
+          throw new AppError('BATCH_SCOPE_INVALID', '批次阶段不能回退或重新提交。');
+        }
+        this.batchContext.phase = scope.phase;
+      }
+      if (definition.effect === 'write' && (scope.phase !== 'submit' || !guard?.batchPreparation)) throw new AppError('AUTHORIZATION_REQUIRED', '批次提交必须使用宿主冻结快照。');
+      if (definition.effect === 'read' && scope.phase === 'submit') throw new AppError('BATCH_SCOPE_INVALID', '批次提交阶段不执行逐项预检或回读。');
+      context = structuredClone(this.batchContext.context);
+    }
+    else if (guard?.batchPreparation) throw new AppError('AUTHORIZATION_REQUIRED', '冻结快照只能在宿主批次上下文中提交。');
+    else if (this.transport.preflight) context = await this.transport.preflight(signal);
+    else if (definition.access === 'account' || args.username === '-' || args.own === true) {
+      const account = await this.checkedAccount(signal); context = { ...context, mode: 'account', account,
+        nsfw: { preference: null, allowed: null, state: 'unknown' }, source: 'p1', nsfwApplied: true };
+    }
+    checked = true;
+    if (!batch && definition.effect === 'read' && context.account && name !== 'get_person_characters' && this.transport.bindReadScope) {
+      readScope = await this.transport.bindReadScope(context, signal);
+    }
+    if (isCommunityTool(name)) {
+      context.source = 'p1'; context.nsfwApplied = context.account !== null;
+      const result = { ...await this.community.call(name, args, signal, context), accessContext: context };
+      checkCommunityResponse(name, result, args);
+      await readScope?.verify();
+      return result;
+    }
+    if (guard && context.account?.id !== guard.accountId) throw new AppError('ACCOUNT_CHANGED', '当前账户与宿主授权账户不一致，未提交。');
+    dispatched = true;
+    const value = await this.dispatch(name, args, context, signal, guard);
     let result = value;
     if (name === 'get_subject_details') result = subjectDetails(value, args.include as SubjectInclude[], Number(args.subject_id));
     if (name === 'get_user_collections') result = collectionPage(value, args);
@@ -221,9 +325,20 @@ export class BangumiMcpService {
       result = { schemaVersion: 1, kind: 'weekly_schedule', data, complete: data.length === 7 && data.every(day => day.subjects.page.complete),
         visibility: 'public', readAt: new Date().toISOString() };
     }
-    if (definition.effect === 'read' && !['get_subject_details','get_user_collections','get_index_subjects','search_subjects','browse_subjects','get_subject_relations','get_character_subjects','get_person_subjects','get_daily_broadcast'].includes(name)) {
+    if (definition.effect === 'read' && !['query_user_collections','get_subject_details','get_user_collections','get_index_subjects','search_subjects','browse_subjects','get_subject_relations','get_character_subjects','get_person_subjects','get_daily_broadcast'].includes(name)) {
       result = resourceResult(name, value, args);
       checkResourceResponse(name, result, args, definition.outputSchema!);
+    }
+    result = { ...obj(result), accessContext: context };
+    if (context.account && context.nsfw.allowed === false || context.queryCoverage?.nsfw === 'excluded') {
+      const verifyScope = (value: unknown): void => {
+        if (!value || typeof value !== 'object') return;
+        if (Array.isArray(value)) { value.forEach(verifyScope); return; }
+        const row = value as ObjectValue;
+        if (row.nsfw === true && (['subject', 'character', 'person'].includes(String(row.entity)) || row.subjectId !== undefined)) throw new AppError('NSFW_SCOPE_MISMATCH', '源数据包含当前账户NSFW权限之外的条目，未返回不一致的结果。');
+        Object.values(row).forEach(verifyScope);
+      };
+      verifyScope(result);
     }
     if (definition.outputSchema) {
       try { checkOutput(definition.outputSchema, { value: result }); }
@@ -231,34 +346,60 @@ export class BangumiMcpService {
     }
     if (definition.effect === 'write') checkSubmission(name, result, args, guard!.accountId, guard?.subjectId, guard?.prepared);
     checkSubjectResponse(name, result, args);
+    await readScope?.verify();
     return result;
+    } catch (error) {
+      if (!(error instanceof AppError)) error = new AppError(signal?.aborted ? 'CANCELLED' : 'INTERNAL_ERROR', signal?.aborted ? '操作已取消，未返回未核实的结果。' : '本地 MCP 操作异常，未将其解释为资源不存在或未收藏。');
+      if (!dispatched && definition.effect === 'write' && guard && error instanceof AppError && !(error instanceof SubmissionError)) {
+        error = new SubmissionError(error.code, error.message, new SubmissionTracker(name, args, guard.accountId, guard.subjectId).failed());
+      }
+      if (error instanceof AppError) {
+        if (error.accessContext === undefined) Object.defineProperty(error, 'accessContext', { value: checked ? context : unverifiedContext() });
+        if (error.sourceTool === undefined) Object.defineProperty(error, 'sourceTool', { value: name });
+      }
+      throw error;
+    } finally {
+      try { await readScope?.close(); }
+      catch { throw new AppError('INTERNAL_ERROR', '本地读取上下文关闭失败，未返回成功结果。', checked ? context : unverifiedContext()); }
+      if (batch?.phase === 'close' && this.batchContext?.id === batch.id) { this.batchContext = undefined; await this.transport.setBatchSession?.(false); }
+    }
   }
-  private async dispatch(name: string, argumentsValue: unknown, signal?: AbortSignal, guard?: McpWriteGuard): Promise<unknown> {
+  private async dispatch(name: string, argumentsValue: unknown, context: AccessContext, signal?: AbortSignal, guard?: McpWriteGuard): Promise<unknown> {
     const args = validateToolArguments(name, argumentsValue); const definition = findToolDefinition(name);
     signal?.throwIfAborted();
     if (definition.effect === 'write') {
       if (!guard || typeof guard.accountId !== 'number' || !Number.isSafeInteger(guard.accountId) || guard.accountId < 1) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要宿主绑定账户及具体操作的授权。');
-      if (guard.prepared === undefined) await this.assertAccount(guard.accountId, signal);
+      if (guard.batchPreparation) {
+        const snapshot = batchPreparation(guard.batchPreparation);
+        if (snapshot.tool !== name || !isDeepStrictEqual(snapshot.args, args)) throw new AppError('STALE_PREVIEW', '批次提交与冻结工具及参数不一致。');
+        guard = { ...guard, batchPreparation: snapshot };
+      }
+      else if (guard.prepared === undefined) await this.assertAccount(guard.accountId, signal);
       else guard = { ...guard, prepared: preparedBaseline(guard.prepared) };
       return this.write(name, args, guard, signal);
     }
     const id = (key: string): number => Number(args[key]); const limit = Number(args.limit ?? 30); const offset = Number(args.offset ?? 0);
-    const publicCall = (path: string, options: { method?: string; query?: ObjectValue; body?: unknown } = {}): Promise<unknown> => this.transport.public(path, options, signal);
+    const publicCall = (path: string, options: { method?: string; query?: ObjectValue; body?: unknown } = {}): Promise<unknown> => this.readResource(path, options, context, signal);
+    if (name === 'get_person_characters') return this.personCharacterPage(args, context, signal);
+    if (name === 'query_user_collections') return this.queryCollections(args, context, signal);
     if (name === 'get_daily_broadcast') {
       const calendar = await publicCall('/calendar');
       if (!Array.isArray(calendar)) throw new AppError('INVALID_RESPONSE', '放送日历必须按星期组织。');
       const data = calendar.map(raw => { const day = obj(raw); const page = this.relationPage(day.items, limit, offset); return { ...day, items: page.data, total: page.total, limit, offset, nextOffset: page.nextOffset, complete: page.complete }; });
       return { data, limit, offset, complete: data.every(day => day.complete), kind: 'weekly_schedule' };
     }
-    if (name === 'get_current_user') return this.transport.currentUser(signal);
+    if (name === 'get_current_user') { if (!context.account) throw new AppError('BGM_AUTH_REQUIRED', '请先登录后核实当前账户与NSFW权限。'); return context.account; }
     if (name === 'search_subjects' || name === 'search_characters' || name === 'search_persons') {
       const entity = name.slice('search_'.length); const filter = entity === 'subjects' ? searchFilter(args)
         : entity === 'characters' ? compact({ nsfw: args.nsfw_filter }) : compact({ career: args.career_filter });
       const body = compact({ keyword: args.keyword, sort: args.sort, filter });
-      return this.searchPage(name, args, body, signal);
+      return this.searchPage(name, args, body, context, signal);
     }
-    if (name === 'browse_subjects') return publicCall('/v0/subjects', { query: compact({ type: args.subject_type, cat: args.cat, series: args.series, platform: args.platform, sort: args.sort, year: args.year, month: args.month, limit, offset }) });
-    if (name === 'get_subject_details') return ratedSubject(await publicCall(`/v0/subjects/${id('subject_id')}`));
+    if (name === 'browse_subjects') {
+      requireBrowseCoverage(args.nsfw, context, !context.account || args.platform !== undefined);
+      return publicCall('/v0/subjects', { query: compact({ type: args.subject_type, cat: args.cat, series: args.series, platform: args.platform, sort: args.sort, year: args.year, month: args.month, limit, offset }) });
+    }
+    if (name === 'get_subject_details') return canonicalSubject(await publicCall(`/v0/subjects/${id('subject_id')}`));
     if (name === 'get_episode_details') return publicCall(`/v0/episodes/${id('episode_id')}`);
     if (name === 'get_episodes') return publicCall('/v0/episodes', { query: compact({ subject_id: args.subject_id, type: args.episode_type, limit, offset }) });
     if (name === 'get_subject_relations') return this.relationPage(await publicCall(`/v0/subjects/${id('subject_id')}/subjects`), limit, offset);
@@ -315,7 +456,15 @@ export class BangumiMcpService {
         await this.assertAccount(account.id, signal); return result;
       }
       if (name === 'get_user_collections') {
-        if (!account) return publicCall(`/v0/users/${urlUsername}/collections`, { query: compact({ subject_type: args.subject_type, type: args.collection_type, limit, offset }) });
+        if (!account) {
+          const raw = obj(await publicCall(`/v0/users/${urlUsername}/collections`, { query: compact({ subject_type: args.subject_type, type: args.collection_type, limit, offset }) }));
+          if (!Array.isArray(raw.data)) throw new AppError('INVALID_RESPONSE', '公开收藏分页缺少数组。');
+          return context.account ? { ...raw, data: raw.data.map(value => {
+            const item = obj(value); const interest = obj(item.interest, '公开收藏');
+            if (item.private !== undefined && item.private !== false || interest.private !== undefined && interest.private !== false) throw new AppError('PRIVATE_SCOPE', '公开用户收藏响应出现私密或非法可见性字段。');
+            return { ...canonicalCollection(value), private: false };
+          }) } : raw;
+        }
         const page = this.page(await this.transport.account('/p1/collections/subjects', { query: compact({ subjectType: args.subject_type, type: args.collection_type, limit, offset }), expectedAccountId: account.id }, signal), limit, offset);
         const data = page.data.map(canonicalCollection);
         if (new Set(data.map(item => item.subject_id)).size !== data.length || data.some(item => args.subject_type !== undefined && obj(item.subject).subjectType !== args.subject_type || args.collection_type !== undefined && item.type !== args.collection_type)) throw new AppError('INVALID_RESPONSE', '收藏分页重复或筛选范围错误。');
@@ -323,7 +472,8 @@ export class BangumiMcpService {
       }
       if (name === 'get_user_subject_collection') {
         if (account) { const result = await this.myCollection(id('subject_id'), account.id, signal); await this.assertAccount(account.id, signal); return { _record: result, account }; }
-        return this.publicNullable(`/v0/users/${urlUsername}/collections/${id('subject_id')}`, signal);
+        try { return await publicCall(`/v0/users/${urlUsername}/collections/${id('subject_id')}`); }
+        catch (error) { if (error instanceof AppError && error.code === 'BGM_HTTP_404') return null; throw error; }
       }
       for (const entity of ['character', 'person'] as const) {
         const plural = entity === 'person' ? 'persons' : 'characters';
@@ -334,11 +484,81 @@ export class BangumiMcpService {
         }
         if (name === `get_user_${entity}_collection`) {
           if (account) { const result = await this.myEntityCollection(plural, id(`${entity}_id`), account.id, signal); return { _record: result, account }; }
-          return this.publicNullable(`/v0/users/${urlUsername}/collections/-/${plural}/${id(`${entity}_id`)}`, signal);
+          try { return await publicCall(`/v0/users/${urlUsername}/collections/-/${plural}/${id(`${entity}_id`)}`); }
+          catch (error) { if (error instanceof AppError && error.code === 'BGM_HTTP_404') return null; throw error; }
         }
       }
     }
     throw new AppError('UNKNOWN_TOOL', '工具没有固定 API 映射。');
+  }
+  private async queryCollections(args: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<ObjectValue> {
+    const bounds = args.air_date as DateBounds; const extras = args.extra_subject_ids as number[];
+    const matches: ReturnType<typeof collectionMatch>[] = []; const seen = new Set<number>();
+    let total: number | undefined; let scannedCount = 0; let pagesRead = 0; let unknownDateCount = 0;
+    let stopReason: 'exhausted' | 'date_boundary' = 'exhausted';
+    const self = args.username === '-'; const account = self ? await this.checkedAccount(signal) : null;
+    const finish = (): ObjectValue => {
+      const direction = args.sort === 'date_asc' ? 1 : -1;
+      matches.sort((a, b) => direction * (a.date ?? '').localeCompare(b.date ?? '') || a.subjectId - b.subjectId);
+      return { schemaVersion: 1, kind: 'collectionQuery', data: matches, matchedCount: matches.length, scope: { ...args },
+        coverage: { complete: unknownDateCount === 0, source: context.source, scannedCount, pagesRead, collectionTotal: total ?? 0,
+          unknownDateCount, stopReason, privateRecords: self ? 'included' : 'public_only' },
+        missingExtraSubjectIds: extras.filter(id => !matches.some(row => row.subjectId === id)), visibility: self ? 'self' : 'public', readAt: new Date().toISOString() };
+    };
+    // 登录时不能用匿名网页替代账户读取。网页仅对未登录、明确状态的公开查询开放。
+    if (!context.account && !self && args.collection_type !== undefined && this.transport.webCollections) {
+      const media = ({ 1: 'book', 2: 'anime', 3: 'music', 4: 'game', 6: 'real' } as Record<number, string>)[Number(args.subject_type)]!;
+      const status = ['wish', 'collect', 'do', 'on_hold', 'dropped'][Number(args.collection_type) - 1]!;
+      let previousDate: string | undefined; context.source = 'web'; context.nsfwApplied = false;
+      try {
+        for (let number = 1; number <= 417; number++) {
+          signal?.throwIfAborted();
+          const page = parseWebCollectionPage(await this.transport.webCollections(String(args.username), media, status, number, signal), String(args.username), media, status, number);
+          if (total !== undefined && total !== page.total || page.total > 10000) throw new AppError('WEB_COLLECTION_INVALID', '公开收藏网页总数改变或超出完整读取上限。');
+          total = page.total; pagesRead++; let below = false;
+          for (const row of page.rows) {
+            if (seen.has(row.id) || row.date === null || previousDate !== undefined && row.date > previousDate) throw new AppError('WEB_COLLECTION_INVALID', '公开收藏网页重复、日期缺失或不是开播日期倒序。');
+            seen.add(row.id); scannedCount++; previousDate = row.date;
+            const explicit = extras.includes(row.id);
+            if (explicit || dateMatches(row.date, bounds)) matches.push(collectionMatch(subjectSummary({ id: row.id, type: args.subject_type, name: row.name, date: row.date }), Number(args.collection_type), null, explicit));
+            if (bounds.min !== undefined && row.date < bounds.min) below = true;
+          }
+          // 同一天可跨页：只有严格越过下界且补入项已核实，才停止后续分页。
+          if (below && extras.every(id => seen.has(id))) { stopReason = 'date_boundary'; return finish(); }
+          if (number === page.pageCount) return finish();
+        }
+        throw new AppError('INCOMPLETE_DATA', '公开收藏网页未完整覆盖请求范围。');
+      } catch (error) {
+        if (!(error instanceof AppError) || error.code !== 'WEB_COLLECTION_INVALID') throw error;
+        // 仅结构校验失败切换固定公开 API；认证/网络/超时/取消不重复或降级。
+        total = undefined; scannedCount = 0; pagesRead = 0; matches.length = 0; seen.clear(); context.source = 'v0';
+      }
+    }
+    for (let offset = 0; offset < 10000; offset += 100) {
+      signal?.throwIfAborted();
+      const query = compact({ subject_type: args.subject_type, type: args.collection_type, limit: 100, offset });
+      const raw = account ? await this.transport.account('/p1/collections/subjects', { query: compact({ subjectType: args.subject_type, type: args.collection_type, limit: 100, offset }), expectedAccountId: account.id }, signal)
+        : await this.readResource(`/v0/users/${encodeURIComponent(String(args.username))}/collections`, { query }, context, signal);
+      const page = this.page(raw, 100, offset);
+      if (total !== undefined && total !== page.total || page.total > 10000) throw new AppError('INCOMPLETE_DATA', '收藏范围查询总数改变或超过完整读取上限。');
+      total = page.total; pagesRead++;
+      for (const value of page.data) {
+        const row = obj(value); const interest = account || context.account ? obj(row.interest, '收藏状态') : row;
+        const subjectValue = account || context.account ? row : obj(row.subject);
+        const subject = subjectSummary({ ...canonicalSubject(subjectValue), tags: undefined });
+        if (typeof interest.type !== 'number') throw new AppError('INVALID_RESPONSE', '收藏状态必须是整数，不能转换字符串状态。');
+        const status = interest.type; const subjectId = row.subject_id ?? subject.id;
+        if (seen.has(subject.id) || subjectId !== subject.id || subject.subjectType !== args.subject_type || ![1, 2, 3, 4, 5].includes(status)
+          || args.collection_type !== undefined && status !== args.collection_type || !subject.name.trim()) throw new AppError('INCOMPLETE_DATA', '收藏范围查询出现重复、异对象或不符合状态筛选的记录。');
+        if (!self && (row.private !== undefined && row.private !== false || interest.private !== undefined && interest.private !== false)) throw new AppError('PRIVATE_SCOPE', '公开收藏查询不得包含私密或非法可见性记录。');
+        seen.add(subject.id); scannedCount++;
+        const date = fullDate(subject.date); const explicit = extras.includes(subject.id);
+        if (explicit || date !== null && dateMatches(date, bounds)) matches.push(collectionMatch(subject, status, interest.rate, explicit));
+        else if (date === null) unknownDateCount++;
+      }
+      if (scannedCount === total) { if (account) await this.assertAccount(account.id, signal); return finish(); }
+    }
+    throw new AppError('INCOMPLETE_DATA', '收藏范围查询未完整读取，不能返回部分成功。');
   }
   private async publicNullable(path: string, signal?: AbortSignal): Promise<unknown> {
     try { return await this.transport.public(path, {}, signal); }
@@ -346,8 +566,54 @@ export class BangumiMcpService {
   }
   private async write(name: string, args: ObjectValue, guard: McpWriteGuard, signal?: AbortSignal): Promise<unknown> {
     const tracker = new SubmissionTracker(name, args, guard.accountId, guard.subjectId);
-    try { return tracker.finish(await this.writeLegacy(name, args, guard, tracker, signal)); }
+    try { return tracker.finish(await (guard.batchPreparation ? this.writePrepared(name, args, guard, tracker, signal) : this.writeLegacy(name, args, guard, tracker, signal))); }
     catch (error) { const failure = safeError(error); throw new SubmissionError(failure.code, failure.message, tracker.failed()); }
+  }
+  /** 批次已在开始阶段核实全部对象和原值；这里仅执行固定提交映射。 */
+  private async writePrepared(name: string, args: ObjectValue, guard: McpWriteGuard, tracker: SubmissionTracker, signal?: AbortSignal): Promise<unknown> {
+    const prepared = guard.batchPreparation!; const target = prepared.target;
+    const submit = (path: string, method: string, body?: unknown) => tracker.submit(path, method, () => this.transport.account(path,
+      { method, ...(body === undefined ? {} : { body }), expectedAccountId: guard.accountId }, signal));
+    if (name === 'update_subject_collection') {
+      const id = positive(args.subject_id); if (target.id !== id || guard.subjectId !== id) throw new AppError('STALE_PREVIEW', '收藏对象与冻结计划不一致。');
+      const after = obj(prepared.after);
+      if (['collection_type', 'rating', 'comment', 'tags', 'private'].some(key => Object.hasOwn(args, key))) {
+        await submit(`/p1/collections/subjects/${id}`, 'PUT', { type: after.collection_type, rate: after.rating, comment: after.comment, tags: after.tags, private: after.private, progress: false });
+      }
+      if (Object.hasOwn(args, 'ep_status') || Object.hasOwn(args, 'vol_status')) {
+        if (target.subjectType !== 1 || prepared.before === null) throw new AppError('UNSUPPORTED_PROGRESS', '书籍进度需要开始阶段核实的完整收藏。');
+        await submit(`/p1/collections/subjects/${id}`, 'PATCH', compact({ epStatus: args.ep_status, volStatus: args.vol_status }));
+      }
+      return { subject_id: id };
+    }
+    if (name === 'update_single_episode_collection' || name === 'update_episode_collection') {
+      const parent = positive(guard.subjectId); if (target.subjectId !== parent) throw new AppError('STALE_PREVIEW', '章节所属作品与冻结计划不一致。');
+      const ids = name === 'update_single_episode_collection' ? [positive(args.episode_id)] : args.episode_ids as number[];
+      for (const id of ids) {
+        if (!guard.prepared?.episodes?.some(ep => ep.id === id)) throw new AppError('STALE_PREVIEW', '章节不在开始阶段核实的范围内。');
+        tracker.parent(id, parent);
+      }
+      if (isWatchedUntil(name, args)) {
+        const scope = watchedUntilIds(guard.prepared!.episodes!, ids[0]!); tracker.episodeScope(scope);
+        await submit(`/p1/collections/episodes/${ids[0]}`, 'PATCH', { batch: true });
+      } else for (const id of ids) await submit(`/p1/collections/episodes/${id}`, 'PATCH', { type: args.collection_type, batch: false });
+      return { episode_ids: ids };
+    }
+    for (const entity of ['character', 'person']) if (name === `collect_${entity}` || name === `uncollect_${entity}`) {
+      const id = positive(args[`${entity}_id`]); if (target.id !== id || target.kind !== entity) throw new AppError('STALE_PREVIEW', '收藏实体与冻结计划不一致。');
+      await submit(`/p1/collections/${entity === 'person' ? 'persons' : 'characters'}/${id}`, name.startsWith('uncollect_') ? 'DELETE' : 'PUT'); return { id };
+    }
+    if (name === 'create_index') { const value = obj(await submit('/p1/indexes', 'POST', { title: args.title, desc: args.description, private: args.private })); return { id: positive(value.id) }; }
+    const indexId = positive(args.index_id); if ((target.kind === 'indexSubject' ? target.indexId : target.id) !== indexId) throw new AppError('STALE_PREVIEW', '目录与冻结计划不一致。');
+    if (name === 'collect_index' || name === 'uncollect_index') { await submit(`/p1/collections/indexes/${indexId}`, name === 'collect_index' ? 'PUT' : 'DELETE'); return { id: indexId }; }
+    if (name === 'update_index') { await submit(`/p1/indexes/${indexId}`, 'PATCH', compact({ title: args.title, desc: args.description, private: args.private })); return { id: indexId }; }
+    const sid = positive(args.subject_id); if (target.subjectId !== sid) throw new AppError('STALE_PREVIEW', '目录作品与冻结计划不一致。');
+    if (name === 'add_subject_to_index') { const value = obj(await submit(`/p1/indexes/${indexId}/related`, 'PUT', { cat: 0, sid, comment: args.comment, order: args.order })); return { id: positive(value.id) }; }
+    const relationId = positive(prepared.relationId); tracker.related(relationId);
+    if (name === 'update_index_subject') { const after = obj(prepared.after); await submit(`/p1/indexes/${indexId}/related/${relationId}`, 'PATCH', { comment: after.comment, order: after.order }); }
+    else if (name === 'remove_subject_from_index') await submit(`/p1/indexes/${indexId}/related/${relationId}`, 'DELETE');
+    else throw new AppError('UNKNOWN_TOOL', '没有固定批次提交映射。');
+    return { id: relationId };
   }
   private async writeLegacy(name: string, args: ObjectValue, guard: McpWriteGuard, tracker: SubmissionTracker, signal?: AbortSignal): Promise<unknown> {
     const accountId = guard.accountId;

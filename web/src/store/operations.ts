@@ -38,9 +38,11 @@ import {
   settingsOpened,
   frameReceived,
   switchingSet,
+  variantSet,
 } from './actions';
 import type { AppStore } from './index';
-import type { SettingsPane } from './reducers/ui';
+import { UI_VARIANT_STORAGE_KEY } from './reducers/ui';
+import type { SettingsPane, UiVariant } from './reducers/ui';
 
 const message = (error: unknown): string => (error instanceof Error ? error.message : '请求失败。');
 
@@ -72,6 +74,8 @@ export interface Actions {
   closeSettings(): void;
   closeSessions(): void;
   toggleSidebar(): void;
+  /** 切换外观版本（v1 / v2）并写入本机偏好；两版共用同一份 store，切换不重取数据。 */
+  setUiVariant(variant: UiVariant): void;
 
   /* 会话内的本地命令与确认 */
   localCommand(command: CommandHint): void;
@@ -228,6 +232,16 @@ export function createActions(store: AppStore): Actions {
     closeSettings: () => { dispatch(settingsClosed()); },
     closeSessions: () => { dispatch(sessionsClosed()); },
     toggleSidebar: () => { dispatch(collapsedToggled()); },
+    setUiVariant: variant => {
+      // 只有这一个动作会写外观偏好：reducer 保持纯净，持久化收在动作层，
+      // 与「改全局状态只能落在 store」的约定一致。
+      dispatch(variantSet(variant));
+      try {
+        window.localStorage.setItem(UI_VARIANT_STORAGE_KEY, variant);
+      } catch {
+        // 隐私模式等场景写不进去：本次运行照常切换，刷新后按默认新版初始化。
+      }
+    },
 
     localCommand,
     confirm: id => { answer(id, true); },

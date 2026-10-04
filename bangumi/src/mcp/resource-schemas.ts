@@ -1,5 +1,6 @@
 import type { JsonSchema } from '../support/tool-schema.js';
 import { subjectSummarySchema } from './subject-output.js';
+import { withAccessContext, submissionRejectionSchema } from './access-context.js';
 
 // 固定生产契约；应用不读取本地设计文档。每个工具只发布其实际引用的定义。
 const definitions: Record<string, JsonSchema> = {
@@ -115,6 +116,61 @@ const outputs: Record<string, JsonSchema> = {
   "uncollect_index": {"type":"object","oneOf":[{"type":"object","properties":{"value":{"allOf":[{"$ref":"#/$defs/Receipt_uncollect_index"},{"type":"object","properties":{"submissionState":{"type":"string","const":"acknowledged"},"target":{"type":"object","properties":{"kind":{"type":"string","const":"index"},"id":{"type":"integer","minimum":1,"maximum":9007199254740991}},"required":["kind","id"],"additionalProperties":false},"items":{"type":"array","items":{"type":"object","properties":{"target":{"type":"object","properties":{"kind":{"type":"string","const":"index"},"id":{"type":"integer","minimum":1,"maximum":9007199254740991}},"required":["kind","id"],"additionalProperties":false},"stage":{"type":"string","enum":["index_collection"]},"submissionState":{"type":"string","const":"acknowledged"}},"required":["target","stage","submissionState"],"additionalProperties":false},"maxItems":201,"minItems":1}}}]}},"required":["value"],"additionalProperties":false},{"type":"object","properties":{"error":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":100},"message":{"type":"string","minLength":0,"maxLength":20000},"networkAttempted":{"type":"boolean","const":false},"issues":{"type":"array","items":{"type":"object","properties":{"path":{"type":"string","minLength":0,"maxLength":300},"rule":{"type":"string","minLength":0,"maxLength":100},"hint":{"type":"string","minLength":0,"maxLength":3000},"allowed":{"type":"array","items":{"anyOf":[{"type":"string"},{"type":"number"},{"type":"boolean"},{"type":"null"}]},"maxItems":100}},"required":["path","rule","hint"],"additionalProperties":false},"maxItems":200},"submission":{"$ref":"#/$defs/Receipt_uncollect_index"}},"required":["code","message"],"additionalProperties":false}},"required":["error"],"additionalProperties":false}]},
 };
 
+// 人物出演扩充仍使用现有工具；角色实体类型与作品中的出演关系分别发布。
+const appearanceInteger = (minimum = 0): JsonSchema => ({ type: 'integer', minimum, maximum: Number.MAX_SAFE_INTEGER });
+const appearanceNullable = (schema: JsonSchema): JsonSchema => ({ anyOf: [schema, { type: 'null' }] });
+const appearanceClosed = (properties: Record<string, JsonSchema>, required = Object.keys(properties)): JsonSchema => ({ type: 'object', properties, required, additionalProperties: false });
+const appearanceString = (maximum: number): JsonSchema => ({ type: 'string', maxLength: maximum });
+// p1/v0 均发布实体 NSFW 标志；缺失只代表未知，保留给服务和客户端权限核对。
+for (const name of ['CharacterSummary', 'PersonSummary', 'CharacterDetails', 'PersonDetails']) {
+  const schema = definitions[name]!;
+  (schema.properties as Record<string, JsonSchema>).nsfw = appearanceNullable({ type: 'boolean' });
+  (schema.required as string[]).push('nsfw');
+}
+const bio = definitions.Bio!.properties as Record<string, JsonSchema>;
+bio.bloodType = appearanceNullable({ type: 'integer', minimum: 1, maximum: 4 });
+bio.birthYear = appearanceNullable({ type: 'integer', minimum: 1, maximum: 9999 });
+(definitions.PublicSubjectCollection!.properties as Record<string, JsonSchema>).private = { type: 'boolean', const: false };
+const appearanceInclude: JsonSchema = { type: 'array', maxItems: 2, uniqueItems: true, items: { type: 'string', enum: ['subject_facts', 'own_collection'] },
+  description: '按需附带紧凑作品事实或本人收藏状态；own_collection必须登录，subject_form筛选也会返回subjectFacts作为核对证据。' };
+const appearanceInput: Record<string, JsonSchema> = {
+  person_id: appearanceInteger(1), limit: { ...appearanceInteger(1), maximum: 100, default: 20 }, offset: { ...appearanceInteger(), maximum: 10000, default: 0 },
+  subject_type: { type: 'integer', enum: [1, 2, 3, 4, 6], description: '作品媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。' },
+  appearance_role: { type: 'string', enum: ['main', 'supporting', 'guest', 'unknown'], description: '主角、配角、客串或未知出演关系；与角色实体type独立。' },
+  subject_form: { type: 'string', enum: ['tv', 'ova', 'movie', 'web', 'other'], description: '动画作品形式；提供时必须同时指定subject_type=2，返回subjectFacts以核对形式。' },
+  include: appearanceInclude,
+  snapshot_ref: { type: 'string', minLength: 32, maxLength: 32, pattern: '^[a-f0-9]{32}$', description: '增强查询续页使用首个响应page.snapshotRef，并保持所有筛选和include相同；不重新读取完整关联源。' },
+};
+RESOURCE_INPUT_SCHEMAS.get_person_characters = appearanceClosed(appearanceInput, ['person_id']);
+RESOURCE_INPUT_SCHEMAS.get_person_characters.if = { properties: { subject_form: appearanceInput.subject_form }, required: ['subject_form'] };
+RESOURCE_INPUT_SCHEMAS.get_person_characters.then = { properties: { subject_type: { type: 'integer', const: 2 } }, required: ['subject_type'] };
+definitions.AppearanceRole = appearanceClosed({ code: appearanceNullable(appearanceInteger()), meaning: { type: 'string', enum: ['main', 'supporting', 'guest', 'unknown'] }, label: appearanceNullable(appearanceString(300)) });
+definitions.AppearanceSubjectFacts = appearanceClosed({ airDate: appearanceNullable(appearanceString(50)), platform: appearanceNullable(appearanceString(100)),
+  form: appearanceNullable({ type: 'string', enum: ['tv', 'ova', 'movie', 'web', 'other'] }), score: appearanceNullable({ type: 'number', minimum: 0, maximum: 10 }), ratingCount: appearanceNullable(appearanceInteger()) });
+definitions.AppearanceOwnCollection = appearanceClosed({ state: { type: 'string', enum: ['collected', 'not_collected', 'unavailable'] },
+  collectionStatus: appearanceNullable({ type: 'integer', enum: [1, 2, 3, 4, 5] }), chapters: appearanceNullable(appearanceInteger()), volumes: appearanceNullable(appearanceInteger()) });
+const appearanceIdList: JsonSchema = { type: 'array', maxItems: 10000, uniqueItems: true, items: appearanceInteger(1) };
+definitions.AppearanceCoverage = appearanceClosed({ complete: { type: 'boolean' }, sourceComplete: { type: 'boolean' }, sourceUnit: { type: 'string', enum: ['character', 'appearance'] },
+  sourceTotal: appearanceNullable(appearanceInteger()), sourceReturnedCount: appearanceInteger(), relationTotal: appearanceInteger(), matchedRelationTotal: appearanceInteger(), matchedSubjectTotal: appearanceInteger(),
+  unknownSubjectFormIds: appearanceIdList, unavailableSubjectIds: appearanceIdList, unavailableCollectionSubjectIds: appearanceIdList });
+definitions.AppearancePageMeta = structuredClone(definitions.PageMeta!);
+(definitions.AppearancePageMeta.properties as Record<string, JsonSchema>).snapshotRef = { type: 'string', minLength: 32, maxLength: 32, pattern: '^[a-f0-9]{32}$' };
+for (const name of ['CharacterPersonRow', 'PersonCharacterRow']) {
+  const row = definitions[name]!; (row.properties as Record<string, JsonSchema>).appearanceRole = { $ref: '#/$defs/AppearanceRole' };
+  (row.required as string[]).push('appearanceRole');
+  (row.properties as Record<string, JsonSchema>).sourceTypeCode!.description = '原始接口的type码；不同源语义不同，不能据此判断主角。出演关系只看appearanceRole。';
+}
+const appearanceRow = definitions.PersonCharacterRow!.properties as Record<string, JsonSchema>;
+appearanceRow.subjectFacts = { $ref: '#/$defs/AppearanceSubjectFacts' }; appearanceRow.ownCollection = { $ref: '#/$defs/AppearanceOwnCollection' };
+const appearanceOutput = ((outputs.get_person_characters!.oneOf as JsonSchema[])[0]!.properties as Record<string, JsonSchema>).value!;
+const appearanceProperties = appearanceOutput.properties as Record<string, JsonSchema>;
+appearanceProperties.scope = appearanceClosed(structuredClone(appearanceInput), []);
+appearanceProperties.page = { $ref: '#/$defs/AppearancePageMeta' }; appearanceProperties.coverage = { $ref: '#/$defs/AppearanceCoverage' };
+appearanceProperties.visibility = { type: 'string', enum: ['public', 'self'] }; appearanceProperties.account = { $ref: '#/$defs/Account' };
+appearanceOutput.if = { properties: { visibility: { type: 'string', const: 'self' } }, required: ['visibility'] };
+appearanceOutput.then = { properties: { account: { $ref: '#/$defs/Account' } }, required: ['account'] };
+appearanceOutput.else = { properties: { account: false } };
+
 // 单集工具的“看到”分支仍是一份提交回执，另列一个请求覆盖的完整章节范围。
 const untilReceipt = definitions.Receipt_update_single_episode_collection!;
 const untilReceiptProperties = untilReceipt.properties as Record<string, JsonSchema>;
@@ -125,6 +181,20 @@ for (const name of ['SelfSubjectSnapshot', 'PublicSubjectCollection']) {
   properties.chapters!.description = '书籍为已读章数；动画/三次元为章节工具派生的已看集数，不能通过ep_status直接写入。';
   properties.progressMeaning = { type: 'string', enum: ['已读章数', '已看集数', '原生进度计数'] };
 }
+// 所有固定写工具共享明确拒绝契约；成功分支仍只能是 acknowledged。
+for (const [name, schema] of Object.entries(definitions)) {
+  if (!name.startsWith('Receipt_')) continue;
+  const receipt = schema.properties as Record<string, JsonSchema>;
+  receipt.submissionState!.enum = ['acknowledged', 'partial', 'rejected', 'unknown', 'not_attempted'];
+  const item = receipt.items!.items as JsonSchema;
+  const properties = item.properties as Record<string, JsonSchema>;
+  properties.submissionState!.enum = ['acknowledged', 'rejected', 'unknown', 'not_attempted'];
+  properties.rejection = submissionRejectionSchema;
+  item.if = { properties: { submissionState: { const: 'rejected' } }, required: ['submissionState'] };
+  item.then = { properties: { rejection: submissionRejectionSchema }, required: ['rejection'] };
+  item.else = { properties: { rejection: false } };
+}
+
 export function resourceOutputSchema(name: string): JsonSchema | undefined {
   const schema = outputs[name]; if (!schema) return undefined;
   const used = new Set<string>();
@@ -139,5 +209,5 @@ export function resourceOutputSchema(name: string): JsonSchema | undefined {
     Object.values(node).forEach(visit);
   };
   visit(schema);
-  return { ...schema, $defs: Object.fromEntries([...used].map(key => [key, definitions[key]!])) };
+  return withAccessContext({ ...schema, $defs: Object.fromEntries([...used].map(key => [key, definitions[key]!])) });
 }

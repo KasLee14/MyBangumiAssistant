@@ -1,12 +1,16 @@
 import { AppError } from '../support/errors.js';
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
 import { object } from '../support/bangumi.js';
+import { withAccessContext } from './access-context.js';
+import { checkCollectionQuery, dateMatches, fullDate, type DateBounds } from './collection-query.js';
+import { normalizeInfobox, type InfoboxItem } from './infobox-output.js';
+import { checkSubjectQueryCoverage } from './search-capabilities.js';
 
 export const SUBJECT_INCLUDES = ['summary', 'infobox', 'tagStats', 'ratingDistribution'] as const;
 export type SubjectInclude = typeof SUBJECT_INCLUDES[number];
 export interface SubjectSummary {
   schemaVersion: 1; entity: 'subject'; id: number; subjectType: number | null;
-  name: string; nameCn: string | null; date: string | null; platform: string | null;
+  name: string; nameCn: string | null; date: string | null; platform: string | null; nsfw: boolean | null;
   score: number | null; rank: number | null; ratingCount: number | null;
   totalEpisodes: number | null; totalVolumes: number | null;
   tags: string[] | null; metaTags: string[] | null; url: string;
@@ -14,7 +18,7 @@ export interface SubjectSummary {
   characters?: { id: number; name: string; nameCn: string | null; url: string }[];
 }
 export interface SubjectDetails extends SubjectSummary {
-  included: SubjectInclude[]; summary?: string | null; infobox?: unknown[] | null;
+  included: SubjectInclude[]; summary?: string | null; infobox?: InfoboxItem[] | null;
   tagStats?: { name: string; count: number | null; totalCount: number | null }[] | null;
   ratingDistribution?: Record<string, number | null> | null;
 }
@@ -29,6 +33,7 @@ const properties = {
   schemaVersion: { type: 'integer', const: 1 }, entity: { type: 'string', const: 'subject' }, id: integer(1),
   subjectType: nullable({ type: 'integer', enum: [1, 2, 3, 4, 6] }), name: string(300), nameCn: nullable(string(300)),
   date: nullable(string(50)), platform: nullable(string(100)), score: nullable({ type: 'number', minimum: 0, maximum: 10 }),
+  nsfw: nullable({ type: 'boolean' }),
   rank: nullable(integer(1)), ratingCount: nullable(integer()), totalEpisodes: nullable(integer()), totalVolumes: nullable(integer()),
   tags: stringList, metaTags: stringList, url: { ...string(100), pattern: '^https://bgm\\.tv/subject/[1-9]\\d*$' },
   relation: nullable(string(300)), staff: nullable(string(300)),
@@ -80,15 +85,17 @@ export function subjectOutputSchema(name: string, inputSchema: JsonSchema): Json
     ? closed({ schemaVersion: { type: 'integer', const: 1 }, kind: { type: 'string', const: 'weekly_schedule' },
       data: { type: 'array', maxItems: 7, items: closed({ weekday, subjects: page }) },
       complete: { type: 'boolean' }, visibility: { type: 'string', const: 'public' }, readAt: string(50) }) : page;
-  return { type: 'object', oneOf: [closed({ value }), closed({ error: safeErrorSchema })] };
+  return withAccessContext({ type: 'object', oneOf: [closed({ value }), closed({ error: safeErrorSchema })] });
 }
 export function checkOutput(schema: JsonSchema, value: unknown): void {
   if (!compileSchema(schema)(value)) throw new AppError('MCP_INVALID_RESULT', 'MCP返回不符合固定输出契约。');
 }
 /** DTO验证之外，输出还必须与本次固定参数匹配；不采信异对象/异范围结果。 */
 export function checkSubjectResponse(name: string, value: unknown, args: Record<string, unknown>): void {
+  if (name === 'query_user_collections') { checkCollectionQuery(value, args); return; }
   if (!SUBJECT_OUTPUT_TOOLS.has(name)) return;
   const raw = object(value);
+  checkSubjectQueryCoverage(name, args, raw);
   if (name === 'get_subject_details') {
     const include = args.include as string[];
     if (raw.id !== args.subject_id || raw.url !== `https://bgm.tv/subject/${raw.id}` || !Array.isArray(raw.included) || raw.included.length !== include.length
@@ -104,9 +111,22 @@ export function checkSubjectResponse(name: string, value: unknown, args: Record<
     const subjects = data.map(value => {
       const row = object(value); return result.entity === 'subject' ? row : object(row.subject);
     });
+    if ((name === 'search_subjects' || name === 'browse_subjects') && object(result.accessContext).queryCoverage
+      && object(object(result.accessContext).queryCoverage).nsfw === 'excluded' && subjects.some(subject => subject.nsfw !== false)) throw new AppError('MCP_INVALID_RESULT', '非R18范围的作品缺少明确的可见性事实。');
     if (new Set(subjects.map(subject => subject.id)).size !== subjects.length
       || subjects.some(subject => subject.url !== `https://bgm.tv/subject/${subject.id}` || args.subject_type !== undefined && subject.subjectType !== args.subject_type)
       || result.entity === 'collection' && data.some(value => args.collection_type !== undefined && object(value).collectionStatus !== args.collection_type)) throw new AppError('MCP_INVALID_RESULT', '作品返回身份、链接或筛选条件不一致。');
+    if (name === 'search_subjects' && args.filter) {
+      const filter = args.filter as Record<string, unknown>;
+      for (const subject of subjects) {
+        if (filter.nsfw === 'exclude' && subject.nsfw !== false) throw new AppError('MCP_INVALID_RESULT', '搜索作品没有明确满足非R18条件。');
+        if (filter.air_date) { const date = fullDate(subject.date); if (!date || !dateMatches(date, filter.air_date as DateBounds)) throw new AppError('MCP_INVALID_RESULT', '搜索作品日期不符合明确条件。'); }
+        for (const [input, field] of [['rating', 'score'], ['rating_count', 'ratingCount'], ['rank', 'rank']] as const) {
+          if (!filter[input]) continue; const bounds = filter[input] as { min?: number; max?: number }; const actual = subject[field];
+          if (typeof actual !== 'number' || bounds.min !== undefined && actual < bounds.min || bounds.max !== undefined && actual > bounds.max) throw new AppError('MCP_INVALID_RESULT', '搜索作品数值不符合明确条件。');
+        }
+      }
+    }
     if (page.limit !== args.limit || page.offset !== args.offset || page.returnedCount !== data.length
       || Object.keys(args).some(key => JSON.stringify(scope[key]) !== JSON.stringify(args[key]))
       || Object.keys(scope).length !== Object.keys(args).length
@@ -117,9 +137,26 @@ export function checkSubjectResponse(name: string, value: unknown, args: Record<
   }
 }
 function count(value: unknown, minimum = 0): number | null {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= minimum ? value : null;
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum) throw new AppError('INVALID_RESPONSE', '作品数字字段类型或范围无效，不能转换为未知值。');
+  return value;
 }
-function text(value: unknown): string | null { return typeof value === 'string' ? value : null; }
+function text(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') throw new AppError('INVALID_RESPONSE', '作品文本字段类型无效，不能转换为未知值。');
+  return value;
+}
+function optionalText(value: unknown, path: string): string | null {
+  if (value == null) return null;
+  if (typeof value !== 'string') throw new AppError('INVALID_RESPONSE', `作品详情字段 ${path} 应为字符串或空值。`);
+  return value;
+}
+function optionalCount(value: unknown, path: string): number | null {
+  if (value == null) return null;
+  const result = count(value);
+  if (result === null) throw new AppError('INVALID_RESPONSE', `作品详情字段 ${path} 应为非负安全整数或空值。`);
+  return result;
+}
 function names(value: unknown): string[] | null {
   if (value === undefined || value === null) return null;
   if (!Array.isArray(value)) throw new AppError('INVALID_RESPONSE', '作品标签不是数组。');
@@ -134,10 +171,13 @@ export function subjectSummary(value: unknown): SubjectSummary {
   const type = raw.type ?? raw.subjectType;
   if (type !== undefined && type !== null && ![1, 2, 3, 4, 6].includes(type as number)) throw new AppError('INVALID_RESPONSE', '作品媒体类型无效。');
   const score = rating.score ?? raw.score;
+  if (score !== undefined && score !== null && (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 10)) throw new AppError('INVALID_RESPONSE', '作品评分字段无效。');
+  if (raw.nsfw !== undefined && raw.nsfw !== null && typeof raw.nsfw !== 'boolean') throw new AppError('INVALID_RESPONSE', '作品NSFW字段必须是布尔值或未知。');
+  const rank = rating.rank ?? raw.rank;
   const result: SubjectSummary = { schemaVersion: 1, entity: 'subject', id, subjectType: typeof type === 'number' ? type : null,
     name: text(raw.name) ?? '', nameCn: text(raw.name_cn ?? raw.nameCN ?? raw.nameCn), date: text(raw.date),
-    platform: text(raw.platform), score: typeof score === 'number' && score >= 0 && score <= 10 ? score : null,
-    rank: count(rating.rank ?? raw.rank, 1), ratingCount: count(Object.hasOwn(raw, 'ratingCount') ? raw.ratingCount : rating.total),
+    platform: text(raw.platform), nsfw: typeof raw.nsfw === 'boolean' ? raw.nsfw : null, score: typeof score === 'number' && score >= 0 && score <= 10 ? score : null,
+    rank: rank === 0 ? null : count(rank, 1), ratingCount: count(Object.hasOwn(raw, 'ratingCount') ? raw.ratingCount : rating.total),
     totalEpisodes: count(raw.total_episodes ?? raw.eps ?? raw.totalEpisodes), totalVolumes: count(raw.volumes ?? raw.totalVolumes),
     tags: names(raw.tags), metaTags: names(raw.meta_tags ?? raw.metaTags), url: `https://bgm.tv/subject/${id}`,
     ...(raw.relation === undefined ? {} : { relation: text(raw.relation) }), ...(raw.staff === undefined ? {} : { staff: text(raw.staff) }),
@@ -155,19 +195,19 @@ export function subjectDetails(value: unknown, include: readonly SubjectInclude[
   if (base.id !== expectedId || base.subjectType === null || !base.name) throw new AppError('INVALID_RESPONSE', '作品详情身份不完整或对象不一致。');
   const result: SubjectDetails = { ...base, included: [...include] };
   for (const field of include) {
-    if (field === 'summary') result.summary = text(raw.summary);
-    if (field === 'infobox') result.infobox = raw.infobox == null ? null : Array.isArray(raw.infobox) ? raw.infobox.map(value => {
-      const item = object(value); return { key: item.key, value: Array.isArray(item.value) ? item.value.map(value => {
-        const pair = object(value); return { ...(pair.k === undefined ? {} : { k: pair.k }), v: pair.v };
-      }) : item.value };
-    }) : (() => { throw new AppError('INVALID_RESPONSE', '作品infobox不是数组。'); })();
-    if (field === 'tagStats') result.tagStats = raw.tags == null ? null : Array.isArray(raw.tags) ? raw.tags.map(value => {
-      const tag = object(value); return { name: String(tag.name ?? ''), count: count(tag.count), totalCount: count(tag.total_count) };
-    }) : null;
+    if (field === 'summary') result.summary = optionalText(raw.summary, '/summary');
+    if (field === 'infobox') result.infobox = normalizeInfobox(raw.infobox);
+    if (field === 'tagStats') result.tagStats = raw.tags == null ? null : Array.isArray(raw.tags) ? raw.tags.map((value, index) => {
+      const tag = object(value);
+      if (typeof tag.name !== 'string') throw new AppError('INVALID_RESPONSE', `作品详情字段 /tags/${index}/name 应为字符串。`);
+      return { name: tag.name, count: optionalCount(tag.count, `/tags/${index}/count`), totalCount: optionalCount(tag.total_count, `/tags/${index}/total_count`) };
+    }) : (() => { throw new AppError('INVALID_RESPONSE', '作品详情字段 /tags 应为数组或空值。'); })();
     if (field === 'ratingDistribution') {
       const rating = raw.rating == null ? {} : object(raw.rating);
+      if (Array.isArray(rating.count) && rating.count.length !== 10) throw new AppError('INVALID_RESPONSE', '账户评分分布须完整提供1至10分的十个计数。');
+      const distribution = Array.isArray(rating.count) ? Object.fromEntries(rating.count.map((value, index) => [String(index + 1), value])) : rating.count;
       result.ratingDistribution = rating.count == null ? null : Object.fromEntries(Array.from({ length: 10 }, (_, index) =>
-        [String(index + 1), count(object(rating.count)[String(index + 1)])]));
+        [String(index + 1), optionalCount(object(distribution)[String(index + 1)], `/rating/count/${index + 1}`)]));
     }
   }
   checkOutput(subjectDetailsSchema, result); return result;
@@ -197,6 +237,7 @@ export function collectionPage(value: unknown, args: Record<string, unknown>) {
       || args.subject_type !== undefined && summary.subjectType !== args.subject_type
       || args.collection_type !== undefined && row.type !== args.collection_type) throw new AppError('INVALID_RESPONSE', '收藏归属、状态或筛选范围不符。');
     const rating = count(row.rate); const timestamp = row.updated_at;
+    if (rating !== null && rating > 10 || row.private !== undefined && row.private !== null && typeof row.private !== 'boolean') throw new AppError('INVALID_RESPONSE', '个人评分或私密字段类型/范围无效。');
     return { subject: summary, subjectId: id, collectionStatus: row.type,
       statusMeaning: ['计划', '已完成', '进行中', '搁置', '抛弃'][Number(row.type) - 1],
       personalRating: rating !== null && rating <= 10 ? rating : null, personalTags: names(row.tags),

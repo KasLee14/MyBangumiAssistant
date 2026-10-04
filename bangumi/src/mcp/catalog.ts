@@ -2,8 +2,11 @@ import { AppError, SchemaInputError, type InputIssue } from '../support/errors.j
 import { compileSchema, inputIssue, schemaArguments, selectedSchema, type JsonSchema } from '../support/tool-schema.js';
 import { SUBJECT_INCLUDES, subjectOutputSchema } from './subject-output.js';
 import { RESOURCE_INPUT_SCHEMAS, resourceOutputSchema } from './resource-schemas.js';
+import { collectionQuerySchema } from './collection-query.js';
+import { withAccessContext } from './access-context.js';
+import { COMMUNITY_TOOL_DEFINITIONS, communityOutputSchema } from './community-schemas.js';
 
-/** 本项目固定登记的 Bangumi MCP 能力。名称兼容所评估的 55 项工具，实现依据官方 API。 */
+/** 保留原55项固定工具，另登记收藏范围查询及社区只读能力；输入输出由双端锁定。 */
 export interface McpToolDefinition {
   name: string;
   description: string;
@@ -17,13 +20,14 @@ const int = (minimum: number, maximum = Number.MAX_SAFE_INTEGER, extra: Schema =
 const text = (maxLength: number, minLength = 0, extra: Schema = {}): Schema => ({ type: 'string', minLength, maxLength, ...extra });
 const enumeration = (values: readonly unknown[], type = 'integer', extra: Schema = {}): Schema => ({ type, enum: values, ...extra });
 const id = int(1); const counter = int(0); const boolean: Schema = { type: 'boolean' };
-const subjectType = enumeration([1, 2, 3, 4, 6], 'integer', { description: '媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。' }); const collectionType = enumeration([1, 2, 3, 4, 5]);
+const subjectType = enumeration([1, 2, 3, 4, 6], 'integer', { description: '媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。' }); const collectionType = enumeration([1, 2, 3, 4, 5], 'integer', { description: '1想看、2看过/已完成、3在看、4搁置、5抛弃；明确看过必须用2，不以章节进度替代整部状态。' });
 const episodeType = enumeration([0, 1, 2, 3, 4, 5, 6]); const episodeCollection = enumeration([0, 1, 2, 3], 'integer', { default: 2 });
 const page = { limit: int(1, 100, { default: 30 }), offset: int(0, 10000, { default: 0 }) };
 const relationPage = { ...page, limit: int(1, 100, { default: 20 }) };
-const username = text(100, 1, { description: '本人私有资料必须使用 -；任何显式用户名或用户ID均仅使用匿名公开接口。', pattern: '^(?:-|[A-Za-z0-9_]+)$' });
+const username = text(100, 1, { description: '本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。', pattern: '^(?:-|[A-Za-z0-9_]+)$' });
 const image = enumeration(['large', 'medium', 'small', 'grid'], 'string', { default: 'large' });
 const own = { ...boolean, description: '需要本人私有目录或收藏现状时设 true，使用本应用账户会话。', default: false };
+const nsfwScope = enumeration(['account', 'exclude'], 'string', { description: 'account默认按已核实账户NSFW权限查询；exclude仅在用户明确排除R18时提供。上游不能执行完整账户条件时明确报错，不能为继续查询擅自排除R18。' });
 const definitions: McpToolDefinition[] = [];
 function tool(name: string, description: string, properties: Record<string, Schema> = {}, required: string[] = [], effect: 'read' | 'write' = 'read', access: 'public' | 'account' = 'public'): void {
   definitions.push({ name, description, inputSchema: { type: 'object', properties, required, additionalProperties: false }, effect, access });
@@ -36,10 +40,10 @@ const tags: Schema = { type: 'array', minItems: 1, maxItems: 10, uniqueItems: tr
   description: '显式标签筛选，多标签为且；不等于标题关键词命中或题材主线证明。' };
 const dateRange: Schema = { type: 'object', properties: { min: text(10, 10, { pattern: '^\\d{4}-\\d{2}-\\d{2}$' }), max: text(10, 10, { pattern: '^\\d{4}-\\d{2}-\\d{2}$' }) },
   minProperties: 1, additionalProperties: false, description: '实际YYYY-MM-DD日期，含上下界；min不能晚于max。' };
-tool('search_subjects', '搜索五类作品。keyword仅作文字检索，题材用filter.tag/meta_tags、评分范围用filter.rating；不同筛选条件为且。sort只改变排序，不保证与基准作品相似或分数接近。', {
+tool('search_subjects', '搜索五类作品。keyword仅作文字检索，题材用filter.tag/meta_tags、评分范围用filter.rating；不同条件为且。默认保留账户NSFW范围；开启时日期、小数评分、评分人数等上游不可靠筛选明确报能力不足。filter.nsfw=exclude仅用于用户明确排除R18。总数为估计，page.complete只表示源内分页耗尽，完整覆盖须结合accessContext.queryCoverage。sort只改变排序。', {
   keyword: text(300, 0, { description: '文字关键词，不是标签条件；只按结构化filter筛选时填空字符串，不能用拼接题材词替代filter。空关键词必须提供有效filter。' }), subject_type: subjectType,
   filter: { type: 'object', properties: { tag: tags, meta_tags: { ...tags, description: '网站公共标签，多值为且，可用-标签排除。' }, rating: range('number', 0, 10),
-    rating_count: range('integer', 0, Number.MAX_SAFE_INTEGER), rank: range('integer', 1, Number.MAX_SAFE_INTEGER), air_date: dateRange },
+    rating_count: range('integer', 0, Number.MAX_SAFE_INTEGER), rank: range('integer', 1, Number.MAX_SAFE_INTEGER), air_date: dateRange, nsfw: nsfwScope },
     minProperties: 1, additionalProperties: false },
   sort: enumeration(['match', 'heat', 'rank', 'score'], 'string', { default: 'match', description: 'match匹配、heat收藏人数、rank排名、score评分；不按基准分差排序。' }), ...page }, ['keyword']);
 export const BROWSE_CATEGORIES: Readonly<Record<number, readonly number[]>> = {
@@ -49,8 +53,8 @@ const categoryDescriptions: Record<number, string> = { 1: '书籍：0其他、10
   2: '动画形式：0其他、1TV、2OVA、3Movie、5WEB；恋爱/百合等题材使用search_subjects的filter。',
   3: '音乐仅0其他。', 4: '游戏：0其他、4001游戏、4002软件、4003扩展包、4005桌游。',
   6: '三次元：0其他、1日剧、2欧美剧、3华语剧、6001电视剧、6002电影、6003演出、6004综艺。' };
-const browseCommon = { sort: enumeration(['date', 'rank'], 'string'), year: int(1800, 2200), month: int(1, 12), ...page };
-tool('browse_subjects', '按媒体、作品形式、日期浏览；cat不是题材标签。series仅书籍可提供（false也一样），platform仅游戏可提供。标签和评分条件使用search_subjects。', {
+const browseCommon = { sort: enumeration(['date', 'rank'], 'string'), year: int(1800, 2200), month: int(1, 12), nsfw: nsfwScope, ...page };
+tool('browse_subjects', '按媒体、作品形式、日期浏览；cat不是题材标签。上游浏览摘要遗漏R18，账户开启NSFW时默认明确报能力不足；nsfw=exclude仅用于用户明确排除R18。返回覆盖限制见accessContext.queryCoverage。series仅书籍可提供（false也一样），platform仅游戏可提供。标签和评分条件使用search_subjects。', {
   subject_type: subjectType, cat: enumeration([...new Set(Object.values(BROWSE_CATEGORIES).flat())]),
   series: { ...boolean, description: '仅书籍；其他媒体必须省略，包括false。' }, platform: text(100, 1, { description: '仅游戏平台；动画TV/OVA用cat，不能传platform。' }), ...browseCommon }, ['subject_type']);
 const browse = definitions.at(-1)!;
@@ -78,8 +82,13 @@ for (const [entity, plural, relationships] of [['character', 'characters', ['sub
 }
 tool('get_user_info', '获取用户公开资料，- 为本应用当前账户。', { username }, ['username']);
 tool('get_user_avatar', '取得用户头像地址。', { username, avatar_type: enumeration(['large', 'medium', 'small'], 'string', { default: 'large' }) }, ['username']);
-tool('get_current_user', '在线核实本应用当前登录账户。', {}, [], 'read', 'account');
-tool('get_user_collections', '分页读取用户作品收藏；本人支持私密记录，其他账户仅公开记录。', { username, subject_type: subjectType, collection_type: collectionType, ...page }, ['username']);
+tool('get_current_user', '在线核实当前账户及NSFW显示偏好和实际权限；accessContext.nsfw.state为enabled/disabled/unknown，preference与allowed分别报告，不能由条目标签猜测开关。', {}, [], 'read', 'account');
+tool('get_user_collections', '分页读取用户作品收藏；本人支持私密记录，其他账户仅公开记录。明确看过传collection_type=2；开播日期范围或完整整理优先query_user_collections，不能把收藏更新时间当开播日期。', { username, subject_type: subjectType, collection_type: collectionType, ...page }, ['username']);
+tool('query_user_collections', '宿主完整查询指定开播日期范围的收藏，仅返回匹配项和覆盖事实，避免模型遍历原始收藏。看过传collection_type=2；日期含上下界，4月用04-01至04-30。extra_subject_ids只保留用户明确补入的跨月作品，仍须满足媒体和收藏状态。登录时走账户API覆盖本人私密记录；未登录的公开网页按日期倒序越过下界停止，异常结构回退公开API。coverage.complete只针对本次可见范围，NSFW关闭/未知时须说明R18覆盖限制。', {
+  username, subject_type: subjectType, collection_type: collectionType, air_date: dateRange,
+  sort: enumeration(['date_desc', 'date_asc'], 'string', { default: 'date_desc' }),
+  extra_subject_ids: { type: 'array', maxItems: 100, uniqueItems: true, items: id, default: [] },
+}, ['username', 'subject_type', 'air_date']);
 tool('get_user_subject_collection', '查询用户指定作品收藏；本人读取单条p1快照，明确未收藏返回 null，缺个人字段拒绝推断。', { username, subject_id: id }, ['username', 'subject_id']);
 tool('update_subject_collection', '修改本账户收藏指定字段，保留其他字段；不会自动把所有章节标为看过。ep_status/vol_status仅支持已收藏书籍；动画和三次元通过章节工具修改并回读派生已看集数，不能额外写ep_status。', { subject_id: id, collection_type: collectionType, rating: int(0, 10), comment: text(2000), tags: { type: 'array', maxItems: 40, uniqueItems: true, items: text(100, 1, { pattern: '^\\S+$' }) }, private: boolean,
   ep_status: { ...counter, description: '仅已收藏书籍的已读章数；禁止用于动画/三次元已看集数。' }, vol_status: { ...counter, description: '仅已收藏书籍的已读卷数。' } }, ['subject_id'], 'write', 'account');
@@ -104,18 +113,23 @@ tool('update_index_subject', '修改本账户目录中作品的短评或顺序�
 tool('remove_subject_from_index', '从本账户拥有的目录移除指定作品。', { index_id: id, subject_id: id }, ['index_id', 'subject_id'], 'write', 'account');
 tool('collect_index', '收藏目录。', { index_id: id }, ['index_id'], 'write', 'account');
 tool('uncollect_index', '取消目录收藏。', { index_id: id }, ['index_id'], 'write', 'account');
-if (definitions.length !== 55) throw new Error('Bangumi MCP 固定能力目录数量错误。');
+if (definitions.length !== 56) throw new Error('Bangumi MCP 基础能力目录数量错误。');
+definitions.push(...COMMUNITY_TOOL_DEFINITIONS);
 for (const definition of definitions) {
   if (RESOURCE_INPUT_SCHEMAS[definition.name]) definition.inputSchema = structuredClone(RESOURCE_INPUT_SCHEMAS[definition.name]!);
+  if (definition.name === 'get_person_characters') definition.description = '分页查询人物的角色及出演作品。可按subject_type、appearance_role及动画subject_form筛选，宿主完成关联读取和筛选；include按需附带subjectFacts或本人ownCollection。subject_form须subject_type=2，并自动附带subjectFacts作为形式证据。增强查询续页保持相同参数并传page.snapshotRef，coverage.complete报告全源覆盖和资料缺口，page.complete仅指本页覆盖所有匹配关系；同一作品可能对应多个角色，按subject.id汇总。sourceTypeCode因源而异，主角/配角只看appearanceRole.meaning；制作职务查询使用get_person_subjects。';
+  if (definition.name === 'get_character_persons') definition.description = '分页查询角色的声优及作品关系。角色/人物实体type与出演关系独立；主角/配角只看appearanceRole.meaning，不能使用sourceTypeCode判断。';
+  if ((definition.inputSchema.properties as Record<string, Schema> | undefined)?.username) (definition.inputSchema.properties as Record<string, Schema>).username!.description = username.description;
   const subjectOutput = subjectOutputSchema(definition.name, definition.inputSchema);
-  const output = subjectOutput ?? resourceOutputSchema(definition.name);
+  const output = definition.name === 'query_user_collections' ? withAccessContext(collectionQuerySchema(definition.inputSchema)) : communityOutputSchema(definition.name) ?? subjectOutput ?? resourceOutputSchema(definition.name);
   if (output) {
     definition.outputSchema = output;
     compileSchema(output);
     if (subjectOutput && definition.name !== 'get_subject_details') definition.description += '。返回统一作品摘要和真实分页，不附简介/infobox/图片；名称、日期、评分及实际标签名可直接使用，介绍需调用作品详情。';
-    if (!subjectOutput && definition.effect === 'read') definition.description += '。返回固定白名单资料，列表不附简介或全部图片；详情通过include固定字段组按需读取。个人现状保持完整，公开不可见不表示未收藏。';
+    if (!subjectOutput && definition.effect === 'read' && !communityOutputSchema(definition.name)) definition.description += '。返回固定白名单资料，列表不附简介或全部图片；详情通过include固定字段组按需读取。个人现状保持完整，公开不可见不表示未收藏。';
     if (definition.effect === 'write') definition.description += '。返回逐目标/阶段提交回执，verification=pending不表示持久化成功；最终结果仍由宿主独立回读核实，不自动重发。';
   }
+  if (definition.effect === 'read' && !communityOutputSchema(definition.name)) definition.description += '。读取前核实登录及NSFW，accessContext报告当前权限与实际数据来源。';
 }
 export const TOOL_DEFINITIONS: readonly McpToolDefinition[] = definitions;
 export function findToolDefinition(name: string): McpToolDefinition {
@@ -149,11 +163,21 @@ export function validateToolArguments(name: string, value: unknown): Record<stri
         || (typeof bounds.min === 'string' && typeof bounds.max === 'string' && bounds.min > bounds.max)) issues.push(inputIssue(active, `/filter/${key}`, 'rangeOrder')!);
     }
   }
+  if (name === 'query_user_collections') {
+    const bounds = output.air_date as Record<string, string>;
+    for (const side of ['min', 'max']) if (bounds[side] !== undefined) {
+      const parsed = new Date(`${bounds[side]}T00:00:00.000Z`);
+      if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== bounds[side]) issues.push(inputIssue(active, `/air_date/${side}`, 'date')!);
+    }
+    if (bounds.min !== undefined && bounds.max !== undefined && bounds.min > bounds.max) issues.push(inputIssue(active, '/air_date', 'rangeOrder')!);
+  }
   if (issues.length) throw new SchemaInputError(issues);
   if (name === 'update_subject_collection' && !['collection_type', 'rating', 'comment', 'tags', 'private', 'ep_status', 'vol_status'].some(key => Object.hasOwn(output, key))) throw new AppError('INVALID_INPUT', '至少指定一个收藏修改字段。');
   if (name === 'update_index' && !['title', 'description', 'private'].some(key => Object.hasOwn(output, key))) throw new AppError('INVALID_INPUT', '至少指定一个目录修改字段。');
   if (name === 'update_index_subject' && !['comment', 'order'].some(key => Object.hasOwn(output, key))) throw new AppError('INVALID_INPUT', '至少指定短评或顺序。');
   if (name === 'get_index' && output.own !== true && output.include === undefined) output.include = ['description'];
+  if (name === 'get_person_characters' && Number(output.offset) > 0 && output.snapshot_ref === undefined
+    && ['subject_type', 'appearance_role', 'subject_form', 'include'].some(key => Object.hasOwn(output, key))) throw new SchemaInputError([inputIssue(active, '/snapshot_ref', 'required')!]);
   return output;
 }
 /** 远端只可提供已登记的字段路径和规则；消息、hint及allowed均重新从本地schema生成。 */

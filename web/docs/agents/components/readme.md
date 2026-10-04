@@ -24,6 +24,9 @@
 3. **一个组件一个文件，不建 `index` 桶**：违反后果：循环引用，以及"这个符号到底在哪"的追查成本。见 §文件粒度与命名。
 4. **不做过度 memo**：只有流式期间会被高频重渲染的行才 `memo`。违反后果：比较开销白付、代码噪音。见 §文件粒度与命名。
 5. **新增组件后登记进本文件**：违反后果：下一次对话找不到它（是全局规则「每次开发后更新文档」在本层的落地）。步骤见 §新增组件检查清单。
+6. **两版共用会话与授权语义**：`ComposerV2` 接入与 `Composer` 相同的会话草稿及发送保护；
+   `ComposerSeatV2` 与 `ComposerSlot` 复用 `ConfirmationCard`，待授权只在输入区出现一次。
+   v2 的视觉独立不意味着另建会话状态。详见 [main-page.md](main-page.md)。
 
 ## 三类的边界
 
@@ -37,12 +40,21 @@
 
 拿不准时按这个顺序问：① 它是内容 `kind` 的渲染器吗 → `content/`；② 它带遮罩、整页浮在会话之上吗 → `dialog/`；③ 否则 → `mainPage/`。
 
+`components/` 下还有两个**不属于上述三类**的目录，它们服务的是「外观版本」这件事：
+
+| 目录 | 服务对象 | 说明 |
+|---|---|---|
+| `v2/` | v2 外壳 | 动效版的全部外壳组件（`shell/`、`conversation/`、`composer/`、`overlays/`），与 `mainPage/` 里 v1 的对应组件一一对应但完全独立。判据同 `mainPage/`，只是它只服务 v2 |
+| `motion/` | 两版之外的动效原语 | `vendor/` 是从 ReactBits 抓取并做最小适配的组件源码（`BlurText`、`TextType`、`AnimatedContent`、`AnimatedList`、`BorderGlow`、`CountUp`、`Magnet`）；`motionTokens.ts` 是 JS 侧动效令牌，与 `styles/v2/tokens.css` 一一对应 |
+
+依赖方向是单向的：`v2/**` 可以 import `motion/**`，也可以复用 `mainPage/**` 与 `content/**` 里 props 驱动的渲染器；**反向不行**——`mainPage/**`（v1）不得 import `motion/**`，v1 不含任何动效库调用。唯一例外是 `dialog/Modal.tsx`：它按 `variant` 分流，同一份表单在两个版本下分别渲染原生元素与 motion 元素（见该文件注释）。
+
 `mainPage/` 下再按**界面区域**分五个子目录：
 
 | 子目录 | 区域 | 文件 |
 |---|---|---|
 | `sidebar/` | 左栏 | `Sidebar.tsx` |
-| `header/` | 顶栏 | `Header.tsx` |
+| `header/` | 顶栏 | `Header.tsx`、`UiVariantToggle.tsx`（两版共用的外观切换控件） |
 | `conversation/` | 会话正文 | `ConversationView.tsx`、`TurnView.tsx`、`MessageParts.tsx`、`ConfirmationCard.tsx`、`Hero.tsx` |
 | `composer/` | 输入区 | `Composer.tsx`、`ComposerSlot.tsx`、`StatsDock.tsx`、`ThinkingPicker.tsx` |
 | `overlays/` | 浮层挂载点 | `DialogHost.tsx`、`Toast.tsx` |
@@ -61,6 +73,10 @@
 | `content/**`、`content/markdown.tsx` | A | props（协议条目） |
 | `StatsDock` | A | props（由 `Composer` 从 store 读出后传入） |
 | `Sidebar` / `Header` / `Composer` / `ComposerSlot` / `ThinkingPicker` | B | store |
+| `v2/shell/**`、`v2/composer/ComposerV2` | B | store（与 v1 的同类组件同构，见 [../../AGENTS.md](../../../AGENTS.md) §3） |
+| `v2/conversation/StageV2` / `TurnV2` / `StreamingV2` | A | props（由 `ShellV2` 从 store 读出后传入） |
+| `v2/overlays/DialogStageV2` / `ToastV2` | B | store（分别与 `DialogHost` / `Toast` 同构） |
+| `v2/conversation/HeroV2`、`motion/**` | A | props 或无状态 |
 | `dialog/**`、`DialogHost` / `Toast` | B | store（弹窗开合状态在 `store/reducers/ui.ts`） |
 
 ## 文件粒度与命名

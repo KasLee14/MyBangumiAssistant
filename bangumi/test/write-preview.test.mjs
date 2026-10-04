@@ -54,7 +54,24 @@ test('新建目录与全部 22 部作品使用目录名称，显示最终简介�
   assert.match(preview, /向新目录《待看动画》添加以下 22 部作品/u);
   for (let i = 1; i <= 22; i++) assert.ok(preview.includes(`• 《作品${i}》`));
   assert.match(preview, /完整目录简介\n    第二行/u);
-  assert.doesNotMatch(preview, /#-1|第1步|subject_id|排序位置：0/u);
+  assert.doesNotMatch(preview, /#-1|第1步|subject_id/u);
+  assert.equal(preview.match(/排序位置：0/gu).length, 22);
+});
+
+test('相邻目录添加合并摘要，逐作品保留不同排序与短评，不跨目录合并', () => {
+  const items = [createIndex('四月动画'), ...Array.from({ length: 26 }, (_, i) =>
+    indexSubject('add_subject_to_index', i + 1, '四月动画', -1, null, { subject_id: i + 1, order: i, comment: i % 2 ? `第${i}条短评` : '' })),
+    indexSubject('add_subject_to_index', 99, '另一目录', 88, null, { subject_id: 99, order: 2, comment: '另一目录的短评' })];
+  const original = structuredClone(items); const preview = formatWritePreview(account, items);
+  assert.match(preview, /向新目录《四月动画》添加以下 26 部作品/u);
+  assert.match(preview, /向目录《另一目录》添加以下 1 部作品/u);
+  for (let i = 0; i < 26; i++) {
+    assert.ok(preview.includes(`《作品${i + 1}》`));
+    assert.ok(preview.includes(`排序位置：${i}`));
+    if (i % 2) assert.ok(preview.includes(`第${i}条短评`));
+  }
+  assert.doesNotMatch(preview, /向新目录《四月动画》添加以下 1 部作品/u);
+  assert.deepEqual(items, original);
 });
 
 test('同名作品用真实 ID 区分，同名新目录用本次目录编号区分', () => {

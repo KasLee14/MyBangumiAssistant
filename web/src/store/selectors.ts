@@ -27,6 +27,8 @@ export const selectCollapsed = (state: RootState) => state.ui.collapsed;
 export const selectReveal = (state: RootState) => state.ui.reveal;
 export const selectNotice = (state: RootState) => state.ui.notice;
 export const selectProblem = (state: RootState) => state.ui.problem;
+/** 当前外观版本：页面据此决定装配 v1 还是 v2 的外壳。 */
+export const selectVariant = (state: RootState) => state.ui.variant;
 
 /**
  * 首屏引导：完全空且空闲时才显示。

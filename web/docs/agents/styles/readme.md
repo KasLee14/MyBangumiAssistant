@@ -25,6 +25,16 @@
 3. **每个文件只用自己的命名前缀**：违反后果：样式互相污染，出问题难以定位来源。见 §隔离规则。
 4. **只有浅色一套，不写主题分支**：违反后果：死代码与不可维护的分支。见 §唯一浅色外观。
 5. **保留焦点环、关键信息不依赖 hover**：违反后果：键盘用户不可用（这两条是刻意规避站点自身的可用性问题）。见 §新增样式的步骤。
+6. **v2 的覆写必须带 `[data-ui='v2']` 前缀**：v2 自有组件用 `v2*` 类名；一旦要改共享渲染器的既有类（`.bubble`、`.modalSurface`…），选择器必须写成 `[data-ui='v2'] .bubble`。违反后果：覆写会命中 v1 的 DOM，v1 的外观被 v2 改掉。见 §v2 是怎么隔离的。
+
+## v2 是怎么隔离的
+
+v1 与 v2 同时活在同一份 CSS 里，靠两件事互不干扰：
+
+1. **作用域属性在 `<html>` 上**：`main.tsx` 在首帧前按 `store.ui.variant` 预置 `document.documentElement.dataset.ui`，`ShellV2` 挂载后接管、卸载时删除。写在 `<html>` 而不是子树根节点上，是因为统计浮层与弹窗 portal 到 `body`——挂在子树里它们就落在作用域外，v2 的覆写会失效。
+2. **v1 里没有任何 `[data-ui]` 选择器**：所以这个属性对 v1 完全透明；反过来 v2 的覆写也只可能命中 v2 的 DOM。
+
+v1↔v2 切换时，v2 的整棵子树与它的作用域属性一起消失，v1 回到没有任何属性、没有任何 v2 类名的状态。
 
 ## 这一层是什么
 
@@ -40,12 +50,16 @@
 | `bgm.css` | ~770 | **品牌覆盖层**：定义 `--bgm-*` 并把组件实际用到的 `--dsw-*` 别名重定向过去，再覆盖形态 | 定义 `--bgm-*`，重定向 `--dsw-*` | [content-and-brand.md](content-and-brand.md) |
 | `content.css` | ~855 | 内容组件库（12 种内容条目的样式） | 只用 `--bgm-*` | [content-and-brand.md](content-and-brand.md) |
 | `fonts/` | — | Montserrat（OFL，三个字重 woff2 + 许可文件） | — | [tokens.md](tokens.md) |
+| `v2/*.css` | 6 个文件 | **v2（动效版）的一整套**：`tokens` / `shell` / `conversation` / `composer` / `overlays` / `content` | 定义并消费 `--v2-*`，并覆写共享类 | [../../AGENTS.md](../../../AGENTS.md) §3 |
 
 ## 引入顺序是契约（`main.tsx`）
 
 ```ts
 tokens → frame → composer → cards → modal → bgm → content
+       → v2/tokens → v2/shell → v2/conversation → v2/composer → v2/overlays → v2/content
 ```
+
+v2 的一组排在**最后**：它们要么用 `v2*` 类名（本来就唯一），要么是 `[data-ui='v2']` 作用域内的覆写——覆写要盖住 v1 的同名规则，因此必须在 v1 的 8 个文件之后引入。
 
 两条硬约束：
 
@@ -74,6 +88,7 @@ tokens → frame → composer → cards → modal → bgm → content
 | `cards.css` | `.cardSeat`、`.planCard`、`.planStrip`、`.planBody`、`.planActions` … |
 | `modal.css` | `.modalOverlay`、`.modalSurface`、`.modalField`、`.modalCheck`、`.modalStatus` … |
 | `content.css` | `.content*`（与 `components/content/` 的组件一一对应） |
+| `v2/*.css` | `v2*`（v2 自有组件）与 `[data-ui='v2'] <既有类>`（覆写共享渲染器）——见 §v2 是怎么隔离的 |
 
 历史上调试面板的样式曾单独成文件（`.preview*`）并遵守同一规则，后被移除——**这条"前缀隔离"约定保留**：任何新样式文件都要有自己的前缀。
 

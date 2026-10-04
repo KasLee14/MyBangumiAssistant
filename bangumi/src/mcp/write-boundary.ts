@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import type { AgentToolResult } from '@earendil-works/pi-agent-core';
 import { AppError, SubmissionError, safeError, type SubmissionReceipt } from '../support/errors.js';
@@ -18,6 +18,12 @@ import { confirmationForPlan } from './confirmation-policy.js';
 import { isEpisodeWrite, verifyWrittenState, type ReadbackVerification } from './write-verification.js';
 import { isWatchedUntil, MAX_PROGRESS_EPISODES, watchedUntilIds } from './episode-progress.js';
 import type { TraceHost } from '../tracing/schema.js';
+import type { McpBatchScope } from './batch-context.js';
+import { SubmissionTracker } from './submission.js';
+import { allowedWriteSnapshot, definiteWriteRejection, latestWriteFacts, pendingWriteFact, recoveryTool, submittedWriteTarget, writeConflictKeys, writeFactIdentity, WRITE_RECOVERY_KINDS } from './write-recovery.js';
+import type { WriteFactStore } from './write-journal.js';
+import { writeRateRequests, type WriteRateLimiter, type WriteRateWait } from './write-rate-limit.js';
+import { splitWriteStages, mergeStageSubmission } from './write-stages.js';
 
 type State = 'success' | 'failed' | 'unknown' | 'unchanged';
 export interface Binding {
@@ -48,6 +54,13 @@ function result(value: Data): AgentToolResult<unknown> {
   const details = { value };
   return { content: [{ type: 'text', text: JSON.stringify(details) }], details };
 }
+function visibleWriteValue(value: Data): Data {
+  const result = { ...value };
+  for (const key of ['baselineBefore', 'expected', 'submittedArgs']) delete result[key];
+  if (result.submissionInferred === true) delete result.submission;
+  delete result.submissionInferred;
+  return result;
+}
 function collection(value: unknown, id: number, accountId: number): Data | null {
   const current = collectionRecord(value, id, accountId);
   if (current === null) return null;
@@ -66,7 +79,9 @@ function index(value: unknown, id: number, accountId: number): Data {
 }
 
 /** 仅每轮保留提交指纹与事实，不维护对话、候选、修改草稿或恢复授权。 */
-export interface WriteInput { text: string; generation: number }
+export interface WriteInput { text: string; generation: number; requestId?: string }
+export interface WriteBoundaryOptions { journal?: WriteFactStore; limiter?: WriteRateLimiter; resetClient?: () => Promise<void> }
+interface RecoveryPlanItem { tool: string; args: Data; target?: Data }
 export interface PlannedWrite { name: string; binding: Binding; createdIndex?: number }
 /** 临时计划视图只预测固定映射的业务字段，用于整批预览和独立回读；不保存授权。 */
 export function advanceWriteView(view: Map<string, unknown>, step: PlannedWrite, accountId: number): void {
@@ -95,20 +110,79 @@ export function advanceWriteView(view: Map<string, unknown>, step: PlannedWrite,
 }
 interface Permit {
   input: WriteInput; accountId: number; ctx: ExtensionToolContext; steps: PlannedWrite[];
-  next: number; indexes: Map<number, number>;
+  next: number; indexes: Map<number, number>; stopped?: boolean;
+  expected: Map<string, unknown>; submitted: { step: PlannedWrite; binding: Binding; value: Data; fingerprint: string; toolCallId: string }[];
+  uncertainBefore?: Map<string, unknown>;
+  requestId: string; batchId: string; account: Data;
 }
 export function createWriteBoundary(
   client: McpCallClient,
-  getInput: () => { text: string; generation: number },
+  getInput: () => WriteInput,
   onRecord?: (record: unknown) => void,
   channel: InteractionChannel = createTerminalChannel(),
   trace?: TraceHost,
+  options: WriteBoundaryOptions = {},
 ) {
   let generation: number | undefined;
   const completed = new Map<string, AgentToolResult<unknown>>();
   let unknownWrite = false;
   let submittedGeneration: number | undefined;
   const permits = new WeakMap<object, Permit>();
+  let batch: McpBatchScope | undefined;
+  const subjectCache = new Map<number, Data>();
+  const localFacts: Data[] = [];
+  let requestGeneration: number | undefined; let localRequestId = randomUUID();
+  let recoveryIssues: Data[] = [];
+  let recoveryTargets: Data[] = [];
+  let recoveryRequestId: string | undefined;
+  function requestId(input: WriteInput): string {
+    if (input.requestId) return input.requestId;
+    if (requestGeneration !== input.generation) { requestGeneration = input.generation; localRequestId = randomUUID(); }
+    return localRequestId;
+  }
+  function recordWrite(fact: Data): void {
+    const stamped = { ...fact, schemaVersion: 2, recordedAt: new Date().toISOString() };
+    options.journal?.append(stamped);
+    localFacts.push(structuredClone(stamped));
+    onRecord?.(stamped);
+  }
+  function allWriteFacts(ctx: ExtensionToolContext): Data[] {
+    const facts: Data[] = [];
+    const calls = new Map<string, string>();
+    for (const entry of ctx.sessionManager.getEntries()) {
+      if (entry.type !== 'custom' || !entry.data || typeof entry.data !== 'object' || Array.isArray(entry.data)) continue;
+      const value = entry.data as Data;
+      if (entry.customType === 'bangumi/batch' && typeof value.fingerprint === 'string' && typeof value.toolCallId === 'string') calls.set(value.fingerprint, value.toolCallId);
+      if (entry.customType === 'bangumi/write' && value.kind !== 'bangumi-batch') facts.push({ kind: 'bangumi-write', recordedAt: entry.timestamp, ...value });
+      else if (entry.customType === 'bangumi/batch' && Array.isArray(value.items)) {
+        value.items.forEach((raw, i) => {
+          const item = record(raw); if (!item.tool) return;
+          const parentCall = typeof value.toolCallId === 'string' ? value.toolCallId : calls.get(String(value.fingerprint));
+          if (parentCall) facts.push({ kind: 'bangumi-write', accountId: value.accountId, toolCallId: `${parentCall}/${i + 1}`, ...item });
+        });
+      }
+    }
+    if (!options.journal) return [...facts, ...localFacts];
+    const journal = options.journal.entries().filter(f => f.kind === 'bangumi-write');
+    const recorded = new Set(journal.map(writeFactIdentity));
+    // 共享账本为权威；另一个聊天已结案的结果不能被本边界旧缓存复活。
+    return [...facts.filter(f => !recorded.has(writeFactIdentity(f))), ...journal];
+  }
+  function recordedRequest(ctx: ExtensionToolContext, input: WriteInput): Data | undefined {
+    const id = requestId(input); let prior: Data | undefined;
+    const facts = ctx.sessionManager.getEntries().filter(entry => entry.type === 'custom' && (entry.customType === 'bangumi/batch' || entry.customType === 'bangumi/write'))
+      .map(entry => record((entry as unknown as Data).data));
+    for (const fact of [...facts, ...options.journal?.entries() ?? []]) {
+      if (fact.requestId === id && (fact.writeNetworkAttempted === true || ['started', 'progress', 'submission'].includes(String(fact.phase)))) prior = fact;
+    }
+    return prior;
+  }
+  function planRecord(token: object): Data {
+    const permit = permits.get(token); if (!permit) throw new AppError('AUTHORIZATION_REQUIRED', '写入计划已失效。');
+    return { schemaVersion: 2, requestId: permit.requestId, batchId: permit.batchId, count: permit.steps.length,
+      operations: permit.steps.map(step => ({ tool: step.name, args: step.binding.args, target: step.binding.target, before: step.binding.before,
+        after: step.binding.after, baseline: [...step.binding.baseline ?? []], ...(step.createdIndex === undefined ? {} : { createdIndex: step.createdIndex }) })) };
+  }
 
   function checkInput(expected: WriteInput): void {
     const current = getInput();
@@ -117,7 +191,7 @@ export function createWriteBoundary(
 
   async function read(name: string, raw: Data, signal?: AbortSignal): Promise<unknown> {
     const args = validateToolArguments(name, raw);
-    const value = await client.call(name, args, signal);
+    const value = await client.call(name, args, signal, undefined, batch);
     const definition = findToolDefinition(name);
     if (definition.outputSchema) {
       checkOutput(definition.outputSchema, { value });
@@ -128,7 +202,10 @@ export function createWriteBoundary(
   }
 
   async function subject(id: number, signal?: AbortSignal): Promise<Data> {
-    return record(await read('get_subject_details', { subject_id: id, include: [] }, signal));
+    if (batch?.phase === 'prepare' && subjectCache.has(id)) return structuredClone(subjectCache.get(id)!);
+    const value = record(await read('get_subject_details', { subject_id: id, include: [] }, signal));
+    if (batch?.phase === 'prepare') subjectCache.set(id, structuredClone(value));
+    return value;
   }
   async function subjectCollection(id: number, accountId: number, signal?: AbortSignal): Promise<Data | null> {
     return collection(await read('get_user_subject_collection', { username: '-', subject_id: id }, signal), id, accountId);
@@ -349,6 +426,33 @@ export function createWriteBoundary(
     for (const key of requested) if (!result.has(key)) result.set(key, await canonical(key, accountId, signal));
     return result;
   }
+  async function observedView(keys: Iterable<string>, accountId: number, signal?: AbortSignal): Promise<{ observed: Map<string, unknown>; errors: Map<string, unknown> }> {
+    const requested = new Set(keys), observed = new Map<string, unknown>(), errors = new Map<string, unknown>();
+    for (const key of requested) if (key.startsWith('episodeScope:')) {
+      try {
+        const rows = await allEpisodeStates(Number(key.split(':')[1]), accountId, signal);
+        observed.set(key, episodeScope(rows));
+        for (const row of rows) if (requested.has(`episode:${row.id}`)) observed.set(`episode:${row.id}`, row.state);
+      } catch (error) { errors.set(key, error); }
+    }
+    for (const key of requested) if (!observed.has(key) && !errors.has(key)) {
+      try { observed.set(key, await canonical(key, accountId, signal)); }
+      catch (error) { errors.set(key, error); }
+    }
+    return { observed, errors };
+  }
+  function allowedView(actual: Map<string, unknown>, before: Map<string, unknown>, after: Map<string, unknown>): boolean {
+    return actual.size === after.size && [...after].every(([key, expected]) => {
+      let current = actual.get(key);
+      if (key.startsWith('relations:') && Array.isArray(expected) && Array.isArray(current)) {
+        current = current.map(value => {
+          const row = record(value);
+          return expected.some(v => record(v).subject_id === row.subject_id && record(v).relationId === null) ? { ...row, relationId: null } : row;
+        });
+      }
+      return allowedWriteSnapshot(before.get(key), expected, current);
+    });
+  }
   function sameBaseline(actual: Map<string, unknown> | undefined, expected: Map<string, unknown> | undefined): boolean {
     if (!actual || !expected || actual.size !== expected.size) return false;
     for (const [key, value] of expected) {
@@ -369,138 +473,6 @@ export function createWriteBoundary(
       && equal(actual.target, expected.target) && sameBaseline(actual.baseline, expected.baseline);
   }
 
-  const execute = async (name: string, raw: Data, signal: AbortSignal | undefined, ctx: ExtensionToolContext, toolCallId: string, approved?: { input: WriteInput; accountId: number; binding: Binding }): Promise<AgentToolResult<unknown>> => {
-    const input = { ...getInput() };
-    if (generation !== input.generation) { generation = input.generation; completed.clear(); unknownWrite = false; }
-    let fingerprint: string | undefined; let attempted = false; let binding: Binding | undefined; let accountId: number | undefined;
-    try {
-      const args = submissionArguments(name, validateToolArguments(name, raw));
-      if (findToolDefinition(name).effect !== 'write') throw new AppError('INVALID_INPUT', '写入边界只接受固定写工具。');
-      if (!input.text.trim()) throw new AppError('AUTHORIZATION_REQUIRED', '没有真实本轮用户输入，不能从恢复历史或模型输出取得修改授权。');
-      signal?.throwIfAborted();
-      accountId = positive(record(await read('get_current_user', {}, signal)).id);
-      if (approved) { checkInput(approved.input); if (accountId !== approved.accountId) throw new AppError('ACCOUNT_CHANGED', '当前账户与整批授权账户不一致，已停止。'); }
-      fingerprint = createHash('sha256').update(JSON.stringify(stable({ accountId, name, args }))).digest('hex');
-      const previous = completed.get(fingerprint);
-      if (previous && !approved) return previous;
-      if (unknownWrite) throw new AppError('PREVIOUS_WRITE_UNKNOWN', '本轮已有未知修改，先核实既有结果；不继续提交或重发。');
-      // Pi原生append-only事实覆盖全部分支；恢复不复活确认，也不忽略另一分支已提交的修改。
-      let prior: Data | undefined;
-      for (const entry of ctx.sessionManager.getEntries()) {
-        if (entry.type === 'custom' && entry.customType === 'bangumi/write' && entry.data !== null && typeof entry.data === 'object' && !Array.isArray(entry.data)) {
-          const data = entry.data as Data;
-          if (data.fingerprint === fingerprint && data.accountId === accountId) prior = data;
-        }
-      }
-      if (prior?.phase === 'started' || prior?.state === 'unknown') throw new AppError('PREVIOUS_WRITE_UNKNOWN', 'Pi会话记录中该修改尚未核实，恢复或分支后禁止再次提交，请先独立读取网站现状。');
-      if (!approved && submittedGeneration === input.generation) throw new AppError('WRITE_PLAN_ALREADY_SUBMITTED', '本轮已有提交，不再追加单项修改；多个操作须一次提交完整计划。');
-      binding = await prepare(name, args, accountId, signal);
-      if (approved && !sameBinding(binding, approved.binding)) throw new AppError('STALE_PREVIEW', '网站现状与整批已确认计划不一致，已停止后续操作。');
-      const base = { tool: name, accountId, target: binding.target, before: binding.before, after: binding.after };
-      if (equal(binding.before, binding.after)) {
-        const unchanged = result({ ...base, state: 'unchanged', networkAttempted: false }); completed.set(fingerprint, unchanged); return unchanged;
-      }
-      if (!channel.canConfirm(ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要本地Pi交互终端或已连接的Web终端，非交互模式不提交修改。');
-      const account = record(await read('get_current_user', {}, signal));
-      const confirmation = confirmationForPlan([{ name, args: binding.args, before: binding.before, after: binding.after }]);
-      trace?.record('confirmation.policy', confirmation);
-      const confirmedBinding = binding;
-      const confirm = () => channel.confirm(ctx, formatWritePreview(account, [{ name, ...confirmedBinding }]), signal, { title: '操作授权', confirmLabel: '确认授权' });
-      const accepted = approved || !confirmation.required ? true : await (trace ? trace.phase('confirmation', confirm) : confirm());
-      signal?.throwIfAborted();
-      if (!accepted) throw new AppError('CANCELLED', '用户取消，未提交修改。');
-      const latest = getInput();
-      if (latest.generation !== input.generation || latest.text !== input.text) throw new AppError('STALE_PREVIEW', '用户输入已改变，旧预览不能授权新操作。');
-      if (positive(record(await read('get_current_user', {}, signal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '确认期间账户改变，旧预览不能授权新账户。');
-      const refreshed = await prepare(name, args, accountId, signal);
-      if (!sameBinding(refreshed, binding)) throw new AppError('STALE_PREVIEW', '确认期间网站现状改变，请重新生成具体预览。');
-      binding = refreshed;
-      signal?.throwIfAborted();
-      const finalInput = getInput();
-      if (finalInput.generation !== input.generation || finalInput.text !== input.text) throw new AppError('STALE_PREVIEW', '核对期间用户输入改变，未提交旧预览。');
-      if (!channel.canConfirm(ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '交互通道已断开，未提交修改。');
-      if (!onRecord) throw new AppError('WRITE_RECORD_REQUIRED', '未连接Pi提交事实记录，不能安全提交可恢复会话中的修改。');
-      onRecord({ kind: 'bangumi-write', phase: 'started', fingerprint, generation: input.generation, tool: name, toolCallId, accountId, target: binding.target, args: binding.args });
-      submittedGeneration = input.generation;
-      attempted = true;
-      let receipt: SubmissionReceipt | undefined; let submissionError: unknown;
-      try {
-        const submit = () => client.call(name, binding!.args, signal, binding!.guard);
-        const submitted = await (trace ? trace.phase('submit', submit, { tool_call_id: toolCallId }) : submit());
-        const definition = findToolDefinition(name);
-        checkOutput(definition.outputSchema!, { value: submitted });
-        checkSubmission(name, submitted, binding.args, accountId, binding.guard.subjectId, binding.guard.prepared);
-        receipt = submitted as SubmissionReceipt;
-      } catch (error) {
-        submissionError = error;
-        if (error instanceof SubmissionError) {
-          try {
-            checkOutput(findToolDefinition(name).outputSchema!, { error: safeError(error) });
-            checkSubmission(name, error.submission, binding.args, accountId, binding.guard.subjectId, binding.guard.prepared);
-            receipt = error.submission;
-          } catch {}
-        }
-      }
-      let state: State = receipt?.submissionState === 'not_attempted' ? 'failed' : 'unknown'; let actual: unknown; let verificationError: unknown;
-      let verification: ReadbackVerification = { readbackCompleted: false, requestedStateMatched: false, protectedFieldsMatched: false, mismatchedFields: [] };
-      // 独立生命周期；模型工具取消不会取消已提交操作的回读，不自动重试写入。
-      try {
-        const verifiedBinding = binding;
-        const verify = async () => {
-          const verificationSignal = AbortSignal.timeout(60000);
-          if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '回读前账户已改变，不能验证原账户写入。');
-          actual = await verifiedBinding.readback(receipt, verificationSignal);
-          if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '回读后账户已改变，不能报告原账户写入成功。');
-          verification = verifyWrittenState(name, verifiedBinding.before, verifiedBinding.after, actual, verifiedBinding.target);
-          if (verification.requestedStateMatched && verification.protectedFieldsMatched) {
-            if (approved) {
-              const expected = structuredClone(verifiedBinding.baseline ?? new Map<string, unknown>());
-              advanceWriteView(expected, { name, binding: verifiedBinding, ...(name === 'create_index' ? { createdIndex: positive(receipt?.createdId) } : {}) }, accountId!);
-              // 汇总进度来自本次独立回读，不把网站派生更新当作未授权字段修改。
-              if (verification.parentProgress) {
-                const key = `collection:${verification.parentProgress.subjectId}`;
-                expected.set(key, { ...record(expected.get(key)), ep_status: verification.parentProgress.actual });
-              }
-              const observed = await canonicalView(expected.keys(), accountId, verificationSignal);
-              if (isEpisodeWrite(name)) {
-                // 两次读取之间网站仍可能推进汇总；使用最后完整回读，不要求派生计数冻结。
-                const subjectId = Number(verifiedBinding.target.subjectId); const key = `collection:${subjectId}`;
-                const expectedState = record(verifiedBinding.after);
-                actual = { episodes: (expectedState.episodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)), parentCollection: observed.get(key),
-                  ...(expectedState.protectedEpisodes ? { protectedEpisodes: (expectedState.protectedEpisodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)) } : {}) };
-                verification = verifyWrittenState(name, verifiedBinding.before, verifiedBinding.after, actual, verifiedBinding.target);
-                if (verification.parentProgress) expected.set(key, { ...record(expected.get(key)), ep_status: verification.parentProgress.actual });
-              }
-              if (!sameBaseline(observed, expected)) {
-                state = 'failed';
-                if (!isEpisodeWrite(name)) verification.protectedFieldsMatched = false;
-                verification.mismatchedFields.push('baseline');
-                verificationError = new AppError('UNEXPECTED_CHANGE', '完整回读与已确认计划不一致，已停止后续。');
-              } else {
-                if (positive(record(await read('get_current_user', {}, verificationSignal)).id) !== accountId) throw new AppError('ACCOUNT_CHANGED', '完整回读后账户改变，不能报告成功。');
-                state = 'success';
-              }
-            } else state = 'success';
-          } else if (receipt?.submissionState === 'acknowledged' || receipt?.submissionState === 'not_attempted') state = 'failed';
-          if (state === 'failed' && verification.mismatchedFields.length) verificationError ??= new AppError('READBACK_MISMATCH', `回读不符合预期：${verification.mismatchedFields.join('、')}。`);
-        };
-        if (trace) await trace.phase('verify', verify, { tool_call_id: toolCallId }); else await verify();
-      } catch (error) { verification.readbackCompleted = false; verificationError = error; }
-      if (state === 'unknown') unknownWrite = true;
-      const outcome = { ...base, state, networkAttempted: true, verification: { ...verification, state }, ...(actual === undefined ? {} : { actual }),
-        ...(receipt === undefined ? {} : { submission: receipt }), ...(submissionError === undefined ? {} : { submissionError: safeError(submissionError) }),
-        ...(verificationError === undefined ? {} : { verificationError: safeError(verificationError) }) };
-      const value = result(outcome); completed.set(fingerprint, value);
-      try { onRecord({ kind: 'bangumi-write', phase: 'completed', fingerprint, generation: input.generation, toolCallId, args: binding.args, ...outcome }); } catch {}
-      return value;
-    } catch (error) {
-      if (attempted) unknownWrite = true;
-      const value = result({ state: attempted ? 'unknown' : 'failed', tool: name, ...(accountId === undefined ? {} : { accountId }), networkAttempted: attempted, error: safeError(error) });
-      if (fingerprint) completed.set(fingerprint, value);
-      return value;
-    }
-  };
-
   function remap(value: unknown, indexes: Map<number, number>): unknown {
     if (Array.isArray(value)) return value.map(v => remap(v, indexes));
     if (!value || typeof value !== 'object') return value;
@@ -517,23 +489,148 @@ export function createWriteBoundary(
         return [match ? `${match[1]}:${indexes.get(Number(match[2])) ?? match[2]}` : key, remap(value, indexes)];
       })) };
   }
-  async function assertReady(ctx: ExtensionToolContext, input: WriteInput, accountId: number, signal?: AbortSignal) {
+  async function recoveryActual(name: string, fact: Data, accountId: number, signal: AbortSignal, input: WriteInput, hints: readonly number[]): Promise<{ actual: unknown; target: Data }> {
+    const args = record(fact.args); const target = record(fact.target);
+    if (name === 'update_subject_collection') return { actual: await subjectCollection(positive(args.subject_id), accountId, signal), target };
+    if (isEpisodeWrite(name)) {
+      const after = record(fact.after);
+      const expectedEpisodes = after.episodes as Data[] | undefined;
+      if (!expectedEpisodes?.length) throw new AppError('WRITE_RECOVERY_METADATA_REQUIRED', '旧章节修改缺少完整原始范围，不能从当前现状猜测原授权。');
+      const parent = positive(target.subjectId ?? record(expectedEpisodes[0]).subject_id);
+      const episodes: Data[] = [];
+      for (const ep of expectedEpisodes) episodes.push(episode(await read('get_single_episode_collection', { episode_id: positive(ep.episode_id) }, signal), positive(ep.episode_id), accountId, parent));
+      const protectedEpisodes: Data[] = [];
+      for (const ep of after.protectedEpisodes as Data[] ?? []) protectedEpisodes.push(episode(await read('get_single_episode_collection', { episode_id: positive(ep.episode_id) }, signal), positive(ep.episode_id), accountId, parent));
+      return { actual: { episodes, parentCollection: await subjectCollection(parent, accountId, signal),
+        ...(after.protectedEpisodes ? { protectedEpisodes } : {}) }, target };
+    }
+    if (/^(collect|uncollect)_(character|person)$/.test(name)) {
+      const kind = name.endsWith('_character') ? 'character' : 'person'; const id = positive(args[`${kind}_id`]);
+      return { actual: { collected: entityCollected(await read(`get_user_${kind}_collection`, { username: '-', [`${kind}_id`]: id }, signal), kind, id, accountId) }, target };
+    }
+    let id = name === 'create_index' ? Number(record(fact.submission ?? {}).createdId ?? fact.createdId) : Number(args.index_id);
+    if (name === 'create_index' && !(Number.isSafeInteger(id) && id > 0)) {
+      // 新计划里的 ID 不是人类选择证据；只采用本轮真实输入中明确给出的 ID。
+      const explicit = hints.filter(candidate => new RegExp(`(?:index/|\\b)${candidate}(?:\\b|/)`).test(input.text));
+      if (explicit.length !== 1) throw new AppError('UNVERIFIABLE_CREATE', '创建响应丢失且真实目录ID未知；请提供已创建目录的链接或ID，核实后继续，不会再次创建。');
+      id = explicit[0]!;
+    }
+    const snapshot = await indexSnapshot(positive(id), accountId, signal);
+    if (name === 'create_index' || name === 'update_index' || WRITE_RECOVERY_KINDS[name] === 'relation') {
+      if (snapshot.ownerId !== accountId) throw new AppError('ACCOUNT_CHANGED', '恢复目标目录不属于原修改账户。');
+    }
+    if (WRITE_RECOVERY_KINDS[name] === 'relation') {
+      const relation = (await indexSubjects(id, accountId, signal)).find(row => row.subject_id === args.subject_id);
+      return { actual: relation ? { subject_id: relation.subject_id, comment: relation.comment, order: relation.order } : null, target };
+    }
+    const actual = name === 'collect_index' || name === 'uncollect_index' ? { collected: snapshot.collected }
+      : { title: snapshot.title, description: snapshot.description, private: snapshot.private };
+    return { actual, target: name === 'create_index' ? { kind: 'index', id } : target };
+  }
+  async function reconcile(ctx: ExtensionToolContext, input: WriteInput, accountId: number, signal?: AbortSignal, hints: readonly number[] = [], planned?: readonly RecoveryPlanItem[]): Promise<void> {
+    recoveryIssues = [];
+    const currentRequestId = requestId(input);
+    if (recoveryRequestId !== currentRequestId) { recoveryRequestId = currentRequestId; recoveryTargets = []; }
+    const facts = latestWriteFacts(allWriteFacts(ctx), accountId);
+    for (const fact of facts) if (fact.tool === 'create_index' && fact.phase === 'reconciled' && fact.reconciledForRequestId === currentRequestId && fact.state === 'success') {
+      const id = record(fact.target).id;
+      if (!recoveryTargets.some(target => target.indexId === id)) recoveryTargets.push({ tool: fact.tool, indexId: id, args: fact.args, actual: fact.actual });
+    }
+    const pending = facts.filter(pendingWriteFact);
+    if (!pending.length) return;
+    const active = signal ? AbortSignal.any([signal, AbortSignal.timeout(300000)]) : AbortSignal.timeout(300000);
+    const requestedKeys = new Set<string>();
+    for (const item of planned ?? []) {
+      let target = item.target;
+      if (item.tool === 'update_single_episode_collection' && !target?.subjectId) {
+        const state = episodeStateData(await read('get_single_episode_collection', { episode_id: item.args.episode_id }, active), accountId);
+        target = { subjectId: state.subject_id };
+      }
+      for (const key of writeConflictKeys(item.tool, item.args, target)) requestedKeys.add(key);
+    }
+    for (const fact of pending) {
+      let conflictKeys: string[];
+      try {
+        const saved = record(fact.target);
+        const episodes = record(fact.after ?? {}).episodes as Data[] | undefined;
+        const target = { ...saved, ...(saved.subjectId === undefined && episodes?.[0]?.subject_id ? { subjectId: episodes[0].subject_id } : {}),
+          ...(record(fact.submission ?? {}).createdId ? { id: record(fact.submission).createdId } : {}) };
+        conflictKeys = writeConflictKeys(recoveryTool(fact), record(fact.args), target);
+      } catch { conflictKeys = ['account']; }
+      const blocksPlan = planned === undefined || conflictKeys.includes('account') || conflictKeys.some(key => requestedKeys.has(key)
+        || key === 'index:*' && [...requestedKeys].some(requested => requested.startsWith('index:')));
+      // 无关联的旧目标留在账本中，不阻塞本计划，也不为它无谓等待网络恢复。
+      if (!blocksPlan) continue;
+      try {
+        const name = recoveryTool(fact);
+        const { actual, target } = await recoveryActual(name, fact, accountId, active, input, hints);
+        const viewer = record(await read('get_current_user', {}, active));
+        if (viewer.id !== accountId) throw new AppError('ACCOUNT_CHANGED', '恢复核实期间账户改变。');
+        let before = fact.before, after = fact.after;
+        if (!Object.hasOwn(fact, 'after')) {
+          if (name === 'create_index') after = { title: record(fact.args).title, description: record(fact.args).description, private: record(fact.args).private ?? false };
+          else throw new AppError('WRITE_RECOVERY_METADATA_REQUIRED', '旧执行记录缺少目标及保护字段基线，不能把当前状态当成原授权。');
+        }
+        const verification = verifyWrittenState(name, before, after, actual, target);
+        const submittedTarget = submittedWriteTarget(name, { ...fact, before, after });
+        const submittedVerification = verifyWrittenState(name, before, submittedTarget, actual, target);
+        // 阶段记录保留完整中间视图；恢复时也核实范围外字段。
+        if (Array.isArray(fact.baselineBefore) && Array.isArray(fact.expected)) {
+          const old = new Map(fact.baselineBefore as [string, unknown][]), expected = new Map(fact.expected as [string, unknown][]);
+          const observed = await canonicalView(expected.keys(), accountId, active);
+          for (const key of expected.keys()) {
+            if (isEpisodeWrite(name) && key === `collection:${target.subjectId}`) {
+              const current = observed.get(key);
+              if (current && expected.get(key)) expected.set(key, { ...record(expected.get(key)), ep_status: record(current).ep_status });
+              if (current && old.get(key)) old.set(key, { ...record(old.get(key)), ep_status: record(current).ep_status });
+            }
+          }
+          if (!allowedView(observed, old, expected)) throw new AppError('UNEXPECTED_CHANGE', '恢复核实发现范围外字段改变，不能自动结案。');
+        }
+        let state: State | undefined; let resolution: string | undefined;
+        if (verification.requestedStateMatched && verification.protectedFieldsMatched) { state = 'success'; resolution = 'observed_applied'; }
+        else if (!equal(after, submittedTarget) && submittedVerification.requestedStateMatched && submittedVerification.protectedFieldsMatched) {
+          state = 'failed'; resolution = 'observed_partial';
+        }
+        else {
+          // 老版本未保存固定拒绝码；仅迁移已有完整回读及固定写路由证据的 429。
+          const priorVerification = record(fact.verification ?? {});
+          const legacyRejected = fact.schemaVersion !== 2 && record(fact.submissionError ?? {}).code === 'BGM_HTTP_429'
+            && priorVerification.readbackCompleted === true && priorVerification.protectedFieldsMatched === true;
+          const notAttempted = fact.writeNetworkAttempted === false && fact.phase !== 'started';
+          if ((definiteWriteRejection(fact) || legacyRejected || notAttempted) && allowedWriteSnapshot(before, after, actual)) {
+            state = 'failed'; resolution = notAttempted ? 'not_attempted' : 'observed_not_applied';
+          }
+        }
+        if (!state) throw new AppError('WRITE_RESULT_UNRESOLVED', '已读取当前状态，但原请求投递结果仍不能确定；未重发，需继续核实原对象。');
+        recordWrite({ ...fact, kind: 'bangumi-write', operationId: writeFactIdentity(fact), phase: 'reconciled', state, actual, target,
+          reconciledForRequestId: currentRequestId,
+          attemptedAt: fact.attemptedAt ?? fact.recordedAt,
+          ...(viewer.accessContext ? { accessContext: viewer.accessContext } : {}),
+          ...(name === 'create_index' ? { createdId: target.id } : {}),
+          verification: { ...verification, state, scope: 'recovery' }, resolution });
+        if (name === 'create_index' && state === 'success') recoveryTargets.push({ tool: name, indexId: target.id, args: fact.args, actual });
+        trace?.record('write.reconciled', { operationId: writeFactIdentity(fact), tool: name, accountId, state, resolution });
+      } catch (error) {
+        recoveryIssues.push({ operationId: writeFactIdentity(fact), tool: fact.tool ?? record(fact.submission ?? {}).tool, target: fact.target,
+          blocksPlan,
+          ...(record(fact.args ?? {}).index_id ? { indexId: record(fact.args).index_id } : {}), error: safeError(error),
+          recoveryTarget: record(fact.args ?? {}).title ? '请提供已创建目录的真实链接或ID。' : '请恢复原账户及网络，独立核实原操作对象。' });
+      }
+    }
+    if (recoveryIssues.some(issue => issue.blocksPlan)) throw new AppError('PREVIOUS_WRITE_UNKNOWN', '与本计划冲突的既有修改尚不能安全结案；已执行宿主只读核实，请按recovery中的对象及原因处理，未重发。');
+  }
+  async function assertReady(ctx: ExtensionToolContext, input: WriteInput, accountId: number, signal?: AbortSignal, hints: readonly number[] = [], planned?: readonly RecoveryPlanItem[]) {
     checkInput(input); signal?.throwIfAborted();
     if (!channel.canConfirm(ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要本地Pi交互终端或已连接的Web终端；非交互模式不提交。');
     if (!onRecord) throw new AppError('WRITE_RECORD_REQUIRED', '未连接Pi执行事实记录，不能提交批量修改。');
-    if (record(await read('get_current_user', {}, signal)).id !== accountId) throw new AppError('ACCOUNT_CHANGED', '当前账户与计划账户不一致。');
-    const facts = new Map<string, Data>();
-    for (const entry of ctx.sessionManager.getEntries()) {
-      if (entry.type === 'custom' && entry.customType === 'bangumi/write' && entry.data && typeof entry.data === 'object') {
-        const fact = entry.data as Data;
-        if (fact.accountId === accountId && typeof fact.fingerprint === 'string') facts.set(fact.fingerprint, fact);
-      }
-    }
-    if ([...facts.values()].some(f => f.phase === 'started' || f.state === 'unknown')) throw new AppError('PREVIOUS_WRITE_UNKNOWN', 'Pi记录中存在尚未核实的修改，先独立核实，不能继续或重发。');
+    if (!batch && record(await read('get_current_user', {}, signal)).id !== accountId) throw new AppError('ACCOUNT_CHANGED', '当前账户与计划账户不一致。');
+    await reconcile(ctx, input, accountId, signal, hints, planned);
   }
   async function authorize(steps: PlannedWrite[], initial: Map<string, unknown>, input: WriteInput, account: Data, ctx: ExtensionToolContext, signal?: AbortSignal): Promise<object> {
     const accountId = positive(account.id);
-    await assertReady(ctx, input, accountId, signal);
+    const planned = steps.map(step => ({ tool: step.name, args: step.binding.args, target: step.binding.target }));
+    await assertReady(ctx, input, accountId, signal, [], planned);
     if (submittedGeneration === input.generation) throw new AppError('WRITE_PLAN_ALREADY_SUBMITTED', '本轮已有写入提交，不能追加另一个计划；请先一次收齐完整范围。');
     // 存储独立副本，确认期间参数或调用者对象变化不能扩大授权。
     const frozen = steps.map(step => ({ ...step, binding: { ...step.binding,
@@ -547,45 +644,285 @@ export function createWriteBoundary(
         { title: '操作授权', confirmLabel: '确认授权' });
       if (!await (trace ? trace.phase('confirmation', confirm) : confirm())) throw new AppError('CANCELLED', '用户取消整批授权，未提交修改。');
     }
-    await assertReady(ctx, input, accountId, signal);
-    const actual = await canonicalView(baseline.keys(), accountId, signal);
-    if (!sameBaseline(actual, baseline)) throw new AppError('STALE_PREVIEW', '确认期间网站现状改变，旧计划未提交，请重新核对完整范围。');
+    await assertReady(ctx, input, accountId, signal, [], planned);
     checkInput(input);
     const token = {};
-    permits.set(token, { input: { ...input }, accountId, ctx, steps: frozen, next: 0, indexes: new Map() });
+    permits.set(token, { input: { ...input }, accountId, ctx, steps: frozen, next: 0, indexes: new Map(), expected: baseline, submitted: [], requestId: requestId(input), batchId: randomUUID(), account: structuredClone(account) });
     return token;
   }
-  async function executeApproved(token: object, signal: AbortSignal | undefined, toolCallId: string): Promise<AgentToolResult<unknown>> {
+  async function executeApproved(token: object, signal: AbortSignal | undefined, toolCallId: string, onWait?: (event: WriteRateWait) => void): Promise<AgentToolResult<unknown>> {
     const permit = permits.get(token);
-    if (!permit || permit.next >= permit.steps.length) throw new AppError('AUTHORIZATION_REQUIRED', '整批授权已失效或已使用完毕。');
+    if (!permit || permit.stopped || permit.next >= permit.steps.length) throw new AppError('AUTHORIZATION_REQUIRED', '整批授权已失效或已使用完毕。');
     const step = permit.steps[permit.next++]!;
     const binding = resolved(step.binding, permit.indexes);
-    const outcome = await execute(step.name, binding.args, signal, permit.ctx, toolCallId, { input: permit.input, accountId: permit.accountId, binding });
-    const value = record(record(outcome.details).value);
-    if (value.state === 'success' && step.createdIndex !== undefined) permit.indexes.set(step.createdIndex, positive(record(value.submission).createdId));
-    if (value.state === 'success' && isEpisodeWrite(step.name)) {
-      const progress = record(value.verification).parentProgress;
-      if (progress) {
-        const observed = record(progress); const subjectId = Number(observed.subjectId); const epStatus = Number(observed.actual);
-        // 仅承接已成功核实的派生进度，不替换已冻结的目标、显式参数或受保护字段。
-        for (const later of permit.steps.slice(permit.next)) {
-          const b = later.binding; const key = `collection:${subjectId}`;
-          if (b.baseline?.has(key)) b.baseline.set(key, { ...record(b.baseline.get(key)), ep_status: epStatus });
-          if (isEpisodeWrite(later.name) && b.target.subjectId === subjectId) {
-            for (const snapshot of [record(b.before), record(b.after)]) snapshot.parentCollection = { ...record(snapshot.parentCollection), ep_status: epStatus };
-          } else if (later.name === 'update_subject_collection' && b.target.id === subjectId) {
-            if (b.before !== null) b.before = { ...record(b.before), ep_status: epStatus };
-            if (!Object.hasOwn(b.args, 'ep_status')) b.after = { ...record(b.after), ep_status: epStatus };
+    try {
+      checkInput(permit.input); signal?.throwIfAborted();
+      if (!channel.canConfirm(permit.ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '交互连接已断开，停止后续提交。');
+    } catch (error) { permit.stopped = true; throw error; }
+    const fingerprint = createHash('sha256').update(JSON.stringify(stable({ accountId: permit.accountId, name: step.name, args: binding.args }))).digest('hex');
+    const operationId = randomUUID();
+    const base = { tool: step.name, accountId: permit.accountId, target: binding.target, before: binding.before, after: binding.after,
+      requestId: permit.requestId, batchId: permit.batchId, operationId };
+    const item = { step, binding, value: { ...base, state: 'unchanged', networkAttempted: false, writeNetworkAttempted: false } as Data, fingerprint, toolCallId };
+    permit.submitted.push(item);
+    if (equal(binding.before, binding.after)) return result(item.value);
+    item.value.state = 'failed'; // 记录或上下文在提交前失败，不能把原本需要修改的步骤伪装为无需修改。
+    if (!batch) { permit.stopped = true; throw new AppError('BATCH_CONTEXT_EXPIRED', '整批上下文已失效。'); }
+    batch = { ...batch, phase: 'submit' };
+    submittedGeneration = permit.input.generation;
+    const initial = structuredClone(permit.expected);
+    const scope = new Set(binding.baseline?.keys() ?? []);
+    const snapshotFacts = () => {
+      if (step.createdIndex !== undefined && permit.indexes.has(step.createdIndex)) scope.add(`index:${permit.indexes.get(step.createdIndex)}`);
+      const keys = [...scope].filter(key => !/:\-\d+$/.test(key));
+      return { baselineBefore: keys.filter(key => initial.has(key)).map(key => [key, structuredClone(initial.get(key))]),
+        expected: keys.filter(key => permit.expected.has(key)).map(key => [key, structuredClone(permit.expected.get(key))]) };
+    };
+    const fact = (phase: string, extra: Data = {}) => recordWrite({ kind: 'bangumi-write', phase, fingerprint, generation: permit.input.generation,
+      toolCallId, args: binding.args, ...base, ...snapshotFacts(), ...extra });
+    try { fact('started'); }
+    catch (error) { permit.stopped = true; throw error; }
+    const stages = splitWriteStages(step.name, binding).filter(stage => !equal(stage.before, stage.after));
+    const submittedArgs = step.name === 'update_episode_collection' ? { ...binding.args, episode_ids: stages.flatMap(stage => stage.args.episode_ids as number[]) }
+      : step.name === 'update_subject_collection' ? Object.assign({}, ...stages.map(stage => stage.args)) as Data : binding.args;
+    let receipt = new SubmissionTracker(step.name, submittedArgs, permit.accountId, binding.guard.subjectId).failed();
+    let submissionError: unknown; let offset = 0;
+    for (let i = 0; i < stages.length; i++) {
+      const stage = stages[i]!;
+      const rate = writeRateRequests(step.name, stage.args)[0]!;
+      let reservation: Awaited<ReturnType<WriteRateLimiter['reserve']>> | undefined;
+      let closing: Promise<void> | undefined; let rpcStarted = false;
+      let closeError: unknown;
+      let stageReceipt: SubmissionReceipt | undefined; let stageError: unknown;
+      const stageId = `${operationId}/${i + 1}`;
+      try {
+        checkInput(permit.input); signal?.throwIfAborted();
+        if (!channel.canConfirm(permit.ctx)) throw new AppError('AUTHORIZATION_REQUIRED', '交互连接已断开，停止后续提交。');
+        reservation = await options.limiter?.reserve(permit.accountId, rate.action, rate.count, {
+          ...(signal ? { signal } : {}), onWait: event => {
+            closing ??= endBatch().catch(error => { closeError = error; }); onWait?.(event);
+          },
+        });
+        if (closing) {
+          await closing;
+          if (closeError) throw closeError;
+          const viewer = await beginBatch(signal);
+          if (viewer.id !== permit.accountId) throw new AppError('ACCOUNT_CHANGED', '额度等待后账户改变，旧授权已撤销。');
+          const previousAccess = record(permit.account.accessContext ?? {}), currentAccess = record(viewer.accessContext ?? {});
+          if (!equal(previousAccess.nsfw, currentAccess.nsfw) || previousAccess.nsfwApplied !== currentAccess.nsfwApplied) throw new AppError('NSFW_SCOPE_CHANGED', '额度等待后权限改变，旧授权已撤销。');
+          const observed = await canonicalView(permit.expected.keys(), permit.accountId, signal);
+          for (const submitted of permit.submitted.filter(value => isEpisodeWrite(value.step.name) && value.value.writeNetworkAttempted)) {
+            const key = `collection:${submitted.binding.target.subjectId}`;
+            if (observed.get(key) && permit.expected.get(key)) permit.expected.set(key, { ...record(permit.expected.get(key)), ep_status: record(observed.get(key)).ep_status });
           }
-          if (b.guard.prepared?.collection?.subjectId === subjectId) b.guard.prepared.collection.chapters = epStatus;
+          if (!sameBaseline(observed, permit.expected)) throw new AppError('STALE_PREVIEW', '额度等待期间网站状态改变，停止旧计划；请重新核实范围。');
+        }
+        checkInput(permit.input); signal?.throwIfAborted();
+        if (!batch) throw new AppError('BATCH_CONTEXT_EXPIRED', '额度等待后批次上下文失效。');
+        batch = { ...batch, phase: 'submit' };
+        const relations = permit.expected.get(`relations:${stage.target.indexId}`) as Data[] | undefined;
+        const relationId = relations?.find(row => row.subject_id === stage.target.subjectId)?.relationId;
+        const guard: McpWriteGuard = { ...stage.guard, batchPreparation: { tool: step.name, args: stage.args, target: stage.target, before: stage.before, after: stage.after,
+          ...(typeof relationId === 'number' ? { relationId } : {}) } };
+        // 先持久当前阶段的保守投递未知，不能沿用上一阶段的 not_attempted 回执。
+        // 硬中断发生在 RPC 中时，恢复器必须核实此阶段，而不是只核实已确认前缀。
+        const pendingStage = new SubmissionTracker(step.name, stage.args, permit.accountId, stage.guard.subjectId).failed();
+        pendingStage.items[0]!.submissionState = 'unknown'; pendingStage.submissionState = 'unknown';
+        if (isWatchedUntil(step.name, stage.args)) pendingStage.affectedEpisodeIds = watchedUntilIds(stage.guard.prepared!.episodes!, Number(stage.args.episode_id));
+        const pendingSubmission = mergeStageSubmission(receipt, pendingStage, offset);
+        const pendingExpected = structuredClone(permit.expected);
+        if (step.createdIndex === undefined) advanceWriteView(pendingExpected, { name: step.name, binding: stage }, permit.accountId);
+        const expected = [...scope].filter(key => pendingExpected.has(key) && !/:\-\d+$/.test(key)).map(key => [key, pendingExpected.get(key)]);
+        fact('started', { stageId, rateAction: rate.action, rateCount: rate.count, submission: pendingSubmission, expected, state: 'unknown' });
+        rpcStarted = true;
+        try {
+          const submit = () => client.call(step.name, stage.args, signal, guard, batch);
+          const submitted = await (trace ? trace.phase('submit', submit, { tool_call_id: toolCallId, stage: i + 1 }) : submit());
+          checkOutput(findToolDefinition(step.name).outputSchema!, { value: submitted });
+          checkSubmission(step.name, submitted, stage.args, permit.accountId, guard.subjectId, guard.prepared);
+          stageReceipt = submitted as SubmissionReceipt;
+        } catch (error) {
+          stageError = error;
+          if (error instanceof SubmissionError) {
+            try {
+              checkOutput(findToolDefinition(step.name).outputSchema!, { error: safeError(error) });
+              checkSubmission(step.name, error.submission, stage.args, permit.accountId, guard.subjectId, guard.prepared);
+              stageReceipt = error.submission;
+            } catch (invalidReceipt) { stageError = invalidReceipt; }
+          }
+        }
+      } catch (error) { stageError = error; }
+      finally {
+        try { if (closing) await closing; }
+        finally {
+          if (reservation) {
+            if (rpcStarted && stageReceipt?.submissionState !== 'not_attempted' && !(stageError instanceof AppError && stageError.networkAttempted === false)) reservation.dispatched();
+            else reservation.refundUndispatched();
+          }
         }
       }
+      const submissionInferred = !stageReceipt && stages.length === 1;
+      if (!stageReceipt) {
+        stageReceipt = new SubmissionTracker(step.name, stage.args, permit.accountId, stage.guard.subjectId).failed();
+        if (rpcStarted && !(stageError instanceof AppError && stageError.networkAttempted === false)) {
+          stageReceipt.items[0]!.submissionState = 'unknown'; stageReceipt.submissionState = 'unknown';
+          if (isWatchedUntil(step.name, stage.args)) stageReceipt.affectedEpisodeIds = watchedUntilIds(stage.guard.prepared!.episodes!, Number(stage.args.episode_id));
+        }
+      }
+      const attempted = stageReceipt.submissionState !== 'not_attempted';
+      if (stageReceipt.createdId && step.createdIndex !== undefined) permit.indexes.set(step.createdIndex, positive(stageReceipt.createdId));
+      if (attempted && stageReceipt.submissionState !== 'rejected' && (step.createdIndex === undefined || stageReceipt.createdId)) {
+        if (stageReceipt.submissionState !== 'acknowledged') permit.uncertainBefore = structuredClone(permit.expected);
+        const createdIndex = step.createdIndex === undefined ? undefined : permit.indexes.get(step.createdIndex);
+        advanceWriteView(permit.expected, { name: step.name, binding: stage, ...(createdIndex === undefined ? {} : { createdIndex }) }, permit.accountId);
+        if (stageReceipt.relatedId && Array.isArray(permit.expected.get(`relations:${binding.target.indexId}`))) {
+          const row = (permit.expected.get(`relations:${binding.target.indexId}`) as Data[]).find(row => row.subject_id === binding.target.subjectId);
+          if (row) row.relationId = stageReceipt.relatedId;
+        }
+      }
+      receipt = mergeStageSubmission(receipt, stageReceipt, offset); offset += stageReceipt.items.length;
+      submissionError = stageError ?? submissionError;
+      const writeNetworkAttempted = receipt.items.some(value => value.submissionState !== 'not_attempted');
+      item.value = { ...base, ...snapshotFacts(), submittedArgs, attemptedAt: new Date().toISOString(), state: receipt.submissionState === 'acknowledged' && submissionError === undefined ? 'submitted'
+        : receipt.items.some(value => value.submissionState === 'unknown') || submissionError && receipt.items.some(value => value.submissionState === 'acknowledged') ? 'unknown' : 'failed',
+        networkAttempted: writeNetworkAttempted, writeNetworkAttempted, submission: receipt,
+        ...(submissionInferred ? { submissionInferred: true } : {}),
+        verification: { readbackCompleted: false, requestedStateMatched: false, protectedFieldsMatched: false, mismatchedFields: [], state: 'pending', scope: 'batch_final_state' },
+        ...(submissionError ? { submissionError: safeError(submissionError) } : {}) };
+      fact('submission', { ...item.value, stageId, rateAction: rate.action, rateCount: attempted ? rate.count : 0, stageSubmission: stageReceipt,
+        stageWriteNetworkAttempted: attempted,
+        ...(stageError ? { submissionError: safeError(stageError) } : {}) });
+      if (stageError instanceof AppError && ['BGM_HTTP_429', 'BGM_RATE_LIMIT_REJECTED'].includes(stageError.code)) {
+        options.limiter?.limited(permit.accountId, rate.action,
+          stageError.rejection?.retryAfterMs ? Date.now() + Math.max(300000, stageError.rejection.retryAfterMs) + 1000 : undefined);
+      }
+      if (stageReceipt.submissionState !== 'acknowledged' || stageError) { permit.stopped = true; break; }
     }
-    if (!['success', 'unchanged'].includes(String(value.state))) permits.delete(token);
-    return outcome;
+    if (item.value.state !== 'submitted') permit.stopped = true;
+    return result(visibleWriteValue(item.value));
   }
-  const write: McpWriteHandler = (name, args, signal, ctx, toolCallId) => execute(name, args, signal, ctx, toolCallId);
-  return { write, prepare, read, authorize, executeApproved, assertReady, revoke: (token: object) => permits.delete(token), getInput };
+  async function beginBatch(signal?: AbortSignal): Promise<Data> {
+    if (batch) throw new AppError('BATCH_SCOPE_ACTIVE', '宿主已有进行中的修改计划。');
+    const input = getInput();
+    if (generation !== input.generation) { generation = input.generation; completed.clear(); unknownWrite = false; }
+    batch = { id: randomUUID(), phase: 'prepare' }; subjectCache.clear();
+    return record(await read('get_current_user', {}, signal));
+  }
+  async function endBatch(): Promise<void> {
+    const current = batch; batch = undefined; subjectCache.clear();
+    if (current) {
+      try { await client.call('get_current_user', {}, AbortSignal.timeout(60000), undefined, { ...current, phase: 'close' }); }
+      catch { await options.resetClient?.(); }
+    }
+  }
+  function actualFor(step: PlannedWrite, binding: Binding, observed: Map<string, unknown>): unknown {
+    const t = binding.target;
+    if (step.name === 'update_subject_collection') return observed.get(`collection:${t.id}`);
+    if (isEpisodeWrite(step.name)) {
+      const after = record(binding.after); const episodes = (after.episodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`));
+      return { episodes, parentCollection: observed.get(`collection:${t.subjectId}`),
+        ...(after.protectedEpisodes ? { protectedEpisodes: (after.protectedEpisodes as Data[]).map(row => observed.get(`episode:${row.episode_id}`)) } : {}) };
+    }
+    if (/^(collect|uncollect)_(character|person)$/.test(step.name)) return observed.get(`entity:${t.kind}:${t.id}`);
+    const id = step.name === 'create_index' ? Number(step.createdIndex) : Number(t.kind === 'indexSubject' ? t.indexId : t.id);
+    if (t.kind === 'indexSubject') {
+      const row = (observed.get(`relations:${id}`) as Data[] | undefined)?.find(row => row.subject_id === t.subjectId);
+      return row ? { subject_id: row.subject_id, comment: row.comment, order: row.order } : null;
+    }
+    const value = observed.get(`index:${id}`); if (!value) return value;
+    const raw = record(value);
+    return step.name === 'collect_index' || step.name === 'uncollect_index' ? { collected: raw.collected } : { title: raw.title, description: raw.description, private: raw.private };
+  }
+  async function finishApproved(token: object): Promise<Data[]> {
+    const permit = permits.get(token); if (!permit) throw new AppError('BATCH_CONTEXT_EXPIRED', '整批回读上下文失效。');
+    // 额度等待已关闭旧 scope；取消等待也必须以独立生命周期核实已提交前段。
+    if (!batch) await beginBatch(AbortSignal.timeout(300000));
+    if (!batch) throw new AppError('BATCH_CONTEXT_EXPIRED', '无法建立独立回读上下文。');
+    permit.stopped = true;
+    batch = { ...batch, phase: 'verify' };
+    const verify = async () => {
+      const signal = AbortSignal.timeout(300000);
+      let observed = new Map<string, unknown>(); let verificationError: unknown;
+      let readErrors = new Map<string, unknown>();
+      let account: Data | undefined;
+      try {
+        account = record(await read('get_current_user', {}, signal));
+        if (account.id !== permit.accountId) throw new AppError('ACCOUNT_CHANGED', '整批结束时账户改变。');
+        const beforeAccess = record(permit.account.accessContext ?? {}), actualAccess = record(account.accessContext ?? {});
+        if (!equal(beforeAccess.nsfw, actualAccess.nsfw) || beforeAccess.nsfwApplied !== actualAccess.nsfwApplied) throw new AppError('NSFW_SCOPE_CHANGED', '独立回读时账户权限改变，不能报告旧范围已核实。');
+        const snapshots = await observedView(permit.expected.keys(), permit.accountId, signal);
+        observed = snapshots.observed; readErrors = snapshots.errors;
+        if (record(await read('get_current_user', {}, signal)).id !== permit.accountId) throw new AppError('ACCOUNT_CHANGED', '整批回读期间账户改变，不能报告原账户写入成功。');
+        // 章节汇总由网站计算；只允许这些作品的派生已看集数变化。
+        for (const item of permit.submitted.filter(item => isEpisodeWrite(item.step.name) && item.value.writeNetworkAttempted)) {
+          const key = `collection:${item.binding.target.subjectId}`; const expected = permit.expected.get(key); const actual = observed.get(key);
+          if (expected && actual) {
+            permit.expected.set(key, { ...record(expected), ep_status: record(actual).ep_status });
+            const prior = permit.uncertainBefore?.get(key);
+            if (prior) permit.uncertainBefore!.set(key, { ...record(prior), ep_status: record(actual).ep_status });
+          }
+        }
+      } catch (error) { observed = new Map(); verificationError = error; }
+      return permit.submitted.map(item => {
+        const binding = resolved(item.binding, permit.indexes);
+        const step = { ...item.step };
+        const createdIndex = item.step.createdIndex === undefined ? undefined : permit.indexes.get(item.step.createdIndex);
+        if (createdIndex !== undefined) step.createdIndex = createdIndex;
+        const actual = actualFor(step, binding, observed);
+        const keys = step.name === 'create_index' && createdIndex !== undefined ? [`index:${createdIndex}`] : [...binding.baseline?.keys() ?? []];
+        const expected = new Map(keys.filter(key => permit.expected.has(key)).map(key => [key, permit.expected.get(key)]));
+        const scoped = new Map(keys.filter(key => observed.has(key)).map(key => [key, observed.get(key)]));
+        const before = new Map(keys.map(key => [key, permit.uncertainBefore?.get(key) ?? new Map(item.value.baselineBefore as [string, unknown][] ?? []).get(key)]));
+        const scopeError = verificationError ?? keys.map(key => readErrors.get(key)).find(Boolean);
+        const readbackCompleted = !scopeError && keys.every(key => observed.has(key));
+        const matched = readbackCompleted && sameBaseline(scoped, expected);
+        const protectedMatched = matched || permit.uncertainBefore !== undefined && readbackCompleted && allowedView(scoped, before, expected);
+        const ownVerification = readbackCompleted && actual !== undefined ? verifyWrittenState(item.step.name, binding.before, binding.after, actual, binding.target) : undefined;
+        const submittedTarget = submittedWriteTarget(item.step.name, item.value);
+        const partialVerified = readbackCompleted && protectedMatched && actual !== undefined && !equal(submittedTarget, binding.after)
+          && verifyWrittenState(item.step.name, binding.before, submittedTarget, actual, binding.target).requestedStateMatched;
+        const priorState = item.value.state;
+        const unidentifiable = item.step.createdIndex !== undefined && !permit.indexes.has(item.step.createdIndex);
+        const requestedMatched = !partialVerified && priorState !== 'failed' && (matched || protectedMatched && (priorState !== 'unknown' || ownVerification?.requestedStateMatched)) && !unidentifiable;
+        const committed = record(item.value.submission ?? {}).items as Data[] | undefined;
+        const committedPrefix = committed?.some(row => row.submissionState === 'acknowledged' || row.submissionState === 'unknown');
+        const state = partialVerified ? 'failed' : priorState === 'failed' ? !readbackCompleted && committedPrefix ? 'unknown' : 'failed' : requestedMatched ? priorState === 'unchanged' ? 'unchanged' : 'success'
+          : priorState === 'unknown' || !readbackCompleted && item.value.writeNetworkAttempted ? 'unknown' : 'failed';
+        if (state === 'unknown') unknownWrite = true;
+        const parent = isEpisodeWrite(item.step.name) ? observed.get(`collection:${binding.target.subjectId}`) : undefined;
+        const accessContext = account?.accessContext ?? (verificationError instanceof AppError ? verificationError.accessContext : undefined);
+        const outcome = { ...item.value, target: binding.target, state, actual,
+          ...(partialVerified ? { resolution: 'observed_partial' } : {}),
+          ...(accessContext ? { accessContext } : {}),
+          expected: [...expected], baselineBefore: [...before],
+          verification: { readbackCompleted, requestedStateMatched: requestedMatched, protectedFieldsMatched: protectedMatched,
+            mismatchedFields: requestedMatched ? [] : ['batch_final_state'], state, scope: 'batch_final_state', superseded: requestedMatched && !isEpisodeWrite(item.step.name) && !equal(actual, binding.after),
+            ...(parent ? { parentProgress: { subjectId: Number(binding.target.subjectId), before: record(record(binding.before).parentCollection).ep_status, actual: record(parent).ep_status } } : {}) },
+          ...(state !== 'success' && state !== 'unchanged' ? { verificationError: safeError(scopeError ?? new AppError(protectedMatched ? 'READBACK_MISMATCH' : 'UNEXPECTED_CHANGE', '目标或保护范围未达到完整计划。')) } : {}) };
+        recordWrite({ kind: 'bangumi-write', phase: 'completed', fingerprint: item.fingerprint, generation: permit.input.generation, toolCallId: item.toolCallId, args: binding.args, ...outcome });
+        return visibleWriteValue(outcome);
+      });
+    };
+    return trace ? trace.phase('verify', verify, { scope: 'batch_final_state' }) : verify();
+  }
+  let standalone: import('@earendil-works/pi-coding-agent').ToolDefinition | undefined;
+  const write: McpWriteHandler = async (name, args, signal, ctx, toolCallId) => {
+    if (!standalone) {
+      const { createBatchWriteTool } = await import('./batch-write.js');
+      standalone = createBatchWriteTool(api, value => {
+        const fact = { kind: 'bangumi-batch', ...value };
+        options.journal?.append(fact); onRecord?.(fact);
+      }, trace);
+    }
+    const outcome = await standalone.execute(toolCallId, { operations: [{ tool: name, args }] }, signal, undefined, ctx);
+    const value = record(record(outcome.details).value), items = value.items as Data[] | undefined;
+    return items?.[0] ? result({ ...items[0], confirmation: value.confirmation, ...(value.error ? { error: value.error } : {}) }) : outcome;
+  };
+  const api = { write, prepare, read, authorize, executeApproved, finishApproved, beginBatch, endBatch, assertReady, recordedRequest, planRecord,
+    recoveryIssues: () => structuredClone(recoveryIssues), revoke: (token: object) => permits.delete(token),
+    recoveryTargets: () => structuredClone(recoveryTargets),
+    getInput: () => { const input = getInput(); return { ...input, requestId: requestId(input) }; } };
+  return api;
 }
 
 export type WriteBoundary = ReturnType<typeof createWriteBoundary>;

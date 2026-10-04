@@ -11,14 +11,18 @@ import { BangumiMcpService } from './service.js';
 import { createMcpTransport } from './transport.js';
 import type { McpWriteGuard } from './client.js';
 import { preparedBaseline } from './prepared.js';
+import { batchPreparation, batchScope } from './batch-context.js';
+import { checkOutput } from './subject-output.js';
+import { checkAccessResponse } from './access-context.js';
 
 function writeGuard(value: unknown): McpWriteGuard {
   if (value === undefined) throw new AppError('AUTHORIZATION_REQUIRED', 'MCP 写入必须由宿主授权链路提交。');
   const raw = object(value, '写入保护');
-  if (Object.keys(raw).some(key => !['accountId', 'subjectId', 'expectedStatus', 'prepared'].includes(key))) throw new AppError('INVALID_INPUT', '写入保护元数据无效。');
+  if (Object.keys(raw).some(key => !['accountId', 'subjectId', 'expectedStatus', 'prepared', 'batchPreparation'].includes(key))) throw new AppError('INVALID_INPUT', '写入保护元数据无效。');
   if (raw.expectedStatus !== undefined && (typeof raw.expectedStatus !== 'number' || ![0, 1, 2, 3].includes(raw.expectedStatus))) throw new AppError('INVALID_INPUT', '章节保护状态无效。');
   return { accountId: positiveId(raw.accountId), ...(raw.subjectId === undefined ? {} : { subjectId: positiveId(raw.subjectId) }),
-    ...(raw.expectedStatus === undefined ? {} : { expectedStatus: raw.expectedStatus as number }), ...(raw.prepared === undefined ? {} : { prepared: preparedBaseline(raw.prepared) }) };
+    ...(raw.expectedStatus === undefined ? {} : { expectedStatus: raw.expectedStatus as number }), ...(raw.prepared === undefined ? {} : { prepared: preparedBaseline(raw.prepared) }),
+    ...(raw.batchPreparation === undefined ? {} : { batchPreparation: batchPreparation(raw.batchPreparation) }) };
 }
 /** 单机固定目录服务；stdout 只输出 MCP JSON-RPC，不接受模型提供的URL或执行命令。 */
 export function createBangumiMcpServer(service: BangumiMcpService): Server {
@@ -32,17 +36,28 @@ export function createBangumiMcpServer(service: BangumiMcpService): Server {
     return { tools, ...(offset + tools.length < TOOL_DEFINITIONS.length ? { nextCursor: String(offset + tools.length) } : {}) };
   });
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+    const name = request.params.name;
+    const definition = TOOL_DEFINITIONS.find(tool => tool.name === name);
     try {
-      const name = request.params.name;
       const args = validateToolArguments(name, request.params.arguments ?? {});
-      const definition = TOOL_DEFINITIONS.find(tool => tool.name === name)!;
-      const guard = definition.effect === 'write' ? writeGuard(request.params._meta?.['bangumi/guard']) : undefined;
-      const value = await service.call(name, args, extra.signal, guard);
+      const guard = definition!.effect === 'write' ? writeGuard(request.params._meta?.['bangumi/guard']) : undefined;
+      const scope = request.params._meta?.['bangumi/batch'];
+      const value = await service.call(name, args, extra.signal, guard, scope === undefined ? undefined : batchScope(scope));
       const structuredContent = { value: value === undefined ? null : value };
       if (Buffer.byteLength(JSON.stringify(structuredContent)) > 1_900_000) throw new AppError('MCP_OUTPUT_LIMIT', '结果过大，请缩小查询范围。');
+      if (definition?.outputSchema) checkOutput(definition.outputSchema, structuredContent);
+      checkAccessResponse(name, structuredContent.value);
       return { content: [], structuredContent };
     } catch (error) {
-      return { isError: true, content: [], structuredContent: { error: safeError(error) } };
+      let structuredContent = { error: safeError(error) };
+      if (definition?.outputSchema) {
+        try {
+          if (structuredContent.error.sourceTool !== undefined && structuredContent.error.sourceTool !== name
+            || structuredContent.error.recovery !== undefined && structuredContent.error.code !== 'MCP_INVALID_RESULT') throw new AppError('MCP_INVALID_RESULT', '错误来源或恢复分类无效。');
+          checkOutput(definition.outputSchema, structuredContent);
+        } catch { structuredContent = { error: { code: 'MCP_INVALID_RESULT', message: '本地 MCP 错误不符合固定输出契约。' } }; }
+      }
+      return { isError: true, content: [], structuredContent };
     }
   });
   return server;

@@ -1,5 +1,10 @@
+import type { AccessContext } from '../mcp/access-context.js';
 export class AppError extends Error {
-  constructor(public readonly code: string, message: string) {
+  readonly networkAttempted?: false;
+  readonly rejection?: SubmissionRejection;
+  readonly sourceTool?: string;
+  readonly recovery?: { stage: 'response_contract'; retryable: false };
+  constructor(public readonly code: string, message: string, public readonly accessContext?: AccessContext) {
     super(message);
     this.name = 'AppError';
   }
@@ -12,18 +17,32 @@ export class SchemaInputError extends AppError {
     super('INVALID_INPUT', issues.map(issue => `${issue.path || '/'}：${issue.hint}`).join('；'));
   }
 }
-export interface SubmissionItem { target: Record<string, unknown> | null; stage: string; submissionState: 'acknowledged' | 'unknown' | 'not_attempted' }
+/** 仅固定上游契约证明修改前已拒绝；不根据 HTTP 状态或任意正文推断。 */
+export interface SubmissionRejection {
+  kind: 'rate_limit'; httpStatus: 429; upstreamCode: 'RATE_LIMIT_EXCEEDED'; retryAfterMs: number | null;
+}
+export function isSubmissionRejection(value: unknown): value is SubmissionRejection {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const raw = value as Record<string, unknown>;
+  return Object.keys(raw).length === 4 && raw.kind === 'rate_limit' && raw.httpStatus === 429 && raw.upstreamCode === 'RATE_LIMIT_EXCEEDED'
+    && (raw.retryAfterMs === null || typeof raw.retryAfterMs === 'number' && Number.isSafeInteger(raw.retryAfterMs) && raw.retryAfterMs >= 0 && raw.retryAfterMs <= 86_400_000);
+}
+export interface SubmissionItem { target: Record<string, unknown> | null; stage: string; submissionState: 'acknowledged' | 'rejected' | 'unknown' | 'not_attempted'; rejection?: SubmissionRejection }
 export interface SubmissionReceipt {
   schemaVersion: 1; kind: 'submission'; tool: string; expectedAccountId: number; target: Record<string, unknown> | null;
-  submissionState: 'acknowledged' | 'partial' | 'unknown' | 'not_attempted'; verification: 'pending'; items: SubmissionItem[];
+  submissionState: 'acknowledged' | 'partial' | 'rejected' | 'unknown' | 'not_attempted'; verification: 'pending'; items: SubmissionItem[];
   requestedFields: string[]; createdId: number | null; relatedId: number | null; requestedCollected: boolean | null; requestedEpisodeStatus: number | null;
   /** 官方看到此集：一次请求实际覆盖的完整正篇ID；普通逐集操作省略。 */
   affectedEpisodeIds?: number[];
 }
 export class SubmissionError extends AppError {
-  constructor(code: string, message: string, readonly submission: SubmissionReceipt) { super(code, message); }
+  constructor(code: string, message: string, readonly submission: SubmissionReceipt) {
+    super(code, message);
+    const rejection = submission.items.find(item => item.submissionState === 'rejected')?.rejection;
+    if (isSubmissionRejection(rejection)) Object.defineProperty(this, 'rejection', { value: structuredClone(rejection) });
+  }
 }
-export interface SafeError { code: string; message: string; issues?: readonly InputIssue[]; networkAttempted?: false; submission?: SubmissionReceipt }
+export interface SafeError { code: string; message: string; issues?: readonly InputIssue[]; networkAttempted?: false; rejection?: SubmissionRejection; submission?: SubmissionReceipt; accessContext?: AccessContext; sourceTool?: string; recovery?: { stage: 'response_contract'; retryable: false } }
 const localSecrets = new Set<string>();
 /** 本地凭据也参与模型、日志和终端的统一裁剪，原值不进入配置或会话。 */
 export function registerCredentials(values: readonly string[]): void { for (const value of values) if (value) localSecrets.add(value); }
@@ -75,9 +94,12 @@ export function credentialValues(env: NodeJS.ProcessEnv = process.env): string[]
 }
 
 export function safeError(error: unknown): SafeError {
-  if (error instanceof SubmissionError) return { code: error.code, message: redact(error.message, credentialValues()), submission: structuredClone(error.submission) };
+  const context = error instanceof AppError ? { ...(error.accessContext ? { accessContext: structuredClone(error.accessContext) } : {}), ...(error.sourceTool ? { sourceTool: error.sourceTool } : {}),
+    ...(isSubmissionRejection(error.rejection) ? { rejection: structuredClone(error.rejection) } : {}),
+    ...(error.recovery ? { recovery: structuredClone(error.recovery) } : {}), ...(error.networkAttempted === false ? { networkAttempted: false as const } : {}) } : {};
+  if (error instanceof SubmissionError) return { code: error.code, message: redact(error.message, credentialValues()), submission: structuredClone(error.submission), ...context };
   if (error instanceof SchemaInputError) return { code: error.code, message: redact(error.message, credentialValues()), issues: error.issues, networkAttempted: false };
-  if (error instanceof AppError) return { code: error.code, message: redact(error.message, credentialValues()) };
+  if (error instanceof AppError) return { code: error.code, message: redact(error.message, credentialValues()), ...context };
   if (error instanceof Error && error.name === 'AbortError') return { code: 'CANCELLED', message: '操作已取消。' };
   return { code: 'INTERNAL_ERROR', message: '操作失败；请检查配置、网络或输入。' };
 }

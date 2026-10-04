@@ -1,7 +1,8 @@
-import { AppError, type SubmissionReceipt, type SubmissionItem } from '../support/errors.js';
+import { AppError, isSubmissionRejection, type SubmissionReceipt, type SubmissionItem } from '../support/errors.js';
 import { type Data, record, positive } from './resource-output.js';
 import { isWatchedUntil, requestedEpisodeStatus, watchedUntilIds } from './episode-progress.js';
 import type { PreparedBaseline } from './prepared.js';
+import { isDeepStrictEqual } from 'node:util';
 
 /** 仅记录固定写入流程的调用阶段，不授予权限，也不重试。 */
 export class SubmissionTracker {
@@ -46,7 +47,15 @@ export class SubmissionTracker {
     const item = this.receipt.items.find(item => item.stage === stage && item.submissionState === 'not_attempted' && (this.name !== 'update_episode_collection' || item.target?.id === id));
     if (!item) throw new AppError('MCP_INVALID_RESULT', '写入阶段与固定计划不一致。');
     item.submissionState = 'unknown';
-    const value = await execute(); item.submissionState = 'acknowledged'; return value;
+    try { const value = await execute(); item.submissionState = 'acknowledged'; return value; }
+    catch (error) {
+      // 只采用传输层固定契约证明的未派发或修改前拒绝；普通 HTTP、断网与超时仍保持未知。
+      if (error instanceof AppError && error.networkAttempted === false) item.submissionState = 'not_attempted';
+      else if (error instanceof AppError && error.code === 'BGM_RATE_LIMIT_REJECTED' && isSubmissionRejection(error.rejection)) {
+        item.submissionState = 'rejected'; item.rejection = structuredClone(error.rejection);
+      }
+      throw error;
+    }
   }
   finish(value: unknown): SubmissionReceipt {
     if (this.name === 'create_index') {
@@ -60,7 +69,8 @@ export class SubmissionTracker {
   failed(): SubmissionReceipt {
     const acknowledged = this.receipt.items.filter(item => item.submissionState === 'acknowledged').length;
     this.receipt.submissionState = this.receipt.items.every(item => item.submissionState === 'not_attempted') ? 'not_attempted'
-      : acknowledged > 0 && acknowledged < this.receipt.items.length ? 'partial' : 'unknown';
+      : acknowledged > 0 && acknowledged < this.receipt.items.length ? 'partial'
+        : this.receipt.items.some(item => item.submissionState === 'rejected') && this.receipt.items.every(item => ['rejected', 'not_attempted'].includes(item.submissionState)) ? 'rejected' : 'unknown';
     return structuredClone(this.receipt);
   }
 }
@@ -92,5 +102,39 @@ export function checkSubmission(name: string, value: unknown, args: Data, accoun
   if (receipt.relatedId !== null && target?.kind === 'indexSubject' && target.relationId !== receipt.relatedId) throw new AppError('MCP_INVALID_RESULT', '目录关系回执ID不一致。');
   const expected = new SubmissionTracker(name,args,accountId,parent).failed();
   if (JSON.stringify(receipt.requestedFields) !== JSON.stringify(expected.requestedFields) || receipt.requestedCollected !== expected.requestedCollected
-    || items.length !== expected.items.length || items.some((item,index) => item.stage !== expected.items[index]!.stage)) throw new AppError('MCP_INVALID_RESULT', '提交阶段或字段与请求不一致。');
+    || receipt.requestedEpisodeStatus !== expected.requestedEpisodeStatus || items.length !== expected.items.length
+    || items.some((item,index) => item.stage !== expected.items[index]!.stage)) throw new AppError('MCP_INVALID_RESULT', '提交阶段或字段与请求不一致。');
+  const relation = ['add_subject_to_index', 'update_index_subject', 'remove_subject_from_index'].includes(name);
+  if (name !== 'create_index' && receipt.createdId !== null || !relation && receipt.relatedId !== null) throw new AppError('MCP_INVALID_RESULT', '回执包含原工具不会创建的对象ID。');
+  if (name === 'create_index') {
+    const createdTarget = receipt.createdId === null ? null : { kind: 'index', id: positive(receipt.createdId) };
+    if (!isDeepStrictEqual(target, createdTarget) || items.some(item => !isDeepStrictEqual(item.target, createdTarget))) throw new AppError('MCP_INVALID_RESULT', '创建对象与逐项回执不一致。');
+  } else {
+    const expectedTarget = relation ? { ...expected.target, relationId: receipt.relatedId } : expected.target;
+    // 单集服务可能在提交前才解析父作品；父ID未知时仍绑定章节类型与ID。
+    const matchesTarget = (actual: SubmissionItem['target'], planned: SubmissionItem['target']): boolean => {
+      if (name === 'update_single_episode_collection' && parent === undefined) return actual === null
+        ? receipt.submissionState === 'not_attempted' : actual.kind === 'episode' && actual.id === args.episode_id && positive(actual.subjectId) > 0;
+      return isDeepStrictEqual(actual, planned);
+    };
+    if (!matchesTarget(target, expectedTarget) || items.some((item, index) => !matchesTarget(item.target, relation ? expectedTarget : expected.items[index]!.target))
+      || name === 'update_single_episode_collection' && items.some(item => !isDeepStrictEqual(item.target, target))) throw new AppError('MCP_INVALID_RESULT', '逐项提交对象与原请求不一致。');
+  }
+  const acknowledged = items.filter(item => item.submissionState === 'acknowledged').length;
+  const attempted = items.filter(item => item.submissionState !== 'not_attempted').length;
+  const rejected = items.filter(item => item.submissionState === 'rejected').length;
+  if (items.some(item => !['acknowledged', 'rejected', 'unknown', 'not_attempted'].includes(item.submissionState)
+    || (item.submissionState === 'rejected' ? !isSubmissionRejection(item.rejection) : item.rejection !== undefined))) throw new AppError('MCP_INVALID_RESULT', '明确拒绝回执缺少固定上游证据或附在错误阶段。');
+  const validState = receipt.submissionState === 'acknowledged' ? acknowledged === items.length
+    : receipt.submissionState === 'not_attempted' ? attempted === 0
+    : receipt.submissionState === 'rejected' ? rejected > 0 && rejected === attempted
+    : receipt.submissionState === 'partial' ? acknowledged > 0 && acknowledged < items.length
+    : receipt.submissionState === 'unknown' && attempted > 0 && (acknowledged === 0 && items.some(item => item.submissionState === 'unknown') || acknowledged === items.length);
+  let stopped = false;
+  const ordered = items.every(item => {
+    if (stopped) return item.submissionState === 'not_attempted';
+    if (item.submissionState !== 'acknowledged') stopped = true;
+    return true;
+  });
+  if (!validState || !ordered) throw new AppError('MCP_INVALID_RESULT', '提交汇总或串行阶段与逐项事实不一致。');
 }

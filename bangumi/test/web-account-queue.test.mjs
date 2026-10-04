@@ -25,23 +25,25 @@ test('生产扩展共享队列：完整写入流程结束前，其他会话和�
   const queue = new TaskQueue();
   const release = deferred();
   const calls = [];
-  const first = extension(queue, async name => {
-    calls.push('a:' + name); await release.promise; throw new Error('离线模拟读取失败');
+  const first = extension(queue, async (name, _args, _signal, _guard, scope) => {
+    calls.push('a:' + name + ':' + scope.phase); await release.promise; throw new Error('离线模拟读取失败');
   });
-  const second = extension(queue, async name => {
-    calls.push('b:' + name); throw new Error('离线模拟读取失败');
+  const second = extension(queue, async (name, _args, _signal, _guard, scope) => {
+    calls.push('b:' + name + ':' + scope.phase); throw new Error('离线模拟读取失败');
   }, async () => { calls.push('logout'); });
   first.input('创建目录A'); second.input('创建目录B');
   const a = first.tool.execute('a', args, undefined, undefined, {});
   const b = second.tool.execute('b', args, undefined, undefined, {});
   const logout = second.commands.get('bangumi-logout').handler('', {});
   await eventually(() => calls.length === 1);
-  assert.deepEqual(calls, ['a:get_current_user']);
+  assert.deepEqual(calls, ['a:get_current_user:prepare']);
   release.resolve();
   const results = await Promise.all([a, b, logout]);
   assert.equal(results[0].details.value.state, 'failed');
   assert.equal(results[1].details.value.state, 'failed');
-  assert.deepEqual(calls, ['a:get_current_user', 'b:get_current_user', 'logout']);
+  // 现有批次在 finally 释放宿主上下文；清理也必须在同一队列槽中结束。
+  assert.deepEqual(calls, ['a:get_current_user:prepare', 'a:get_current_user:close',
+    'b:get_current_user:prepare', 'b:get_current_user:close', 'logout']);
 });
 
 test('排队期间用户输入改变时，旧计划不读取账户也不提交', async () => {

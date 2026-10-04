@@ -5,6 +5,7 @@ import { createWriteBoundary } from '../dist/src/mcp/write-boundary.js';
 import { createBatchWriteTool } from '../dist/src/mcp/batch-write.js';
 import { validateToolArguments } from '../dist/src/mcp/catalog.js';
 import { checkSubmission } from '../dist/src/mcp/submission.js';
+import { AppError } from '../dist/src/support/errors.js';
 
 function fixture({ anchorDone = false } = {}) {
   const account = { id: 42, username: 'test_user' };
@@ -25,6 +26,7 @@ function fixture({ anchorDone = false } = {}) {
       return structuredClone(subject);
     },
     account: async (path, options = {}) => {
+      if (options.expectedAccountId !== undefined && options.expectedAccountId !== user.id) throw new AppError('ACCOUNT_CHANGED', '模拟每请求会话绑定失效');
       if (options.method === 'PUT' && path === '/p1/collections/subjects/101') {
         requests.push({ path, ...structuredClone(options) });
         const { type, rate, comment, tags, private: visibility } = options.body;
@@ -147,14 +149,15 @@ test('看到匹配官方 sort 规则，包含小数序号与同序号章节', as
   assert.equal(f.episodes.find(e => e.id === 77).collection.status, 2);
   assert.equal(f.episodes.find(e => e.id === 78).collection.status, 2);
 });
-test('免确认章节计划在提交前范围/账户改变时不写入', async () => {
-  for (const mutate of [f => f.episodes.push({ id: 88, subjectID: 101, type: 0, sort: 6, name: '新增', collection: { status: 0 } }), f => f.setUser({ id: 43, username: 'other' })]) {
-    const f = fixture(); f.beforeAuthorize(() => mutate(f));
-    const value = await f.execute([until]);
-    assert.equal(value.state, 'failed');
-    assert.ok(['STALE_PREVIEW', 'ACCOUNT_CHANGED'].includes(value.error.code), JSON.stringify(value));
-    assert.equal(f.requests.length, 0);
-  }
+test('批次只在末尾发现网站章节范围变化，每请求会话绑定仍拒绝其他账户', async () => {
+  const range = fixture(); range.beforeAuthorize(() => range.episodes.push({ id: 88, subjectID: 101, type: 0, sort: 6, name: '新增', collection: { status: 0 } }));
+  const changed = await range.execute([until]);
+  assert.equal(changed.state, 'failed'); assert.equal(range.requests.length, 1);
+  assert.equal(changed.items[0].verification.protectedFieldsMatched, false);
+  const account = fixture(); account.beforeAuthorize(() => account.setUser({ id: 43, username: 'other' }));
+  const rejected = await account.execute([until]);
+  assert.equal(rejected.state, 'unknown'); assert.equal(account.requests.length, 0);
+  assert.equal(rejected.items[0].submissionError.code, 'ACCOUNT_CHANGED');
 });
 
 test('章节免确认仍要求有效交互通道', async () => {

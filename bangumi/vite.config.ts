@@ -53,6 +53,13 @@ export default defineConfig({
       'react-dom': resolve(modules, 'react-dom'),
       redux: resolve(modules, 'redux'),
       'react-redux': resolve(modules, 'react-redux'),
+      // 动效库：只有 v2 界面用它。子路径别名必须排在裸包名之前，否则 `motion/react`
+      // 会先命中 `motion` 规则、被截成一个没有 `react` 子路径的目录。
+      'motion/react': resolve(modules, 'motion/dist/es/react.mjs'),
+      motion: resolve(modules, 'motion/dist/es/index.mjs'),
+      // 滚动触发与时间线：ReactBits 的 AnimatedContent / TextType 用它。子路径同样在前。
+      'gsap/ScrollTrigger': resolve(modules, 'gsap/ScrollTrigger.js'),
+      gsap: resolve(modules, 'gsap/index.js'),
     },
   },
   build: {
