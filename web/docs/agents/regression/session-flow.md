@@ -37,13 +37,13 @@
 **预期**
 - 输入框立刻清空（不等宿主返回）；
 - 会话区出现一条用户气泡，气泡文本为 `测试文本`（这是乐观回显）；
-- 会话由首屏 hero 阶段切到活动阶段（`.body[data-phase]` 由 `hero` 变 `active`）；
+- 会话由首屏 hero 阶段切到活动阶段（`.appStage[data-phase]` 由 `hero` 变 `active`）；
 - 按钮变为「停止本轮」（`busy` 为真）。
 
 **判定**
 ```js
 document.querySelector('#composer-input').value === ''                       // 草稿已清空
-document.querySelector('.body').dataset.phase === 'active'                    // 已离开首屏
+document.querySelector('.appStage').dataset.phase === 'active'                // 已离开首屏
 !!document.querySelector('.userRow .bubble')                                  // 出现气泡
 ```
 
@@ -56,15 +56,15 @@ document.querySelector('.body').dataset.phase === 'active'                    //
 **预期**
 - 正文逐段出现（流式），伴随 `.running` 状态行与"已运行 N 秒"计时；
 - 生成中出现思考折叠块（若该模型返回思考内容）；
-- 完成后流式区清空，同一条内容变为历史条目（`TurnView` 的 `assistantRow`）；
+- 完成后流式区清空，同一条内容变为历史条目（`Turn` 的 `assistantRow`）；
 - 状态行消失，发送按钮恢复可用。
 
 **判定**
 ```js
 // 流式中
-document.querySelectorAll('.flowItem').length > 0 && !!document.querySelector('.running')
+document.querySelectorAll('.appTurn').length > 0 && !!document.querySelector('.running')
 // 完成后
-!document.querySelector('.running') && !document.querySelector('.shimmer')
+!document.querySelector('.running')
 ```
 
 ## S3 工具活动折叠块（需模型）
@@ -101,7 +101,7 @@ document.querySelectorAll('.activityRow').length > 0
 **步骤**：发送一句会触发写入工具的问题（例如"把某作品的收藏状态改成在看"），等确认卡出现。
 
 **预期**
-- 输入区被**接管**：`.composerSeat` 内出现 `.cardSeat > .planCard`，输入框消失；
+- 输入区被**接管**：`.appSeat` 内出现 `.appCardSeat > .planCard`，输入框消失；
 - 卡片显示状态「待确认」、标题、完整预览文本（等宽、保留换行）与提示；
 - **两个按钮可点**（`disabled` 为 `false`）。待确认必然发生在本轮进行中（`busy` 为真），所以这里**不能**用 `busy` 当禁用条件——历史 bug 就是由此导致按钮恒灰；
 - 点下后到宿主返回结论之前，两个按钮**短暂禁用**（防重复提交），卡片被替换或结论下发后即解除；
@@ -111,11 +111,11 @@ document.querySelectorAll('.activityRow').length > 0
 
 **判定**
 ```js
-document.querySelector('.cardSeat .planCard')?.dataset.state      // 'pending' → 'accepted' | 'rejected'
+document.querySelector('.appCardSeat .planCard')?.dataset.state      // 'pending' → 'accepted' | 'rejected'
 // 待确认时按钮可点：
-[...document.querySelectorAll('.cardSeat .planActions button')].every(b => !b.disabled)   // true
+[...document.querySelectorAll('.appCardSeat .planActions button')].every(b => !b.disabled)   // true
 // 点下后、结论到达前（窗口很短，需要立即求值）：
-[...document.querySelectorAll('.cardSeat .planActions button')].every(b => b.disabled)    // true
+[...document.querySelectorAll('.appCardSeat .planActions button')].every(b => b.disabled)    // true
 // 接管时输入框不在：
 !document.querySelector('#composer-input')
 // 恢复后：
@@ -145,9 +145,9 @@ document.querySelector('.cardSeat .planCard')?.dataset.state      // 'pending' �
 
 **判定**
 ```js
-document.querySelectorAll('.flowItem').length       // 新建后为 0；恢复后 > 0
-document.querySelector('.conversationHeader .chip')?.textContent.trim()   // '已连接'
-document.querySelector('.body').dataset.phase       // 新建且空闲时为 'hero'
+document.querySelectorAll('.appTurn').length       // 新建后为 0；恢复后 > 0
+document.querySelector('.appHeaderMeta .appChip')?.textContent.trim()   // '已连接'
+document.querySelector('.appStage').dataset.phase   // 新建且空闲时为 'hero'
 ```
 
 ## S8 轮次导轨（需 2 轮以上历史）
@@ -162,9 +162,9 @@ document.querySelector('.body').dataset.phase       // 新建且空闲时为 'he
 
 **判定**
 ```js
-const rail = document.querySelector('.turnRail');
-rail ? rail.querySelectorAll('button').length : 0      // 与含 user 的轮次数一致
-[...document.querySelectorAll('.turnRail button')].filter(b => b.dataset.active === 'true').length  // 恰好 1
+const rail = document.querySelector('.appRail');
+rail ? rail.querySelectorAll('.appRailButton').length : 0      // 与含 user 的轮次数一致
+[...document.querySelectorAll('.appRailButton')].filter(b => b.dataset.active === 'true').length  // 恰好 1
 ```
 
 ## S9 提交失败时草稿回滚（不需模型）
@@ -184,7 +184,7 @@ rail ? rail.querySelectorAll('button').length : 0      // 与含 user 的轮次�
 **判定**
 ```js
 document.querySelector('#composer-input').value === '回滚测试'
-!!document.querySelector('.toast')
+!!document.querySelector('.appToast')
 ```
 
 ## S10 内容条目渲染与降级（需模型或含内容条目的历史会话）

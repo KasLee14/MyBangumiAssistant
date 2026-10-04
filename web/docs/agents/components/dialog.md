@@ -40,6 +40,8 @@
 
 props：`title`、`eyebrow?`、`wide?`、`onClose`、`children`、`footer?`。`eyebrow` 与 `title` 相同时不渲染，避免「设置 / 设置」这种重复。
 
+遮罩与表面用 motion 渲染并声明 `exit`，presence 由 `overlays/DialogStage.tsx` 的 `AnimatePresence` 提供——因此「关闭」也是先播完过渡再卸载。Esc 与点遮罩都走同一个 `onClose`，两种关闭语义由调用方决定。
+
 ## 九个弹窗
 
 | 文件 | 唤起方式 | 读什么 | 成功后做什么 |
@@ -51,7 +53,7 @@ props：`title`、`eyebrow?`、`wide?`、`onClose`、`children`、`footer?`。`e
 | `BangumiLoginDialog.tsx` | 设置 → 登录状态行「登录」 | `stream.loginBusy` / `loginStatus` | `startBangumiLogin` → 回设置主面板；关闭时 `cancelBangumiLogin` |
 | `BangumiLogoutDialog.tsx` | 设置 → 登录状态行「退出登录」 | `stream.loginUsername` | `bangumiLogout` → 回设置主面板 |
 | `SessionDialog.tsx` | `/sessions` 命令、`openSessions()` | `catalog.sessions` | `pickSession`（先关弹窗再切换） |
-| `LoginDialog.tsx` | 宿主下发 `stream.loginPrompt` 时由 `DialogHost` 自动挂载 | props 里的 `prompt.id`（用于换请求时清空输入） | `answerLoginInput`（提交或取消） |
+| `LoginDialog.tsx` | 宿主下发 `stream.loginPrompt` 时由 `DialogStage` 自动挂载 | props 里的 `prompt.id`（用于换请求时清空输入） | `answerLoginInput`（提交或取消） |
 | `Modal.tsx` | —（基础件） | — | — |
 
 `SessionDialog` 每行右侧与侧栏常驻列表共用 [`../utils/relativeTime.ts`](../utils/relativeTime.md) 的「最后对话时间」（`刚刚` / `N分钟` / `N小时` / `N天` / `N个月` / `N年`），当前会话那行显示 `当前`。两处口径必须一致——改这里等于同时改侧栏。
@@ -91,6 +93,6 @@ ui.sessionsOpen: boolean          // 会话弹窗是否打开
 1. 在 `components/dialog/` 建 `XxxDialog.tsx`，套 `Modal`；
 2. 数据用 `useAppSelector` 取，动作用 `useActions()` 取（**不要**在组件里直接 `import utils/api`，那会绕过提示与状态更新）；
 3. 若它是设置里的某一行：在 `store/reducers/ui.ts` 的 `SettingsPane` 里加成员、在 `SettingsDialog` 加一行与分支、在 `store/operations.ts` 加 `switchPane` 的调用点；
-4. 若它是独立浮层（如会话弹窗）：在 `ui` 切片加开合字段 + 动作，并在 `overlays/DialogHost.tsx` 挂载；
+4. 若它是独立浮层（如会话弹窗）：在 `ui` 切片加开合字段 + 动作，并在 `overlays/DialogStage.tsx` 挂载（`AnimatePresence` 里的每个弹窗都要给 `key`）；
 5. 在本文件与 [readme.md](readme.md) 的表格里登记；
 6. `npm run typecheck`，回归 [../regression/settings-and-credentials.md](../regression/settings-and-credentials.md) 的相关用例。

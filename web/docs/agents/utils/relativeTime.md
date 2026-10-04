@@ -12,7 +12,7 @@
 
 | 章节 | 什么时候读 |
 |---|---|
-| §为什么单独成文件 | 想把这 40 行合并进组件、或觉得两个入口各写一份也行时 |
+| §为什么单独成文件 | 想把这 50 行左右合并进组件、或觉得两个入口各写一份也行时 |
 | §六档与对齐 | 改档位边界、调措辞、加语言时 |
 | §内容 | 看签名、异常返回值与取整方式时 |
 | §规则 | 收尾核对（四条约定） |
@@ -29,7 +29,7 @@
 
 同一句话出现在**两个**入口：
 
-- `components/mainPage/sidebar/Sidebar.tsx`：侧栏常驻的历史会话列表；
+- `components/mainPage/shell/Sidebar.tsx`：侧栏常驻的历史会话列表；
 - `components/dialog/SessionDialog.tsx`：`/sessions` 弹窗。
 
 放在任一组件里都会让另一处复制一份，措辞随后漂移——与 [`credentialLabel.ts`](credentialLabel.md) 同一个理由。**判据是"功能类别 + 两个调用方"，不是行数。**

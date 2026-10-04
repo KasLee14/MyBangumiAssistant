@@ -74,7 +74,7 @@ export type ContentRegistryCoverage = AssertNever<
 
 协议加了第 13 个内容 kind 却忘了扩 `ContentKind` 时，这一行会报错。**不要为了让它通过而放宽这个断言**——它正是防止"协议漂移"的闸门。
 
-`BaseTranscriptKind`（`header`/`user`/`assistant`/`notice`/`error`/`activity`/`confirmation`）是有意排除在注册表之外的：这些条目由 `TurnView` 的分支渲染，不走内容组件库。
+`BaseTranscriptKind`（`header`/`user`/`assistant`/`notice`/`error`/`activity`/`confirmation`）是有意排除在注册表之外的：这些条目由 `Turn` 的分支渲染，不走内容组件库。
 
 ### 4. 取渲染函数必须走 `contentRenderer()`
 
@@ -116,7 +116,7 @@ export function contentRenderer(kind: unknown): ((item: ContentItemView) => Reac
 4. **渲染组件**：在 `components/content/` 建 `Xxx.tsx`，接收 `{ view }: { view: XxxView }`（`XxxView` 从协议取）；
 5. **`CONTENT_RENDERERS`**：加表项，写 `field` / `limit`（有数组时）/ `render`；
 6. **`validate.ts`**：为载荷加守卫（形状、字段类型、规模上限），让非法数据降级而不是崩；
-7. **`styles/content.css`**：加样式，类名用 `content` 前缀；只用 `--bgm-*` 令牌，不写裸色值。
+7. **`styles/content.css`**：加样式，类名用 `content` 前缀；只用 `--bgm-*` / `--app-*` 令牌，不写裸色值。
 
 然后跑 `npm run typecheck`，并按 [../regression/session-flow.md](../regression/session-flow.md) 里"内容条目渲染"的用例验证降级与截断行为。
 
@@ -124,4 +124,4 @@ export function contentRenderer(kind: unknown): ((item: ContentItemView) => Reac
 
 - **不注入 HTML**：行内标记（粗体、行内代码、链接）与表格/分隔线都以 React 节点输出，`INLINE` 白名单之外的内容按纯文本渲染。
 - 外部链接一律 `target="_blank" rel="noreferrer noopener"`。
-- 它被 `MessageParts`（流式正文、历史助手条目）与 `TurnView` 使用；改渲染规则等于改所有助手文本的呈现，回归时至少覆盖一条含表格与链接的回答。
+- 它被 `Turn`（历史助手条目）与 `Streaming`（流式正文）使用；改渲染规则等于改所有助手文本的呈现，回归时至少覆盖一条含表格与链接的回答。

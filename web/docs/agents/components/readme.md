@@ -13,7 +13,7 @@
 | 文件 | 什么时候读 |
 |---|---|
 | 本文件 | **加新组件前必读**——先在这里判定放哪个目录、用哪种数据来源 |
-| [main-page.md](main-page.md) | 改外壳组件（侧栏 / 顶栏 / 会话视图 / 输入区 / 浮层）、动 `ComposerSlot` 座位分支时 |
+| [main-page.md](main-page.md) | 改外壳组件（侧栏 / 顶栏 / 会话容器 / 输入区 / 浮层）、动 `ComposerSeat` 座位分支时 |
 | [dialog.md](dialog.md) | 加或改弹窗、调弹窗开合层级与关闭语义时 |
 | [content.md](content.md) | 改内容条目渲染；**新增一种内容 `kind` 时必读**（有逐步清单） |
 
@@ -37,50 +37,46 @@
 
 拿不准时按这个顺序问：① 它是内容 `kind` 的渲染器吗 → `content/`；② 它带遮罩、整页浮在会话之上吗 → `dialog/`；③ 否则 → `mainPage/`。
 
-`components/` 下还有两个**不属于上述三类**的目录，它们服务的是「外观版本」这件事：
+`components/` 下还有一个**不属于上述三类**的目录，它服务的是「动效」这件事：
 
 | 目录 | 服务对象 | 说明 |
 |---|---|---|
-| `v2/` | v2 外壳 | 动效版的全部外壳组件（`shell/`、`conversation/`、`composer/`、`overlays/`），与 `mainPage/` 里 v1 的对应组件一一对应但完全独立。判据同 `mainPage/`，只是它只服务 v2 |
-| `motion/` | 两版之外的动效原语 | `vendor/` 是从 ReactBits 抓取并做最小适配的组件源码（`BlurText`、`TextType`、`AnimatedContent`、`AnimatedList`、`BorderGlow`、`CountUp`、`Magnet`）；`motionTokens.ts` 是 JS 侧动效令牌，与 `styles/v2/tokens.css` 一一对应 |
+| `motion/` | 外壳与弹窗的动效原语 | `vendor/` 是从 ReactBits 抓取并做最小适配的组件源码（`BlurText`、`TextType`、`AnimatedContent`、`BorderGlow`、`CountUp`、`Magnet`；`AnimatedList` 目前未被任何代码引用）；`motionTokens.ts` 是 JS 侧动效令牌，与 `styles/tokens.css` 的 `--app-*` 一一对应 |
 
-依赖方向是单向的：`v2/**` 可以 import `motion/**`，也可以复用 `mainPage/**` 与 `content/**` 里 props 驱动的渲染器；**反向不行**——`mainPage/**`（v1）不得 import `motion/**`，v1 不含任何动效库调用。唯一例外是 `dialog/Modal.tsx`：它按 `variant` 分流，同一份表单在两个版本下分别渲染原生元素与 motion 元素（见该文件注释）。
+依赖方向是单向的：`mainPage/**` 与 `dialog/**` 可以 import `motion/**`；**反向不行**——`motion/**` 不 import 任何上层模块。`mainPage/**` 也可以复用 `content/**` 里 props 驱动的渲染器（`Markdown`、`ContentItem`），反过来 `content/**` 不认识外壳。
 
-`mainPage/` 下再按**界面区域**分五个子目录：
+`mainPage/` 下再按**界面区域**分四个子目录：
 
 | 子目录 | 区域 | 文件 |
 |---|---|---|
-| `sidebar/` | 左栏 | `Sidebar.tsx` |
-| `header/` | 顶栏 | `Header.tsx`、`UiVariantToggle.tsx`（两版共用的外观切换控件） |
-| `conversation/` | 会话正文 | `ConversationView.tsx`、`TurnView.tsx`、`MessageParts.tsx`、`ConfirmationCard.tsx`、`Hero.tsx` |
-| `composer/` | 输入区 | `Composer.tsx`、`ComposerSlot.tsx`、`StatsDock.tsx`、`ThinkingPicker.tsx` |
-| `overlays/` | 浮层挂载点 | `DialogHost.tsx`、`Toast.tsx` |
+| `shell/` | 左栏与顶栏 | `Sidebar.tsx`、`Header.tsx` |
+| `conversation/` | 会话正文 | `Stage.tsx`、`Turn.tsx`、`Streaming.tsx`、`Hero.tsx`、`MessageParts.tsx`、`ConfirmationCard.tsx` |
+| `composer/` | 输入区 | `Composer.tsx`、`ComposerSeat.tsx`、`StatsDock.tsx`、`ThinkingPicker.tsx` |
+| `overlays/` | 浮层挂载点 | `DialogStage.tsx`、`Toast.tsx` |
 
 ## 数据来源：两条规则
 
 **规则 A：展示组件一律 props 驱动。** `conversation/**`、`content/**`、`markdown.tsx`、`StatsDock.tsx` 只接收 props，不 import `store`。理由：它们描述"长什么样"，与"数据从哪来"解耦后可以脱离外壳渲染（历史上存在过的 `?preview=1` 调试面板就是靠这一点复用同一套组件）。
 
-**规则 B：外壳与弹窗可以直接消费 store。** `Sidebar`、`Header`、`Composer`、`ComposerSlot`、`ThinkingPicker`、`DialogHost`、`Toast`、`SettingsDialog` 与全部子弹窗都通过 `useAppSelector` / `useActions` 自己取数据与动作。理由：它们本来就是"外壳的一部分"，强行 props 钻透只会让页面变胖。
+**规则 B：外壳与弹窗可以直接消费 store。** `Sidebar`、`Header`、`Composer`、`ComposerSeat`、`ThinkingPicker`、`DialogStage`、`Toast`、`SettingsDialog` 与全部子弹窗都通过 `useAppSelector` / `useActions` 自己取数据与动作。理由：它们本来就是"外壳的一部分"，强行 props 钻透只会让页面变胖。
 
 判定方法：**如果这个组件能在一张空页面上独立渲染出有意义的东西，它就属于规则 A。**
 
 | 组件 | 规则 | 数据来源 |
 |---|---|---|
-| `ConversationView` / `TurnView` / `MessageParts` / `ConfirmationCard` / `Hero` | A | props（页面对接 store） |
+| `Stage` / `Turn` / `Streaming` / `MessageParts` / `ConfirmationCard` / `Hero` | A | props（`Shell` 对接 store） |
 | `content/**`、`content/markdown.tsx` | A | props（协议条目） |
 | `StatsDock` | A | props（由 `Composer` 从 store 读出后传入） |
-| `Sidebar` / `Header` / `Composer` / `ComposerSlot` / `ThinkingPicker` | B | store |
-| `v2/shell/**`、`v2/composer/ComposerV2` | B | store（与 v1 的同类组件同构，见 [../../AGENTS.md](../../../AGENTS.md) §3） |
-| `v2/conversation/StageV2` / `TurnV2` / `StreamingV2` | A | props（由 `ShellV2` 从 store 读出后传入） |
-| `v2/overlays/DialogStageV2` / `ToastV2` | B | store（分别与 `DialogHost` / `Toast` 同构） |
-| `v2/conversation/HeroV2`、`motion/**` | A | props 或无状态 |
-| `dialog/**`、`DialogHost` / `Toast` | B | store（弹窗开合状态在 `store/reducers/ui.ts`） |
+| `Sidebar` / `Header` / `Composer` / `ComposerSeat` / `ThinkingPicker` | B | store |
+| `DialogStage` / `Toast` | B | store |
+| `dialog/**`（含基础件 `Modal`） | B | store（弹窗开合状态在 `store/reducers/ui.ts`） |
+| `motion/**` | A | props 或无状态 |
 
 ## 文件粒度与命名
 
 - **一个组件一个文件**，文件名 = 组件名（`Sidebar.tsx`、`MessageParts.tsx`）。没有 `index.ts` 桶文件，导入路径始终指向真实文件，避免循环引用与"这个符号到底在哪"的追查成本。
-- 同文件导出的多个小组件必须是同一主题（`MessageParts.tsx` 导出会话流里的原子行：`UserBubble` / `NoticeRow` / `ErrorRow` / `SessionBanner` / `StreamingBlock`）。
-- **不做过度 memo**：只有流式期间会被高频重渲染的行才 `memo`（`MessageParts`、`TurnView`、`ContentItem`、`Markdown`），普通组件不加。
+- 同文件导出的多个小组件必须是同一主题（`MessageParts.tsx` 导出会话流里的原子行：`UserBubble` / `NoticeRow` / `ErrorRow` / `SessionBanner`；流式区自成一档，在 `conversation/Streaming.tsx` 导出 `Streaming`，其中正文、思考块与运行状态行各自成组件）。
+- **不做过度 memo**：只有流式期间会被高频重渲染的行才 `memo`（`MessageParts`、`Turn`、`Streaming`、`ContentItem`、`Markdown`），普通组件不加。
 
 ## 新增组件检查清单
 
@@ -89,4 +85,3 @@
 3. 样式类名沿用既有语汇（见 [../styles/readme.md](../styles/readme.md)），需要新类时按所属样式文件的前缀命名；
 4. 在本文件或对应子文档的表格里登记；
 5. `npm run typecheck`，并按 [../regression/readme.md](../regression/readme.md) 选相关用例回归。
-

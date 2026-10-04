@@ -33,15 +33,15 @@
 2. 继续输入 `mo`。
 
 **预期**
-- 输入 `/` 时弹出候选浮层（`.composerPopup`），列出本地命令与宿主命令，分「命令」分组；
+- 输入 `/` 时弹出候选浮层（`.appComposerPopup`），列出本地命令与宿主命令，分「命令」分组；
 - 输入 `/mo` 时只剩匹配项（`/model`）；
 - 输入 `/model `（带空格）后**候选消失**（匹配条件是以 `/` 开头且不含空白）；
 - 候选项的右侧显示一句话说明。
 
 **判定**
 ```js
-[...document.querySelectorAll('.popupItem .value')].map(e => e.textContent)
-!!document.querySelector('.composerPopup')
+[...document.querySelectorAll('.appPopupItem .value')].map(e => e.textContent)
+!!document.querySelector('.appComposerPopup')
 ```
 
 ## K2 补全的键盘导航
@@ -49,15 +49,15 @@
 **步骤**：输入 `/` 后依次按 `↓`、`↑`、`Tab`、`Enter`。
 
 **预期**
-- `↓`/`↑` 移动高亮（`aria-selected` 与 `.active` 同步），到底/到顶不越界；
+- `↓`/`↑` 移动高亮（`aria-selected` 与 `data-active` 同步），到底/到顶不越界；
 - `Tab` 把高亮项**填进输入框**（不执行）；
 - `Enter` **执行**高亮项（而不是发送字面文本）；
 - Esc 关闭候选浮层但保留草稿（且**不**触发会话层的停止/拒绝）。
 
 **判定**
 ```js
-document.querySelector('.popupItem.active .value').textContent   // 当前高亮
-document.querySelector('#composer-input').value                  // Tab 后为命令全文
+document.querySelector('.appPopupItem[data-active="true"] .value').textContent   // 当前高亮
+document.querySelector('#composer-input').value                                  // Tab 后为命令全文
 ```
 
 ## K3 `/help`（命令表由宿主决定）
@@ -71,8 +71,8 @@ document.querySelector('#composer-input').value                  // Tab 后为�
 
 **判定**
 ```js
-document.querySelector('.toast')?.textContent.startsWith('可用命令：')
-document.querySelectorAll('.flowItem').length     // 不因 /help 增加
+document.querySelector('.appToast')?.textContent.startsWith('可用命令：')
+document.querySelectorAll('.appTurn').length     // 不因 /help 增加
 ```
 
 ## K4 `/new` 新建会话
@@ -83,10 +83,10 @@ document.querySelectorAll('.flowItem').length     // 不因 /help 增加
 
 **判定**
 ```js
-document.querySelectorAll('.flowItem').length === 0
-document.querySelector('.body').dataset.phase === 'hero'
-document.querySelectorAll('.sessionRow').length > 0
-[...document.querySelectorAll('.sessionRow:not(.selected) .time')].every(el => /^(刚刚|\d+(分钟|小时|天|个月|年))$/.test(el.textContent))
+document.querySelectorAll('.appTurn').length === 0
+document.querySelector('.appStage').dataset.phase === 'hero'
+document.querySelectorAll('.appSessionRow').length > 0
+[...document.querySelectorAll('.appSessionRow:not([data-current="true"]) .appSessionTime')].every(el => /^(刚刚|\d+(分钟|小时|天|个月|年))$/.test(el.textContent))
 ```
 
 ## K5 `/sessions` 打开会话弹窗
@@ -130,8 +130,8 @@ document.querySelector('#model-pick') !== null
 
 **判定**
 ```js
-document.querySelector('.toast')?.textContent.includes('/exit')
-document.querySelector('.conversationHeader .chip')?.textContent.trim() === '已连接'
+document.querySelector('.appToast')?.textContent.includes('/exit')
+document.querySelector('.appHeaderMeta .appChip')?.textContent.trim() === '已连接'
 ```
 
 ## K9 未登记命令被拦下（不发宿主）
@@ -139,13 +139,13 @@ document.querySelector('.conversationHeader .chip')?.textContent.trim() === '已
 **步骤**：输入 `/nosuchcommand` 回车。
 
 **预期**
-- 输入区附近出现红字提示：`没有匹配命令，请继续编辑；输入 / 查看命令列表。`（`.composerProblem`，`role="alert"`）；
+- 输入区附近出现红字提示：`没有匹配命令，请继续编辑；输入 / 查看命令列表。`（`.appComposerProblem`，`role="alert"`）；
 - **不发送**给宿主（Network 里没有 `POST /api/submit`）；
 - 草稿**保留**（不清空），便于继续编辑。
 
 **判定**
 ```js
-document.querySelector('.composerProblem')?.textContent.includes('没有匹配命令')
+document.querySelector('.appComposerProblem')?.textContent.includes('没有匹配命令')
 document.querySelector('#composer-input').value === '/nosuchcommand'
 ```
 
@@ -159,7 +159,7 @@ document.querySelector('#composer-input').value === '/nosuchcommand'
 
 **判定**
 ```js
-document.querySelector('.composerHint')?.textContent     // '正在停止…' → 'Esc 停止本轮'
+document.querySelector('.appComposerHint')?.textContent     // '正在停止…' → 'Esc 停止本轮'
 !document.querySelector('.running')
 ```
 
@@ -176,7 +176,7 @@ document.querySelector('.composerHint')?.textContent     // '正在停止…' �
 ```js
 // 第 2 步后：
 document.querySelector('.thinkingMenu') === null
-document.querySelector('.composerHint')?.textContent === 'Esc 停止本轮'   // 本轮未被停止
+document.querySelector('.appComposerHint')?.textContent === 'Esc 停止本轮'   // 本轮未被停止
 ```
 
 ## K12 思考强度菜单（需模型）
@@ -205,20 +205,20 @@ document.querySelectorAll('.thinkingMenu .menuItem').length > 1
 
 **判定**
 ```js
-// 立刻：document.querySelector('.toast') !== null
-// 5 秒后：document.querySelector('.toast') === null
+// 立刻：document.querySelector('.appToast') !== null
+// 5 秒后：document.querySelector('.appToast') === null
 ```
 
 ## K14 参数错误提示自动清空
 
 **步骤**
-1. 用 `/nosuchcommand` 触发 `.composerProblem`；
+1. 用 `/nosuchcommand` 触发 `.appComposerProblem`；
 2. 静置观察（不修改输入）。
 
 **预期**：约 **4 秒**后红字提示自动消失，草稿仍在。
 
 **判定**
 ```js
-// 立刻：!!document.querySelector('.composerProblem')
-// 5 秒后：document.querySelector('.composerProblem') === null
+// 立刻：!!document.querySelector('.appComposerProblem')
+// 5 秒后：document.querySelector('.appComposerProblem') === null
 ```

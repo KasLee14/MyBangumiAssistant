@@ -45,7 +45,7 @@ export function rootReducer(state: RootState = INITIAL_ROOT_STATE, action: AppAc
 - 三个切片都接收完整的 `AppAction`（redux 惯例：每个 reducer 都看到所有 action），只在各自的 `type` 上分支；
 - 未命中一律 `return state`，保持引用不变（这是 `useSelector` 不误触发重渲染的前提）。
 
-`AppAction` = `StreamAction | CatalogAction | UiAction`，定义在 `reducers/index.ts`，`actions.ts` 再把它转出给 `store/index.ts` 与 `hooks.ts` 使用。
+`AppAction` = `StreamAction | CatalogAction | UiAction`，定义在 `reducers/index.ts`，三个切片 reducer 直接从这里取；`actions.ts` 再把它转出给使用方（`hooks.ts` 的 `useStore<RootState, AppAction>()`）。
 
 ## `stream` 切片（`reducers/stream.ts`）
 

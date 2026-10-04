@@ -50,6 +50,7 @@
 | 改动完成后回归验证 | 回归用例 | [regression/readme.md](docs/agents/regression/readme.md) |
 | 查技术栈、环境、命令 | 本文 | §1 技术栈 |
 | 不确定该放哪、跨层边界不清 | 本文 | §2 模块化设计风格 |
+| 改外观语言、动效、层次或首屏 | 本文 | §3 外观层 |
 
 各层 `readme.md` 是该层的入口，再往下按"文件 → 场景"精确到篇。
 
@@ -59,8 +60,8 @@
 
 1. **内容组件不读 store**：`components/content/**`、`components/mainPage/conversation/**`、`content/markdown.tsx` 一律 props 驱动。违反后果：这些组件无法脱离会话外壳复用与测试，数据来源出现第二个真相。详见 [components/readme.md](docs/agents/components/readme.md)。
 2. **改全局状态只能落在 `store/`**：组件里的 `useState` 只承载组件私有状态（草稿、菜单开合、滚动位置）。违反后果：状态更新散落各处，流式帧与界面不同步。详见 [store/readme.md](docs/agents/store/readme.md)。
-3. **样式不写裸值、选择器不越界**：颜色走令牌；每个样式文件只用自己的命名前缀。违反后果：品牌覆盖层失效、样式互相污染。详见 [styles/readme.md](docs/agents/styles/readme.md)。
-4. **高度模块化处用「表」，不用「分支」**：新增一种形态只应改一张表 + 一份类型。违反后果：每加一种形态都要回来改多处且容易漏。范例：`components/content/registry.tsx`、`components/mainPage/composer/ComposerSlot.tsx`。
+3. **样式不写裸值、不越界声明**：颜色走令牌；每个样式文件只负责它那一类元素，同一元素同一属性只声明一次。违反后果：改一处不生效，出问题无法定位来源。详见 [styles/readme.md](docs/agents/styles/readme.md)。
+4. **高度模块化处用「表」，不用「分支」**：新增一种形态只应改一张表 + 一份类型。违反后果：每加一种形态都要回来改多处且容易漏。范例：`components/content/registry.tsx`、`components/mainPage/composer/ComposerSeat.tsx`。
 5. **§0 的两条本节不重复**：① 每次开发后更新对应文档；② 知识库不是事实源，须与源码交叉验证、发现不符时报给用户确认。
 
 ## 1. 技术栈
@@ -71,8 +72,8 @@
 | 语言 | TypeScript 5.9 | `strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`verbatimModuleSyntax`、`noUnusedLocals/Parameters` |
 | 构建 | Vite 8.3 | 配置在 `bangumi/vite.config.ts`，`root` 指向 `../web`，产物落 `bangumi/dist/web` |
 | 状态 | redux 5.0 + react-redux 9.3 | **裸 redux**：无 RTK、无中间件；异步动作是闭包 `dispatch` 的普通函数 |
-| 样式 | 手写 CSS + 设计令牌 | 无 CSS 框架、无 CSS-in-JS、无 CSS Modules；v1 共 8 个文件在 `web/src/styles/`，v2 另有一套在 `web/src/styles/v2/`（见 §3） |
-| 动效 | motion 14 + gsap 3.15 | **只有 v2 用它**。ReactBits 组件的原生依赖；两处登记见 §1 末尾。v1 不含任何动效库调用 |
+| 样式 | 手写 CSS + 设计令牌 | 无 CSS 框架、无 CSS-in-JS、无 CSS Modules；共 7 个文件在 `web/src/styles/`（见 §3） |
+| 动效 | motion 14 + gsap 3.15 | ReactBits 组件的原生依赖；两处登记见本表末尾 |
 | 路由 | 无 | 单页应用；查询参数不参与分流 |
 | 测试 | 无测试运行器 | 回归靠 `docs/agents/regression/` 的文档化用例 + `npm run typecheck` |
 
@@ -96,6 +97,8 @@
 
 **改动后至少跑 `npm run typecheck`**；动到样式、DOM 结构或状态流时，按 `docs/agents/regression/` 的用例过一遍主链路。
 
+**Windows 上的一个坑**：同一秒内对多个文件做写入可能被 Vite 的 watcher 漏检，表现为 dev server 仍提供旧模块（界面看起来「改动没生效」，或直接报 `does not provide an export named ...`）。此时重启 `npm run dev:web` 即可，不要按「代码写错了」去查。
+
 ## 2. 模块化设计风格
 
 ### 五个维度与依赖方向
@@ -109,7 +112,7 @@ components/   组件：三类（mainPage / dialog / content），边界判定见
   ▼
 utils/        工具：按功能类别一个文件，纯函数 + 宿主接口封装
 store/        状态：三切片 + 动作 + 选择器 + hooks（与 page/components 双向：读用 selector，写用 actions）
-styles/       样式：v1 8 个文件 + v2 6 个文件，令牌驱动，前缀与作用域隔离（见 §3）
+styles/       样式：7 个文件，令牌驱动，按作用对象分文件（见 §3）
 ```
 
 ### 与宿主的分界
@@ -120,114 +123,121 @@ styles/       样式：v1 8 个文件 + v2 6 个文件，令牌驱动，前缀�
 - **状态（SSE）**：`GET ./api/events` 逐帧下发；帧类型是 `ServerEvent`，合并语义见 `store/reducers.md`。
 - **类型**：跨端类型一律从 `bangumi/src/web/protocol.ts` 取，**前端不复制一份**。
 
-## 3. v2（新版）外观：分层与约定
+## 3. 外观层：分层与约定
 
-> **这一节随实现推进更新。**未完成 / 未验证项集中列在 §3.4，改 v2 之前先读那一段，
+> **这一节随实现推进更新。**未完成 / 未验证项集中列在 §3.5，改外观之前先读那一段，
 > 避免把「还没做」当成「已经这样设计」。
->
-> **术语**：两版在界面上分别叫**旧版**与**新版**（顶栏切换按钮的文案就是这两个词），
-> 代码与文档里沿用 `v1` / `v2`。**默认是新版**——只有用户显式选过旧版才回落 v1，
-> 读取偏好失败（隐私模式、值被改坏）时同样给新版，判据见 `reducers/ui.ts` 的
-> `readStoredVariant()`。
 
-### 3.1 两版怎么分叉
-
-同一个界面有两套实现，靠 `store.ui.variant`（`'v1' | 'v2'`，持久化在 `localStorage`
-的 `bangumi.uiVariant`）在页面层二选一：
+### 3.1 文件与命名
 
 ```
 page/mainPage/
-  index.tsx    薄壳：四个生命周期订阅 + 按 variant 选树（订阅必须留在这里，见文件注释）
-  ShellV1.tsx  v1 装配（既有外观，JSX 与数据读取保持原样）
-  ShellV2.tsx  v2 装配（新版，默认）
-components/v2/ v2 的全部外壳组件（shell / conversation / composer / overlays）
+  index.tsx    薄壳：四个生命周期订阅 + 装配 Shell（订阅必须留在这里，见文件注释）
+  Shell.tsx    外壳装配：取 store 数据 → 按槽位交给组件
+components/mainPage/
+  shell/         Header / Sidebar（顶栏与侧栏）
+  conversation/  Stage / Turn / Streaming / Hero（会话容器、轮次、流式区、首屏）
+                 MessageParts / ConfirmationCard（props 驱动的共享原子行与确认卡）
+  composer/      Composer / ComposerSeat / StatsDock / ThinkingPicker（输入区、座位、读数、思考强度）
+  overlays/      DialogStage / Toast（浮层的挂载点）
 components/motion/
-  vendor/          ReactBits 组件源码（BlurText / TextType / BorderGlow / Magnet / …）
-  motionTokens.ts  JS 侧动效令牌，与 styles/v2/tokens.css 一一对应
-components/mainPage/header/UiVariantToggle.tsx  两版共用的切换控件
-styles/v2/      v2 的 6 个样式文件（tokens / shell / conversation / composer / overlays / content）
+  vendor/          ReactBits 组件源码（BlurText / TextType / BorderGlow / Magnet / AnimatedContent / CountUp / AnimatedList）
+  motionTokens.ts  JS 侧动效令牌，与 styles/tokens.css 的 --app-* 一一对应
+styles/           7 个文件：tokens / frame / composer / cards / modal / bgm / content（见 3.3）
 ```
 
-**共用的是数据，不是外观**：两版共用同一份 store、同一套订阅、同一批 props 驱动的
-渲染器（`Markdown`、`content/**`、`ConfirmationCard`、`MessageParts` 的原子行、
-`StatsDock`、`ThinkingPicker`、`Modal`）。因此「功能一致」由数据来源保证，而不是靠
-两份代码手工对齐。
+**命名规则**：外壳与容器类用 `app*` 前缀（`.appFrame`、`.appStage`、`.appComposerCard`…）；
+会话流里的原子行、过程折叠块、确认卡、思考块、统计底栏、内容条目沿用**共享渲染器的类名**
+（`.userRow`、`.bubble`、`.processTitle`、`.planCard`、`.contentTable`…），组件与样式两边改一处即可。
 
-### 3.2 五条硬约定
+### 3.2 四条硬约定
 
-1. **v2 的样式必须落在作用域里**：自有组件用 `v2*` 类名；覆写共享组件的既有类时，
-   选择器必须带 `[data-ui='v2']` 祖先前缀。作用域属性写在 `<html>` 上（`main.tsx`
-   首帧前预置、`ShellV2` 的 effect 维护），因为统计浮层与弹窗是 portal 到 `body` 的，
-   挂在子树里会让它们落在作用域外。v1 的样式文件里没有任何 `[data-ui]` 选择器。
-2. **动效令牌只有一处定义、两处消费**：CSS 用 `styles/v2/tokens.css` 的
-   `--v2-dur-*` / `--v2-ease-*` / `--v2-shift-*`，JS 用 `components/motion/motionTokens.ts`。
+1. **同一元素同一属性只有一个来源**：样式按作用对象分文件（外壳 → `frame.css`，
+   输入区 → `composer.css`，卡片与按钮 → `cards.css`，弹窗 → `modal.css`，内容条目 →
+   `content.css`），令牌集中在 `tokens.css`（`--dsw-*` / `--dsh-*`）与 `bgm.css`（`--bgm-*`
+   与语义别名重定向）。**不要在别处再覆写一遍**——这层没有"覆盖层"概念，重复声明会被当成 bug。
+2. **动效令牌只有一处定义、两处消费**：CSS 用 `styles/tokens.css` 的
+   `--app-dur-*` / `--app-ease-*` / `--app-shift-*`，JS 用 `components/motion/motionTokens.ts`。
    改一处必须同时改另一处。
 3. **只动 `transform` / `opacity`（少量 `filter`）**：不做 layout 动画。会话区的
    `content-visibility: auto` 屏外优化与流式期间的 `memo` 都依赖稳定结构，
    motion 的 layout 动画会强制重排并让它们失效。
 4. **不做常驻循环动画**：没有呼吸、脉冲、无限扫光。`BorderGlow` 传 `animated={false}`；
    唯一例外是流式光标（它表达「还在写」，且只在流式期间存在）。
-5. **v1 不接受除「切换按钮」以外的改动**：`components/mainPage/header/Header.tsx` 里
-   多了一个 `UiVariantToggle`，那是「能切回旧版」这个需求本身要求的入口；v1 其余组件
-   与 8 个样式文件不改。
 
 ### 3.3 视觉语言与动效分工
 
-两版都用 Bangumi 浅色令牌，v2 **不引入任何新色值**。层次语言是：**对话区与侧栏同为
+配色全部走 Bangumi 浅色令牌（`--bgm-*`），**不引入新色值**。层次语言是：**对话区与侧栏同为
 白面**，两者靠 1px hairline 分开；卡片不靠底色差、而靠「描边 + 两级阴影」浮起；输入卡
 用比白面略沉一档的 `--bgm-surface-alt`，否则整张卡只剩一圈描边可辨。三级阴影
-（`--v2-shadow-raised` / `--v2-shadow-card` / `--v2-shadow-panel`）分别给内嵌元素、
+（`--app-shadow-raised` / `--app-shadow-card` / `--app-shadow-panel`）分别给内嵌元素、
 浮起卡片与浮层。
 
 动效分工：
 
-- **流程过渡（主体）**：会话切换、消息与轮次入场、流式光标、确认卡接管、弹窗进出、
-  侧栏折叠、Toast 进出、连接状态、聚焦与 hover——都由 v2 自己的组件与样式实现。
+- **流程过渡（主体）**：会话切换、流式光标、确认卡接管、弹窗进出、
+  侧栏折叠、Toast 进出、连接状态、聚焦与 hover——都由组件自己的样式与 motion 实现。
+  （会话流的轮次与普通行目前**没有**入场动画：逐行动画要付出 JS 开销与每节点观察器，
+  只有内容条目这一层挂了 `AnimatedContent`。）
 - **ReactBits 组件（点状使用，每个只有一个落点）**：`BlurText` 首屏标题、
   `TextType` 流式光标（传空文本 + `loop={false}`，**不接管真实流式文本**）、
   `BorderGlow` 输入卡边缘光、`Magnet` 发送按钮（幅度压到约 6px）、
-  `AnimatedContent` 内容条目入场、`CountUp` 统计读数、`AnimatedList` 见 §3.4。
+  `AnimatedContent` 内容条目入场、`CountUp` 统计读数、`AnimatedList` 见 §3.5。
 
-### 3.4 现状：已完成 / 已知未做
+### 3.4 样式文件的职责与引入顺序
 
-**已完成**：切换按钮与持久化；v2 外壳（框架 / 侧栏 / 顶栏）；v2 会话区（轮次、行入场、
-流式区光标、轮次导航、首屏 `BlurText`）；v2 输入区（`BorderGlow` + `Magnet` + 命令候选）；
-`Modal` 的 v2 动效分支与 `DialogStageV2` 的进出过渡；`ToastV2`；共享部件（思考菜单、
-统计底栏、确认卡）在 v2 下的样式覆写；`CountUp`（统计底栏的**精确**读数——共享
-`StatsDock` 新增可选 `countUp`，缺省仍渲染静态文本，v1 不受影响）；`AnimatedContent`
-（内容条目入场，`container="#v2-stage-scroll"`）；12 种内容条目的 v2 观感
-（`styles/v2/content.css`）；两版回归用例
-（[regression/ui-variants.md](docs/agents/regression/ui-variants.md) 的 `V1`–`V10`）。
+`main.tsx` 的引入顺序是契约：
+
+```ts
+tokens → frame → composer → cards → modal → bgm → content
+```
+
+| 文件 | 作用对象 | 令牌体系 |
+|---|---|---|
+| `tokens.css` | DSH 语义令牌 + **外观层令牌**（`--app-*`：时长、缓动、位移、阴影、表面、圆角） | 定义 `--dsw-*` / `--dsh-*` / `--app-*` |
+| `frame.css` | 外壳网格（`.appFrame`）、侧栏、顶栏、提示条、会话容器与轮次、首屏、轮次导航，以及共享渲染器（消息行、过程折叠、思考块、流式区、Markdown） | 消费 `--bgm-*` / `--app-*` |
+| `composer.css` | 输入卡、命令候选、发送按钮、思考强度菜单、统计底栏与其浮层 | 消费 `--bgm-*` / `--app-*` |
+| `cards.css` | 写入确认卡与按钮基元 | 消费 `--bgm-*` / `--app-*` |
+| `modal.css` | 弹窗（遮罩、表面、字段、选项行、状态条、设置行、会话选择列表） | 消费 `--bgm-*` / `--app-*` |
+| `bgm.css` | **只有令牌**：定义 `--bgm-*`，并把组件实际用到的 `--dsw-*` 别名重定向过去 | 定义 `--bgm-*`，重定向 `--dsw-*` |
+| `content.css` | 内容组件库（12 种内容条目的皮肤） | 只用 `--bgm-*` |
+
+关键顺序约束：`bgm.css` 必须在 `tokens/frame/composer/cards/modal` **之后**（重定向靠
+"后定义覆盖先定义"生效），`content.css` 最后（它只消费 `--bgm-*`）。
+
+### 3.5 现状：已完成 / 已知未做
+
+**已完成**：外壳（框架 / 侧栏 / 顶栏）；会话区（轮次、流式区光标、轮次导航、首屏
+`BlurText`）；输入区（`BorderGlow` + `Magnet` + 命令候选）；`Modal` 的进出过渡与
+`DialogStage` 的 `AnimatePresence`；`Toast` 进出过渡；思考菜单、统计底栏、确认卡的观感；
+`CountUp`（统计底栏的**精确**读数；胶囊上的缩写读数不滚动）；`AnimatedContent`
+（内容条目入场，`container="#app-stage-scroll"`）；12 种内容条目的皮肤
+（`styles/content.css`）；回归用例（[regression/shell-and-layout.md](docs/agents/regression/shell-and-layout.md)
+的 `L1`–`L10` 与 `A1`–`A4`）。
 
 **已知未做 / 未验证**：
 
 1. **`AnimatedList` 未采用**：它只接受 `items: string[]` 并统一渲染
    `<p class="item-text">`，无法承载侧栏「标题 + 相对时间」两栏；且内部固定
-   `marginBottom: 1rem`、默认全局拦下 Tab/方向键。v2 侧栏因此按同样的动势自己实现
-   逐项入场（`SidebarV2`）。
-2. 12 种内容条目的 v2 观感只做了**静态**核对：没有逐个 kind 造出真实载荷跑一遍，
-   回退防线是「只改皮肤属性、不碰布局」这条写法约束（见 `styles/v2/content.css` 的注释）；
-3. 浏览器实测覆盖（**均已实机确认**）：v1 首页、v1↔v2 切换、刷新持久化、v2 首页、
-   v2 宽/窄屏、v2 历史会话渲染与轮次导航、**对话区白底**（`.v2Conversation` 的
-   `backgroundColor` = `rgb(255, 255, 255)`）、**v2 弹窗进出过渡**（opacity
-   0→0.25→0.009→0 且 surface 缩放到 0.98，700ms 才卸载）、**v2 Toast 进出过渡**
-   （28ms 位移淡入、4s 停留、约 200ms 退出）、**v1 弹窗零变化**（原生 `DIV`/`SECTION`、
-   无内联 motion 样式、关闭后 4ms 内即卸载）、**`TextType` 用法**（空文本 +
-   `loop={false}` 不启动打字、`contentText` 为空、光标在 0.33↔0.90 间闪烁、
-   `v2StreamingCursor` 的 7px 宽度生效）、**`BorderGlow` 指针链路**
-   （`--edge-proximity` 0→99.6、`--cursor-angle` 随位置在 0°↔270° 变化）、
-   **`Magnet`**（指针靠近位移 1.97px，离开回位）、**`CountUp`**（在 `contextTrigger`
-   里挂载；探针实测 0 → 15,538 → 40,730 → 65,426 → 89,363 → 109,406 → 120,084
-   渐近 123,456）、**`AnimatedContent`**（探针放进真实滚动容器：内联 `visibility:
-   hidden` → `visible`，滚动到位后 opacity 0→1、`translateY` 16px→0；证明
-   `container="#v2-stage-scroll"` 被正确解析，元素不会被卡成永不显示）。
+   `marginBottom: 1rem`、默认全局拦下 Tab/方向键。侧栏因此按同样的动势自己实现
+   逐项入场（`components/mainPage/shell/Sidebar.tsx`）。该组件仍留在
+   `components/motion/vendor/`（未被任何代码引用）。
+2. 12 种内容条目的皮肤只做了**静态**核对：没有逐个 kind 造出真实载荷跑一遍，
+   回退防线是「只改皮肤属性、不碰布局」这条写法约束。
+3. 浏览器实测覆盖（**均已实机确认**）：首页与会话渲染、轮次导航、侧栏收放、
+   输入区与命令候选、弹窗进出与 Esc 关闭、统计底栏读数、**对话区白底**、
+   **`TextType` 用法**（空文本 + `loop={false}` 不启动打字、光标在 0.33↔0.90 间闪烁、
+   光标 7px 宽度生效）、**`BorderGlow` 指针链路**（`--edge-proximity` 与 `--cursor-angle`
+   随指针变化）、**`Magnet`**（指针靠近位移约 2px，离开回位）、**`CountUp`**
+   （探针实测渐近到目标值）、**`AnimatedContent`**（探针放进真实滚动容器：
+   `visibility: hidden` → `visible`，滚动到位后 opacity 0→1、`translateY` 16px→0；
+   证明 `container="#app-stage-scroll"` 被正确解析）。
 4. **仍未实机验证**：写入确认卡接管——它需要宿主发起 `pending` 确认，即一次真实写入
-   流程，不能在自动化里安全触发；12 种内容条目也尚未逐个用真实载荷跑过。
+   流程，不能在自动化里安全触发；12 种内容条目也尚未逐个用真实载荷跑过；
+   首屏 hero 的当前观感未在改造后单独复验（其规则原样搬运，未改值）。
    两条环境限制：(a) `BorderGlow` 的 `edge-light` 显隐还依赖真实 `:hover`，而 CDP 驱动下
    `element.matches(':hover')` 恒为 false，自动化只能验证到「CSS 变量 → 透明度公式」
-   这一环；(b) **Windows 上同一秒内的多次写入可能被 Vite 的 watcher 漏检**——表现为
-   dev server 仍在提供旧模块（界面看起来「改动没生效」，实测 `StatsDock.tsx` 更新了而
-   `ComposerV2.tsx` 没有）。此时重启 `npm run dev:web` 即可，不要按「代码写错了」去查。
+   这一环；(b) Windows 上同一秒内的多次写入可能被 Vite 的 watcher 漏检（见 §1 末尾）。
 
 ## 4. 设计历史与外部文档
 

@@ -6,7 +6,7 @@
 
 把宿主下发的平铺条目投影成"轮次"的规则：`TurnGroup` 结构、四条投影规则、以及使用与扩展约定。
 
-上层：[readme.md](readme.md)。使用方：`components/mainPage/conversation/ConversationView.tsx`（`useMemo` 固定引用）与 `TurnView.tsx`（消费 `TurnGroup`）。
+上层：[readme.md](readme.md)。使用方：`components/mainPage/conversation/Stage.tsx`（`useMemo` 固定引用）与 `Turn.tsx`（消费 `TurnGroup`）。
 
 ### 怎么读（章节 → 场景）
 
@@ -22,7 +22,7 @@
 本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
 
 1. **只做形状转换**：不过滤、不排序、不回写宿主语义 —— 违反后果：界面与宿主状态不一致（涉及确认判定时尤其危险）。
-2. **必须在 `ConversationView` 里用 `useMemo` 固定引用** —— 违反后果：流式帧每帧重算，历史轮次全部重渲染。
+2. **必须在 `Stage` 里用 `useMemo` 固定引用** —— 违反后果：流式帧每帧重算，历史轮次全部重渲染。
 3. **轮次导航只统计 `user !== null` 的轮次** —— 违反后果：导轨上出现点不到内容的空轮。
 
 ## 定位
@@ -53,12 +53,12 @@ export interface TurnGroup {
 
 | 约定 | 原因 |
 |---|---|
-| 在 `ConversationView` 里用 `useMemo(() => projectTurns(items), [items])` | 流式帧只改标量（`liveText` 等），`items` 引用不变 → `turns` 引用稳定 → 配合 `TurnView` 的 `memo` 让历史轮次整体跳过重渲染 |
+| 在 `Stage` 里用 `useMemo(() => projectTurns(items), [items])` | 流式帧只改标量（`liveText` 等），`items` 引用不变 → `turns` 引用稳定 → 配合 `Turn` 的 `memo` 让历史轮次整体跳过重渲染 |
 | 轮次导航只统计 `user !== null` 的轮次 | 前导内容（会话头、通知）不算一轮，否则导轨上会出现点不到内容的空轮 |
 | 不要在 `projectTurns` 里做过滤/排序/回写 | 它只做形状转换；宿主给什么顺序就是什么顺序 |
 
 ## 加字段或改规则时
 
-- 需要新增"过程类"条目（例如新的活动类型）→ 在规则 2 里加判定，并确认 `TurnView` 的 `ProcessGroup` 能渲染它；
+- 需要新增"过程类"条目（例如新的活动类型）→ 在规则 2 里加判定，并确认 `Turn` 的 `ProcessGroup` 能渲染它；
 - 需要新的分组维度（例如按工具批次分组）→ 先想清楚是否真的属于**展示投影**；若涉及宿主语义（例如确认状态），那应该在宿主或 store 里表达，而不是在这里补。
 - 改完按 [../regression/session-flow.md](../regression/session-flow.md) 的"过程折叠"与"轮次导航"用例回归。

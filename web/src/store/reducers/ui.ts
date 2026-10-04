@@ -4,34 +4,6 @@ import type { AppAction } from './index';
 export type SettingsPane = 'credential' | 'model' | 'proxy' | 'login' | 'logout';
 
 /**
- * 界面外观版本。
- *
- * v1 是迁移前的既有外观（界面上叫**旧版**），v2 是当前默认的新外观（**新版**）。
- * 两版功能一致、各自独立实现，共用同一份 store；这里只存「当前显示哪一版」，
- * 不存任何外观细节。
- */
-export type UiVariant = 'v1' | 'v2';
-
-/** 外观版本的持久化键。切换时写入、首屏读取，因此刷新后保持选择。 */
-export const UI_VARIANT_STORAGE_KEY = 'bangumi.uiVariant';
-
-/**
- * 首屏读取上次选择的外观版本。
- *
- * **默认是 v2（新版）**：只有用户显式选过「旧版」才回落到 v1。任何读取失败
- * （隐私模式禁用 localStorage、值被改坏）也回落到 v2——新版是当前默认外观，
- * 读取不到偏好时给默认值比给旧版更符合预期。
- */
-export function readStoredVariant(): UiVariant {
-  if (typeof window === 'undefined') return 'v2';
-  try {
-    return window.localStorage.getItem(UI_VARIANT_STORAGE_KEY) === 'v1' ? 'v1' : 'v2';
-  } catch {
-    return 'v2';
-  }
-}
-
-/**
  * 界面状态：弹窗开关、侧栏形态、过程展开计数与两类瞬时提示。
  *
  * 只放跨区域共享的界面状态；输入草稿、弹窗内的输入框内容与忙碌标记都留在组件内部。
@@ -47,8 +19,6 @@ export interface UiState {
   problem: string | null;
   /** 设置行显示的提供方；null 表示按目录里的当前提供方推导。 */
   credentialProvider: string | null;
-  /** 当前显示的外观版本：v1（旧版）或 v2（新版，默认）。 */
-  variant: UiVariant;
 }
 
 export const INITIAL_UI_STATE: UiState = {
@@ -60,8 +30,6 @@ export const INITIAL_UI_STATE: UiState = {
   notice: null,
   problem: null,
   credentialProvider: null,
-  // 默认新版；真实初值由 store/index.ts 经 readStoredVariant() 覆盖（那里才读 localStorage）。
-  variant: 'v2',
 };
 
 export type UiAction =
@@ -74,8 +42,7 @@ export type UiAction =
   | { type: 'ui/collapsedSet'; collapsed: boolean }
   | { type: 'ui/collapsedToggled' }
   | { type: 'ui/revealIncremented' }
-  | { type: 'ui/credentialProviderSet'; provider: string }
-  | { type: 'ui/variantSet'; variant: UiVariant };
+  | { type: 'ui/credentialProviderSet'; provider: string };
 
 export function uiReducer(state: UiState = INITIAL_UI_STATE, action: AppAction): UiState {
   switch (action.type) {
@@ -100,9 +67,6 @@ export function uiReducer(state: UiState = INITIAL_UI_STATE, action: AppAction):
       return { ...state, reveal: state.reveal + 1 };
     case 'ui/credentialProviderSet':
       return { ...state, credentialProvider: action.provider };
-    case 'ui/variantSet':
-      // 同值不返回新对象：切换按钮连点两下不该引发两轮重渲染。
-      return state.variant === action.variant ? state : { ...state, variant: action.variant };
     default:
       return state;
   }
