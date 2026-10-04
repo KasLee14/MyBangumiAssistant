@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# 模型目录按原始字节校验 SHA-256，检出时不得转换换行。
+/vendor-data/pi-model-catalog.json -text

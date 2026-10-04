@@ -15,11 +15,17 @@ import { AppError, safeError } from './support/errors.js';
 import { policyFor, type ProxyOptions } from './support/proxy.js';
 import { discoverProxy, ProxyController, type ProxyMode } from './support/proxy-controller.js';
 import { startWebTerminal } from './web/server.js';
-import { WebInteractionChannel, WebSession } from './web/session.js';
+import { WebInteractionChannel } from './web/session.js';
+import { WebSessionManager } from './web/session-manager.js';
+import { TaskQueue } from './support/task-queue.js';
+import { restoreWriteRateLimits, WriteRateLimiter } from './mcp/write-rate-limit.js';
+import { WriteJournal } from './mcp/write-journal.js';
+import { analyzeTrace } from './tracing/analyze.js';
+import type { TraceOptions } from './tracing/schema.js';
 
 export interface WebOptions { port: number; open: boolean }
 
-export interface LauncherOptions { pi: Args; dataDir: string; timeoutMs: number; proxy?: ProxyOptions; web?: WebOptions }
+export interface LauncherOptions { pi: Args; dataDir: string; timeoutMs: number; proxy?: ProxyOptions; web?: WebOptions; trace?: TraceOptions }
 
 /** Web 终端的默认端口与两个入口专属开关。 */
 const DEFAULT_WEB_PORT = 8787;
@@ -30,15 +36,19 @@ function parsePiArgs(argv: string[], env: NodeJS.ProcessEnv): Omit<LauncherOptio
   let dataDir = env.BANGUMI_PI_HOME ?? join(env.LOCALAPPDATA ?? join(homedir(), '.local', 'share'), 'MyBangumiAssistant-Pi');
   let timeoutMs = 60_000;
   let proxy: ProxyOptions | undefined;
+  let traceMode = env.BANGUMI_TRACE ?? 'local';
+  let traceDirectory = env.BANGUMI_TRACE_DIR;
   const allowed = new Set(['--help', '-h', '--version', '-v', '--print', '-p', '--mode', '--continue', '-c', '--session', '--no-session', '--session-dir', '--name', '-n', '--provider', '--model', '--thinking', '--list-models', '--tui-mode', '--use-theme', '--verbose']);
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index]!;
     if (arg === '--') { piArgs.push(...argv.slice(index)); break; }
-    if (['--data-dir', '--timeout', '--proxy'].includes(arg)) {
+    if (['--data-dir', '--timeout', '--proxy', '--trace', '--trace-dir'].includes(arg)) {
       const value = argv[++index];
       if (!value || value.startsWith('-')) throw new AppError('INVALID_ARGUMENT', `${arg} 需要一个值。`);
       if (arg === '--data-dir') dataDir = value;
       else if (arg === '--proxy') proxy = policyFor(value);
+      else if (arg === '--trace') traceMode = value;
+      else if (arg === '--trace-dir') traceDirectory = value;
       else {
         timeoutMs = Number(value);
         if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 300_000) throw new AppError('INVALID_ARGUMENT', '--timeout 需要 1000～300000 毫秒。');
@@ -49,11 +59,13 @@ function parsePiArgs(argv: string[], env: NodeJS.ProcessEnv): Omit<LauncherOptio
     if (arg.startsWith('-') && !allowed.has(arg)) throw new AppError('INVALID_ARGUMENT', '存在未支持的参数；使用 --help 查看入口选项。');
     piArgs.push(arg);
   }
+  if (!['local', 'off'].includes(traceMode)) throw new AppError('INVALID_ARGUMENT', '--trace（或 BANGUMI_TRACE）只能是 local 或 off。');
   const pi = parseArgs(piArgs);
   if (pi.diagnostics.some(item => item.type === 'error') || pi.unknownFlags.size || pi.fileArgs.length) {
     throw new AppError('INVALID_ARGUMENT', 'Pi 参数无效；使用 --help 查看入口选项。');
   }
-  return { pi, dataDir: resolve(dataDir), timeoutMs, ...(proxy === undefined ? {} : { proxy }) };
+  return { pi, dataDir: resolve(dataDir), timeoutMs, ...(proxy === undefined ? {} : { proxy }),
+    ...(traceMode === 'off' ? {} : { trace: { directory: resolve(traceDirectory ?? join(dataDir, 'tracelog')) } }) };
 }
 
 export function parseLauncherArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): LauncherOptions {
@@ -81,6 +93,7 @@ export function parseLauncherArgs(argv: string[], env: NodeJS.ProcessEnv = proce
 const help = `MyBangumiAssistant · Pi ${VERSION}
 用法：my-bangumi-assistant [Pi 参数] [消息]
       my-bangumi-assistant web [--port 8787] [--no-open] [Pi 参数]
+      my-bangumi-assistant trace-analyze <某次 trace 目录>
 
   web                     启动本机浏览器 Web 终端；默认自动打开带令牌的地址
   --port <端口>           Web 终端端口，默认 ${DEFAULT_WEB_PORT}，被占用时顺延
@@ -95,6 +108,8 @@ const help = `MyBangumiAssistant · Pi ${VERSION}
   --no-session           内存会话
   --list-models          列出 Pi 模型
   --data-dir <目录>      隔离登录和 Pi 数据（或 BANGUMI_PI_HOME）
+  --trace local|off      独立 tracelog，默认 local（或 BANGUMI_TRACE）
+  --trace-dir <目录>     日志根目录，默认数据目录/tracelog（或 BANGUMI_TRACE_DIR）
   --proxy <地址>         显式 HTTP/HTTPS 代理
   --direct               显式直连，关闭自动发现
   --timeout <毫秒>       Bangumi 请求超时，默认 60000
@@ -105,11 +120,18 @@ const help = `MyBangumiAssistant · Pi ${VERSION}
 `;
 
 export async function launcherMain(argv = process.argv.slice(2)): Promise<number> {
+  if (argv[0] === 'trace-analyze') {
+    if (argv.length !== 2 || !argv[1]) throw new AppError('INVALID_ARGUMENT', '用法：my-bangumi-assistant trace-analyze <某次 trace 目录>。');
+    process.stdout.write(JSON.stringify(await analyzeTrace(argv[1]), null, 2) + '\n');
+    return 0;
+  }
   const options = parseLauncherArgs(argv);
   const args = options.pi;
   if (args.help) { process.stdout.write(help); return 0; }
   if (args.version) { process.stdout.write(`MyBangumiAssistant Pi ${VERSION}\n`); return 0; }
   const interactive = !options.web && !args.print && args.mode === undefined && process.stdin.isTTY && process.stdout.isTTY;
+  const trace = options.trace ? { ...options.trace, entryPoint: options.web ? 'web' as const : args.mode === 'rpc' ? 'rpc' as const
+    : args.mode === 'json' ? 'json' as const : interactive ? 'cli' as const : 'print' as const } : undefined;
   if (!interactive && options.web === undefined && args.mode !== 'rpc' && !args.listModels && args.messages.length === 0) {
     throw new AppError('TTY_REQUIRED', '交互模式需要终端；单次运行请使用 --print "消息"，浏览器界面请使用 web 子命令。');
   }
@@ -137,12 +159,18 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   // Web 终端需要在浏览器里确认写入与输入登录字段，终端模式沿用原地的 Pi 组件。
   const webChannel = options.web ? new WebInteractionChannel() : undefined;
   const channel: InteractionChannel = webChannel ?? createTerminalChannel();
+  const accountQueue = new TaskQueue();
+  const writeLimiter = new WriteRateLimiter();
+  const writeJournal = new WriteJournal(join(options.dataDir, 'writes', 'operations.jsonl'));
+  restoreWriteRateLimits(writeLimiter, writeJournal.entries());
   let runtime;
+  let webSessions: WebSessionManager | undefined;
   let printOwnsDisposal = false;
   try {
     runtime = await createBangumiRuntime({
       cwd, agentDir, sessionManager, fetch: transport.fetch,
-      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel }),
+      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel, accountQueue, writeLimiter, writeJournal,
+        ...(trace ? { trace } : {}) }),
       ...(args.provider === undefined ? {} : { provider: args.provider }),
       ...(args.model === undefined ? {} : { model: args.model }),
       ...(args.thinking === undefined ? {} : { thinkingLevel: args.thinking }),
@@ -157,12 +185,21 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
       return 0;
     }
     if (options.web && webChannel) {
-      const session = new WebSession({ runtime, channel: webChannel, store: new AccountSessionStore(authDir), cwd, sessionDir, proxy, timeoutMs: options.timeoutMs });
-      webChannel.attach(session);
-      await session.start();
-      const terminal = await startWebTerminal({ session, channel: webChannel, port: options.web.port, open: options.web.open });
+      const modelRuntime = runtime.services.modelRuntime;
+      webSessions = new WebSessionManager({ initial: { runtime, channel: webChannel },
+        store: new AccountSessionStore(authDir), cwd, sessionDir, proxy, timeoutMs: options.timeoutMs, accountQueue,
+        createRuntime: (manager, sessionChannel) => createBangumiRuntime({
+          cwd, agentDir, sessionManager: manager, modelRuntime, fetch: transport.fetch,
+          extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel: sessionChannel, accountQueue, writeLimiter, writeJournal,
+            ...(trace ? { trace } : {}) }),
+          ...(args.provider === undefined ? {} : { provider: args.provider }),
+          ...(args.model === undefined ? {} : { model: args.model }),
+          ...(args.thinking === undefined ? {} : { thinkingLevel: args.thinking }),
+        }),
+      });
+      await webSessions.start();
+      const terminal = await startWebTerminal({ sessions: webSessions, port: options.web.port, open: options.web.open });
       await terminal.closed;
-      await session.dispose();
       return 0;
     }
     if (args.mode === 'rpc') return await runRpcMode(runtime);
@@ -185,8 +222,10 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
     });
   } finally {
     // print 模式自行处置运行时；其余分支（含 Web 终端退出后）由这里统一释放。
-    if (runtime && !printOwnsDisposal) await runtime.dispose();
-    await transport.close();
+    try {
+      if (webSessions) await webSessions.dispose();
+      else if (runtime && !printOwnsDisposal) await runtime.dispose();
+    } finally { await transport.close(); }
   }
 }
 

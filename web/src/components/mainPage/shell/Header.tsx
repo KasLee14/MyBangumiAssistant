@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useActions, useAppSelector } from '../../../store/hooks';
+import { UiVariantToggle } from './UiVariantToggle';
 
 /* 图标统一 16px、fill/stroke 走 currentColor，与既有图标槽的约定一致。 */
 const ICON = { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': true } as const;

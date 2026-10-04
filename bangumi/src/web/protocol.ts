@@ -12,7 +12,9 @@
 export interface ConfirmationView {
   id: string;
   title: string;
-  /** 宿主生成的完整预览文本，按等宽呈现。 */
+  /** 宿主按完整计划生成的确认按钮文案。 */
+  confirmLabel?: string;
+  /** 宿主生成的中文操作说明和完整范围，按普通正文呈现并保留换行。 */
   preview: string;
   state: 'pending' | 'accepted' | 'rejected' | 'expired';
   hint: string;
@@ -325,7 +327,7 @@ export interface ModelOptionView {
   current: boolean;
 }
 
-/** 历史会话；`id` 既用于展示也用于恢复。 */
+/** 历史会话；`name` 用于展示，`path` 用于恢复，`id` 保留会话身份。 */
 export interface SessionOptionView {
   id: string;
   path: string;
@@ -333,6 +335,10 @@ export interface SessionOptionView {
   modified: string;
   messageCount: number;
   current: boolean;
+  /** 活跃会话的后台状态；未载入的历史会话没有这些字段。 */
+  busy?: boolean;
+  awaitingConfirmation?: boolean;
+  awaitingLogin?: boolean;
 }
 
 /** 斜杠命令提示：来自 Pi 已注册的扩展命令、提示模板与技能。 */
@@ -371,7 +377,8 @@ export interface ApiErrorView { code: string; message: string }
 
 /** SSE 帧：`state` 增量携带条目，`full` 表示客户端应整体替换已有条目。 */
 export type ServerEvent =
-  | { type: 'state'; full: boolean; items: TranscriptItemView[]; state: ChatScalarsView }
+  | { type: 'state'; instanceId: string; revision: number; full: boolean; items: TranscriptItemView[]; state: ChatScalarsView }
+  | { type: 'sessions'; sessions: SessionOptionView[] }
   | { type: 'fatal'; message: string };
 
 /** 客户端提交的命令载荷，全部是按需字段而非通用透传。 */
@@ -394,4 +401,4 @@ export interface ClearCredentialPayload { provider: string }
 /** 网络线路切换；`manual` 时 `url` 必填，形如 `http://127.0.0.1:7890`。 */
 export interface ProxyPayload { mode: 'auto' | 'direct' | 'manual'; url?: string }
 /** 新建会话或恢复指定会话。 */
-export interface SessionPayload { action: 'new' | 'resume'; path?: string }
+export interface SessionPayload { action: 'new' | 'resume'; path?: string; sessionId?: string }

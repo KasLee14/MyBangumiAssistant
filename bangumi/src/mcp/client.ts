@@ -3,7 +3,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { isAbsolute } from 'node:path';
-import { AppError, SubmissionError, type SubmissionReceipt } from '../support/errors.js';
+import { AppError, SubmissionError, isSubmissionRejection, type SubmissionReceipt } from '../support/errors.js';
 import { object, positiveId } from '../support/bangumi.js';
 import { policyFor, type ProxyOptions } from '../support/proxy.js';
 import { TOOL_DEFINITIONS, validateToolArguments, remoteInputError } from './catalog.js';
@@ -11,11 +11,15 @@ import { preparedBaseline, type PreparedBaseline } from './prepared.js';
 import { checkOutput, checkSubjectResponse } from './subject-output.js';
 import { checkResourceResponse } from './resource-output.js';
 import { resourceOutputSchema } from './resource-schemas.js';
+import { isCommunityTool } from './community-schemas.js';
+import { checkCommunityResponse } from './community-output.js';
+import { checkAccessResponse, type AccessContext } from './access-context.js';
+import { batchPreparation, batchScope, type BatchPreparation, type McpBatchScope } from './batch-context.js';
 import { checkSubmission } from './submission.js';
 
-export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline }
+export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline; batchPreparation?: BatchPreparation }
 export interface McpCallClient {
-  call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard): Promise<unknown>;
+  call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope): Promise<unknown>;
   close(): Promise<void>;
 }
 const SAFE_ENVIRONMENT = ['APPDATA', 'HOMEDRIVE', 'HOMEPATH', 'LOCALAPPDATA', 'PATH', 'PROCESSOR_ARCHITECTURE', 'SYSTEMDRIVE', 'SYSTEMROOT', 'TEMP', 'TMP', 'USERNAME', 'USERPROFILE', 'PROGRAMFILES', 'HOME', 'LANG', 'LC_ALL'];
@@ -23,10 +27,31 @@ const SAFE_ENVIRONMENT = ['APPDATA', 'HOMEDRIVE', 'HOMEPATH', 'LOCALAPPDATA', 'P
 const TOOL_ERROR_MESSAGES: Record<string, string> = {
   INCOMPLETE_COLLECTION: '目标条目的个人收藏快照不完整，无法核实状态或保留原值。',
   INVALID_RESPONSE: 'Bangumi 返回的数据结构或对象不符合预期。',
+  MCP_INVALID_RESULT: '本地 MCP 返回不符合固定输出契约，请检查字段适配；不能将其解释为网站资源不存在。',
+  BATCH_SCOPE_INVALID: '批量执行范围无效或与本次计划不一致，操作已停止。',
+  BATCH_SCOPE_ACTIVE: '当前账户已有批量任务正在执行，请等待该任务结束。',
+  BATCH_CONTEXT_EXPIRED: '本批账户上下文已失效，操作已停止；请先核实既有结果。',
   BGM_AUTH_REQUIRED: '请先运行 login 或在 chat 中使用 /login。',
   BGM_AUTH_EXPIRED: '当前登录已失效，请重新 /login。',
+  BGM_TIMEOUT: 'Bangumi 请求超时，请缩小查询范围；未自动重试。',
+  BGM_NETWORK: 'Bangumi 网络请求未完成；未自动重试。',
+  BGM_OUTPUT_LIMIT: 'Bangumi 响应超过读取上限，请缩小范围。',
+  BGM_RATE_LIMIT_REJECTED: '上游在修改前明确拒绝了本次请求；请等待额度后按核实后的范围重新计划。',
+  CANCELLED: '操作已取消；已提交写入须独立核实结果。',
+  MCP_CLOSED: '本地读取连接已关闭，请重新发起查询。',
+  NSFW_SCOPE_CHANGED: '读取期间 NSFW 权限改变，请重新查询。',
+  NSFW_SCOPE_MISMATCH: '源数据超出当前账户的 NSFW 权限，未返回不一致结果。',
+  NSFW_PERMISSION_UNKNOWN: '未能核实账户 NSFW 权限，不能确认完整可见范围。',
+  SEARCH_CAPABILITY_UNSUPPORTED: '当前账户数据源不支持此筛选与可见范围的组合，请调整条件或范围。',
   BGM_HTTP_401: '网站拒绝了当前登录，请重新 /login。',
   ACCOUNT_CHANGED: '当前账户与请求绑定的账户不一致，操作已停止。',
+  CONTENT_REF_INVALID: '社区正文或分页引用无效，请重新读取对应来源。',
+  CONTENT_REF_EXPIRED: '社区正文或分页快照已过期，请重新读取对应来源，不能拼接新旧版本。',
+  CONTENT_RANGE_INVALID: '正文偏移超过内容长度，请使用来源返回的nextOffset。',
+  COMMUNITY_CACHE_LIMIT: '社区来源超过有界快照缓存，请缩小读取范围。',
+  CONTEXT_LIMIT: '单次社区输出超过20000字符，请缩小limit或include范围。',
+  FIELD_LIMIT: '返回字段超过固定上限，请缩小详情或分页范围。',
+  INCOMPLETE_DATA: '来源分页、资源归属或完整性不一致，不能将其解释为空结果。',
 };
 function childEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
   const result: Record<string, string> = {};
@@ -39,7 +64,7 @@ function childEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
 function guarded(value: McpWriteGuard): McpWriteGuard {
   const accountId = positiveId(value.accountId);
   if (value.expectedStatus !== undefined && (!Number.isInteger(value.expectedStatus) || ![0, 1, 2, 3].includes(value.expectedStatus))) throw new AppError('INVALID_INPUT', '章节保护状态无效。');
-  return { accountId, ...(value.subjectId === undefined ? {} : { subjectId: positiveId(value.subjectId) }), ...(value.expectedStatus === undefined ? {} : { expectedStatus: value.expectedStatus }), ...(value.prepared === undefined ? {} : { prepared: preparedBaseline(value.prepared) }) };
+  return { accountId, ...(value.subjectId === undefined ? {} : { subjectId: positiveId(value.subjectId) }), ...(value.expectedStatus === undefined ? {} : { expectedStatus: value.expectedStatus }), ...(value.prepared === undefined ? {} : { prepared: preparedBaseline(value.prepared) }), ...(value.batchPreparation === undefined ? {} : { batchPreparation: batchPreparation(value.batchPreparation) }) };
 }
 function interrupted(signal?: AbortSignal): void { if (signal?.aborted) throw new AppError('CANCELLED', '操作已取消。'); }
 async function awaitWithCancellation<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
@@ -48,7 +73,8 @@ async function awaitWithCancellation<T>(promise: Promise<T>, signal?: AbortSigna
   return new Promise<T>((resolve, reject) => {
     const abort = () => reject(new AppError('CANCELLED', '操作已取消。'));
     signal.addEventListener('abort', abort, { once: true });
-    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
+    if (signal.aborted) abort();
+    promise.then(value => signal.aborted ? abort() : resolve(value), reject).finally(() => signal.removeEventListener('abort', abort));
   });
 }
 
@@ -59,7 +85,8 @@ export class LocalMcpClient implements McpCallClient {
   private initialization: Promise<void> | undefined;
   private closed = false;
   private broken = false;
-  constructor(private readonly options: { authDir: string; proxy: ProxyOptions; timeoutMs: number; entry?: string; env?: NodeJS.ProcessEnv }) {
+  constructor(private readonly options: { authDir: string; proxy: ProxyOptions; timeoutMs: number; entry?: string; env?: NodeJS.ProcessEnv;
+    onTrace?: (event: 'initializing' | 'initialized' | 'dispatch') => void }) {
     if (!Number.isInteger(options.timeoutMs) || options.timeoutMs < 1000 || options.timeoutMs > 300000) throw new AppError('INVALID_INPUT', 'MCP 超时须为1000～300000毫秒。');
     const entry = options.entry ?? fileURLToPath(new URL('./server.js', import.meta.url));
     if (!isAbsolute(entry) || !isAbsolute(options.authDir)) throw new AppError('INVALID_INPUT', 'MCP 服务及认证目录须使用绝对路径。');
@@ -80,12 +107,16 @@ export class LocalMcpClient implements McpCallClient {
   private usable(): void {
     if (this.closed || this.broken) throw new AppError('MCP_CONNECTION_CLOSED', '本地 MCP 连接已关闭，请重新启动本助手；未自动重发任何操作。');
   }
+  private diagnostic(event: 'initializing' | 'initialized' | 'dispatch'): void {
+    try { this.options.onTrace?.(event); } catch { /* 日志不能改变 MCP 提交或触发重试。 */ }
+  }
   private ready(): Promise<void> {
     this.usable();
     this.initialization ??= this.initialize();
     return this.initialization;
   }
   private async initialize(): Promise<void> {
+    this.diagnostic('initializing');
     try {
       await this.client.connect(this.transport, { timeout: this.options.timeoutMs });
       this.usable();
@@ -96,11 +127,12 @@ export class LocalMcpClient implements McpCallClient {
         for (const tool of result.tools) {
           const definition = expected.get(tool.name);
           if (!definition || seen.has(tool.name) || !isDeepStrictEqual(tool.inputSchema, definition.inputSchema)
-            || !isDeepStrictEqual(tool.outputSchema, definition.outputSchema)) throw new AppError('MCP_CATALOG_MISMATCH', '本地 MCP 工具输入/输出目录与锁定的55项定义不一致。');
+            || !isDeepStrictEqual(tool.outputSchema, definition.outputSchema)) throw new AppError('MCP_CATALOG_MISMATCH', '本地 MCP 工具输入/输出目录与锁定定义不一致。');
           seen.add(tool.name);
         }
         if (!result.nextCursor) {
-          if (seen.size !== 55 || expected.size !== 55) throw new AppError('MCP_CATALOG_MISMATCH', '本地 MCP 未完整返回锁定的55项工具。');
+          if (seen.size !== TOOL_DEFINITIONS.length || expected.size !== TOOL_DEFINITIONS.length) throw new AppError('MCP_CATALOG_MISMATCH', '本地 MCP 未完整返回锁定的工具目录。');
+          this.diagnostic('initialized');
           return;
         }
         if (!result.tools.length || cursors.has(result.nextCursor)) throw new AppError('MCP_CATALOG_MISMATCH', 'MCP 工具分页未继续推进。');
@@ -119,16 +151,18 @@ export class LocalMcpClient implements McpCallClient {
     // 权限及参数以本地固定目录为准，不采信服务端 annotations 或描述。
     return TOOL_DEFINITIONS.map(tool => structuredClone(tool));
   }
-  async call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard): Promise<unknown> {
+  async call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope): Promise<unknown> {
     interrupted(signal);
     const parameters = validateToolArguments(name, args);
     const definition = TOOL_DEFINITIONS.find(tool => tool.name === name)!;
     if (definition.effect === 'write' && !guard) throw new AppError('AUTHORIZATION_REQUIRED', 'MCP 写入必须由宿主授权链路提交。');
     const metadata = guard === undefined ? undefined : guarded(guard);
+    const scope = batch === undefined ? undefined : batchScope(batch);
     await awaitWithCancellation(this.ready(), signal); interrupted(signal); this.usable();
     let raw: unknown;
     try {
-      raw = await this.client.callTool({ name, arguments: parameters, ...(metadata ? { _meta: { 'bangumi/guard': metadata } } : {}) }, undefined,
+      this.diagnostic('dispatch');
+      raw = await this.client.callTool({ name, arguments: parameters, ...(metadata || scope ? { _meta: { ...(metadata ? { 'bangumi/guard': metadata } : {}), ...(scope ? { 'bangumi/batch': scope } : {}) } } : {}) }, undefined,
         { timeout: this.options.timeoutMs, ...(signal === undefined ? {} : { signal }) });
     } catch (error) {
       if (signal?.aborted) throw new AppError('CANCELLED', '操作已取消；已提交写入须独立核实结果。');
@@ -139,27 +173,42 @@ export class LocalMcpClient implements McpCallClient {
     const result = object(raw);
     if (!result.structuredContent || typeof result.structuredContent !== 'object' || Array.isArray(result.structuredContent)) throw new AppError('MCP_INVALID_RESULT', 'MCP 未返回结构化结果，不能解析展示文本。');
     const structured = object(result.structuredContent, 'MCP结构化结果');
+    if (Buffer.byteLength(JSON.stringify(structured)) > 2_000_000) throw new AppError('MCP_OUTPUT_LIMIT', 'MCP 查询结果过大，请缩小范围。');
     if (definition.outputSchema) checkOutput(definition.outputSchema, structured);
     if (definition.outputSchema && (result.isError === true) !== Object.hasOwn(structured, 'error')) throw new AppError('MCP_INVALID_RESULT', 'MCP成功或错误标记与输出结构不一致。');
     if (result.isError === true) {
       const remote = object(structured.error, 'MCP错误');
       const code = typeof remote.code === 'string' && /^[A-Z][A-Z_0-9]{0,79}$/.test(remote.code) ? remote.code : 'MCP_TOOL_ERROR';
+      if (remote.sourceTool !== undefined && remote.sourceTool !== name || remote.recovery !== undefined && code !== 'MCP_INVALID_RESULT') throw new AppError('MCP_INVALID_RESULT', 'MCP错误来源或恢复分类与本次工具不一致。');
+      if (remote.rejection !== undefined && (definition.effect !== 'write' || code !== 'BGM_RATE_LIMIT_REJECTED' || !isSubmissionRejection(remote.rejection)
+        || remote.networkAttempted === false)) throw new AppError('MCP_INVALID_RESULT', 'MCP明确拒绝与原写入工具、固定错误码或派发事实不一致。');
       if (code === 'INVALID_INPUT' && definition.effect === 'read' && remote.networkAttempted === false) {
         const feedback = remoteInputError(name, parameters, remote.issues);
         if (feedback) throw feedback;
       }
-      const message = TOOL_ERROR_MESSAGES[code] ?? 'Bangumi MCP 操作未完成，请核对输入及网站状态。';
+      const message = code === 'BGM_HTTP_404' ? '当前可见范围内未取得资源，可能受NSFW或权限限制；不能据此认定条目不存在。' : TOOL_ERROR_MESSAGES[code] ?? 'Bangumi MCP 操作未完成，请核对输入及网站状态。';
       if (definition.effect === 'write' && remote.submission !== undefined) {
-        checkSubmission(name, remote.submission, parameters, guard!.accountId, guard?.subjectId);
-        throw new SubmissionError(code, message, remote.submission as SubmissionReceipt);
+        checkSubmission(name, remote.submission, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
+        const error = new SubmissionError(code, message, remote.submission as SubmissionReceipt);
+        if (error.rejection !== undefined && (code !== 'BGM_RATE_LIMIT_REJECTED' || remote.networkAttempted === false)
+          || remote.rejection !== undefined && !isDeepStrictEqual(remote.rejection, error.rejection)) throw new AppError('MCP_INVALID_RESULT', 'MCP拒绝证据与逐项回执不一致。');
+        if (remote.accessContext) Object.defineProperty(error, 'accessContext', { value: structuredClone(remote.accessContext) });
+        if (remote.networkAttempted === false) Object.defineProperty(error, 'networkAttempted', { value: false });
+        Object.defineProperty(error, 'sourceTool', { value: name });
+        throw error;
       }
-      throw new AppError(code, message);
+      const error = new AppError(code, message, remote.accessContext === undefined ? undefined : structuredClone(remote.accessContext) as AccessContext);
+      if (remote.networkAttempted === false) Object.defineProperty(error, 'networkAttempted', { value: false });
+      if (remote.recovery !== undefined) Object.defineProperty(error, 'recovery', { value: structuredClone(remote.recovery) });
+      if (remote.rejection !== undefined) Object.defineProperty(error, 'rejection', { value: structuredClone(remote.rejection) });
+      Object.defineProperty(error, 'sourceTool', { value: name }); throw error;
     }
     if (!Object.hasOwn(structured, 'value')) throw new AppError('MCP_INVALID_RESULT', 'MCP 返回缺少结构化 value，不能将展示文本作为业务结果。');
+    checkAccessResponse(name, structured.value);
     checkSubjectResponse(name, structured.value, parameters);
-    if (definition.effect === 'write') checkSubmission(name, structured.value, parameters, guard!.accountId, guard?.subjectId);
+    if (isCommunityTool(name)) checkCommunityResponse(name, structured.value, parameters);
+    if (definition.effect === 'write') checkSubmission(name, structured.value, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
     else if (resourceOutputSchema(name)) checkResourceResponse(name, structured.value, parameters, definition.outputSchema!);
-    if (Buffer.byteLength(JSON.stringify(structured)) > 2_000_000) throw new AppError('MCP_OUTPUT_LIMIT', 'MCP 查询结果过大，请缩小范围。');
     return structured.value;
   }
   async close(): Promise<void> {

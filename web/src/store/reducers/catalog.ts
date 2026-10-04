@@ -29,9 +29,15 @@ export const INITIAL_CATALOG_STATE: CatalogState = {
   commands: mergeCommands([]),
 };
 
-export type CatalogAction = { type: 'catalog/loaded'; catalog: CatalogView };
+export type CatalogAction = { type: 'catalog/loaded'; catalog: CatalogView }
+  | { type: 'catalog/sessions'; sessions: SessionOptionView[] };
 
 export function catalogReducer(state: CatalogState = INITIAL_CATALOG_STATE, action: AppAction): CatalogState {
+  if (action.type === 'catalog/sessions') {
+    const sessions = new Map(state.sessions.map(session => [session.id, session]));
+    for (const live of action.sessions) sessions.set(live.id, { ...sessions.get(live.id), ...live });
+    return { ...state, sessions: [...sessions.values()] };
+  }
   if (action.type !== 'catalog/loaded') return state;
   const { models, sessions, providers, canPersistCredentials } = action.catalog;
   return {

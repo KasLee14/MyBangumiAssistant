@@ -8,6 +8,7 @@ import { Modal } from './Modal';
 export function SessionDialog(): ReactNode {
   const actions = useActions();
   const sessions = useAppSelector(selectSessions);
+  const sessionId = useAppSelector(state => state.stream.sessionId);
   // 与侧栏同一套措辞与同一时刻：换入口不换文案。
   const now = Date.now();
   return (
@@ -27,14 +28,15 @@ export function SessionDialog(): ReactNode {
         <div className="pickerList">
           {sessions.map(session => (
             <button
-              key={session.path}
+              key={session.id}
               type="button"
-              className={`pickerRow${session.current ? ' selected' : ''}`}
-              title={session.path}
+              className={`pickerRow${session.id === sessionId ? ' selected' : ''}`}
+              title={session.name || '新会话'}
               onClick={() => actions.pickSession(session)}
             >
-              <span className="title">{session.name || session.id}</span>
-              <span className="meta">{session.current ? '当前' : relativeTimeLabel(session.modified, now)}</span>
+              <span className="title">{session.name || '新会话'}</span>
+              <span className="meta">{session.awaitingConfirmation ? '待确认' : session.awaitingLogin ? '待登录'
+                : session.busy ? '运行中' : session.id === sessionId ? '当前' : relativeTimeLabel(session.modified, now)}</span>
             </button>
           ))}
         </div>

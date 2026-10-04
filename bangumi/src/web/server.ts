@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -7,12 +7,10 @@ import { extname, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AppError, safeError } from '../support/errors.js';
 import type { ChatStateView, ServerEvent, ThinkingLevelName, TranscriptItemView } from './protocol.js';
-import type { WebInteractionChannel, WebSession } from './session.js';
+import type { WebSessionManager } from './session-manager.js';
 
 export interface WebTerminalOptions {
-  session: WebSession;
-  /** 浏览器连接数决定写入确认与登录输入是否可用。 */
-  channel: WebInteractionChannel;
+  sessions: WebSessionManager;
   /** 仅监听回环地址上的该端口。 */
   port: number;
   /** 启动后用默认浏览器打开带一次性令牌的地址。 */
@@ -41,6 +39,9 @@ interface StreamBookkeeping {
 interface StreamClient extends StreamBookkeeping {
   res: ServerResponse;
   closed: boolean;
+  clientId: string;
+  sessionId: string;
+  summaries: string;
 }
 
 /**
@@ -116,9 +117,10 @@ function booleanValue(value: unknown, label: string): boolean {
  * 内容与提交前的复核仍在宿主。
  */
 export async function startWebTerminal(options: WebTerminalOptions): Promise<WebTerminal> {
-  const { session, channel } = options;
+  const { sessions } = options;
   const assetsDir = resolve(options.assetsDir ?? fileURLToPath(new URL('../../web/', import.meta.url)));
   const token = randomBytes(32).toString('hex');
+  const instanceId = randomUUID();
   const clients = new Set<StreamClient>();
   let heartbeat: ReturnType<typeof setInterval> | undefined;
   let flushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -155,7 +157,7 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
     if (client.closed) return;
     client.closed = true;
     clients.delete(client);
-    channel.setClients(clients.size);
+    sessions.setClients(clients.size);
   };
   const writeEvent = (client: StreamClient, event: ServerEvent): void => {
     if (client.closed) return;
@@ -168,21 +170,36 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
    * 只按编号过滤会让界面永久停在「进行中」或「待确认」。
    */
   const flushClient = (client: StreamClient, state: ChatStateView): void => {
+    if (client.sessionId !== state.sessionId) {
+      client.firstId = null;
+      client.sessionId = state.sessionId;
+    }
     const { full, fresh } = takeFreshItems(state.items, client);
     const { items: _ignored, ...scalars } = state;
-    writeEvent(client, { type: 'state', full, items: fresh, state: scalars });
+    writeEvent(client, { type: 'state', instanceId, revision: sessions.revision, full, items: fresh, state: scalars });
+    const summaries = sessions.sessions(client.clientId);
+    const serialized = JSON.stringify(summaries);
+    if (client.summaries !== serialized) {
+      client.summaries = serialized;
+      writeEvent(client, { type: 'sessions', sessions: summaries });
+    }
   };
   /** 一帧只取一次快照，避免每个客户端各读一次会话状态。 */
   const flush = (): void => {
     if (!clients.size) return;
-    const state = session.snapshot();
-    for (const client of clients) flushClient(client, state);
+    const snapshots = new Map<string, ChatStateView>();
+    for (const client of clients) {
+      const session = sessions.selected(client.clientId);
+      let state = snapshots.get(session.id);
+      if (!state) { state = session.snapshot(); snapshots.set(session.id, state); }
+      flushClient(client, state);
+    }
   };
   const schedule = (): void => {
     if (flushTimer || closing) return;
     flushTimer = setTimeout(() => { flushTimer = undefined; flush(); }, 40);
   };
-  const unsubscribe = session.subscribe(schedule);
+  const unsubscribe = sessions.subscribe(schedule);
 
   const readBody = async (req: IncomingMessage): Promise<unknown> => {
     const chunks: Buffer[] = [];
@@ -202,7 +219,21 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
     catch { throw new AppError('INVALID_INPUT', '请求体必须是 JSON。'); }
   };
 
-  const dispatch = async (pathname: string, body: unknown): Promise<void> => {
+  const dispatch = async (pathname: string, body: unknown, req: IncomingMessage): Promise<ServerEvent | undefined> => {
+    const clientId = textValue(req.headers['x-bgm-client'], '浏览器 ID', 80);
+    if (pathname === '/api/session') {
+      const payload = objectValue(body, '会话操作');
+      const action = textValue(payload.action, '会话操作', 20);
+      if (action !== 'new' && action !== 'resume') throw new AppError('INVALID_INPUT', '会话操作只能是 new 或 resume。');
+      await sessions.select(clientId, action, {
+        ...(payload.sessionId === undefined ? {} : { id: textValue(payload.sessionId, '会话 ID', 80) }),
+        ...(payload.path === undefined ? {} : { path: textValue(payload.path, '会话路径', 4096) }),
+      });
+      const { items, ...state } = sessions.selected(clientId).snapshot();
+      return { type: 'state', instanceId, revision: sessions.revision, full: true, items, state };
+    }
+    // 请求归属以发出时的会话 ID 为准，不能在 await 后改用当前查看的会话。
+    const session = sessions.get(textValue(req.headers['x-bgm-session'], '会话 ID', 80));
     if (pathname === '/api/submit') {
       const payload = objectValue(body, '提交内容');
       await session.submit(textValue(payload.input, '输入', 8000));
@@ -228,10 +259,11 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
     if (pathname === '/api/login') {
       const payload = objectValue(body, '登录');
       await session.startLogin(textValue(payload.email, '邮箱', 400), textValue(payload.password, '密码', 400));
+      await sessions.refreshLogin();
       return;
     }
     if (pathname === '/api/login-cancel') { session.cancelLogin(); return; }
-    if (pathname === '/api/logout') { await session.logout(); return; }
+    if (pathname === '/api/logout') { await session.logout(); await sessions.refreshLogin(); return; }
     if (pathname === '/api/model') {
       const payload = objectValue(body, '模型选择');
       await session.setModel(textValue(payload.provider, '提供方', 200), textValue(payload.model, '模型', 200));
@@ -243,25 +275,19 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
       session.setThinkingLevel(textValue(payload.level, '思考强度', 20) as ThinkingLevelName);
       return;
     }
-    if (pathname === '/api/session') {
-      const payload = objectValue(body, '会话操作');
-      const action = textValue(payload.action, '会话操作', 20);
-      if (action === 'new') await session.newSession();
-      else if (action === 'resume') await session.resumeSession(textValue(payload.path, '会话路径', 4096));
-      else throw new AppError('INVALID_INPUT', '会话操作只能是 new 或 resume。');
-      return;
-    }
     if (pathname === '/api/credentials') {
       const payload = objectValue(body, '模型密钥');
       // 默认只注入本次运行的运行时凭据；persist 为 true 才写入本机 Pi 凭据存储。
       // 长度上限防止误贴大段文本。
       const persist = payload.persist === undefined ? false : booleanValue(payload.persist, '保存到本机');
       await session.setCredential(textValue(payload.provider, '提供方', 200), textValue(payload.key, 'API Key', 4000), persist);
+      sessions.notifySettingsChange();
       return;
     }
     if (pathname === '/api/credentials/clear') {
       const payload = objectValue(body, '清除模型密钥');
       await session.clearCredential(textValue(payload.provider, '提供方', 200));
+      sessions.notifySettingsChange();
       return;
     }
     if (pathname === '/api/proxy') {
@@ -271,12 +297,11 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
       // manual 才需要地址；auto 会忽略它，direct 不用它。
       const url = mode === 'manual' ? textValue(payload.url, '代理地址', 300) : undefined;
       await session.setProxy(mode, url);
+      sessions.notifySettingsChange();
       return;
     }
     throw new AppError('INVALID_INPUT', '未知的 Web 终端命令。');
   };
-
-  const stateView = (): ChatStateView => session.snapshot();
 
   const serveStatic = async (res: ServerResponse, pathname: string): Promise<void> => {
     let relative: string;
@@ -319,31 +344,46 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
         return;
       }
       if (!authorized(req)) { sendJson(res, 401, { code: 'WEB_UNAUTHORIZED', message: '访问凭据无效，请重新打开启动时打印的地址。' }); return; }
-      if (req.method === 'GET' && url.pathname === '/api/state') { sendJson(res, 200, stateView()); return; }
+      if (req.method === 'GET' && url.pathname === '/api/state') {
+        const id = req.headers['x-bgm-session'];
+        const session = id === undefined ? sessions.selected(textValue(req.headers['x-bgm-client'], '浏览器 ID', 80))
+          : sessions.get(textValue(id, '会话 ID', 80));
+        sendJson(res, 200, session.snapshot()); return;
+      }
       if (req.method === 'GET' && url.pathname === '/api/catalog') {
-        sendJson(res, 200, await session.catalog());
+        const id = req.headers['x-bgm-session'];
+        sendJson(res, 200, await sessions.catalog(textValue(req.headers['x-bgm-client'], '浏览器 ID', 80),
+          id ? textValue(id, '会话 ID', 80) : undefined));
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/events') {
+        const clientId = textValue(url.searchParams.get('clientId'), '浏览器 ID', 80);
+        // EventSource 断线重连时可恢复本标签页的选择，恢复失败则使用初始会话。
+        const selectedId = url.searchParams.get('sessionId');
+        if (selectedId && !sessions.hasView(clientId)) {
+          try { await sessions.select(clientId, 'resume', { id: selectedId }); } catch { /* 会话已失效。 */ }
+        }
         res.writeHead(200, {
           'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive',
           'x-accel-buffering': 'no', ...SECURITY_HEADERS,
         });
         res.write(': connected\n\n');
-        const client: StreamClient = { res, firstId: null, lastId: 0, count: 0, versions: new Map(), closed: false };
+        const client: StreamClient = { res, firstId: null, lastId: 0, count: 0, versions: new Map(), closed: false,
+          clientId, sessionId: '', summaries: '' };
         clients.add(client);
-        channel.setClients(clients.size);
+        sessions.setClients(clients.size);
         const cleanup = (): void => dropClient(client);
         req.on('close', cleanup);
         res.on('close', cleanup);
         // 新连接总是先拿一份完整快照。
-        flushClient(client, session.snapshot());
+        flushClient(client, sessions.selected(clientId).snapshot());
         return;
       }
       if (req.method === 'POST' && url.pathname.startsWith('/api/')) {
-        try { await dispatch(url.pathname, await readBody(req)); }
+        let result: ServerEvent | undefined;
+        try { result = await dispatch(url.pathname, await readBody(req), req); }
         catch (error) { sendJson(res, 400, safeError(error)); return; }
-        sendJson(res, 200, { ok: true });
+        sendJson(res, 200, result ?? { ok: true });
         return;
       }
       if (req.method === 'GET' || req.method === 'HEAD') { await serveStatic(res, url.pathname); return; }
@@ -404,7 +444,7 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
     process.off('SIGTERM', onSignal);
     for (const client of clients) { client.closed = true; try { client.res.end(); } catch { /* 已断开。 */ } }
     clients.clear();
-    channel.setClients(0);
+    sessions.setClients(0);
     // server.close() 只等已有连接结束；半开连接或卡住的请求会让它永不回调，
     // 因此给一个兜底：超时后强制关闭全部连接，进程仍能退出。
     await new Promise<void>(done => {

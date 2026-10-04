@@ -56,7 +56,7 @@ props：`title`、`eyebrow?`、`wide?`、`onClose`、`children`、`footer?`。`e
 | `LoginDialog.tsx` | 宿主下发 `stream.loginPrompt` 时由 `DialogStage` 自动挂载 | props 里的 `prompt.id`（用于换请求时清空输入） | `answerLoginInput`（提交或取消） |
 | `Modal.tsx` | —（基础件） | — | — |
 
-`SessionDialog` 每行右侧与侧栏常驻列表共用 [`../utils/relativeTime.ts`](../utils/relativeTime.md) 的「最后对话时间」（`刚刚` / `N分钟` / `N小时` / `N天` / `N个月` / `N年`），当前会话那行显示 `当前`。两处口径必须一致——改这里等于同时改侧栏。
+`SessionDialog` 与侧栏按 `session.id === stream.sessionId` 判断当前会话，并优先显示「待确认 / 待登录 / 运行中 / 当前」。其余行共用 [`relativeTimeLabel`](../utils/relativeTime.md) 显示「最后对话时间」（`刚刚` / `N分钟` / `N小时` / `N天` / `N个月` / `N年`）。两处口径必须一致。
 
 ## 弹窗状态与层级
 

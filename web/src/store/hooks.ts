@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
-import { fetchCatalog } from '../utils/api';
-import { catalogLoaded, collapsedSet } from './actions';
+import { collapsedSet } from './actions';
 import type { AppAction } from './actions';
 import type { AppDispatch, AppStore } from './index';
 import { createActions, type Actions } from './operations';
@@ -18,19 +17,18 @@ export function useActions(): Actions {
 }
 
 /**
- * 首屏与会话切换时重取目录。
+ * 首屏、会话切换与标题变化时重取目录。
  *
  * 会话切换后模型与历史会话列表都可能变化；列表失败不影响对话本身，打开设置或
  * 会话弹窗时还会再取一次。
  */
 export function useCatalogSync(): void {
-  const dispatch = useAppDispatch();
+  const actions = useActions();
   const sessionId = useAppSelector(state => state.stream.sessionId);
+  const sessionName = useAppSelector(state => state.stream.sessionName);
   useEffect(() => {
-    void fetchCatalog()
-      .then(catalog => { dispatch(catalogLoaded(catalog)); })
-      .catch(() => { /* 打开设置或会话弹窗时会再取一次。 */ });
-  }, [dispatch, sessionId]);
+    void actions.loadCatalog().catch(() => { /* 打开设置或会话弹窗时会再取一次。 */ });
+  }, [actions, sessionId, sessionName]);
 }
 
 /**
@@ -57,13 +55,15 @@ export function useEscapeShortcut(): void {
   const actions = useActions();
   const busy = useAppSelector(state => state.stream.busy);
   const pending = useAppSelector(state => state.stream.pending);
+  const switching = useAppSelector(state => state.ui.switching);
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
+      if (switching) return;
       if (pending) { actions.reject(pending.id); return; }
       if (busy) actions.stopRound();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [actions, busy, pending]);
+  }, [actions, busy, pending, switching]);
 }

@@ -26,6 +26,7 @@
 3. **会话容器必须含 `.appStageBody` 与 `.appStageScroll`，不含 `.appFrame` / `.appConversation`** —— 违反后果：容器查询与屏外优化同时失效。
 4. **流式显示块独立成组件并 `memo`** —— 违反后果：每帧重渲染整棵会话树。
 5. **会话行右侧的时间文案走 [`../utils/relativeTime.ts`](../utils/relativeTime.md)** —— 违反后果：侧栏与 `/sessions` 弹窗各算一份，两处措辞漂移（`now` 由组件注入一次，不让每行自己取时钟）。
+6. **待授权卡只在输入区呈现一次**：`ConfirmationCard` 的历史模式（`showActions=false`）在 `state=pending` 时返回 `null`，处理完成后才展示结果。宿主仍保留同一条授权记录，避免正文和输入区重复显示同一个请求。
 
 ## 一览
 

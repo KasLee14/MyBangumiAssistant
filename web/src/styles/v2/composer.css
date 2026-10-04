@@ -1,0 +1,384 @@
+/* ============================================================
+   v2 输入区：输入卡、命令候选、发送按钮、座位，以及共享部件
+   （思考强度菜单、统计浮层）在 v2 下的覆写。
+   ------------------------------------------------------------
+   只改视觉：定位、尺寸轴与滚动行为都由共享组件与 v1 的 composer.css 负责，
+   这里不重写它们，避免出现「两份布局各说各话」。
+   ============================================================ */
+
+/* ---------------------------------------------------------------- 座位 */
+
+.v2Seat {
+  padding: 6px 24px 18px;
+}
+
+/* 首屏阶段输入卡加宽加高：与 v1 的取舍一致（空会话时输入区是唯一焦点）。 */
+.v2Stage[data-phase='hero'] .v2Seat {
+  padding-bottom: 26px;
+}
+
+.v2Stage[data-phase='hero'] .v2ComposerInput {
+  min-height: 32px;
+}
+
+/* 接管形态（写入确认）落座时的进入动效由 `ComposerSeatV2` 的 motion 元素给出，
+   这里只保证容器不额外占位。 */
+.v2CardSeat {
+  display: block;
+}
+
+/* ---------------------------------------------------------------- 输入卡 */
+
+.v2ComposerStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/*
+ * BorderGlow 提供卡片的底色、描边与边缘光（指针靠近时的那一圈），因此内层卡片
+ * 自身不再画边框与阴影，避免两层阴影叠在一起显得脏。
+ */
+.v2Glow {
+  width: 100%;
+  border-radius: var(--v2-radius-panel);
+}
+
+/* BorderGlow 的 inner 默认是 `overflow: auto`，会把向上展开的命令候选裁掉。 */
+[data-ui='v2'] .v2Glow .border-glow-inner {
+  overflow: visible;
+}
+
+.v2ComposerCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--v2-radius-panel);
+}
+
+/* 键盘聚焦时内层再补一圈很淡的主色光晕：BorderGlow 的边缘光只在指针附近出现，
+   Tab 进来也需要一个可见的落点。 */
+.v2ComposerCard:focus-within {
+  box-shadow: 0 0 0 3px var(--v2-primary-veil);
+}
+
+.v2ComposerScroll {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 12px 14px 0;
+}
+
+.v2ComposerInput {
+  width: 100%;
+  min-height: 24px;
+  max-height: 220px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bgm-text-strong);
+  font: 14px/22px var(--bgm-font);
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+}
+
+.v2ComposerInput::placeholder {
+  color: var(--bgm-text-weak);
+}
+
+.v2ComposerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 10px 6px 14px;
+}
+
+.v2ComposerTools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.v2ComposerHint {
+  color: var(--bgm-text-weak);
+  font: 12px/1.4 var(--bgm-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v2ComposerProblem {
+  padding: 3px 9px;
+  border: 1px solid var(--bgm-danger-border);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-danger-soft);
+  color: var(--bgm-danger);
+  font: 12px/1.5 var(--bgm-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v2ComposerTrailing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- 发送按钮 */
+
+.v2SendButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--v2-radius-control);
+  background: var(--bgm-primary);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background var(--v2-dur-fast) var(--v2-ease-out),
+    box-shadow var(--v2-dur-fast) var(--v2-ease-out),
+    transform var(--v2-dur-instant) var(--v2-ease-out);
+}
+
+.v2SendButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bgm-primary) 86%, #000);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+}
+
+.v2SendButton:active:not(:disabled) {
+  transform: scale(.95);
+}
+
+.v2SendButton:disabled {
+  background: var(--bgm-border);
+  color: var(--bgm-surface);
+  cursor: not-allowed;
+}
+
+.v2SendButton svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.v2SendButton:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+/* ---------------------------------------------------------------- 命令候选 */
+
+.v2ComposerPopup {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  max-height: min(320px, 46vh);
+  padding: 6px;
+  border: 1px solid var(--v2-hairline-strong);
+  border-radius: var(--v2-radius-panel);
+  background: var(--v2-surface);
+  box-shadow: var(--v2-shadow-panel);
+  overflow-y: auto;
+  /* 从触发它的输入卡方向展开：位移很小，只是让「从哪来」可读。 */
+  animation: v2-popup-in var(--v2-dur-base) var(--v2-ease-out) both;
+}
+
+@keyframes v2-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--v2-shift-row));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.v2PopupSection {
+  padding: 6px 8px;
+  color: var(--bgm-text-weak);
+  font: 500 12px/1.4 var(--bgm-font);
+  letter-spacing: .04em;
+}
+
+.v2PopupItem {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--v2-radius-control);
+  background: transparent;
+  color: var(--bgm-text);
+  font: 13px/1.5 var(--bgm-font);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--v2-dur-instant) var(--v2-ease-out);
+}
+
+.v2PopupItem[data-active='true'] {
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+}
+
+.v2PopupItem .hint {
+  margin-left: auto;
+  color: var(--bgm-text-weak);
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------- 思考强度（共享部件覆写） */
+
+[data-ui='v2'] .thinkingTrigger {
+  border: 1px solid var(--v2-hairline);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  transition:
+    border-color var(--v2-dur-fast) var(--v2-ease-out),
+    background var(--v2-dur-fast) var(--v2-ease-out),
+    color var(--v2-dur-fast) var(--v2-ease-out);
+}
+
+[data-ui='v2'] .thinkingTrigger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+}
+
+[data-ui='v2'] .thinkingTrigger:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+[data-ui='v2'] .thinkingMenu {
+  border: 1px solid var(--v2-hairline-strong);
+  border-radius: var(--v2-radius-panel);
+  background: var(--v2-surface);
+  box-shadow: var(--v2-shadow-panel);
+  animation: v2-popup-in var(--v2-dur-base) var(--v2-ease-out) both;
+}
+
+/* v1 的材质层是玻璃；v2 追求干净，直接让它透明，露出纯白表面。 */
+[data-ui='v2'] .menuMaterial {
+  opacity: 0;
+}
+
+[data-ui='v2'] .menuLabel {
+  color: var(--bgm-text-weak);
+}
+
+[data-ui='v2'] .menuSeparator {
+  background: var(--v2-hairline);
+}
+
+[data-ui='v2'] .menuItem {
+  border-radius: var(--v2-radius-control);
+  transition: background var(--v2-dur-instant) var(--v2-ease-out);
+}
+
+[data-ui='v2'] .menuItem:hover:not(:disabled) {
+  background: var(--bgm-primary-soft);
+}
+
+[data-ui='v2'] .menuItem.selected {
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+}
+
+[data-ui='v2'] .menuItem:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+/* ---------------------------------------------------------------- 统计底栏（共享部件覆写） */
+
+[data-ui='v2'] .statsDock {
+  /* v1 的这条底栏自带白底——在 v1 里它与输入卡连成一片、看不出来；v2 的输入卡有
+     独立描边与圆角，白底就会变成一块多余的白条。改成透明，读数胶囊直接落在页面底色上。 */
+  background: transparent;
+}
+
+[data-ui='v2'] .statsPill,
+[data-ui='v2'] .contextTrigger {
+  border: 1px solid var(--v2-hairline);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  transition:
+    border-color var(--v2-dur-fast) var(--v2-ease-out),
+    background var(--v2-dur-fast) var(--v2-ease-out),
+    color var(--v2-dur-fast) var(--v2-ease-out);
+}
+
+[data-ui='v2'] .statsPill:hover,
+[data-ui='v2'] .contextTrigger:hover {
+  border-color: var(--v2-hairline-strong);
+  background: var(--v2-surface);
+  color: var(--bgm-text);
+}
+
+[data-ui='v2'] .statsPill:focus-visible,
+[data-ui='v2'] .contextTrigger:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+[data-ui='v2'] .contextFill {
+  transition: stroke-dasharray var(--v2-dur-slow) var(--v2-ease-out);
+}
+
+[data-ui='v2'] .statsPanel {
+  border: 1px solid var(--v2-hairline-strong);
+  border-radius: var(--v2-radius-panel);
+  background: var(--v2-surface);
+  box-shadow: var(--v2-shadow-panel);
+  animation: v2-popup-in var(--v2-dur-base) var(--v2-ease-out) both;
+}
+
+[data-ui='v2'] .statsPanelMaterial {
+  opacity: 0;
+}
+
+[data-ui='v2'] .statsTitle,
+[data-ui='v2'] .contextHeadline {
+  color: var(--bgm-text-strong);
+}
+
+[data-ui='v2'] .statsRow dt,
+[data-ui='v2'] .contextFigures {
+  color: var(--bgm-text-muted);
+}
+
+[data-ui='v2'] .statsRow dd,
+[data-ui='v2'] .statsTitleValue,
+[data-ui='v2'] .contextPercent {
+  color: var(--bgm-text-strong);
+}
+
+[data-ui='v2'] .contextBar {
+  background: var(--bgm-border-soft);
+}
+
+[data-ui='v2'] .contextSegment {
+  background: var(--bgm-primary);
+  transition: width var(--v2-dur-slow) var(--v2-ease-out);
+}
+
+[data-ui='v2'] .contextSegment[data-warn='true'] {
+  background: var(--bgm-danger);
+}

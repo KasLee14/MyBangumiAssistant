@@ -54,7 +54,7 @@
 |---|---|---|
 | `stream` | 宿主下发的会话状态与条目（外加一个前端本地字段 `answering`） | `items`、`busy`、`liveText`、`pending`、`connected`、`pendingEcho`、`answering` |
 | `catalog` | 目录类数据（属于"有哪些东西可选"） | `models`、`sessions`、`providers`、`commands`、`canPersistCredentials` |
-| `ui` | 纯界面状态 | `settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider` |
+| `ui` | 纯界面状态 | `settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider`、`switching`、`drafts`、`variant` |
 
 ## 状态边界（最容易犯错的地方）
 
@@ -68,7 +68,9 @@
 | **确认应答在途（`answering`）** | `stream` | 确认卡（`ComposerSeat`）读、`operations` 写，且必须随帧撤下（宿主给出结论时解禁）——见 [reducers.md](reducers.md) 的「应答在途的撤下条件」 |
 | **弹窗内输入框、busy、error** | 各弹窗自己的 `useState` | 组件私有，只服务这一次编辑 |
 | **菜单开合、滚动位置、当前轮次** | 组件自己的 `useState` / `useRef` | 纯视觉细节，没有第二个读者 |
-| **命令补全游标** | `Composer` 自己的 `useState` | 同上 |
+| **命令补全游标** | `Composer` 自己的 `useState` | 仅服务当前输入卡 |
+
+并行会话字段：`stream.instanceId/revision` 阻止迟到帧覆盖当前会话；`ui.switching` 表示选择请求在途；`catalog.sessions` 通过独立的 `sessions` SSE 帧更新后台状态。
 
 判断口诀：**"另一个组件需要知道它吗？" 需要就进 store，不需要就留在组件里。**
 
@@ -87,4 +89,3 @@
 - 异步逻辑是普通函数，**必须显式拿到 store**（`useActions()` 内部已用 `useStore()` 绑定）；
 - 不存在 `dispatch(asyncFn)` 这种写法，也不要尝试自己写一个 thunk 中间件——需要新能力时优先加动作，而不是加中间件；
 - 每个动作自己负责错误处理，约定见 [actions-and-operations.md](actions-and-operations.md)。
-

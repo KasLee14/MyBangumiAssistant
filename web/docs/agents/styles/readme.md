@@ -52,12 +52,16 @@
 | `bgm.css` | 160 | **只有令牌**：定义 `--bgm-*`，并把组件实际用到的 `--dsw-*` 别名重定向过去；**不含任何形态规则** | 定义 `--bgm-*`，重定向 `--dsw-*` | [content-and-brand.md](content-and-brand.md) |
 | `content.css` | 1010 | 内容组件库（12 种内容条目的皮肤），末尾一节是 `@media (hover: hover)` 包裹的 hover/active 补充规则 | 消费 `--bgm-*` / `--app-*` | [content-and-brand.md](content-and-brand.md) |
 | `fonts/` | — | Montserrat（OFL，三个字重 woff2 + 许可文件） | — | [tokens.md](tokens.md) |
+| `v2/*.css` | 6 个文件 | **v2（动效版）的一整套**：`tokens` / `shell` / `conversation` / `composer` / `overlays` / `content` | 定义并消费 `--v2-*`，并覆写共享类 | [../../AGENTS.md](../../../AGENTS.md) §3 |
 
 ## 引入顺序是契约（`main.tsx`）
 
 ```ts
 tokens → frame → composer → cards → modal → bgm → content
+       → v2/tokens → v2/shell → v2/conversation → v2/composer → v2/overlays → v2/content
 ```
+
+v2 的一组排在**最后**：它们要么用 `v2*` 类名（本来就唯一），要么是 `[data-ui='v2']` 作用域内的覆写——覆写要盖住 v1 的同名规则，因此必须在 v1 的 8 个文件之后引入。
 
 两条硬约束：
 

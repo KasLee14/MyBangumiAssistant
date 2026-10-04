@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { resolve, sep } from "node:path";
 import type { AgentMessage, ThinkingLevel } from "@earendil-works/pi-agent-core";
 import {
   SessionManager,
@@ -8,6 +7,7 @@ import {
   type AgentSessionEvent,
 } from "@earendil-works/pi-coding-agent";
 import type { InteractionChannel, NoticeType } from "../interaction.js";
+import type { WriteConfirmOptions } from "../mcp/confirm.js";
 import { login, type AccountSessionStore } from "../login/index.js";
 import {
   AppError,
@@ -17,6 +17,8 @@ import {
 } from "../support/errors.js";
 import { policyFor } from "../support/proxy.js";
 import { discoverProxy, type ProxyController } from "../support/proxy-controller.js";
+import { sessionDisplayName } from "../session-title.js";
+import type { TaskQueue } from "../support/task-queue.js";
 import type {
   ActivityItemView,
   CatalogView,
@@ -155,10 +157,11 @@ export class WebInteractionChannel implements InteractionChannel {
     _ctx: unknown,
     preview: string,
     signal: AbortSignal | undefined,
+    options?: WriteConfirmOptions,
   ): Promise<boolean> {
     if (!this.session)
       throw new AppError("WEB_UI_UNAVAILABLE", "Web 终端尚未就绪。");
-    return this.session.requestConfirmation(preview, signal);
+    return this.session.requestConfirmation(preview, signal, options);
   }
 
   login(
@@ -187,6 +190,7 @@ export interface WebSessionOptions {
   proxy: ProxyController;
   /** Bangumi 请求超时（毫秒），与终端版登录共用同一个启动参数。 */
   timeoutMs: number;
+  accountQueue?: TaskQueue;
 }
 
 /**
@@ -204,6 +208,7 @@ export class WebSession {
   private readonly sessionDir: string;
   private readonly proxy: ProxyController;
   private readonly timeoutMs: number;
+  private readonly accountQueue: TaskQueue | undefined;
 
   private items: TranscriptItemView[] = [];
   private nextItemId = 1;
@@ -230,7 +235,6 @@ export class WebSession {
    * 两个值并缓存，第二次直接复用，浏览器因此只看到一个凭据弹窗。
    */
   private loginDraft: { email: string; password: string } | null = null;
-  private proxyLabel: string;
   /**
    * 本会话累计 token 消耗与当前上下文占用的缓存。
    *
@@ -262,7 +266,7 @@ export class WebSession {
     this.sessionDir = options.sessionDir;
     this.proxy = options.proxy;
     this.timeoutMs = options.timeoutMs;
-    this.proxyLabel = options.proxy.summary;
+    this.accountQueue = options.accountQueue;
   }
 
   /** 绑定扩展交互、订阅事件并载入当前会话的历史。 */
@@ -308,6 +312,10 @@ export class WebSession {
 
   notifyChannelChange(): void {
     if (!this.channel.canConfirm() && this.pending) this.settlePending(false);
+    if (!this.channel.canLogin()) {
+      this.loginDraft = null;
+      this.cancelLogin();
+    }
     if (!this.channel.canLogin() && this.login) {
       const request = this.login;
       this.login = null;
@@ -319,6 +327,26 @@ export class WebSession {
   snapshot(): ChatStateView {
     return { ...this.scalars(), items: [...this.items] };
   }
+
+  get id(): string { return this.runtime.session.sessionId; }
+  get file(): string | undefined { return this.runtime.session.sessionFile; }
+
+  /** 列表摘要不复制正在增长的会话正文。 */
+  summary(): SessionOptionView {
+    const session = this.runtime.session;
+    const firstUser = this.items.find(item => item.kind === 'user');
+    return {
+      id: this.id, path: this.file ?? '', name: sessionDisplayName(session.sessionName,
+        firstUser?.kind === 'user' ? firstUser.text : ''),
+      modified: new Date(this.startedAt || session.sessionManager.getLeafEntry()?.timestamp
+        || session.sessionManager.getHeader()?.timestamp || Date.now()).toISOString(),
+      messageCount: session.messages.filter(message => message.role === 'user' || message.role === 'assistant').length,
+      current: false, busy: this.busy, awaitingConfirmation: this.pending !== null,
+      awaitingLogin: this.login !== null || this.loginBusy,
+    };
+  }
+
+  notifySettingsChange(): void { this.emit(); }
 
   private scalars(): ChatScalarsView {
     const session = this.runtime.session;
@@ -336,7 +364,7 @@ export class WebSession {
       loginText: this.loginText,
       loginState: this.loginState,
       loginUsername: this.loginUsername,
-      proxyLabel: this.proxyLabel,
+      proxyLabel: this.proxy.summary,
       proxyMode: this.proxy.mode,
       proxyAddress: this.proxy.addresses,
       tokenUsage: this.tokenUsage,
@@ -439,8 +467,7 @@ export class WebSession {
   /**
    * 会话切换后按当前分支的有效上下文重建条目，浏览器不需要理解 Pi 的存储格式。
    *
-   * 条目编号保持全局递增：切换会话后首条编号必然变化，服务端据此判定需要
-   * 整体下发，浏览器不会把两个会话的条目拼在一起。
+   * 条目编号在本运行时内递增；服务端按会话 ID 判定切换并整体下发。
    */
   private rebuild(): void {
     this.items = [];
@@ -540,7 +567,8 @@ export class WebSession {
       case "tool_execution_end": {
         const item = this.activities.get(event.toolCallId);
         if (item?.kind === "activity") {
-          item.state = event.isError ? "error" : "ok";
+          const value = (event.result as { details?: { value?: { state?: string } } })?.details?.value;
+          item.state = event.isError || value?.state === "failed" || value?.state === "unknown" ? "error" : "ok";
           item.detail = resultDetail(event.result);
           // 原地更新必须递增版本，否则增量帧不会再下发这一条，界面会停在「进行中」。
           item.version++;
@@ -603,7 +631,9 @@ export class WebSession {
   requestConfirmation(
     preview: string,
     signal: AbortSignal | undefined,
+    options: WriteConfirmOptions = {},
   ): Promise<boolean> {
+    if (!this.channel.canConfirm()) throw new AppError("AUTHORIZATION_REQUIRED", "没有已连接的Web终端，未提交修改。");
     if (this.pending)
       throw new AppError(
         "CONFIRMATION_PENDING",
@@ -612,10 +642,11 @@ export class WebSession {
     const id = randomUUID();
     const view: ConfirmationView = {
       id,
-      title: "Bangumi 修改预览",
+      title: options.title ?? "操作授权",
+      confirmLabel: options.confirmLabel ?? "确认授权",
       preview,
       state: "pending",
-      hint: "确认后才会提交；提交前会重新核对账户与网站现状。",
+      hint: "授权仅用于本次列出的操作。",
     };
     const item = this.push({
       id: this.nextItemId++,
@@ -631,7 +662,7 @@ export class WebSession {
         if (item.kind === "confirmation") item.version++;
         this.pushNotice(
           accepted
-            ? "已确认，正在提交并独立回读。"
+            ? "已授权，正在执行本次操作。"
             : "已取消本次修改，未提交。",
         );
         this.emit();
@@ -727,6 +758,7 @@ export class WebSession {
   private finishLogin(
     credentials: { email: string; password: string } | undefined,
   ): void {
+    if (credentials === undefined) this.loginDraft = null;
     this.login?.settle(credentials);
   }
 
@@ -752,6 +784,7 @@ export class WebSession {
    * agent 轮次，只在 `agent_settled` 里刷新就永远等不到。
    */
   async startLogin(email: string, password: string): Promise<void> {
+    if (!this.channel.canLogin()) throw new AppError("BGM_LOGIN_UI_REQUIRED", "登录需要已连接的Web终端。");
     if (this.loginBusy)
       throw new AppError("LOGIN_PENDING", "已有一次登录正在进行。");
     const controller = new AbortController();
@@ -760,7 +793,7 @@ export class WebSession {
     this.loginStatus = "正在准备登录…";
     this.emit();
     try {
-      await login(this.store, {
+      const performLogin = () => login(this.store, {
         signal: controller.signal,
         // 取当前线路：运行中换过代理后，登录也跟着走新线路。
         proxy: this.proxy.current,
@@ -771,9 +804,13 @@ export class WebSession {
           this.emit();
         },
       });
+      if (this.accountQueue) await this.accountQueue.run(performLogin, controller.signal);
+      else await performLogin();
       this.loginStatus = "登录成功，正在保存本机会话…";
       await this.refreshLogin();
     } finally {
+      email = "";
+      password = "";
       this.loginAbort = null;
       this.loginBusy = false;
       this.loginStatus = "";
@@ -791,7 +828,8 @@ export class WebSession {
    * 状态；结果只反映在登录元数据里，不产生会话条目。
    */
   async logout(): Promise<void> {
-    await this.store.clear();
+    if (this.accountQueue) await this.accountQueue.run(() => this.store.clear());
+    else await this.store.clear();
     await this.refreshLogin();
   }
 
@@ -890,24 +928,6 @@ export class WebSession {
     this.emit();
   }
 
-  async newSession(): Promise<void> {
-    await this.runtime.newSession();
-    this.emit();
-  }
-
-  async resumeSession(path: string): Promise<void> {
-    // 浏览器只能恢复本会话目录里的会话：路径直接来自请求体，不能让它指向任意文件。
-    const root = resolve(this.sessionDir);
-    const target = resolve(path);
-    if (target !== root && !target.startsWith(root + sep))
-      throw new AppError(
-        "INVALID_INPUT",
-        "只能恢复本工作目录会话列表中的会话。",
-      );
-    await this.runtime.switchSession(target);
-    this.emit();
-  }
-
   /** 登录状态只来自本应用保存的会话元数据；不代表在线核实结果。 */
   async refreshLogin(): Promise<void> {
     try {
@@ -946,11 +966,16 @@ export class WebSession {
     const sessions: SessionOptionView[] = infos.map((info) => ({
       id: info.id,
       path: info.path,
-      name: info.name ?? "",
+      name: sessionDisplayName(info.name, info.firstMessage),
       modified: info.modified.toISOString(),
       messageCount: info.messageCount,
       current: sessionFile !== undefined && info.path === sessionFile,
     }));
+    // 首条消息尚未落盘时也展示当前会话；命名事件随后驱动浏览器刷新列表。
+    if (sessionFile && !sessions.some(info => info.current)) {
+      sessions.unshift({ id: session.sessionId, path: sessionFile, name: sessionDisplayName(session.sessionName, ''),
+        modified: new Date().toISOString(), messageCount: 0, current: true });
+    }
     const commands: CommandOptionView[] = session.extensionRunner
       .getRegisteredCommands()
       .map((command) => ({
@@ -958,6 +983,9 @@ export class WebSession {
         description: command.description ?? "",
         source: "extension",
       }));
+    for (const skill of this.runtime.services.resourceLoader.getSkills().skills) {
+      commands.push({ name: `skill:${skill.name}`, description: skill.description, source: "skill" });
+    }
     // 可填入密钥的提供方：来自 Pi 自己的模型目录与 models.json 覆盖。
     const modelRuntime = session.modelRuntime;
     const providers: ProviderOptionView[] = modelRuntime
@@ -994,7 +1022,7 @@ export class WebSession {
   async setCredential(
     provider: string,
     key: string,
-    persist: boolean,
+    persist: boolean = false,
   ): Promise<void> {
     const modelRuntime = this.runtime.session.modelRuntime;
     if (!modelRuntime.getProviders().some((candidate) => candidate.id === provider)) {
@@ -1014,7 +1042,7 @@ export class WebSession {
         );
       }
       // 落盘后撤掉本次运行的临时覆盖，否则凭据来源会一直显示成「本次运行已填入」。
-      modelRuntime.removeRuntimeApiKey(provider);
+      await modelRuntime.removeRuntimeApiKey(provider);
     } else {
       await modelRuntime.setRuntimeApiKey(provider, key);
     }
@@ -1078,12 +1106,13 @@ export class WebSession {
         : mode === "manual" ? policyFor(address, "config")
           : await discoverProxy();
     await this.proxy.set(policy, mode);
-    this.proxyLabel = this.proxy.summary;
-    this.pushNotice(`网络线路已切换为${this.proxyLabel}，仅本次运行生效。`);
+    this.pushNotice(`网络线路已切换为${this.proxy.summary}，仅本次运行生效。`);
     this.emit();
   }
 
   async dispose(): Promise<void> {
+    this.cancelLogin();
+    this.loginDraft = null;
     this.unsubscribe?.();
     this.unsubscribe = undefined;
     // 摘掉换会话钩子，避免运行结束后仍指向已释放的会话。

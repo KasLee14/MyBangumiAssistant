@@ -1,10 +1,10 @@
-import { createStore } from 'redux';
-import { INITIAL_ROOT_STATE, rootReducer } from './reducers';
-import { INITIAL_UI_STATE } from './reducers/ui';
+import { createStore } from "redux";
+import { INITIAL_ROOT_STATE, rootReducer } from "./reducers";
+import { INITIAL_UI_STATE, readStoredVariant } from "./reducers/ui";
 
 /** 首屏即按窗口宽度决定侧栏形态，避免先展开再收起的一次闪动。 */
 function initialCollapsed(): boolean {
-  return typeof window === 'undefined' ? false : window.innerWidth <= 1024;
+  return typeof window === "undefined" ? false : window.innerWidth <= 1024;
 }
 
 /**
@@ -22,6 +22,7 @@ export const store = createStore(rootReducer, {
 export type AppStore = typeof store;
 export type AppDispatch = typeof store.dispatch;
 
-export type { PendingEcho } from './reducers/stream';
-export type { SettingsPane } from './reducers/ui';
-export type { RootState } from './reducers';
+export type { PendingEcho } from "./reducers/stream";
+export type { SettingsPane } from "./reducers/ui";
+export type { UiVariant } from "./reducers/ui";
+export type { RootState } from "./reducers";

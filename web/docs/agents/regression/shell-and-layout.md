@@ -111,6 +111,8 @@ const chip = document.querySelector('.appHeaderMeta .appChip');
 
 **步骤**：在空会话与至少一轮对话两种状态下，逐项核对下列节点**存在且层级正确**。
 
+首屏阶段 `.scrollBody` 直接承载 `.hero`；下表的 `.scroll > .column > .flowItem` 只在活动阶段出现，不能据此判定空会话首屏失败。
+
 | 选择器 | 层级/关系 | 谁依赖 |
 |---|---|---|
 | `.appFrame` | 最外层 | 外壳网格（`data-sidebar`） |

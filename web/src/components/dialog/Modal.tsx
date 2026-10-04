@@ -23,6 +23,8 @@ interface ModalProps {
  * （`AnimatePresence`）驱动，因此关闭时也会先播完再卸载。
  */
 export function Modal({ title, eyebrow, wide = false, onClose, children, footer }: ModalProps): ReactNode {
+  const variant = useAppSelector(selectVariant);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;

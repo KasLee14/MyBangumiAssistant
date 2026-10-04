@@ -1,6 +1,6 @@
 import type { ExtensionContext } from '@earendil-works/pi-coding-agent';
 import { createLoginPrompt } from './login/prompt.js';
-import { confirmWrite } from './mcp/confirm.js';
+import { confirmWrite, type WriteConfirmOptions } from './mcp/confirm.js';
 
 export type NoticeType = 'info' | 'warning' | 'error';
 
@@ -16,9 +16,9 @@ export type NoticeType = 'info' | 'warning' | 'error';
  * 连接时必须为假，避免把待确认的写入变成无人应答的挂起。
  */
 export interface InteractionChannel {
-  canConfirm(): boolean;
-  confirm(ctx: ExtensionContext, preview: string, signal: AbortSignal | undefined): Promise<boolean>;
-  canLogin(): boolean;
+  canConfirm(ctx: ExtensionContext): boolean;
+  confirm(ctx: ExtensionContext, preview: string, signal: AbortSignal | undefined, options?: WriteConfirmOptions): Promise<boolean>;
+  canLogin(ctx: ExtensionContext): boolean;
   login(ctx: ExtensionContext, kind: 'email' | 'password', signal: AbortSignal): Promise<string>;
   notify(ctx: ExtensionContext, message: string, type: NoticeType): void;
 }
@@ -26,10 +26,10 @@ export interface InteractionChannel {
 /** 本地 Pi 交互终端的通道：沿用原有预览组件与隐藏输入组件。 */
 export function createTerminalChannel(): InteractionChannel {
   return {
-    // 这个通道只在交互终端里创建，因此具备完整预览与隐藏输入能力。
-    canConfirm: () => true,
-    confirm: (ctx, preview, signal) => confirmWrite(ctx, preview, signal),
-    canLogin: () => true,
+    // 默认通道也用于print/RPC；这些入口即使单项免弹窗也不能取得写授权。
+    canConfirm: ctx => ctx.mode === 'tui' && ctx.hasUI,
+    confirm: (ctx, preview, signal, options) => confirmWrite(ctx, preview, signal, options),
+    canLogin: ctx => ctx.mode === 'tui' && ctx.hasUI,
     login: (ctx, kind, signal) => createLoginPrompt(ctx)(kind, signal),
     notify: (ctx, message, type) => ctx.ui.notify(message, type),
   };

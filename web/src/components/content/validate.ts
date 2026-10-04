@@ -393,5 +393,3 @@ export function validateTranscriptItem(raw: unknown): ItemValidation {
 
   return bag.issues.length === 0 ? { status: 'ok' } : { status: 'degraded', kind, issues: bag.issues };
 }
-
-

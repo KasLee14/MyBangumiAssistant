@@ -92,6 +92,8 @@ composer={<ComposerSeat />}
 
 同时注意：接管卡片替换的是 `.appSeat` **内部**的内容，容器本身留在原地。原因见 `ComposerSeat` 的注释——容器被卸载重建会让 textarea 丢失焦点与 IME 组合态。
 
+`ComposerSlot` 在内部读取 `stream.sessionId`，默认输入卡使用该 ID 作为 key；页面不再管理输入卡重建。会话切换时清理组件私有状态，`ui.drafts` 中的各会话草稿保留。Esc 在 `ui.switching` 期间不应答也不停止任务。
+
 ## 常见改动场景
 
 | 想做的事 | 改哪里 |

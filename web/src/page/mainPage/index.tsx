@@ -10,7 +10,7 @@ import { Shell } from './Shell';
 /**
  * 主界面薄壳：四个生命周期订阅 + 外壳装配。
  *
- * 四个订阅各管一件事，且都只在主界面挂载时生效：
+ * 四个订阅各管一件事，且都只在主界面挂载时生效（与新增 v2 之前完全一致）：
  * - `useStreamSubscription` 建立宿主事件流；
  * - `useCatalogSync` 在首屏与会话切换后重取目录；
  * - `useResponsiveCollapse` 按窗口宽度收放侧栏；

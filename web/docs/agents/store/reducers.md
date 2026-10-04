@@ -49,8 +49,8 @@ export function rootReducer(state: RootState = INITIAL_ROOT_STATE, action: AppAc
 
 ## `stream` 切片（`reducers/stream.ts`）
 
-字段：`ChatScalarsView` 的全部标量（`busy` / `status` / `liveText` / `pending` / `sessionId` …）+ `items` + `connected` + `pendingEcho` + `answering`（前端本地状态，不在协议里）。
-初始值：`INITIAL_STREAM_STATE` = `INITIAL_SCALARS`（首帧前的占位状态，文案与终端启动提示一致）+ 三个空值 + `answering: null`。
+字段：`ChatScalarsView` 的全部标量（`busy` / `status` / `liveText` / `pending` / `sessionId` …）+ `instanceId` + `revision` + `items` + `connected` + `pendingEcho` + `answering`（前端本地状态，不在协议里）。
+初始值：`INITIAL_SCALARS` 加 `instanceId: ''`、`revision: -1`、`items: []`、`connected: false`、`pendingEcho: null`、`answering: null`。
 
 | action | 行为 |
 |---|---|
@@ -65,17 +65,18 @@ export function rootReducer(state: RootState = INITIAL_ROOT_STATE, action: AppAc
 ### 帧合并（核心不变式）
 
 ```ts
-const switched = state.sessionId !== '' && frame.state.sessionId !== state.sessionId;
+if (frame.instanceId === state.instanceId && frame.revision < state.revision) return state;
+const switched = frame.instanceId !== state.instanceId || frame.state.sessionId !== state.sessionId;
 const items = switched || frame.full ? frame.items : mergeItems(state.items, frame.items);
 const answering = state.answering !== null && (switched || frame.state.pending?.id !== state.answering) ? null : state.answering;
-return { ...state, ...frame.state, items, connected: true, pendingEcho, answering };
+return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame.revision, items, connected: true, pendingEcho, answering };
 ```
 
 三条规则，缺一不可：
 
 1. **标量每帧覆盖**（`...frame.state`）；
 2. **条目按 `id` 合并**（`mergeItems`）：宿主不只追加——工具从"进行中"变完成、确认卡给出结论时会带同一个 `id` 与更高 `version` 重发那一条。必须**替换**而不是追加，否则界面同时留下新旧状态、React key 还会重复；
-3. **会话切换整表替换**：`sessionId` 从非空变为另一个值时，丢弃旧条目只接本帧（宿主新建/恢复会话时会重建条目列表，编号继续递增，所以这一帧总是全量）。
+3. **会话切换或宿主重启整表替换**：`sessionId` 或 `instanceId` 改变时，丢弃旧条目只接本帧；各会话条目独立编号。同一宿主实例中低于当前 `revision` 的帧直接忽略，不能恢复旧确认或切回旧会话。
 
 ### 应答在途的撤下条件（`answering`）
 
@@ -98,13 +99,13 @@ return { ...state, ...frame.state, items, connected: true, pendingEcho, answerin
 
 字段：`models`、`sessions`、`providers`、`canPersistCredentials`、`commands`。
 
-只有 `catalog/loaded` 一个 action：把 `CatalogView` 摊平，并把宿主命令与本地命令**合并一次**（`mergeCommands`）后存进 `commands`。
+`catalog/loaded` 把 `CatalogView` 摊平，并把宿主命令与本地命令**合并一次**（`mergeCommands`）后存进 `commands`；`catalog/sessions` 只更新会话目录，供后台任务状态实时显示。
 
 **为什么在这里合并**：合并结果被 `Composer`（补全）、`operations.send`（未登记命令拦截）、`helpText`（`/help` 文案）三处消费，放 reducer 里算一次，三处读到的是同一个稳定引用——放进 selector 会导致每次调用返回新数组，`useSelector` 每帧都判定"变了"。
 
 ## `ui` 切片（`reducers/ui.ts`）
 
-字段：`settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider`。
+字段：`settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider`、`switching`、`drafts`。
 
 | action | 行为 |
 |---|---|
@@ -116,6 +117,9 @@ return { ...state, ...frame.state, items, connected: true, pendingEcho, answerin
 | `ui/collapsedSet` / `ui/collapsedToggled` | 侧栏形态（值未变时返回原 state） |
 | `ui/revealIncremented` | `/details`：递增展开计数 |
 | `ui/credentialProviderSet` | 设置行当前显示的提供方 |
+| `ui/switching` | 会话选择请求在途标记 |
+| `ui/draft` | 更新指定 `sessionId` 的草稿 |
+| `ui/draftRestore` | 发送失败时仅恢复仍为空的原会话草稿，保留用户新输入 |
 
 **`settingsPane` 住在 store**（而不是 `SettingsDialog` 的 `useState`），因为 `/model` 命令需要从组件外部直达"模型选择"行。两级关闭语义（`closePane` vs `closeSettings`）见 [../components/dialog.md](../components/dialog.md)。
 

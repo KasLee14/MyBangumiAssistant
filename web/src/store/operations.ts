@@ -19,6 +19,7 @@ import {
   submitInput,
   submitLoginInput,
   submitProxy,
+  rememberSession,
 } from '../utils/api';
 import { helpText, type CommandHint } from '../utils/commands';
 import {
@@ -35,11 +36,19 @@ import {
   sessionsOpened,
   settingsClosed,
   settingsOpened,
+  frameReceived,
+  switchingSet,
+  variantSet,
 } from './actions';
 import type { AppStore } from './index';
-import type { SettingsPane } from './reducers/ui';
+import { UI_VARIANT_STORAGE_KEY } from './reducers/ui';
+import type { SettingsPane, UiVariant } from './reducers/ui';
 
 const message = (error: unknown): string => (error instanceof Error ? error.message : '请求失败。');
+
+// 不同组件各有动作门面，但目录请求序号必须按同一个store共享。
+const catalogRequests = new WeakMap<AppStore, number>();
+const selectionRequests = new WeakMap<AppStore, number>();
 
 /**
  * 界面可发起的全部动作。
@@ -65,6 +74,8 @@ export interface Actions {
   closeSettings(): void;
   closeSessions(): void;
   toggleSidebar(): void;
+  /** 切换外观版本（v1 / v2）并写入本机偏好；两版共用同一份 store，切换不重取数据。 */
+  setUiVariant(variant: UiVariant): void;
 
   /* 会话内的本地命令与确认 */
   localCommand(command: CommandHint): void;
@@ -102,13 +113,20 @@ export function createActions(store: AppStore): Actions {
   const notifyOnly = (error: unknown): void => { dispatch(noticeSet(message(error))); };
 
   const loadCatalog = async (): Promise<void> => {
-    dispatch(catalogLoaded(await fetchCatalog()));
+    const request = (catalogRequests.get(store) ?? 0) + 1;
+    catalogRequests.set(store, request);
+    const sessionId = state().stream.sessionId;
+    const catalog = await fetchCatalog();
+    if (catalogRequests.get(store) === request && state().stream.sessionId === sessionId) {
+      dispatch(catalogLoaded(catalog));
+    }
   };
 
   /**
    * 提交给宿主。未登记的斜杠命令在这里拦下：输入区不再需要知道命令表。
    */
   const send = (input: string): Promise<void> => {
+    if (state().ui.switching || !state().stream.ready) return Promise.reject(new Error('会话正在切换，请稍后发送。'));
     const value = input.trim();
     if (!value) return Promise.resolve();
     if (value.startsWith('/') && !value.includes('\n')) {
@@ -137,9 +155,23 @@ export function createActions(store: AppStore): Actions {
     return started;
   };
 
-  const newSession = (): Promise<void> => selectSession().catch(notifyFailure);
-  const resumeSession = (session: SessionOptionView): Promise<void> =>
-    selectSession(session.path).catch(notifyFailure);
+  const switchSession = async (session?: SessionOptionView): Promise<void> => {
+    const request = (selectionRequests.get(store) ?? 0) + 1;
+    selectionRequests.set(store, request);
+    dispatch(switchingSet(true));
+    dispatch(settingsClosed());
+    try {
+      const frame = await selectSession(session);
+      dispatch(frameReceived(frame));
+      rememberSession(state().stream.sessionId);
+      await loadCatalog();
+    } catch (error) { notifyFailure(error); }
+    finally {
+      if (selectionRequests.get(store) === request) dispatch(switchingSet(false));
+    }
+  };
+  const newSession = (): Promise<void> => switchSession();
+  const resumeSession = (session: SessionOptionView): Promise<void> => switchSession(session);
 
   const openSettings = async (pane: SettingsPane | null): Promise<void> => {
     // 打开前重取目录，让模型行显示的密钥状态是最新的。
@@ -200,6 +232,16 @@ export function createActions(store: AppStore): Actions {
     closeSettings: () => { dispatch(settingsClosed()); },
     closeSessions: () => { dispatch(sessionsClosed()); },
     toggleSidebar: () => { dispatch(collapsedToggled()); },
+    setUiVariant: variant => {
+      // 只有这一个动作会写外观偏好：reducer 保持纯净，持久化收在动作层，
+      // 与「改全局状态只能落在 store」的约定一致。
+      dispatch(variantSet(variant));
+      try {
+        window.localStorage.setItem(UI_VARIANT_STORAGE_KEY, variant);
+      } catch {
+        // 隐私模式等场景写不进去：本次运行照常切换，刷新后按默认新版初始化。
+      }
+    },
 
     localCommand,
     confirm: id => { answer(id, true); },

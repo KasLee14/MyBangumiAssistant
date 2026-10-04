@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { useActions, useAppSelector } from '../../../store/hooks';
+import { useActions, useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { draftSet, draftRestored } from '../../../store/actions';
 import { selectHeroPhase } from '../../../store/selectors';
 import { matchCommands } from '../../../utils/commands';
 import { StatsDock } from './StatsDock';
@@ -37,6 +38,9 @@ function StopIcon(): ReactNode {
  */
 export function Composer(): ReactNode {
   const actions = useActions();
+  const dispatch = useAppDispatch();
+  const sessionId = useAppSelector(state => state.stream.sessionId);
+  const unavailable = useAppSelector(state => state.ui.switching || !state.stream.ready || !state.stream.connected);
   const busy = useAppSelector(state => state.stream.busy);
   const cancelling = useAppSelector(state => state.stream.cancelling);
   const tokenUsage = useAppSelector(state => state.stream.tokenUsage);
@@ -45,21 +49,16 @@ export function Composer(): ReactNode {
   const problem = useAppSelector(state => state.ui.problem);
   const hero = useAppSelector(selectHeroPhase);
 
-  const [draft, setDraft] = useState('');
+  const draft = useAppSelector(state => state.ui.drafts[sessionId] ?? '');
+  const setDraft = (text: string): void => { dispatch(draftSet(sessionId, text)); };
   const [index, setIndex] = useState(0);
   const [dismissed, setDismissed] = useState('');
   /** 本次提交正在等待宿主确认：用于给出即时反馈并挡住重复提交。 */
   const [sending, setSending] = useState(false);
-  /** 最近一次草稿。失败回滚时用它判断「用户这期间是否又输入了内容」。 */
-  const lastDraft = useRef('');
   const area = useRef<HTMLTextAreaElement>(null);
   const suggestions = useMemo(() => (draft === dismissed ? [] : matchCommands(draft, commands)), [draft, dismissed, commands]);
 
   useEffect(() => { setIndex(0); }, [draft]);
-  // 草稿与「用于回滚判断的最新值」在同一次 effect 里同步，避免两者错位。
-  useEffect(() => {
-    lastDraft.current = draft;
-  }, [draft]);
   useEffect(() => {
     const node = area.current;
     if (!node) return;
@@ -76,7 +75,7 @@ export function Composer(): ReactNode {
 
   const submit = (raw: string): void => {
     const value = raw.trim();
-    if (!value || sending) return;
+    if (!value || sending || unavailable) return;
     if (busy) { actions.notice('本轮尚未结束，草稿已保留；结束后再发送。'); return; }
     // 斜杠输入一律交给宿主；本地命令表只用来决定少数纯前端动作。
     if (value.startsWith('/') && !value.includes('\n')) {
@@ -90,7 +89,7 @@ export function Composer(): ReactNode {
     setDraft('');
     setDismissed('');
     void Promise.resolve(actions.optimisticSend(value))
-      .catch(() => { if (lastDraft.current === '') setDraft(value); })
+      .catch(() => { dispatch(draftRestored(sessionId, value)); })
       .finally(() => setSending(false));
   };
 

@@ -33,10 +33,10 @@
 ## `post` 封装与错误语义
 
 ```ts
-async function post<T>(path: string, body: T): Promise<void>
+async function post<T, R = void>(path: string, body: T): Promise<R>
 ```
 
-- 成功（2xx）：返回 `void`，不解析响应体；
+- 成功（2xx）：解析 JSON，并按调用方要求返回 `R`；会话选择返回完整状态帧；
 - 失败：尝试读 `ApiErrorView`，把 `message` 包成 `Error` 抛出；读不出体时退化成 `请求失败（HTTP <status>）。`。
 
 **授权判定全在宿主**：浏览器不做任何权限判断，只负责发起与呈现。因此这里的错误一律是"宿主拒绝或出错"，前端不据此推断状态。
@@ -54,7 +54,7 @@ async function post<T>(path: string, body: T): Promise<void>
 | `logout()` | `POST /api/logout` | `{}` | 只清本应用保存的 Bangumi 会话 |
 | `selectModel(provider, model)` | `POST /api/model` | `ModelPayload` | 切模型；宿主同时写成本机默认模型 |
 | `selectThinkingLevel(level)` | `POST /api/thinking` | `ThinkingPayload` | 切思考强度；宿主写成本机默认级别 |
-| `selectSession(path?)` | `POST /api/session` | `SessionPayload` | 不传 `path` = 新建；传 = 恢复 |
+| `selectSession(session?)` | `POST /api/session` | `SessionPayload` | 不传 = 新建；传入会话 ID 与可选路径 = 恢复；返回状态帧 |
 | `submitCredential(provider, key, persist)` | `POST /api/credentials` | `CredentialPayload` | `persist: true` 写入本机 `auth.json`，否则只注本次运行 |
 | `clearCredential(provider)` | `POST /api/credentials/clear` | `ClearCredentialPayload` | 只删 `auth.json` 里的条目，环境变量与 `models.json` 不受影响 |
 | `submitProxy(mode, url?)` | `POST /api/proxy` | `ProxyPayload` | `auto` / `direct` / `manual`（manual 才需要 `url`） |
@@ -62,6 +62,8 @@ async function post<T>(path: string, body: T): Promise<void>
 | `openStream(handlers)` | `GET /api/events` | — | SSE 订阅，见下 |
 
 载荷类型全部来自 `bangumi/src/web/protocol.ts`，前端不复制。
+
+每次页面加载生成独立 `clientId`。HTTP 请求带 `x-bgm-client` 与 `x-bgm-session`，SSE 用查询参数 `clientId` 标识标签页；`rememberSession` 只记录已接受状态帧中的会话 ID，避免多标签页与后台任务串会话。
 
 ## `openStream`（SSE）
 

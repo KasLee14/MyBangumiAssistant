@@ -39,6 +39,8 @@ export interface PendingEcho {
 
 /** 会话流状态：宿主下发的全部标量，加上条目、连接标记与本地乐观回显。 */
 export interface StreamState extends ChatScalarsView {
+  instanceId: string;
+  revision: number;
   items: TranscriptItemView[];
   connected: boolean;
   pendingEcho: PendingEcho | null;
@@ -55,6 +57,8 @@ export interface StreamState extends ChatScalarsView {
 
 export const INITIAL_STREAM_STATE: StreamState = {
   ...INITIAL_SCALARS,
+  instanceId: '',
+  revision: -1,
   items: [],
   connected: false,
   pendingEcho: null,
@@ -101,9 +105,10 @@ export function streamReducer(state: StreamState = INITIAL_STREAM_STATE, action:
   switch (action.type) {
     case 'stream/frame': {
       const { frame } = action;
-      // 会话 ID 变了就丢弃旧条目、只接住本帧下发的条目：宿主在新建与恢复会话时会
-      // 重建条目列表，编号继续递增，因此这一帧总是整体替换。
-      const switched = state.sessionId !== '' && frame.state.sessionId !== state.sessionId;
+      // HTTP 切换回执和 SSE 分属连接，旧帧可能迟到；只接收最新宿主状态。
+      if (frame.instanceId === state.instanceId && frame.revision < state.revision) return state;
+      // 各会话独立编号；换会话或重启宿主时必须整体替换。
+      const switched = frame.instanceId !== state.instanceId || frame.state.sessionId !== state.sessionId;
       const items = switched || frame.full ? frame.items : mergeItems(state.items, frame.items);
       // 乐观回显：宿主确认（真实 user 条目出现）或换到别的会话后撤下。
       const echo = state.pendingEcho;
@@ -118,7 +123,7 @@ export function streamReducer(state: StreamState = INITIAL_STREAM_STATE, action:
         && (switched || frame.state.pending?.id !== state.answering)
         ? null
         : state.answering;
-      return { ...state, ...frame.state, items, connected: true, pendingEcho, answering };
+      return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame.revision, items, connected: true, pendingEcho, answering };
     }
     case 'stream/fatal':
       return { ...state, status: action.message, connected: false, answering: null };

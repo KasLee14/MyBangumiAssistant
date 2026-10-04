@@ -86,6 +86,8 @@ const doSomething = async (arg: string): Promise<void> => {
 
 ## 规则小结
 
+并行会话的选择由 `switchSession` 统一编排：设置 `ui.switching`，接收 HTTP 状态帧后经 reducer 合并，再记住实际会话并重取目录。切换不取消旧任务。请求序号按 store 共享，迟到目录请求不会覆盖新目录；只有最后一次选择请求能清理切换标记。确认请求仍使用 `answerStarted/answerSettled`，旧请求完成只清理自己的确认 ID。
+
 - 组件 → `useActions()` → `operations` → `utils/api`，单向；
 - action creator 保持纯数据，任何判断都别塞进去；
 - 状态写入只经 `dispatch(action)`，不直接改对象；

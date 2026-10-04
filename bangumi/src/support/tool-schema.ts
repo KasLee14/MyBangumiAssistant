@@ -42,7 +42,7 @@ export function inputIssue(schema: JsonSchema, path: string, rule: string): Inpu
     minProperties: '至少提供一个筛选条件', pattern: '格式不符合声明的要求',
     rangeOrder: '下界不得大于上界', date: '必须是有效的YYYY-MM-DD日期',
     blank: '文本不能全为空白', control: '文本不能含控制字符', safeInteger: '必须是安全整数',
-    anyOf: '至少指定一个允许的修改字段', oneOf: '必须符合一种已声明的媒体分支',
+    anyOf: '至少指定一个允许的修改字段', oneOf: '必须符合一种已声明的参数分支',
   };
   if (!Object.hasOwn(hints, rule)) return null;
   const allowed = rule === 'enum' ? node.enum as unknown[] : rule === 'const' ? [node.const]
@@ -56,7 +56,7 @@ export function selectedSchema(schema: JsonSchema, value: unknown): JsonSchema {
   return branches?.find(branch => {
     const media = (branch.properties as Record<string, JsonSchema> | undefined)?.subject_type;
     return media && Object.hasOwn(media, 'const') && media.const === type;
-  }) ?? schema;
+  }) ?? branches?.find(branch => compileSchema(branch)(value)) ?? schema;
 }
 export function validateSchema(schema: JsonSchema, value: unknown): void {
   const active = selectedSchema(schema, value);

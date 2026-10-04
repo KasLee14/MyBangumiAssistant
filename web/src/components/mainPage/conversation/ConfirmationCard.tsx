@@ -19,39 +19,39 @@ interface ConfirmationCardProps {
 
 /* 状态标签由宿主给出的 state 决定；文案是浏览器侧的呈现，不参与判定。 */
 const STATE_LABEL: Record<ConfirmationView['state'], string> = {
-  pending: '待确认',
-  accepted: '已确认',
-  rejected: '已拒绝',
+  pending: '待授权',
+  accepted: '已授权',
+  rejected: '已取消',
   expired: '已过期',
 };
 
 /**
  * 写入预览确认卡。
  *
- * preview 是宿主生成的完整预览文本：按等宽、保留换行地整体呈现，
- * 浏览器不做截断也不改写内容，只有 pending 才给动作按钮。
+ * preview 是宿主生成的操作说明和完整范围：按普通正文、保留换行地整体呈现，
+ * 浏览器不做截断也不改写内容；待授权只在输入区呈现，历史模式只呈现处理结果。
  *
  * 按钮的禁用只跟 `answering`（本条应答在途）有关，与「本轮是否进行中」无关：
  * 确认本来就是在一轮的中途发生的，用 `busy` 会让按钮恒为禁用。
  */
 export function ConfirmationCard({ confirmation, answering, showActions, onConfirm, onReject }: ConfirmationCardProps): ReactNode {
   const pending = confirmation.state === 'pending';
+  if (pending && !showActions) return null;
   const actions = showActions && pending;
   return (
-    <section className="planCard" data-state={confirmation.state} aria-label="写入确认">
+    <section className="planCard" data-state={confirmation.state} aria-label="操作授权">
       <header className="planStrip">
+        <span className="planTitle">{confirmation.title}</span>
         <span>{STATE_LABEL[confirmation.state]}</span>
-        <span className="spacer">{confirmation.title}</span>
       </header>
       <div className="planBody">
-        <pre className="previewText">{confirmation.preview}</pre>
+        <div className="planPreview">{confirmation.preview}</div>
         {confirmation.hint ? <p className="planNote">{confirmation.hint}</p> : null}
-        {pending && !showActions ? <p className="planNote">可以在输入区确认或取消这次修改。</p> : null}
       </div>
       {actions ? (
         <div className="planActions">
           <button type="button" className="button outline reject" disabled={answering} onClick={() => onReject(confirmation.id)}>取消</button>
-          <button type="button" className="button primary" disabled={answering} onClick={() => onConfirm(confirmation.id)}>确认修改</button>
+          <button type="button" className="button primary" disabled={answering} onClick={() => onConfirm(confirmation.id)}>{confirmation.confirmLabel ?? '确认授权'}</button>
         </div>
       ) : null}
     </section>

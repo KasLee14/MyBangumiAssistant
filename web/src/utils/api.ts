@@ -10,13 +10,23 @@ import type {
  * 所有授权判定仍在宿主：浏览器只负责发起请求与呈现结果；非 2xx 时后端返回
  * ApiErrorView，这里只把 message 抛给调用方展示。
  */
-async function post<T>(path: string, body: T): Promise<void> {
+/** 每次页面加载生成独立身份，复制标签页也不会共享查看对象。 */
+const clientId = crypto.randomUUID();
+let selectedSessionId = '';
+
+export function rememberSession(id: string): void { selectedSessionId = id; }
+
+function headers(): Record<string, string> {
+  return { 'x-bgm-client': clientId, 'x-bgm-session': selectedSessionId };
+}
+
+async function post<T, R = void>(path: string, body: T): Promise<R> {
   const response = await fetch(`./api${path}`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...headers() },
     body: JSON.stringify(body),
   });
-  if (response.ok) return;
+  if (response.ok) return await response.json() as R;
   const info = await response.json().catch(() => null) as ApiErrorView | null;
   throw new Error(info?.message ?? `请求失败（HTTP ${response.status}）。`);
 }
@@ -78,9 +88,10 @@ export function selectThinkingLevel(level: ThinkingPayload['level']): Promise<vo
   return post('/thinking', payload);
 }
 
-export function selectSession(path?: string): Promise<void> {
-  const payload: SessionPayload = path === undefined ? { action: 'new' } : { action: 'resume', path };
-  return post('/session', payload);
+export function selectSession(session?: { id: string; path: string }): Promise<Extract<ServerEvent, { type: 'state' }>> {
+  const payload: SessionPayload = session === undefined ? { action: 'new' }
+    : { action: 'resume', sessionId: session.id, ...(session.path ? { path: session.path } : {}) };
+  return post<SessionPayload, Extract<ServerEvent, { type: 'state' }>>('/session', payload);
 }
 
 /**
@@ -111,7 +122,7 @@ export function submitProxy(mode: ProxyPayload['mode'], url?: string): Promise<v
 }
 
 export async function fetchCatalog(): Promise<CatalogView> {
-  const response = await fetch('./api/catalog', { headers: { accept: 'application/json' } });
+  const response = await fetch('./api/catalog', { headers: { accept: 'application/json', ...headers() } });
   if (!response.ok) throw new Error(`无法读取模型、会话或命令列表（HTTP ${response.status}）。`);
   return await response.json() as CatalogView;
 }
@@ -123,7 +134,7 @@ export interface StreamHandlers {
 
 /** 会话状态事件流；帧走默认事件名，EventSource 自带重连，宿主重启后会自动接回。 */
 export function openStream(handlers: StreamHandlers): () => void {
-  const source = new EventSource('./api/events');
+  const source = new EventSource(`./api/events?clientId=${encodeURIComponent(clientId)}`);
   source.onopen = () => handlers.onStatus(true);
   source.onerror = () => handlers.onStatus(false);
   source.onmessage = event => {

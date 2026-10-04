@@ -1029,6 +1029,61 @@ body {
   border-top: 1px dotted var(--bgm-dotted);
 }
 
+/* ---------------------------------------------------------------- 外观切换（两版共用控件） */
+
+/*
+ * 这是 v1 与 v2 顶栏里唯一共用的控件：基础形态写在这里（v1 侧），v2 侧由
+ * styles/v2/shell.css 覆写底色与阴影。类名前缀 `uiVariant` 归本文件。
+ *
+ * 滑动块用 padding box 宽度的 50% 定位，因此两个选项的位置不需要各写一个常量；
+ * `translateX(100%)` 正好等于「一个选项的宽度」，落位与第二个选项严格对齐。
+ */
+.uiVariantToggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 2px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.uiVariantPill {
+  position: absolute;
+  inset: 2px auto 2px 2px;
+  width: calc(50% - 2px);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--bgm-primary-soft);
+  transition: transform .2s ease-out;
+}
+
+.uiVariantToggle[data-variant='v2'] .uiVariantPill {
+  transform: translateX(100%);
+}
+
+.uiVariantOption {
+  position: relative;
+  z-index: 1;
+  min-width: 44px;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: var(--dsw-radius-xl);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: 500 12px/16px var(--dsw-font-family);
+  cursor: pointer;
+}
+
+.uiVariantOption[data-active='true'] {
+  color: var(--bgm-primary-text);
+}
+
+.uiVariantOption:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
 /* ---------------------------------------------------------------- 响应式 */
 
 @media (max-width: 720px) {

@@ -27,7 +27,12 @@
 
 ## 这是什么
 
-**文档化的回归用例**，覆盖 web 交互终端的主链路。它不是自动化测试（项目没有测试运行器），而是"照着做就能判定通过/失败"的清单，人或 AI 都可以执行。
+**文档化的回归用例**，覆盖 web 交互终端的主链路，是"照着做就能判定通过/失败"的清单。项目另有 Node 内置测试：在 `bangumi/` 先执行 `npm run build`，再执行 `npm run test:web`；授权文案和固定确认政策使用 `node --test test/write-preview.test.mjs test/confirmation-policy.test.mjs`。离线自动测试与真实模型、真实登录的验收应分别记录。
+
+`test/web-ui-variants.test.mjs` 在真实浏览器中加载构建产物，使用本地离线 HTTP/SSE 验证
+授权卡去重、应答状态、外观切换与会话草稿。默认查找 Windows Edge / Chrome；也可用
+`BGM_WEB_TEST_BROWSER` 指定可执行文件，缺少浏览器时明确跳过。可单独运行
+`node --test test/web-ui-variants.test.mjs`；`BGM_WEB_TEST_SCREENSHOT_DIR` 可指定截图目录。
 
 设计目标有两个：
 

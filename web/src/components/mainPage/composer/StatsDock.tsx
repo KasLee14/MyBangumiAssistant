@@ -21,6 +21,14 @@ import { CountUp } from '../../motion/vendor/CountUp';
 interface StatsDockProps {
   tokenUsage: TokenUsageView | null;
   contextUsage: ContextUsageView | null;
+  /**
+   * 精确读数是否改用滚动数字（ReactBits 的 `CountUp`）呈现。
+   *
+   * 缺省 `false`：v1 渲染静态文本，DOM 与引入 v2 之前完全一致。
+   * 只有**精确数字**参与滚动——胶囊上那个 `103K tok` 是缩写读数，滚动一个缩写没有
+   * 意义（中途会经过 `57K` 这类并不对应任何真实值的中间态）。
+   */
+  countUp?: boolean;
 }
 
 /**
@@ -194,7 +202,7 @@ function Row({ label, value }: { label: string; value: string }): ReactNode {
  * 提示词侧的三个桶（未缓存输入、缓存读取、缓存写入）都会计费，因此主数字必须
  * 把它们全算进去；`total` 只在明细面板里作标题右侧的精确值出现。
  */
-function UsagePill({ usage }: { usage: TokenUsageView }): ReactNode {
+function UsagePill({ usage, countUp }: { usage: TokenUsageView; countUp: boolean }): ReactNode {
   const { open, rootRef, panelRef, position, toggle } = usePopup(true);
   const billed = usage.input + usage.cacheRead + usage.cacheWrite;
   const total = billed + usage.output;
@@ -253,7 +261,7 @@ function UsagePill({ usage }: { usage: TokenUsageView }): ReactNode {
  * 这个数与会话累计消耗是两回事——压缩后它会掉下来，而累计消耗只增不减，因此
  * 面板里明确写「上下文已用」而不是「已用」。
  */
-function ContextRing({ usage }: { usage: ContextUsageView }): ReactNode {
+function ContextRing({ usage, countUp }: { usage: ContextUsageView; countUp: boolean }): ReactNode {
   const { open, rootRef, panelRef, position, toggle } = usePopup(true);
   // 估算值可能略微超过窗口（Pi 的 percent 不做上限），读数与图形都按 100 封顶，
   // 否则会出现「环画满了、数字写 103%」这种自相矛盾的画面。
@@ -307,13 +315,13 @@ function ContextRing({ usage }: { usage: ContextUsageView }): ReactNode {
   );
 }
 
-export function StatsDock({ tokenUsage, contextUsage }: StatsDockProps): ReactNode {
+export function StatsDock({ tokenUsage, contextUsage, countUp = false }: StatsDockProps): ReactNode {
   // 整条底栏没有任何可展示的读数时直接不渲染，避免输入卡下面留一条空行。
   if (tokenUsage === null && contextUsage === null) return null;
   return (
     <div className="statsDock" data-composer-stats>
-      {tokenUsage !== null ? <UsagePill usage={tokenUsage} /> : null}
-      {contextUsage !== null ? <ContextRing usage={contextUsage} /> : null}
+      {tokenUsage !== null ? <UsagePill usage={tokenUsage} countUp={countUp} /> : null}
+      {contextUsage !== null ? <ContextRing usage={contextUsage} countUp={countUp} /> : null}
     </div>
   );
 }

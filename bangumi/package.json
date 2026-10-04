@@ -12,12 +12,14 @@
     "bangumi-agent": "dist/src/main.js"
   },
   "scripts": {
+    "test:mcp": "tsc -p tsconfig.json && node scripts/copy-strategy-skills.mjs && node --test test/*.test.mjs",
+    "test:web": "node --test test/web-*.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p ../web/tsconfig.json --noEmit",
-    "build": "npm run build:web && tsc -p tsconfig.json",
+    "build": "npm run build:web && tsc -p tsconfig.json && node scripts/copy-strategy-skills.mjs",
     "build:web": "vite build",
     "dev:web": "node dev-web.mjs",
-    "start": "node dist/src/main.js",
-    "web": "node dist/src/main.js web"
+    "web": "node dist/src/main.js web",
+    "start": "node dist/src/main.js"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "file:../pi/packages/agent",
@@ -26,8 +28,8 @@
     "@earendil-works/pi-tui": "file:../pi/packages/tui",
     "@modelcontextprotocol/sdk": "1.31.0",
     "ajv": "8.20.0",
-    "gsap": "^3.15.0",
-    "motion": "^14.0.0",
+    "gsap": "3.15.0",
+    "motion": "14.0.0",
     "playwright-core": "1.63.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
@@ -37,10 +39,10 @@
   },
   "devDependencies": {
     "@types/node": "24.19.0",
+    "typescript": "5.9.3",
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
     "@vitejs/plugin-react": "6.1.1",
-    "typescript": "5.9.3",
     "vite": "8.3.2"
   }
 }

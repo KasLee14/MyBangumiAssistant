@@ -75,7 +75,7 @@
 | 样式 | 手写 CSS + 设计令牌 | 无 CSS 框架、无 CSS-in-JS、无 CSS Modules；共 7 个文件在 `web/src/styles/`（见 §3） |
 | 动效 | motion 14 + gsap 3.15 | ReactBits 组件的原生依赖；两处登记见本表末尾 |
 | 路由 | 无 | 单页应用；查询参数不参与分流 |
-| 测试 | 无测试运行器 | 回归靠 `docs/agents/regression/` 的文档化用例 + `npm run typecheck` |
+| 测试 | Node 内置 `node:test` | `bangumi/test/web-*.test.mjs` 自动回归；浏览器用例见 `docs/agents/regression/` |
 
 依赖**只装在** `bangumi/node_modules`：`web/` 没有自己的 `package.json`，而 Node/Vite/tsc 都从 importer 逐级向上找 `node_modules`、不会拐进兄弟目录。因此新增任何第三方包，都要在 `bangumi/vite.config.ts` 的 `resolve.alias` 与 `web/tsconfig.json` 的 `paths` 各注册一次——现有 `react`、`react-dom`、`redux`、`react-redux`、`motion`、`motion/react`、`gsap`、`gsap/ScrollTrigger` 就是这么接的。
 
@@ -90,7 +90,8 @@
 | `npm run dev:web` | 本地调试：一条命令起宿主 + Vite dev server（**HMR**，`/api` 反代给宿主）。改 `web/src` 立即热更新 |
 | `npm run build:web` | 只重建前端产物到 `bangumi/dist/web` |
 | `npm run typecheck` | 宿主与前端一起类型检查（`tsc -p tsconfig.json && tsc -p ../web/tsconfig.json`） |
-| `npm run build` | `build:web` + 宿主 tsc |
+| `npm run build` | `build:web` + 宿主 tsc + 复制策略 Skills |
+| `npm run test:web` | Web 状态、并行会话、HTTP/SSE 与账户队列的离线自动测试（先 build） |
 | `npm run web` | 起宿主 Web 终端（用构建产物，无 HMR）；`--no-open` 只打印带一次性令牌的地址 |
 
 `dev:web` 由 `bangumi/dev-web.mjs` 实现：自动挑端口（宿主默认 8787、dev server 默认 5173，被占用则顺延）、捕获宿主启动时打印的一次性令牌并注入 Vite，因此浏览器侧仍是同源相对路径 `./api/...`，**不需要 CORS**。相关环境变量：`BGM_WEB_PORT`、`BGM_DEV_PORT`、`BGM_WEB_TOKEN`。
