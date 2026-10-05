@@ -53,7 +53,7 @@ export async function accountRead(transport: McpTransport, path: string, options
     }
     throw new AppError('INCOMPLETE_DATA', '账户关联分页超过完整读取上限。');
   };
-  context.source = 'p1'; context.nsfwApplied = true;
+  context.source = 'p1'; context.nsfwApplied = context.nsfw.allowed === true && context.nsfw.preference !== false;
   const search = /^\/v0\/search\/(subjects|characters|persons)$/.exec(path);
   if (search) {
     if (search[1] !== 'subjects') { const page = object(await request(`/p1/search/${search[1]}`, options)); return { ...page, data: (page.data as unknown[]).map(normalizeEntity) }; }
@@ -68,7 +68,7 @@ export async function accountRead(transport: McpTransport, path: string, options
     const raw = await request('/p1/calendar'); if (Array.isArray(raw)) return raw;
     const days = object(raw); const en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const cn = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
-    return Array.from({ length: 7 }, (_, i) => { const rows = days[String(i + 1)];
+    return Array.from({ length: 7 }, (_, i) => { const rows = days[String(i + 1)] ?? [];
       if (!Array.isArray(rows)) throw new AppError('INVALID_RESPONSE', '账户日历缺少完整星期数据。');
       return { weekday: { id: i + 1, en: en[i], cn: cn[i] }, items: rows.map(row => normalizeSubject(object(row).subject)) };
     });

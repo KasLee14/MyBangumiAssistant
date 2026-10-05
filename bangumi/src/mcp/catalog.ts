@@ -27,7 +27,7 @@ const relationPage = { ...page, limit: int(1, 100, { default: 20 }) };
 const username = text(100, 1, { description: '本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。', pattern: '^(?:-|[A-Za-z0-9_]+)$' });
 const image = enumeration(['large', 'medium', 'small', 'grid'], 'string', { default: 'large' });
 const own = { ...boolean, description: '需要本人私有目录或收藏现状时设 true，使用本应用账户会话。', default: false };
-const nsfwScope = enumeration(['account', 'exclude'], 'string', { description: 'account默认按已核实账户NSFW权限查询；exclude仅在用户明确排除R18时提供。上游不能执行完整账户条件时明确报错，不能为继续查询擅自排除R18。' });
+const nsfwScope = enumeration(['account', 'exclude'], 'string', { description: '省略或exclude优先公共v0/SFW；account明确补充账户可见NSFW。缺少权限时可继续公共SFW并说明覆盖缺口，不能将有限结果称为全站完整。' });
 const definitions: McpToolDefinition[] = [];
 function tool(name: string, description: string, properties: Record<string, Schema> = {}, required: string[] = [], effect: 'read' | 'write' = 'read', access: 'public' | 'account' = 'public'): void {
   definitions.push({ name, description, inputSchema: { type: 'object', properties, required, additionalProperties: false }, effect, access });
@@ -40,7 +40,7 @@ const tags: Schema = { type: 'array', minItems: 1, maxItems: 10, uniqueItems: tr
   description: '显式标签筛选，多标签为且；不等于标题关键词命中或题材主线证明。' };
 const dateRange: Schema = { type: 'object', properties: { min: text(10, 10, { pattern: '^\\d{4}-\\d{2}-\\d{2}$' }), max: text(10, 10, { pattern: '^\\d{4}-\\d{2}-\\d{2}$' }) },
   minProperties: 1, additionalProperties: false, description: '实际YYYY-MM-DD日期，含上下界；min不能晚于max。' };
-tool('search_subjects', '搜索五类作品。keyword仅作文字检索，题材用filter.tag/meta_tags、评分范围用filter.rating；不同条件为且。默认保留账户NSFW范围；开启时日期、小数评分、评分人数等上游不可靠筛选明确报能力不足。filter.nsfw=exclude仅用于用户明确排除R18。总数为估计，page.complete只表示源内分页耗尽，完整覆盖须结合accessContext.queryCoverage。sort只改变排序。', {
+tool('search_subjects', '搜索五类作品。keyword仅作文字检索，题材用filter.tag/meta_tags、评分范围用filter.rating；不同条件为且。默认公共v0/SFW，明确需要NSFW时filter.nsfw=account补充账户源，日期、小数评分、评分人数等不可靠组合报能力不足。可保留硬条件继续SFW并说明缺口。总数为估计，page.complete只表示源内分页耗尽，完整覆盖须结合accessContext.queryCoverage。sort只改变排序。', {
   keyword: text(300, 0, { description: '文字关键词，不是标签条件；只按结构化filter筛选时填空字符串，不能用拼接题材词替代filter。空关键词必须提供有效filter。' }), subject_type: subjectType,
   filter: { type: 'object', properties: { tag: tags, meta_tags: { ...tags, description: '网站公共标签，多值为且，可用-标签排除。' }, rating: range('number', 0, 10),
     rating_count: range('integer', 0, Number.MAX_SAFE_INTEGER), rank: range('integer', 1, Number.MAX_SAFE_INTEGER), air_date: dateRange, nsfw: nsfwScope },
@@ -54,7 +54,7 @@ const categoryDescriptions: Record<number, string> = { 1: '书籍：0其他、10
   3: '音乐仅0其他。', 4: '游戏：0其他、4001游戏、4002软件、4003扩展包、4005桌游。',
   6: '三次元：0其他、1日剧、2欧美剧、3华语剧、6001电视剧、6002电影、6003演出、6004综艺。' };
 const browseCommon = { sort: enumeration(['date', 'rank'], 'string'), year: int(1800, 2200), month: int(1, 12), nsfw: nsfwScope, ...page };
-tool('browse_subjects', '按媒体、作品形式、日期浏览；cat不是题材标签。上游浏览摘要遗漏R18，账户开启NSFW时默认明确报能力不足；nsfw=exclude仅用于用户明确排除R18。返回覆盖限制见accessContext.queryCoverage。series仅书籍可提供（false也一样），platform仅游戏可提供。标签和评分条件使用search_subjects。', {
+tool('browse_subjects', '按媒体、作品形式、日期浏览；cat不是题材标签。默认公共SFW，浏览源不覆盖R18；显式nsfw=account也保留SFW结果并报告缺口，补充NSFW须选支持账户范围的来源。sort=date日期、rank排名，与搜索排序枚举不同。未指定TV时不自动添加cat=1。返回覆盖限制见accessContext.queryCoverage。series仅书籍可提供（false也一样），platform仅游戏可提供。标签和评分条件使用search_subjects。', {
   subject_type: subjectType, cat: enumeration([...new Set(Object.values(BROWSE_CATEGORIES).flat())]),
   series: { ...boolean, description: '仅书籍；其他媒体必须省略，包括false。' }, platform: text(100, 1, { description: '仅游戏平台；动画TV/OVA用cat，不能传platform。' }), ...browseCommon }, ['subject_type']);
 const browse = definitions.at(-1)!;
@@ -82,9 +82,9 @@ for (const [entity, plural, relationships] of [['character', 'characters', ['sub
 }
 tool('get_user_info', '获取用户公开资料，- 为本应用当前账户。', { username }, ['username']);
 tool('get_user_avatar', '取得用户头像地址。', { username, avatar_type: enumeration(['large', 'medium', 'small'], 'string', { default: 'large' }) }, ['username']);
-tool('get_current_user', '在线核实当前账户及NSFW显示偏好和实际权限；accessContext.nsfw.state为enabled/disabled/unknown，preference与allowed分别报告，不能由条目标签猜测开关。', {}, [], 'read', 'account');
+tool('get_current_user', '在线核实当前账户；check_nsfw默认false，仅用户明确要求检查NSFW状态时设true核实显示偏好和实际权限。accessContext.nsfw.state为enabled/disabled/unknown/not_checked，preference与allowed分别报告，不能由条目标签或404猜测开关。', { check_nsfw: { ...boolean, default: false } }, [], 'read', 'account');
 tool('get_user_collections', '分页读取用户作品收藏；本人支持私密记录，其他账户仅公开记录。明确看过传collection_type=2；开播日期范围或完整整理优先query_user_collections，不能把收藏更新时间当开播日期。', { username, subject_type: subjectType, collection_type: collectionType, ...page }, ['username']);
-tool('query_user_collections', '宿主完整查询指定开播日期范围的收藏，仅返回匹配项和覆盖事实，避免模型遍历原始收藏。看过传collection_type=2；日期含上下界，4月用04-01至04-30。extra_subject_ids只保留用户明确补入的跨月作品，仍须满足媒体和收藏状态。登录时走账户API覆盖本人私密记录；未登录的公开网页按日期倒序越过下界停止，异常结构回退公开API。coverage.complete只针对本次可见范围，NSFW关闭/未知时须说明R18覆盖限制。', {
+tool('query_user_collections', '宿主完整查询指定开播日期范围的收藏，仅返回匹配项和覆盖事实，避免模型遍历原始收藏。看过传collection_type=2、在看/在追传3；日期含上下界，4月用04-01至04-30。extra_subject_ids只保留用户明确补入的跨月作品，仍须满足媒体和收藏状态。本人走账户API覆盖私密记录；第三方公开v0完整分页，不能按收藏更新日期提前停止。coverage.complete只针对本次可见范围，NSFW关闭/未知/未检查时须说明R18覆盖限制。', {
   username, subject_type: subjectType, collection_type: collectionType, air_date: dateRange,
   sort: enumeration(['date_desc', 'date_asc'], 'string', { default: 'date_desc' }),
   extra_subject_ids: { type: 'array', maxItems: 100, uniqueItems: true, items: id, default: [] },
@@ -129,7 +129,7 @@ for (const definition of definitions) {
     if (!subjectOutput && definition.effect === 'read' && !communityOutputSchema(definition.name)) definition.description += '。返回固定白名单资料，列表不附简介或全部图片；详情通过include固定字段组按需读取。个人现状保持完整，公开不可见不表示未收藏。';
     if (definition.effect === 'write') definition.description += '。返回逐目标/阶段提交回执，verification=pending不表示持久化成功；最终结果仍由宿主独立回读核实，不自动重发。';
   }
-  if (definition.effect === 'read' && !communityOutputSchema(definition.name)) definition.description += '。读取前核实登录及NSFW，accessContext报告当前权限与实际数据来源。';
+  if (definition.effect === 'read' && !communityOutputSchema(definition.name)) definition.description += '。按本次来源需求核实账户或NSFW，公共SFW读取不要求登录；accessContext报告实际权限核实范围与数据来源。';
 }
 export const TOOL_DEFINITIONS: readonly McpToolDefinition[] = definitions;
 export function findToolDefinition(name: string): McpToolDefinition {

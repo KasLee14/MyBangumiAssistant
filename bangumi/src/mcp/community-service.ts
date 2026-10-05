@@ -77,9 +77,12 @@ function storedRow(dto: Data, value: unknown, source: TextSource, hidden = false
 /** 缓存仅属于本实例并绑定查看账户及NSFW权限；引用不能访问路径、会话或其他实例。 */
 export class CommunityReader {
   private readonly viewer = new AsyncLocalStorage<AccessContext>();
-  private viewerKey(): string { const context = this.viewer.getStore(); return JSON.stringify([context?.account?.id ?? null, context?.nsfw.preference ?? null, context ? context.nsfw.allowed : false]); }
+  private viewerKey(): string {
+    const context = this.viewer.getStore(), accountSource = context?.mode === 'account' && context.source === 'p1';
+    return JSON.stringify(['p1', accountSource ? context.account?.id ?? null : null, accountSource && context.nsfwApplied && context.nsfw.allowed === true]);
+  }
   private request(path: string, options: import('./transport.js').McpRequestOptions, signal?: AbortSignal): Promise<unknown> {
-    const account = this.viewer.getStore()?.account;
+    const context = this.viewer.getStore(); const account = context?.source === 'p1' ? context.account : null;
     return account ? this.transport.account(path, { ...options, expectedAccountId: account.id }, signal) : this.transport.community(path, options, signal);
   }
   private readonly entries = new Map<string, CacheEntry>();

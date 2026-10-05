@@ -18,13 +18,13 @@ export interface ConfirmationItem { name: string; args: Data; before: unknown; a
 export interface ConfirmationDecision { required: boolean; reasons: string[] }
 
 /** 只根据固定能力、显式短评字段及完整计划范围决定确认，不解析自然语言风险。 */
-export function confirmationForPlan(items: readonly ConfirmationItem[]): ConfirmationDecision {
+export function confirmationForPlan(items: readonly ConfirmationItem[], originalNames?: readonly string[]): ConfirmationDecision {
   if (!items.length || items.some(item => !writes.has(item.name))) throw new AppError('UNKNOWN_TOOL', '确认政策只接受完整的固定写操作计划。');
   const changes = items.filter(item => !isDeepStrictEqual(item.before, item.after));
   if (!changes.length) return { required: false, reasons: [] };
   const reasons: string[] = [];
   // 章节状态由用户指令直接授权，不计入批量审批数量；混合计划仍检查其他操作。
-  if (items.filter(item => !isEpisodeWrite(item.name)).length > 1) {
+  if ((originalNames ?? items.map(item => item.name)).filter(name => !isEpisodeWrite(name)).length > 1) {
     reasons.push('批量修改完整范围');
   }
   if (changes.some(item => item.name === 'update_subject_collection' && Object.hasOwn(item.args, 'comment')

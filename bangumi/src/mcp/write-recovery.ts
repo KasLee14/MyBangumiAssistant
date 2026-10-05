@@ -29,6 +29,8 @@ export function latestWriteFacts(facts: readonly Data[], accountId: number): Dat
   return [...latest.values()];
 }
 export function pendingWriteFact(fact: Data): boolean {
+  // 新版逻辑父项只聚合展示，实际恢复以独立子阶段事实为准。
+  if (Array.isArray(fact.stageResults)) return false;
   // submission 只说明投递阶段结束；即便局部阶段被拒绝或取消，也尚未独立核实前序提交。
   return fact.phase === 'started' || fact.phase === 'submission' || fact.phase === 'submitted' || fact.state === 'unknown' || fact.state === 'submitted'
     || fact.phase !== 'reconciled' && fact.writeNetworkAttempted === true && record(fact.verification ?? {}).readbackCompleted === false && !definiteWriteRejection(fact);
@@ -103,4 +105,27 @@ export function submittedWriteTarget(name: string, fact: Data): unknown {
     }
   }
   return after;
+}
+
+/** 已知执行视图加逐对象未决候选；目录整表按sid保护，允许新增/删除候选改变长度。 */
+export function matchesWriteViewValue(key: string, expected: unknown, actual: unknown, effects: readonly Data[]): boolean {
+  const pending = effects.filter(effect => effect.key === key);
+  const rowMatches = (current: unknown, planned: unknown): boolean => {
+    if (current === null || planned === null) return current === planned;
+    if (!current || !planned) return false;
+    const row = record(current), candidate = record(planned);
+    return candidate.relationId === null && typeof row.relationId === 'number' && row.relationId > 0
+      ? isDeepStrictEqual({ ...row, relationId: null }, candidate) : isDeepStrictEqual(row, candidate);
+  };
+  if (key.startsWith('relations:') && Array.isArray(expected) && Array.isArray(actual)) {
+    const known = new Map(expected.map(raw => { const row = record(raw); return [Number(row.subject_id), row]; }));
+    const observed = new Map(actual.map(raw => { const row = record(raw); return [Number(row.subject_id), row]; }));
+    if (known.size !== expected.length || observed.size !== actual.length) return false;
+    const ids = new Set([...known.keys(), ...observed.keys(), ...pending.map(effect => Number(effect.relationSubjectId))]);
+    return [...ids].every(id => {
+      const effect = pending.find(value => value.relationSubjectId === id), current = observed.get(id) ?? null;
+      return effect ? rowMatches(current, effect.before) || rowMatches(current, effect.after) : rowMatches(current, known.get(id) ?? null);
+    });
+  }
+  return pending.length ? pending.some(effect => isDeepStrictEqual(actual, effect.before) || isDeepStrictEqual(actual, effect.after)) : isDeepStrictEqual(actual, expected);
 }

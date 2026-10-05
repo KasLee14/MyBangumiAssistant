@@ -1,5 +1,6 @@
 import { fetch } from 'undici';
 import { createHash } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { ProxyDispatchers } from '../support/proxy-dispatcher.js';
 import { AccountTransport, awaitResponse, discardResponse, isJsonResponse, readResponseText, withoutNetworkAttempt, type LoginFetch } from '../login/transport.js';
 import { AccountSessionStore, type AccountSession } from '../login/account-session.js';
@@ -7,13 +8,14 @@ import { AppError } from '../support/errors.js';
 import { object, positiveId } from '../support/bangumi.js';
 import type { ProxyOptions } from '../support/proxy.js';
 import { anonymousContext, type AccessContext } from './access-context.js';
+import { readContext, type McpReadContext } from './read-context.js';
 
 export interface McpRequestOptions { method?: string; query?: Record<string, unknown>; body?: unknown; expectedAccountId?: number }
 /** 一次只读查询的独立连接与不可变登录绑定；不可用于提交或写入回读。 */
 export interface McpReadScope {
   key: string;
   account(path: string, options?: McpRequestOptions): Promise<unknown>;
-  verify(): Promise<void>;
+  verify(options?: { usedNsfw?: boolean; context?: AccessContext }): Promise<void>;
   close(): Promise<void>;
 }
 export interface McpTransport {
@@ -21,6 +23,10 @@ export interface McpTransport {
   community(path: string, options?: McpRequestOptions, signal?: AbortSignal): Promise<unknown>;
   account(path: string, options?: McpRequestOptions, signal?: AbortSignal): Promise<unknown>;
   currentUser(signal?: AbortSignal, fresh?: boolean): Promise<{ id: number; username: string }>;
+  identity?(signal?: AbortSignal): Promise<AccessContext>;
+  ensureNsfw?(context: AccessContext, signal?: AbortSignal, scope?: string, options?: { fresh?: boolean }): Promise<AccessContext>;
+  withReadContext?<T>(context: McpReadContext, operation: () => Promise<T>): Promise<T>;
+  clearReadContext?(turnId?: string): void;
   preflight?(signal?: AbortSignal): Promise<AccessContext>;
   setBatchSession?(active: boolean): Promise<void>;
   bindReadScope?(context: AccessContext, signal?: AbortSignal): Promise<McpReadScope>;
@@ -40,6 +46,7 @@ function userFrom(value: unknown): { id: number; username: string } {
   return { id: positiveId(user.id), username: user.username };
 }
 interface AccountBinding { session: AccountSession; api: AccountTransport; user?: { id: number; username: string } }
+interface ReadCacheState { active: boolean }
 
 /** 公共请求完全匿名；账户会话每次重新加载，不缓存登录或自动换线路。 */
 class FixedMcpTransport implements McpTransport {
@@ -51,6 +58,10 @@ class FixedMcpTransport implements McpTransport {
   private activeAccount: AccountBinding | undefined;
   private batchSession: AccountSession | undefined;
   private readonly readScopeClosers = new Set<() => Promise<void>>();
+  private readonly readContexts = new AsyncLocalStorage<McpReadContext & { cacheState: ReadCacheState }>();
+  private readonly readCacheStates = new Map<string, ReadCacheState>();
+  private readonly nsfwChecks = new Map<string, Promise<AccessContext['nsfw']>>();
+  private readonly identitySessions = new WeakMap<AccessContext, string>();
   constructor(private readonly options: McpTransportOptions) {
     this.dispatchers = new ProxyDispatchers(options.proxy);
     this.loadSession = options.loadSession ?? (() => new AccountSessionStore(options.authDir).load());
@@ -194,6 +205,52 @@ class FixedMcpTransport implements McpTransport {
   private sameSession(a: AccountSession, b: AccountSession): boolean {
     return a.accountId === b.accountId && a.savedAt === b.savedAt && a.sessionId === b.sessionId;
   }
+  private sessionKey(session: AccountSession): string {
+    return createHash('sha256').update(JSON.stringify([session.accountId, session.savedAt, session.sessionId])).digest('hex');
+  }
+  withReadContext<T>(context: McpReadContext, operation: () => Promise<T>): Promise<T> {
+    const checked = readContext(context);
+    return this.readContexts.run({ ...checked, cacheState: this.readCacheState(checked.turnId) }, operation);
+  }
+  private readCacheState(scope: string): ReadCacheState {
+    let state = this.readCacheStates.get(scope);
+    if (!state) {
+      state = { active: true }; this.readCacheStates.set(scope, state);
+      if (this.readCacheStates.size > 256) this.clearReadContext(this.readCacheStates.keys().next().value!);
+    }
+    return state;
+  }
+  clearReadContext(turnId?: string): void {
+    if (turnId === undefined) {
+      for (const state of this.readCacheStates.values()) state.active = false;
+      this.readCacheStates.clear(); this.nsfwChecks.clear(); return;
+    }
+    const scope = readContext({ turnId }).turnId;
+    const state = this.readCacheStates.get(scope);
+    if (state) state.active = false;
+    this.readCacheStates.delete(scope);
+    for (const key of this.nsfwChecks.keys()) {
+      if ((JSON.parse(key) as [string, string])[0] === scope) this.nsfwChecks.delete(key);
+    }
+  }
+  private waitNsfw(pending: Promise<AccessContext['nsfw']>, signal?: AbortSignal): Promise<AccessContext['nsfw']> {
+    const active = AbortSignal.any([this.closing.signal, ...(signal ? [signal] : [])]);
+    return new Promise((resolve, reject) => {
+      const abort = () => {
+        active.removeEventListener('abort', abort);
+        try { this.ensureOpen(signal); } catch (error) { reject(error); }
+      };
+      active.addEventListener('abort', abort, { once: true });
+      if (active.aborted) abort();
+      pending.then(value => {
+        active.removeEventListener('abort', abort);
+        if (active.aborted) abort(); else resolve(value);
+      }, error => {
+        active.removeEventListener('abort', abort);
+        if (active.aborted) abort(); else reject(error);
+      });
+    });
+  }
   private rejectSession(session: AccountSession): void {
     // 迟到的旧会话401不能覆盖当前会话已经被拒绝的事实。
     if (!this.activeAccount || this.sameSession(this.activeAccount.session, session)) this.rejectedSession = session;
@@ -226,7 +283,7 @@ class FixedMcpTransport implements McpTransport {
       return structuredClone(user);
     }, signal);
   }
-  async preflight(signal?: AbortSignal): Promise<AccessContext> {
+  async identity(signal?: AbortSignal): Promise<AccessContext> {
     this.ensureOpen(signal);
     const saved = await this.loadSession();
     this.ensureOpen(signal);
@@ -235,28 +292,71 @@ class FixedMcpTransport implements McpTransport {
     delete binding.user;
     const account = userFrom(await api.json('/p1/me', { auth: true }, signal));
     if (account.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED', '网站账户与本机保存登录不一致。');
-    // 身份与权限由同一个不可变会话读取，不能在两步之间换成同账户的新 Cookie。
     await this.verifySession(session, signal);
-    let preference: boolean | null = null; let allowed: boolean | null = null;
-    try {
-      const privacy = object(await api.json('/p1/privacy', { auth: true }, signal));
-      const preferences = privacy.preferences == null ? {} : object(privacy.preferences);
-      preference = typeof preferences.showNsfwSubject === 'boolean' ? preferences.showNsfwSubject : null;
-      allowed = typeof preferences.allowNsfw === 'boolean' ? preferences.allowNsfw : null;
-    } catch (error) {
-      // 未提供权限端点时报告未知；认证、网络、超时或取消不能降级匿名操作。
-      if (!(error instanceof AppError) || !['BGM_HTTP_403', 'BGM_HTTP_404'].includes(error.code)) throw error;
-    }
     binding.user = account;
-    return { mode: 'account', account, nsfw: { preference, allowed, state: allowed === null ? 'unknown' : allowed ? 'enabled' : 'disabled' },
-      source: 'p1', nsfwApplied: true, checkedAt: new Date().toISOString() };
+    const context: AccessContext = { mode: 'account', account, nsfw: { preference: null, allowed: null, state: 'not_checked' },
+      source: 'p1', nsfwApplied: false, checkedAt: new Date().toISOString() };
+    this.identitySessions.set(context, this.sessionKey(session));
+    return context;
     }, signal);
+  }
+  async ensureNsfw(context: AccessContext, signal?: AbortSignal, scope?: string, options: { fresh?: boolean } = {}): Promise<AccessContext> {
+    this.ensureOpen(signal);
+    if (context.mode !== 'account' || !context.account) return structuredClone(context);
+    const readTask = this.readContexts.getStore();
+    const taskScope = scope === undefined ? readTask?.turnId : readContext({ turnId: scope }).turnId;
+    const cacheState = taskScope === undefined ? undefined : scope === undefined ? readTask?.cacheState : this.readCacheState(taskScope);
+    return this.withAccount(async (api, session, binding) => {
+      const sessionKey = this.sessionKey(session);
+      const previousSession = this.identitySessions.get(context);
+      if (previousSession !== undefined && previousSession !== sessionKey) throw new AppError('ACCOUNT_CHANGED', '身份核验后的本机登录会话改变。');
+      const account = binding.user ?? userFrom(await api.json('/p1/me', { auth: true }, signal));
+      if (account.id !== session.accountId || account.id !== context.account!.id || account.username !== context.account!.username) {
+        throw new AppError('ACCOUNT_CHANGED', 'NSFW 权限查询账户与已核实身份不一致。');
+      }
+      binding.user = account;
+      await this.verifySession(session, signal);
+      const check = async (): Promise<AccessContext['nsfw']> => {
+        let preference: boolean | null = null, allowed: boolean | null = null;
+        try {
+          const privacy = object(await api.json('/p1/privacy', { auth: true }, signal));
+          const preferences = privacy.preferences == null ? {} : object(privacy.preferences);
+          preference = typeof preferences.showNsfwSubject === 'boolean' ? preferences.showNsfwSubject : null;
+          allowed = typeof preferences.allowNsfw === 'boolean' ? preferences.allowNsfw : null;
+        } catch (error) {
+          // 仅权限读取失败可局部跳过；身份、会话和取消边界仍终止原请求。
+          if (!(error instanceof AppError) || !(error.code !== 'BGM_HTTP_401' && /^BGM_HTTP_\d+$/.test(error.code)
+            || ['BGM_NETWORK', 'BGM_TIMEOUT', 'BGM_OUTPUT_LIMIT', 'INVALID_RESPONSE'].includes(error.code))) throw error;
+        }
+        await this.verifySession(session, signal);
+        return { preference, allowed, state: allowed === null ? 'unknown' : allowed ? 'enabled' : 'disabled' };
+      };
+      const key = taskScope === undefined || !cacheState?.active ? undefined : JSON.stringify([taskScope, sessionKey]);
+      let pending = key === undefined || options.fresh ? undefined : this.nsfwChecks.get(key);
+      if (!pending) {
+        pending = check();
+        if (key !== undefined && cacheState?.active) {
+          this.nsfwChecks.set(key, pending);
+          // 任务结束后的缓存仅保留有界数量，不携带任何原始会话凭据。
+          if (this.nsfwChecks.size > 256) this.nsfwChecks.delete(this.nsfwChecks.keys().next().value!);
+          void pending.catch(() => { if (this.nsfwChecks.get(key) === pending) this.nsfwChecks.delete(key); });
+        }
+      }
+      const nsfw = structuredClone(await this.waitNsfw(pending, signal));
+      this.ensureOpen(signal);
+      const verified: AccessContext = { ...structuredClone(context), nsfw, nsfwApplied: nsfw.allowed === true, checkedAt: new Date().toISOString() };
+      this.identitySessions.set(verified, sessionKey);
+      return verified;
+    }, signal);
+  }
+  /** 兼容显式权限预检；普通公共读取及账户身份核验不得调用此方法。 */
+  async preflight(signal?: AbortSignal): Promise<AccessContext> {
+    return this.ensureNsfw(await this.identity(signal), signal, undefined, { fresh: true });
   }
   async webCollections(username: string, media: string, status: string, page: number, signal?: AbortSignal): Promise<string> {
     this.ensureOpen(signal);
     if (!/^[A-Za-z0-9_]+$/.test(username) || !['book', 'anime', 'music', 'game', 'real'].includes(media)
       || !['wish', 'collect', 'do', 'on_hold', 'dropped'].includes(status) || !Number.isInteger(page) || page < 1 || page > 417) throw new AppError('INVALID_INPUT', '网页收藏读取超出固定范围。');
-    if (await this.loadSession()) throw new AppError('ACCOUNT_QUERY_REQUIRED', '登录状态下收藏查询须使用已预检的账户接口，未读取匿名网页。');
     const url = new URL(`/${media}/list/${username}/${status}`, 'https://bgm.tv');
     url.searchParams.set('orderby', 'date'); url.searchParams.set('page', String(page));
     const active = this.requestSignal(signal);
@@ -266,7 +366,6 @@ class FixedMcpTransport implements McpTransport {
     if (!/^text\/html(?:\s*;|$)/i.test(response.headers.get('content-type') ?? '')) { discardResponse(response); throw new AppError('INVALID_RESPONSE', '网页收藏接口未返回 HTML。'); }
     const text = await readResponseText(response, active, signal);
     this.ensureOpen(signal);
-    if (await this.loadSession()) throw new AppError('ACCOUNT_CHANGED', '匿名网页收藏读取期间本机登录改变，请重新查询。');
     return text;
   }
   async account(path: string, options: McpRequestOptions = {}, signal?: AbortSignal): Promise<unknown> {
@@ -289,17 +388,21 @@ class FixedMcpTransport implements McpTransport {
   async bindReadScope(context: AccessContext, signal?: AbortSignal): Promise<McpReadScope> {
     this.ensureOpen(signal);
     const session = structuredClone(await this.loadSession());
+    const expectedSession = this.identitySessions.get(context);
     context = structuredClone(context);
     this.ensureOpen(signal);
     if (!session || context.mode !== 'account' || !context.account) throw new AppError('BGM_AUTH_REQUIRED', '本人出演查询需要已核实的登录账户。');
     if (session.expiresAt <= Date.now()) throw new AppError('BGM_AUTH_EXPIRED', '本机登录已到期，请重新登录。');
-    if (session.accountId !== context.account.id || !this.activeAccount || !this.sameSession(this.activeAccount.session, session)
+    const sessionKey = this.sessionKey(session);
+    if ((expectedSession !== undefined && expectedSession !== sessionKey) || session.accountId !== context.account.id || !this.activeAccount || !this.sameSession(this.activeAccount.session, session)
       || this.activeAccount.user?.id !== context.account.id || this.activeAccount.user.username !== context.account.username) throw new AppError('ACCOUNT_CHANGED', '预检后的本机登录会话改变，未开始关系查询。');
     if (this.rejectedSession && this.sameSession(this.rejectedSession, session)) {
       throw new AppError('BGM_AUTH_EXPIRED', '网站已拒绝此会话，未继续关系查询。');
     }
     // 私有会话只参与宿主哈希，不进入模型参数、结果或日志。
-    const key = createHash('sha256').update(JSON.stringify([session.accountId, session.savedAt, session.sessionId])).digest('hex');
+    const taskScope = this.readContexts.getStore()?.turnId;
+    const key = taskScope === undefined ? sessionKey
+      : createHash('sha256').update(JSON.stringify([taskScope, sessionKey])).digest('hex');
     const api = new AccountTransport(session, this.options.proxy, this.options.timeoutMs, this.options.fakeFetch);
     let closed = false;
     const unchanged = async (): Promise<void> => {
@@ -324,9 +427,13 @@ class FixedMcpTransport implements McpTransport {
     };
     const close = async () => { if (!closed) { closed = true; this.readScopeClosers.delete(close); await api.close(); } };
     this.readScopeClosers.add(close);
-    return { key, account: read, verify: async () => {
+    return { key, account: read, verify: async (options = {}) => {
       const user = userFrom(await read('/p1/me'));
       if (user.id !== context.account!.id || user.username !== context.account!.username) throw new AppError('ACCOUNT_CHANGED', '关系查询结束时网站账户改变。');
+      if (!options.usedNsfw) return;
+      const expected = options.context ?? context;
+      if (expected.mode !== 'account' || expected.account?.id !== user.id || expected.account.username !== user.username
+        || expected.source !== 'p1' || !expected.nsfwApplied || expected.nsfw.allowed !== true) throw new AppError('NSFW_SCOPE_CHANGED', 'NSFW 关系读取缺少已核实的授权范围。');
       let preference: boolean | null = null, allowed: boolean | null = null;
       try {
         const privacy = object(await read('/p1/privacy'));
@@ -336,12 +443,12 @@ class FixedMcpTransport implements McpTransport {
       } catch (error) {
         if (!(error instanceof AppError) || !['BGM_HTTP_403', 'BGM_HTTP_404'].includes(error.code)) throw error;
       }
-      if (preference !== context.nsfw.preference || allowed !== context.nsfw.allowed) throw new AppError('NSFW_SCOPE_CHANGED', '关系读取期间 NSFW 权限改变，请重新查询。');
+      if (preference !== expected.nsfw.preference || allowed !== expected.nsfw.allowed) throw new AppError('NSFW_SCOPE_CHANGED', '关系读取期间 NSFW 权限改变，请重新查询。');
     }, close };
   }
   async close(): Promise<void> {
     if (this.closed) return;
-    this.closed = true; this.batchSession = undefined; this.closing.abort(new AppError('MCP_CLOSED', 'MCP 连接已关闭。'));
+    this.closed = true; this.batchSession = undefined; this.clearReadContext(); this.closing.abort(new AppError('MCP_CLOSED', 'MCP 连接已关闭。'));
     await Promise.all([this.activeAccount?.api.close(), ...[...this.readScopeClosers].map(close => close()), this.dispatchers.close()]);
   }
 }

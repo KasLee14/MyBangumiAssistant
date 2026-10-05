@@ -111,6 +111,7 @@ test('看到免确认使用一次官方请求，补齐前序并保护后续/SP/�
   assert.deepEqual(value.confirmation, { required: false, reasons: [] });
   assert.deepEqual(value.items[0].submission.affectedEpisodeIds, [1, 2, 3, 4, 5, 6, 7]);
   assert.equal(value.items[0].verification.parentProgress.actual, 9);
+  assert.equal(value.items[0].stageResults[0].verification.parentProgress.actual, 9);
 });
 test('目标已看过仍补齐前序缺口；整个范围达成才无写入', async () => {
   const f = fixture({ anchorDone: true });
@@ -177,8 +178,11 @@ test('回读发现未补齐或范围外被修改时不报成功', async () => {
 test('动画进度字段被明确拒绝；响应说明集数含义', async () => {
   const f = fixture();
   const value = await f.execute([{ tool: 'update_subject_collection', args: { subject_id: 101, ep_status: 7 } }]);
-  assert.equal(value.error.code, 'UNSUPPORTED_PROGRESS');
-  assert.match(value.error.message, /动画/);
+  assert.equal(value.items[0].state, 'skipped');
+  assert.equal(value.summary.skipped, 1);
+  assert.equal(value.items[0].error.code, 'UNSUPPORTED_PROGRESS');
+  assert.match(value.items[0].error.message, /动画/);
+  assert.equal(value.error, undefined, '具体作品条件不符不是整批账户/授权异常');
   assert.equal(f.requests.length, 0);
   const collection = await f.service.call('get_user_subject_collection', { username: '-', subject_id: 101 });
   assert.equal(collection.collection.progressMeaning, '已看集数');

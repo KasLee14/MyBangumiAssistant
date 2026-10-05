@@ -10,6 +10,7 @@ const invalid = (message: string): never => { throw new AppError('MCP_INVALID_RE
 function copy(binding: Binding): Binding {
   return { ...binding, target: structuredClone(binding.target), before: structuredClone(binding.before), after: structuredClone(binding.after),
     args: structuredClone(binding.args), guard: structuredClone(binding.guard), effects: [...binding.effects],
+    ...(binding.preflightSkipped ? { preflightSkipped: structuredClone(binding.preflightSkipped) } : {}),
     ...(binding.baseline ? { baseline: structuredClone(binding.baseline) } : {}) };
 }
 function episodeSnapshot(value: unknown, id: number): Data {

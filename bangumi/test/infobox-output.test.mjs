@@ -7,6 +7,7 @@ import { resourceResult, checkResourceResponse } from '../dist/src/mcp/resource-
 import { findToolDefinition } from '../dist/src/mcp/catalog.js';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { anonymousContext } from '../dist/src/mcp/access-context.js';
+import { AppError } from '../dist/src/support/errors.js';
 
 const fixtures = JSON.parse(readFileSync(new URL('./fixtures/infobox-source-shapes.json', import.meta.url), 'utf8'));
 const subject = (source, infobox = fixtures[source]) => ({ id: 101, type: 2, name: '测试作品', nameCN: '测试作品', name_cn: '测试作品', summary: '作品简介',
@@ -35,8 +36,11 @@ for (const source of ['p1', 'v0']) {
     const calls = [];
     const service = new BangumiMcpService({ close: async () => {}, currentUser: async () => ({ id: 42, username: 'offline_user' }),
       preflight: async () => source === 'p1' ? accountContext() : anonymousContext(),
-      account: async path => { assert.equal(source, 'p1'); assert.equal(path, '/p1/subjects/101'); calls.push(path); return subject(source); },
-      public: async path => { assert.equal(source, 'v0'); assert.equal(path, '/v0/subjects/101'); calls.push(path); return subject(source); } });
+      account: async path => { assert.equal(source, 'p1'); assert.equal(path, '/p1/subjects/101'); calls.push(path); return { ...subject(source), nsfw: true }; },
+      public: async path => { assert.equal(path, '/v0/subjects/101'); calls.push(path);
+        // p1适配测试通过明确不可见对象和已核实权限触发一次账户补读。
+        if (source === 'p1') throw new AppError('BGM_HTTP_404', '公开对象不可见');
+        return subject(source); } });
     for (let mask = 0; mask < 2 ** SUBJECT_INCLUDES.length; mask++) {
       const include = SUBJECT_INCLUDES.filter((_, i) => mask & 2 ** i);
       const value = await service.call('get_subject_details', { subject_id: 101, include });
@@ -45,7 +49,8 @@ for (const source of ['p1', 'v0']) {
       if (include.includes('infobox')) assert.deepEqual(value.infobox, normalizeInfobox(fixtures[source]));
       assert.equal(value.accessContext.source, source);
     }
-    assert.equal(calls.length, 16);
+    assert.equal(calls.filter(path => path === '/v0/subjects/101').length, 16);
+    assert.equal(calls.filter(path => path === '/p1/subjects/101').length, source === 'p1' ? 16 : 0);
   });
 }
 

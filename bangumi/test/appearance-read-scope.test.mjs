@@ -63,7 +63,7 @@ test('读取结束重新核实 NSFW 权限；401 标记会话被拒绝而不继�
   const f = fixture(); t.after(() => f.transport.close());
   const scope = await f.transport.bindReadScope(await f.transport.preflight()); t.after(() => scope.close());
   f.changePrivacy();
-  await assert.rejects(scope.verify(), e => e.code === 'NSFW_SCOPE_CHANGED');
+  await assert.rejects(scope.verify({ usedNsfw: true }), e => e.code === 'NSFW_SCOPE_CHANGED');
   f.reject();
   await assert.rejects(scope.account('/p1/subjects/1'), e => e.code === 'BGM_HTTP_401');
   const before = f.requests.length;

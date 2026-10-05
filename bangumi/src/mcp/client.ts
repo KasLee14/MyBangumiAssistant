@@ -16,10 +16,13 @@ import { checkCommunityResponse } from './community-output.js';
 import { checkAccessResponse, type AccessContext } from './access-context.js';
 import { batchPreparation, batchScope, type BatchPreparation, type McpBatchScope } from './batch-context.js';
 import { checkSubmission } from './submission.js';
+import { readContext, type McpReadContext } from './read-context.js';
+import { checkReadDiagnosis, diagnoseReadError, executeReadRecovery, clearReadRecoveryScope } from './read-recovery.js';
 
 export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline; batchPreparation?: BatchPreparation }
 export interface McpCallClient {
-  call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope): Promise<unknown>;
+  call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope, read?: McpReadContext): Promise<unknown>;
+  endReadContext?(turnId: string): Promise<void>;
   close(): Promise<void>;
 }
 const SAFE_ENVIRONMENT = ['APPDATA', 'HOMEDRIVE', 'HOMEPATH', 'LOCALAPPDATA', 'PATH', 'PROCESSOR_ARCHITECTURE', 'SYSTEMDRIVE', 'SYSTEMROOT', 'TEMP', 'TMP', 'USERNAME', 'USERPROFILE', 'PROGRAMFILES', 'HOME', 'LANG', 'LC_ALL'];
@@ -33,8 +36,8 @@ const TOOL_ERROR_MESSAGES: Record<string, string> = {
   BATCH_CONTEXT_EXPIRED: '本批账户上下文已失效，操作已停止；请先核实既有结果。',
   BGM_AUTH_REQUIRED: '请先运行 login 或在 chat 中使用 /login。',
   BGM_AUTH_EXPIRED: '当前登录已失效，请重新 /login。',
-  BGM_TIMEOUT: 'Bangumi 请求超时，请缩小查询范围；未自动重试。',
-  BGM_NETWORK: 'Bangumi 网络请求未完成；未自动重试。',
+  BGM_TIMEOUT: 'Bangumi 请求超时，未取得完整结果；已提交写入须独立核实。',
+  BGM_NETWORK: 'Bangumi 网络请求未完成，未取得完整结果；已提交写入须独立核实。',
   BGM_OUTPUT_LIMIT: 'Bangumi 响应超过读取上限，请缩小范围。',
   BGM_RATE_LIMIT_REJECTED: '上游在修改前明确拒绝了本次请求；请等待额度后按核实后的范围重新计划。',
   CANCELLED: '操作已取消；已提交写入须独立核实结果。',
@@ -151,22 +154,44 @@ export class LocalMcpClient implements McpCallClient {
     // 权限及参数以本地固定目录为准，不采信服务端 annotations 或描述。
     return TOOL_DEFINITIONS.map(tool => structuredClone(tool));
   }
-  async call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope): Promise<unknown> {
+  async call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope, read?: McpReadContext): Promise<unknown> {
+    // 客户端只记失败指纹（包括MCP总期限耗尽），不承担HTTP重试。
+    // 独立命名空间避免嵌入式客户端/服务同进程测试混用任务记录。
+    if (TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'read' && read !== undefined) {
+      const context = readContext(read);
+      const parameters = validateToolArguments(name, args);
+      return executeReadRecovery(name, parameters, () => this.callOnce(name, parameters, signal, guard, batch, context),
+        { turnId: `client:${context.turnId}`, ...(signal ? { signal } : {}), maxRetries: 0 });
+    }
+    return this.callOnce(name, args, signal, guard, batch, read);
+  }
+  private async callOnce(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope, read?: McpReadContext): Promise<unknown> {
     interrupted(signal);
     const parameters = validateToolArguments(name, args);
     const definition = TOOL_DEFINITIONS.find(tool => tool.name === name)!;
     if (definition.effect === 'write' && !guard) throw new AppError('AUTHORIZATION_REQUIRED', 'MCP 写入必须由宿主授权链路提交。');
     const metadata = guard === undefined ? undefined : guarded(guard);
     const scope = batch === undefined ? undefined : batchScope(batch);
+    const reading = definition.effect === 'read' && read !== undefined ? readContext(read) : undefined;
     await awaitWithCancellation(this.ready(), signal); interrupted(signal); this.usable();
     let raw: unknown;
     try {
       this.diagnostic('dispatch');
-      raw = await this.client.callTool({ name, arguments: parameters, ...(metadata || scope ? { _meta: { ...(metadata ? { 'bangumi/guard': metadata } : {}), ...(scope ? { 'bangumi/batch': scope } : {}) } } : {}) }, undefined,
-        { timeout: this.options.timeoutMs, ...(signal === undefined ? {} : { signal }) });
+      raw = await this.client.callTool({ name, arguments: parameters, ...(metadata || scope || reading ? { _meta: { ...(metadata ? { 'bangumi/guard': metadata } : {}), ...(scope ? { 'bangumi/batch': scope } : {}), ...(reading ? { 'bangumi/readContext': reading } : {}) } } : {}) }, undefined,
+        // read允许两次HTTP预算及有界退避；多请求operation仍受此MCP总期限与取消约束。
+        // write保持原等待期限，超时只报告提交未知，绝不自动重发。
+        { timeout: definition.effect === 'read' ? 2 * this.options.timeoutMs + 1000 : this.options.timeoutMs,
+          ...(signal === undefined ? {} : { signal }) });
     } catch (error) {
       if (signal?.aborted) throw new AppError('CANCELLED', '操作已取消；已提交写入须独立核实结果。');
-      if (typeof error === 'object' && error !== null && 'code' in error && error.code === -32001) throw new AppError('BGM_TIMEOUT', 'MCP 请求超时；已提交写入须独立核实结果。');
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === -32001) {
+        const timeout = new AppError('BGM_TIMEOUT', 'MCP 请求超时；已提交写入须独立核实结果。');
+        if (definition.effect === 'read') {
+          diagnoseReadError(name, parameters, timeout);
+          Object.defineProperty(timeout, 'diagnosis', { value: { ...timeout.diagnosis!, retryable: false }, configurable: true });
+        }
+        throw timeout;
+      }
       if (typeof error === 'object' && error !== null && 'code' in error && [-32600, -32602].includes(Number(error.code))) throw new AppError('MCP_INVALID_RESULT', 'MCP返回缺失或不符合固定输出契约。');
       throw new AppError(this.broken ? 'MCP_TRANSPORT_ERROR' : 'MCP_PROTOCOL_ERROR', '本地 MCP 请求失败；未自动重连或重发，已提交写入须独立核实结果。');
     }
@@ -184,7 +209,10 @@ export class LocalMcpClient implements McpCallClient {
         || remote.networkAttempted === false)) throw new AppError('MCP_INVALID_RESULT', 'MCP明确拒绝与原写入工具、固定错误码或派发事实不一致。');
       if (code === 'INVALID_INPUT' && definition.effect === 'read' && remote.networkAttempted === false) {
         const feedback = remoteInputError(name, parameters, remote.issues);
-        if (feedback) throw feedback;
+        if (feedback) {
+          if (remote.diagnosis !== undefined) checkReadDiagnosis(name, parameters, feedback, remote.diagnosis);
+          throw diagnoseReadError(name, parameters, feedback);
+        }
       }
       const message = code === 'BGM_HTTP_404' ? '当前可见范围内未取得资源，可能受NSFW或权限限制；不能据此认定条目不存在。' : TOOL_ERROR_MESSAGES[code] ?? 'Bangumi MCP 操作未完成，请核对输入及网站状态。';
       if (definition.effect === 'write' && remote.submission !== undefined) {
@@ -198,6 +226,7 @@ export class LocalMcpClient implements McpCallClient {
         throw error;
       }
       const error = new AppError(code, message, remote.accessContext === undefined ? undefined : structuredClone(remote.accessContext) as AccessContext);
+      if (remote.diagnosis !== undefined) checkReadDiagnosis(name, parameters, error, remote.diagnosis);
       if (remote.networkAttempted === false) Object.defineProperty(error, 'networkAttempted', { value: false });
       if (remote.recovery !== undefined) Object.defineProperty(error, 'recovery', { value: structuredClone(remote.recovery) });
       if (remote.rejection !== undefined) Object.defineProperty(error, 'rejection', { value: structuredClone(remote.rejection) });
@@ -210,6 +239,16 @@ export class LocalMcpClient implements McpCallClient {
     if (definition.effect === 'write') checkSubmission(name, structured.value, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
     else if (resourceOutputSchema(name)) checkResourceResponse(name, structured.value, parameters, definition.outputSchema!);
     return structured.value;
+  }
+  async endReadContext(turnId: string): Promise<void> {
+    const context = readContext({ turnId });
+    clearReadRecoveryScope(`client:${context.turnId}`);
+    clearReadRecoveryScope(context.turnId);
+    if (!this.initialization || this.closed || this.broken) return;
+    try {
+      await this.initialization;
+      if (!this.closed && !this.broken) await this.client.notification({ method: 'bangumi/readContextEnded', params: { turnId: context.turnId } });
+    } catch { /* 结束通知不初始化、不重连，也不改变已派发业务的结果。 */ }
   }
   async close(): Promise<void> {
     if (this.closed) return;

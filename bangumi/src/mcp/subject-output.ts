@@ -1,7 +1,7 @@
 import { AppError } from '../support/errors.js';
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
 import { object } from '../support/bangumi.js';
-import { withAccessContext } from './access-context.js';
+import { withAccessContext, type AccessContext } from './access-context.js';
 import { checkCollectionQuery, dateMatches, fullDate, type DateBounds } from './collection-query.js';
 import { normalizeInfobox, type InfoboxItem } from './infobox-output.js';
 import { checkSubjectQueryCoverage } from './search-capabilities.js';
@@ -15,6 +15,7 @@ export interface SubjectSummary {
   totalEpisodes: number | null; totalVolumes: number | null;
   tags: string[] | null; metaTags: string[] | null; url: string;
   relation?: string | null; staff?: string | null;
+  series?: boolean | null;
   characters?: { id: number; name: string; nameCn: string | null; url: string }[];
 }
 export interface SubjectDetails extends SubjectSummary {
@@ -37,10 +38,11 @@ const properties = {
   rank: nullable(integer(1)), ratingCount: nullable(integer()), totalEpisodes: nullable(integer()), totalVolumes: nullable(integer()),
   tags: stringList, metaTags: stringList, url: { ...string(100), pattern: '^https://bgm\\.tv/subject/[1-9]\\d*$' },
   relation: nullable(string(300)), staff: nullable(string(300)),
+  series: nullable({ type: 'boolean' }),
   characters: { type: 'array', maxItems: 100, items: closed({ id: integer(1), name: string(300), nameCn: nullable(string(300)),
     url: { ...string(100), pattern: '^https://bgm\\.tv/character/[1-9]\\d*$' } }) },
 };
-const required = Object.keys(properties).filter(key => !['relation', 'staff', 'characters'].includes(key));
+const required = Object.keys(properties).filter(key => !['relation', 'staff', 'characters', 'series'].includes(key));
 export const subjectSummarySchema = closed(properties, required);
 const infoboxSchema = { type: 'array', maxItems: 300, items: closed({ key: string(300), value: {
   anyOf: [string(20_000), { type: 'array', maxItems: 300, items: closed({ k: string(1000), v: string(20_000) }, ['v']) }],
@@ -51,8 +53,41 @@ export const subjectDetailsSchema = closed({ ...properties,
   tagStats: nullable({ type: 'array', maxItems: 100, items: closed({ name: string(100), count: nullable(integer()), totalCount: nullable(integer()) }) }),
   ratingDistribution: nullable(closed(Object.fromEntries(Array.from({ length: 10 }, (_, index) => [String(index + 1), nullable(integer())])))),
 }, [...required, 'included']);
+export const paginationExtraProperties: Record<string, JsonSchema> = {
+  totalKind: { enum: ['estimated', 'exact', 'unknown'] }, sourceNextOffset: nullable(integer()), sourceHasMore: { type: 'boolean' },
+  excludedNsfwCount: integer(), unknownNsfwCount: integer(),
+};
 const pageSchema = closed({ total: nullable(integer()), limit: { ...integer(1), maximum: 100 }, offset: integer(),
-  returnedCount: { ...integer(), maximum: 100 }, nextOffset: nullable(integer()), complete: { type: 'boolean' } });
+  returnedCount: { ...integer(), maximum: 100 }, nextOffset: nullable(integer()), complete: { type: 'boolean' }, ...paginationExtraProperties },
+  ['total', 'limit', 'offset', 'returnedCount', 'nextOffset', 'complete']);
+/** 分页游标绑定实际读取的来源窗口；被过滤的资料不缩短上游游标。 */
+export function pageMetadata(raw: Record<string, unknown>, length: number, limit: number, offset: number) {
+  const total = count(raw.total), totalKind = raw.totalKind ?? (total === null ? 'unknown' : 'exact');
+  if (!['estimated', 'exact', 'unknown'].includes(String(totalKind))) throw new AppError('INVALID_RESPONSE', '分页总数性质无效。');
+  const explicit = Object.hasOwn(raw, 'sourceNextOffset') || Object.hasOwn(raw, 'sourceHasMore');
+  let nextOffset: number | null;
+  if (explicit) {
+    nextOffset = count(raw.sourceNextOffset);
+    if (typeof raw.sourceHasMore !== 'boolean' || !Object.hasOwn(raw, 'sourceNextOffset')
+      || raw.sourceHasMore !== (nextOffset !== null) || nextOffset !== null && nextOffset <= offset) throw new AppError('INVALID_RESPONSE', '来源窗口分页游标无效。');
+  } else nextOffset = totalKind === 'exact' && total !== null ? offset + length < total ? offset + length : null : length === limit ? offset + length : null;
+  const excluded = count(raw.excludedNsfwCount) ?? 0, unknown = count(raw.unknownNsfwCount) ?? 0;
+  if (totalKind === 'exact' && total !== null && excluded === 0 && unknown === 0
+    && length !== Math.min(limit, Math.max(0, total - offset))) throw new AppError('INCOMPLETE_DATA', '分页缺少记录。');
+  return { total, limit, offset, returnedCount: length, nextOffset,
+    complete: totalKind === 'exact' && offset === 0 && total !== null && length === total && excluded === 0 && unknown === 0,
+    ...(raw.totalKind === undefined ? {} : { totalKind }),
+    ...(explicit ? { sourceNextOffset: nextOffset, sourceHasMore: raw.sourceHasMore } : {}),
+    ...(raw.excludedNsfwCount === undefined ? {} : { excludedNsfwCount: excluded }),
+    ...(raw.unknownNsfwCount === undefined ? {} : { unknownNsfwCount: unknown }) };
+}
+export function checkPageMetadata(page: Record<string, unknown>, length: number, coverageKind?: unknown): void {
+  try {
+    if (coverageKind !== undefined && page.totalKind !== undefined && page.totalKind !== coverageKind) throw new Error('total kind');
+    const expected = pageMetadata({ ...page, totalKind: page.totalKind ?? coverageKind }, length, Number(page.limit), Number(page.offset));
+    if (page.nextOffset !== expected.nextOffset || page.complete !== expected.complete) throw new Error('pagination');
+  } catch { throw new AppError('MCP_INVALID_RESULT', '列表返回的来源分页或完整性不一致。'); }
+}
 const safeErrorSchema = closed({ code: string(100), message: string(20_000), networkAttempted: { type: 'boolean', const: false },
   issues: { type: 'array', maxItems: 200, items: closed({ path: string(300), rule: string(100), hint: string(3000),
     allowed: { type: 'array', maxItems: 100, items: { anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }, { type: 'null' }] } },
@@ -127,13 +162,20 @@ export function checkSubjectResponse(name: string, value: unknown, args: Record<
         }
       }
     }
+    if (name === 'browse_subjects') for (const subject of subjects) {
+      const date = fullDate(subject.date);
+      if ((args.year !== undefined || args.month !== undefined) && (!date
+        || args.year !== undefined && Number(date.slice(0, 4)) !== args.year
+        || args.month !== undefined && Number(date.slice(5, 7)) !== args.month)) throw new AppError('MCP_INVALID_RESULT', '浏览作品日期不符合明确年月条件。');
+      if (args.platform !== undefined && subject.platform !== args.platform) throw new AppError('MCP_INVALID_RESULT', '浏览作品平台不符合明确条件。');
+      if (args.cat !== undefined && browseCategory(Number(subject.subjectType), subject.platform) !== args.cat) throw new AppError('MCP_INVALID_RESULT', '浏览作品形式未知或不符合明确cat条件。');
+      if (args.series !== undefined && subject.series !== args.series) throw new AppError('MCP_INVALID_RESULT', '浏览作品系列事实未知或不符合明确条件。');
+    }
     if (page.limit !== args.limit || page.offset !== args.offset || page.returnedCount !== data.length
       || Object.keys(args).some(key => JSON.stringify(scope[key]) !== JSON.stringify(args[key]))
       || Object.keys(scope).length !== Object.keys(args).length
       || result.visibility !== (args.username === '-' || args.own === true ? 'self' : 'public')) throw new AppError('MCP_INVALID_RESULT', '作品列表返回范围或可见性不一致。');
-    const total = page.total as number | null; const start = Number(page.offset); const size = Number(page.limit);
-    if (total === null && page.complete !== false || total !== null && (data.length !== Math.min(size, Math.max(0, total - start)) || page.complete !== (start === 0 && data.length === total))
-      || page.nextOffset !== (total === null ? data.length === size ? start + data.length : null : start + data.length < total ? start + data.length : null)) throw new AppError('MCP_INVALID_RESULT', '作品列表返回的分页完整性不一致。');
+    checkPageMetadata(page, data.length, (result.accessContext as AccessContext | undefined)?.queryCoverage?.totalKind);
   }
 }
 function count(value: unknown, minimum = 0): number | null {
@@ -181,6 +223,7 @@ export function subjectSummary(value: unknown): SubjectSummary {
     totalEpisodes: count(raw.total_episodes ?? raw.eps ?? raw.totalEpisodes), totalVolumes: count(raw.volumes ?? raw.totalVolumes),
     tags: names(raw.tags), metaTags: names(raw.meta_tags ?? raw.metaTags), url: `https://bgm.tv/subject/${id}`,
     ...(raw.relation === undefined ? {} : { relation: text(raw.relation) }), ...(raw.staff === undefined ? {} : { staff: text(raw.staff) }),
+    ...(raw.series === undefined ? {} : { series: raw.series === null || typeof raw.series === 'boolean' ? raw.series : (() => { throw new AppError('INVALID_RESPONSE', '作品系列标志无效。'); })() }),
     ...(raw.characters === undefined ? {} : { characters: (() => {
       if (!Array.isArray(raw.characters)) throw new AppError('INVALID_RESPONSE', '关联角色不是数组。');
       return raw.characters.map(value => { const character = object(value); const id = count(character.id, 1);
@@ -219,13 +262,21 @@ export function subjectPage(value: unknown, args: Record<string, unknown>, relat
     || raw.offset !== undefined && raw.offset !== offset || raw.limit !== undefined && raw.limit !== limit) throw new AppError('INVALID_RESPONSE', '作品分页数量、重复或范围错误。');
   const total = count(raw.total);
   if (raw.total !== undefined && raw.total !== null && total === null) throw new AppError('INVALID_RESPONSE', '作品分页总数无效。');
-  if (total !== null && data.length !== Math.min(limit, Math.max(0, total - offset))) throw new AppError('INCOMPLETE_DATA', '作品分页缺少记录。');
   const items = data.map(subjectSummary);
   if (!relation && items.some(item => item.subjectType === null || !item.name || args.subject_type !== undefined && item.subjectType !== args.subject_type)) throw new AppError('INVALID_RESPONSE', '作品列表身份或媒体筛选错误。');
   return { schemaVersion: 1, kind: 'page', entity: 'subject', data: items,
-    page: { total, limit, offset, returnedCount: items.length,
-      nextOffset: total === null ? items.length === limit ? offset + items.length : null : offset + items.length < total ? offset + items.length : null,
-      complete: offset === 0 && total !== null && items.length === total }, scope: { ...args }, visibility: 'public', readAt: new Date().toISOString() };
+    page: pageMetadata(raw, items.length, limit, offset), scope: { ...args }, visibility: 'public', readAt: new Date().toISOString() };
+}
+function browseCategory(type: number, platform: unknown): number | null {
+  if (typeof platform !== 'string') return null;
+  const groups: Record<number, Record<number, string[]>> = {
+    1: { 0: ['其他'], 1001: ['漫画'], 1002: ['小说'], 1003: ['画集'] },
+    2: { 0: ['其他'], 1: ['TV', 'TV动画'], 2: ['OVA', 'OAD'], 3: ['Movie', '剧场版', '电影'], 5: ['WEB', 'ONA', '网络动画'] },
+    3: { 0: ['音乐', '其他'] }, 4: { 0: ['其他'], 4001: ['游戏'], 4002: ['软件'], 4003: ['扩展包'], 4005: ['桌游'] },
+    6: { 0: ['其他'], 1: ['日剧'], 2: ['欧美剧'], 3: ['华语剧'], 6001: ['电视剧'], 6002: ['电影'], 6003: ['演出'], 6004: ['综艺'] },
+  };
+  const found = Object.entries(groups[type] ?? {}).find(([, names]) => names.some(name => name.toLowerCase() === platform.trim().toLowerCase()));
+  return found ? Number(found[0]) : null;
 }
 /** 列表的个人字段与公开作品资料独立；完整修改快照不走此投影。 */
 export function collectionPage(value: unknown, args: Record<string, unknown>) {

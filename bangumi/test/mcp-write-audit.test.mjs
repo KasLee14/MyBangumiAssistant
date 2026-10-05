@@ -13,6 +13,7 @@ function fixture({ rewriteReceipt, finalChange, failFinal, finalAccountChange, c
   initialNsfw = { preference: true, allowed: true, state: 'enabled' }, finalNsfw, finalNsfwApplied = true } = {}) {
   const viewer = { id: 42, username: 'test_user' };
   const index = { id: 500, uid: 42, title: '目录', desc: '简介', private: false };
+  const independentIndex = { id: 501, uid: 42, title: '独立目录', desc: '独立简介', private: false };
   const subject = { id: 101, type: 2, name: '作品', nameCN: '作品', eps: 12 };
   const relations = [], writes = [], facts = [], updates = [], reads = [];
   const controller = new AbortController();
@@ -44,6 +45,9 @@ function fixture({ rewriteReceipt, finalChange, failFinal, finalAccountChange, c
         } else if (path === '/p1/indexes/500') {
           Object.assign(index, { title: options.body.title ?? index.title, desc: options.body.desc ?? index.desc,
             private: options.body.private ?? index.private }); value = { id: 500 };
+        } else if (path === '/p1/indexes/501') {
+          Object.assign(independentIndex, { title: options.body.title ?? independentIndex.title, desc: options.body.desc ?? independentIndex.desc,
+            private: options.body.private ?? independentIndex.private }); value = { id: 501 };
         } else if (path === '/p1/indexes/500/related') {
           const row = { id: 900, sid: 101, comment: options.body.comment, order: options.body.order, subject };
           relations.push(row); value = { id: 900 };
@@ -53,6 +57,7 @@ function fixture({ rewriteReceipt, finalChange, failFinal, finalAccountChange, c
       }
       reads.push({ path, final: checks >= 2 });
       if (path === '/p1/indexes/500') return structuredClone(index);
+      if (path === '/p1/indexes/501') return structuredClone(independentIndex);
       if (path === '/p1/collections/indexes') return { data: [], total: 0 };
       if (path === '/p1/indexes/500/related') return { data: structuredClone(relations), total: relations.length };
       if (path === '/p1/subjects/101') return structuredClone(subject);
@@ -89,7 +94,8 @@ test('正常回执校验失败不采用创建ID，也不继续目录依赖步骤
   const value = await f.run(createAndAdd);
   assert.equal(value.state, 'unknown', JSON.stringify(value));
   assert.equal(f.writes.length, 1);
-  assert.equal(value.items[0].submission, undefined);
+  assert.equal(value.items[0].submission, undefined, '推断的本地恢复回执不能展示为可信底层submission');
+  assert.ok(value.items[0].stageResults.every(stage => stage.submission === undefined), '各子项也不能采用非法回执的账户或创建ID');
   assert.equal(value.items[1].state, 'not_executed');
   assert.equal(value.items[1].target.indexFrom, 1);
   assert.equal(value.writeNetworkAttempted, true);
@@ -103,6 +109,7 @@ test('异常回执同样须通过契约与账号绑定，不能伪造已确认�
   assert.equal(value.state, 'unknown', JSON.stringify(value));
   assert.equal(f.writes.length, 1);
   assert.equal(value.items[0].submission, undefined);
+  assert.ok(value.items[0].stageResults.every(stage => stage.submission === undefined), '异常回执不能经子项泄漏为已采用的账户/ID事实');
   assert.equal(value.items[1].state, 'not_executed');
 });
 
@@ -124,7 +131,7 @@ test('未知提交独立回读核实目标后可报告成功，提交阶段不�
     throw new SubmissionError('BGM_NETWORK', '离线夹具模拟响应断开', unknown);
   } });
   const value = await f.run([update]);
-  assert.equal(value.state, 'failed', JSON.stringify(value)); // 未知响应触发停止；已核实项单列成功。
+  assert.equal(value.state, 'success', JSON.stringify(value)); // 不重发，独立回读目标与保护范围均达成后结案。
   assert.equal(value.items[0].state, 'success');
   assert.equal(value.items[0].submission.submissionState, 'unknown');
   assert.equal(value.items[0].verification.readbackCompleted, true);
@@ -160,6 +167,7 @@ test('最终读取期间账户变更应丢弃原回读，已提交项保留未�
   assert.equal(value.state, 'unknown', JSON.stringify(value));
   assert.equal(value.items[0].verification.readbackCompleted, false);
   assert.equal(value.items[0].verificationError.code, 'ACCOUNT_CHANGED');
+  assert.equal(value.items[0].stageResults[0].verificationError.code, 'ACCOUNT_CHANGED');
   assert.equal(f.writes.length, 1);
 });
 
@@ -251,7 +259,7 @@ test('传输明确证明未dispatch才恢复not_attempted；取消/HTTP错误不
   }
 });
 
-test('宿主token遇未知提交或进入回读后不能继续授权后续步骤，核查仍可完成', async () => {
+test('宿主token未知提交隔离同目录而允许独立目录，进入回读后不能续用授权', async () => {
   for (const uncertain of [false, true]) {
     const f = fixture({ rewriteReceipt: uncertain ? receipt => {
       throw new SubmissionError('BGM_NETWORK', '离线夹具模拟未知响应', { ...receipt, submissionState: 'unknown',
@@ -264,13 +272,29 @@ test('宿主token遇未知提交或进入回读后不能继续授权后续步骤
       const initial = structuredClone(first.binding.baseline);
       advanceWriteView(view, first, 42);
       const second = { name: update.tool, binding: await f.boundary.prepare(update.tool, { ...update.args, title: '下一标题' }, 42, undefined, view) };
-      const token = await f.boundary.authorize([first, second], initial, f.input, viewer, f.ctx);
+      const planned = [first, second];
+      if (uncertain) {
+        const third = { name: update.tool, binding: await f.boundary.prepare(update.tool, { index_id: 501, title: '独立目标' }, 42, undefined, view) };
+        for (const [key, value] of third.binding.baseline) if (!initial.has(key)) initial.set(key, structuredClone(value));
+        planned.push(third);
+      }
+      const token = await f.boundary.authorize(planned, initial, f.input, viewer, f.ctx);
       await f.boundary.executeApproved(token, undefined, 'direct/1');
-      if (uncertain) await assert.rejects(f.boundary.executeApproved(token, undefined, 'direct/2'), { code: 'AUTHORIZATION_REQUIRED' });
+      if (uncertain) {
+        const blocked = (await f.boundary.executeApproved(token, undefined, 'direct/2')).details.value;
+        assert.equal(blocked.state, 'blocked'); assert.deepEqual(blocked.blockedBy, [1]);
+        assert.equal(blocked.writeNetworkAttempted, false);
+        await f.boundary.executeApproved(token, undefined, 'direct/3');
+        assert.deepEqual(f.writes.map(write => write.path), ['/p1/indexes/500', '/p1/indexes/501']);
+      }
       const verified = await f.boundary.finishApproved(token);
       assert.equal(verified[0].state, 'success');
+      if (uncertain) {
+        assert.equal(verified[1].state, 'blocked'); assert.equal(verified[2].state, 'success');
+        assert.equal(verified[2].actual.title, '独立目标');
+      }
       await assert.rejects(f.boundary.executeApproved(token, undefined, 'direct/2'), { code: 'AUTHORIZATION_REQUIRED' });
-      assert.equal(f.writes.length, 1);
+      assert.equal(f.writes.length, uncertain ? 2 : 1);
       f.boundary.revoke(token);
     } finally { await f.boundary.endBatch(); }
   }
@@ -280,7 +304,7 @@ test('批次末尾NSFW范围变化拒绝混用快照，无论权限收紧、扩�
   const enabled = { preference: true, allowed: true, state: 'enabled' };
   const disabled = { preference: false, allowed: false, state: 'disabled' };
   const unknown = { preference: null, allowed: null, state: 'unknown' };
-  for (const [initialNsfw, finalNsfw] of [[enabled, disabled], [disabled, enabled], [enabled, unknown],
+  for (const [initialNsfw, finalNsfw] of [[enabled, disabled], [enabled, unknown],
     [enabled, { ...enabled, preference: false }]]) {
     const f = fixture({ initialNsfw, finalNsfw });
     const value = await f.run([update]);
@@ -288,10 +312,19 @@ test('批次末尾NSFW范围变化拒绝混用快照，无论权限收紧、扩�
     assert.equal(value.summary.success, 0);
     assert.equal(value.items[0].verification.readbackCompleted, false);
     assert.equal(value.items[0].verificationError.code, 'NSFW_SCOPE_CHANGED');
+    assert.equal(value.items[0].stageResults[0].verificationError.code, 'NSFW_SCOPE_CHANGED');
     assert.deepEqual(value.accessContext.nsfw, finalNsfw);
     assert.equal(f.reads.filter(read => read.final).length, 0);
     assert.equal(f.writes.length, 1);
   }
+});
+
+test('没有NSFW依赖的普通目录修改不因权限扩大而阻断', async () => {
+  const f = fixture({ initialNsfw: { preference: false, allowed: false, state: 'disabled' },
+    finalNsfw: { preference: true, allowed: true, state: 'enabled' } });
+  const value = await f.run([update]);
+  assert.equal(value.state, 'success', JSON.stringify(value));
+  assert.equal(f.writes.length, 1); assert.equal(value.items[0].verification.readbackCompleted, true);
 });
 
 test('NSFW范围应用状态变化及无变更计划同样不能假报完成', async () => {
@@ -314,9 +347,13 @@ test('开始预检范围保持独立副本，传输返回对象被修改也不�
     nsfw: { preference: true, allowed: true, state: 'enabled' }, source: 'p1', nsfwApplied: true,
     checkedAt: '2026-10-04T00:00:00.000Z' };
   const service = new BangumiMcpService({ preflight: async () => context, currentUser: async () => context.account,
-    close: async () => {}, account: async () => { throw Error('NSFW范围变更后不能开始读取业务对象'); } });
+    close: async () => {}, account: async path => {
+      assert.equal(path, '/p1/subjects/101');
+      return { id: 101, type: 2, name: '离线R18对象', nsfw: true, airtime: { date: '2026-04-01' } };
+    } });
   const scope = { id: '12345678-1234-1234-1234-123456789012', phase: 'prepare' };
   await service.call('get_current_user', {}, undefined, undefined, scope);
+  await service.call('get_subject_details', { subject_id: 101, include: [] }, undefined, undefined, scope);
   context.nsfw.allowed = false; context.nsfw.state = 'disabled';
   try {
     await assert.rejects(service.call('get_current_user', {}, undefined, undefined, { ...scope, phase: 'verify' }), { code: 'NSFW_SCOPE_CHANGED' });

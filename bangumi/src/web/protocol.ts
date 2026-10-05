@@ -33,8 +33,10 @@ export interface TranscriptItemBase { id: number; version: number }
 export interface ActivityItemView extends TranscriptItemBase {
   kind: 'activity';
   label: string;
-  state: 'running' | 'ok' | 'error';
+  state: 'running' | 'waiting' | 'ok' | 'partial' | 'unknown' | 'error';
   detail: string;
+  /** 批次的中文计数与缺口在成功时也展示；普通工具仍沿用折叠详情。 */
+  showDetail?: boolean;
 }
 
 /* ============================================================

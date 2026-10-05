@@ -14,6 +14,8 @@ import { preparedBaseline } from './prepared.js';
 import { batchPreparation, batchScope } from './batch-context.js';
 import { checkOutput } from './subject-output.js';
 import { checkAccessResponse } from './access-context.js';
+import { readContext } from './read-context.js';
+import { diagnoseReadError } from './read-recovery.js';
 
 function writeGuard(value: unknown): McpWriteGuard {
   if (value === undefined) throw new AppError('AUTHORIZATION_REQUIRED', 'MCP 写入必须由宿主授权链路提交。');
@@ -27,6 +29,12 @@ function writeGuard(value: unknown): McpWriteGuard {
 /** 单机固定目录服务；stdout 只输出 MCP JSON-RPC，不接受模型提供的URL或执行命令。 */
 export function createBangumiMcpServer(service: BangumiMcpService): Server {
   const server = new Server({ name: 'MyBangumiAssistant-Bangumi', version: '0.1.0' }, { capabilities: { tools: {} } });
+  // 仅宿主通知用于释放当前任务读取缓存；不登记模型工具，不影响业务结果。
+  server.fallbackNotificationHandler = async notification => {
+    if (notification.method !== 'bangumi/readContextEnded') return;
+    try { service.endReadContext(readContext(notification.params).turnId); }
+    catch { /* 无效或迟到清理通知不能使业务连接失败。 */ }
+  };
   server.setRequestHandler(ListToolsRequestSchema, async request => {
     const raw = request.params?.cursor;
     const offset = raw === undefined ? 0 : /^\d+$/.test(raw) ? Number(raw) : NaN;
@@ -42,14 +50,15 @@ export function createBangumiMcpServer(service: BangumiMcpService): Server {
       const args = validateToolArguments(name, request.params.arguments ?? {});
       const guard = definition!.effect === 'write' ? writeGuard(request.params._meta?.['bangumi/guard']) : undefined;
       const scope = request.params._meta?.['bangumi/batch'];
-      const value = await service.call(name, args, extra.signal, guard, scope === undefined ? undefined : batchScope(scope));
+      const reading = request.params._meta?.['bangumi/readContext'];
+      const value = await service.call(name, args, extra.signal, guard, scope === undefined ? undefined : batchScope(scope), reading === undefined ? undefined : readContext(reading));
       const structuredContent = { value: value === undefined ? null : value };
       if (Buffer.byteLength(JSON.stringify(structuredContent)) > 1_900_000) throw new AppError('MCP_OUTPUT_LIMIT', '结果过大，请缩小查询范围。');
       if (definition?.outputSchema) checkOutput(definition.outputSchema, structuredContent);
       checkAccessResponse(name, structuredContent.value);
       return { content: [], structuredContent };
     } catch (error) {
-      let structuredContent = { error: safeError(error) };
+      let structuredContent = { error: safeError(definition?.effect === 'read' ? diagnoseReadError(name, request.params.arguments ?? {}, error) : error) };
       if (definition?.outputSchema) {
         try {
           if (structuredContent.error.sourceTool !== undefined && structuredContent.error.sourceTool !== name

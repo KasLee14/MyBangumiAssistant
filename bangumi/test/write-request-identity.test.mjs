@@ -118,7 +118,8 @@ test('硬中断保留第二网络阶段started时的完整未知目标，生效�
     assert.equal((await f.run(plan)).state, 'success'); assert.equal(f.writes.length, 2); assert.ok(snapshot);
     const pending = snapshot.ledger.findLast(fact => fact.kind === 'bangumi-write');
     assert.equal(pending.phase, 'started'); assert.equal(pending.state, 'unknown');
-    assert.deepEqual(pending.submission.items.map(item => item.submissionState), ['acknowledged', 'unknown']);
+    assert.deepEqual(pending.submission.items.map(item => item.submissionState), ['unknown']);
+    assert.equal(pending.submission.items[0].stage, 'book_progress');
     assert.equal(new Map(pending.expected).get('collection:201').ep_status, 5, '投递未知阶段目标必须进入持久保护视图');
     // 仅保留RPC开始前已经落盘的事实，模拟进程在响应返回前硬中断。
     // applied=false表示第二请求已尝试，但独立读取目前只能看到第一阶段。

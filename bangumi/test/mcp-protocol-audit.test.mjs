@@ -117,7 +117,7 @@ test('只读 Scope 冻结传入权限对象，401 后不继续使用被拒绝 Co
   const f = fixture(t); const context = await f.transport.preflight();
   const scope = await f.transport.bindReadScope(context); t.after(() => scope.close());
   context.account.id = 99; context.nsfw.allowed = false; context.nsfw.preference = false;
-  await scope.verify(); f.reject();
+  await scope.verify({ usedNsfw: true }); f.reject();
   await assert.rejects(scope.account('/p1/subjects/1'), code('BGM_HTTP_401'));
   const before = f.requests.length;
   await assert.rejects(scope.account('/p1/subjects/2'), code('BGM_AUTH_EXPIRED'));
@@ -140,6 +140,46 @@ function injectedLocal(t, reply) {
   client.initialization = Promise.resolve(); client.client.callTool = async () => reply;
   t.after(() => client.close()); return client;
 }
+
+test('只读MCP总期限容纳一次HTTP重试，写入等待预算不变，结束通知不初始化连接', async t => {
+  const client = injectedLocal(t, {}); const options = [];
+  client.client.callTool = async (_request, _schema, requestOptions) => { options.push(requestOptions); throw { code: -32001 }; };
+  await assert.rejects(client.call('get_current_user', {}), error => error.code === 'BGM_TIMEOUT'
+    && error.diagnosis.category === 'transient' && error.diagnosis.retryable === false
+    && !error.diagnosis.capabilitySuggestions.includes('use_public_sfw'));
+  await assert.rejects(client.call('update_subject_collection', { subject_id: 1, collection_type: 3 }, undefined, { accountId: 42 }), error => error.code === 'BGM_TIMEOUT');
+  assert.equal(options[0].timeout, 3000); assert.equal(options[1].timeout, 1000);
+  const unopened = new LocalMcpClient({ authDir: join(tmpdir(), 'unused-cleanup-test'), proxy: null, timeoutMs: 1000 });
+  let initialized = false; unopened.initialize = async () => { initialized = true; };
+  t.after(() => unopened.close());
+  await unopened.endReadContext('not-opened'); assert.equal(initialized, false); assert.equal(unopened.initialization, undefined);
+});
+
+test('客户端仅当前read任务记录deadline失败，不额外重试；换对象与新轮次允许', async t => {
+  const client = injectedLocal(t, {}); let count = 0;
+  client.client.callTool = async () => { count++; throw { code: -32001 }; };
+  const fail = (subject_id, turnId) => client.call('get_subject_details', { subject_id }, undefined, undefined, undefined, { turnId });
+  await assert.rejects(fail(1, 'client-deadline'), code('BGM_TIMEOUT'));
+  await assert.rejects(fail(1, 'client-deadline'), code('BGM_TIMEOUT')); assert.equal(count, 1);
+  await assert.rejects(fail(2, 'client-deadline'), code('BGM_TIMEOUT')); assert.equal(count, 2);
+  await assert.rejects(fail(1, 'new-client-turn'), code('BGM_TIMEOUT')); assert.equal(count, 3);
+  await client.endReadContext('client-deadline');
+  await assert.rejects(fail(1, 'client-deadline'), code('BGM_TIMEOUT')); assert.equal(count, 4);
+});
+
+test('结束读取上下文的固定通知清理任务，无效通知不破坏业务连接', { timeout: 2000 }, async t => {
+  let ended; const observed = new Promise(resolve => { ended = resolve; }); const calls = [];
+  const server = createBangumiMcpServer({ call: async () => { throw new AppError('BGM_HTTP_404', '固定失败'); },
+    endReadContext: turnId => { calls.push(turnId); ended(); } });
+  const client = new Client({ name: 'context-cleanup', version: '1' }, { capabilities: {} });
+  const [left, right] = InMemoryTransport.createLinkedPair();
+  await Promise.all([server.connect(right), client.connect(left)]); t.after(async () => { await client.close(); await server.close(); });
+  await client.notification({ method: 'bangumi/readContextEnded', params: { turnId: 'task-end', arbitrary: 'ignored' } });
+  await client.notification({ method: 'bangumi/readContextEnded', params: { turnId: 'task-end' } });
+  await observed; assert.deepEqual(calls, ['task-end']);
+  const result = await client.callTool({ name: 'get_current_user', arguments: {} });
+  assert.equal(result.structuredContent.error.code, 'BGM_HTTP_404');
+});
 
 test('客户端拒绝错误源工具、恢复类型与成功/错误标记错配', async t => {
   for (const reply of [
@@ -176,7 +216,7 @@ test('服务端和 Pi 错误通道仍受同一输出 Schema 约束', async t => 
 });
 
 const accountContext = () => ({ ...anonymousContext(), mode: 'account', account: { id: 42, username: 'offline_reader' },
-  source: 'p1', nsfwApplied: true });
+  source: 'p1', nsfwApplied: false });
 const currentValue = () => ({ schemaVersion: 1, kind: 'account', id: 42, username: 'offline_reader',
   readAt: new Date().toISOString(), accessContext: accountContext() });
 
@@ -191,6 +231,7 @@ test('成功上下文拒绝嵌套 NSFW 越界，包括显式排除但账户仍�
   const value = { accessContext: accountContext(), data: [{ subject: { nsfw: true } }] };
   assert.throws(() => checkAccessResponse('get_subject_relations', value), code('MCP_INVALID_RESULT'));
   value.accessContext.nsfw = { preference: true, allowed: true, state: 'enabled' };
+  value.accessContext.nsfwApplied = true;
   assert.doesNotThrow(() => checkAccessResponse('get_subject_relations', value));
   value.accessContext.queryCoverage = { requested: 'exclude', actual: 'sfw_only', nsfw: 'excluded', totalKind: 'estimated', limitations: [] };
   assert.throws(() => checkAccessResponse('search_subjects', value), code('MCP_INVALID_RESULT'));
