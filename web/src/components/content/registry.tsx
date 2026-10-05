@@ -34,7 +34,7 @@ export type ContentKind =
 /** 从协议里「挑」出内容成员；不复制类型定义，协议改动会自动传导。 */
 export type ContentItemView = Extract<TranscriptItemView, { kind: ContentKind }>;
 
-/** base 条目：本轮不做注册表化，仍由 `TurnView` 的分支渲染。 */
+/** base 条目：本轮不做注册表化，仍由 `Turn` 的分支渲染。 */
 export type BaseTranscriptKind =
   | 'header' | 'user' | 'assistant' | 'notice' | 'error' | 'activity' | 'confirmation';
 

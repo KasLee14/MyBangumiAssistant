@@ -16,8 +16,7 @@
 | [session-flow.md](session-flow.md) | 动会话主链路（提交 / 流式 / 工具活动 / 确认卡 / 会话切换 / 内容条目）之后 |
 | [settings-and-credentials.md](settings-and-credentials.md) | 动设置弹窗、模型配置、凭据持久化、代理、登录之后 |
 | [commands-and-shortcuts.md](commands-and-shortcuts.md) | 动命令表、补全、Esc 行为、思考强度、toast 之后 |
-| [shell-and-layout.md](shell-and-layout.md) | 动样式、DOM 结构、类名、外壳布局之后（**改类名或层级必跑**） |
-| [ui-variants.md](ui-variants.md) | 动 v1/v2 两版外观、v2 的动效，或**改了共享组件**（`Modal`/`StatsDock`/`MessageParts`/`content/**`）之后（改共享组件必跑 `V4`） |
+| [shell-and-layout.md](shell-and-layout.md) | 动样式、DOM 结构、类名、外壳布局、动效之后（**改类名或层级必跑**）。`A` 组（外观与动效契约、接管卡去重、会话草稿）也在这个文件里 |
 
 ### 必须遵守的规则
 
@@ -28,12 +27,7 @@
 
 ## 这是什么
 
-**文档化的回归用例**，覆盖 web 交互终端的主链路，是"照着做就能判定通过/失败"的清单。项目另有 Node 内置测试：在 `bangumi/` 先执行 `npm run build`，再执行 `npm run test:web`；授权文案和固定确认政策使用 `node --test test/write-preview.test.mjs test/confirmation-policy.test.mjs`。离线自动测试与真实模型、真实登录的验收应分别记录。
-
-`test/web-ui-variants.test.mjs` 在真实浏览器中加载构建产物，使用本地离线 HTTP/SSE 验证
-授权卡去重、应答状态、外观切换与会话草稿。默认查找 Windows Edge / Chrome；也可用
-`BGM_WEB_TEST_BROWSER` 指定可执行文件，缺少浏览器时明确跳过。可单独运行
-`node --test test/web-ui-variants.test.mjs`；`BGM_WEB_TEST_SCREENSHOT_DIR` 可指定截图目录。
+**文档化的回归用例**，覆盖 web 交互终端的主链路，是"照着做就能判定通过/失败"的清单。**前端没有自动化测试运行器**：回归只靠本目录的用例 + `npm run typecheck`。宿主侧另有 Node 内置测试（在 `bangumi/` 执行 `npm run test:mcp`，node:test，**不覆盖前端**）；授权文案与固定确认政策可以用 `node --test test/write-preview.test.mjs test/confirmation-policy.test.mjs` 单独跑。离线自动测试与真实模型、真实登录的验收应分别记录。
 
 设计目标有两个：
 
@@ -64,8 +58,8 @@
 | `S` | [session-flow.md](session-flow.md) | 会话主链路：提交、流式、工具活动、确认卡、会话切换、轮次导航、内容条目 |
 | `C` | [settings-and-credentials.md](settings-and-credentials.md) | 设置四行、模型配置与凭据持久化、模型选择、代理、登录 |
 | `K` | [commands-and-shortcuts.md](commands-and-shortcuts.md) | 命令补全与本地命令、Esc 行为、思考强度、toast |
-| `L` | [shell-and-layout.md](shell-and-layout.md) | 外壳与布局：首屏、侧栏、连接状态、DOM/类名契约、宽度轴、品牌外观 |
-| `V` | [ui-variants.md](ui-variants.md) | 两版外观：切换与持久化、作用域契约、v1 零改动、v2 的 DOM 契约、动效约束与降级、两版功能一致 |
+| `L` | [shell-and-layout.md](shell-and-layout.md) | 外壳与布局：首屏、侧栏、连接状态、DOM/类名契约、列宽轴、品牌外观、浮层层级 |
+| `A` | [shell-and-layout.md](shell-and-layout.md) | 外观与动效契约：容器查询与屏外优化、内容条目可见性、非常驻循环动画、减少动态效果降级、弹窗过渡与浮层挂载点、接管卡去重、会话草稿 |
 
 ## 按改动范围选用例
 
@@ -74,18 +68,19 @@
 | 只改文案 | 涉及该文案的用例 + `L5` |
 | 改组件结构 / 类名 | `L5`、`L6` + 该组件所在链路的用例 |
 | 改 store 切片 / 动作 | 该切片相关的全部用例 + `K9`、`L4` |
-| 改样式文件 | `L1`、`L5`、`L6`、`L7`（`--dsw-*` 或品牌令牌改动则全量 `L`） |
+| 改样式文件 | `L1`、`L5`、`L7`（`--dsw-*`、`--bgm-*` 或 `--app-*` 令牌改动则全量 `L`） |
 | 改 `utils/api.ts` 或协议 | 对应端点的用例（`C*` / `S*`）+ `L4` |
-| 改消息渲染 / 内容组件 | `S2`、`S3`、`S9` + [../components/content.md](../components/content.md) 的"新增 kind 清单"核对 |
-| 改 `page/mainPage/*`、`components/v2/**`、`components/motion/**`、`styles/v2/**` | `V1`–`V10`（其中 `V3`、`V7` 是本组的关键项） |
-| 改**共享组件**（`Modal`、`StatsDock`、`MessageParts`、`content/**`） | `V4` + 该组件所在链路的用例 |
-| 加动效或改动效令牌 | `V8`、`V9` + [../styles/readme.md](../styles/readme.md) 的引入顺序核对 |
+| 改消息渲染 / 内容组件 | `S2`、`S3`、`S10` + `A2` + [../components/content.md](../components/content.md) 的"新增 kind 清单"核对 |
+| 改 `page/mainPage/*`、`components/mainPage/**`、`components/motion/**` | `A1`–`A5`（其中 `A1`、`A2` 是本组的关键项） |
+| 改**共享组件**（`Modal`、`StatsDock`、`MessageParts`、`content/**`） | `A5`、`A6` + 该组件所在链路的用例 |
+| 加动效或改动效令牌 | `A3`、`A4` + [../styles/tokens.md](../styles/tokens.md) 的 `--app-*` 与 `motionTokens.ts` 同步核对 |
+| 改外壳布局或 `main.tsx` 的 import 顺序 | `L1`、`L5`、`L6`、`L8` |
 
 ## 冒烟集（任何改动后至少跑这 5 条）
 
 `L1`（首屏渲染）→ `L4`（连接状态）→ `K1`+`K2`（命令补全与 `/help`）→ `L5`（DOM 契约）→ `L3`（侧栏折叠）。
 
-改动落到外观版本或共享组件时，在冒烟集之后追加：`V1`（切换）→ `V4`（v1 零改动）→ `V3`（不重连宿主）。
+改动落到外壳、共享组件或动效时，在冒烟集之后追加：`A1`（容器查询与屏外优化）→ `A5`（弹窗过渡与浮层挂载点）→ `A6`（待授权只显示一张卡）。
 
 ## 记录模板
 

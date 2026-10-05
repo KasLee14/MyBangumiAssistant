@@ -6,7 +6,7 @@ import { validateTranscriptItem } from './validate';
 /**
  * 内容条目联合类型。
  *
- * 从 `registry` 转出，调用点的 import 路径不需要变（`TurnView` 从这里取）。
+ * 从 `registry` 转出，调用点的 import 路径不需要变（`Turn` 从这里取）。
  */
 export type { ContentItemView } from './registry';
 

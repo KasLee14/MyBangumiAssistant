@@ -2,19 +2,19 @@ import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
 import type { ConfirmationView } from '../../../../../bangumi/src/web/protocol';
 import { useActions, useAppSelector } from '../../../store/hooks';
-import { ConfirmationCard } from '../../mainPage/conversation/ConfirmationCard';
-import { V2_DURATION, V2_EASE_OUT, V2_SHIFT } from '../../motion/motionTokens';
-import { ComposerV2 } from './ComposerV2';
+import { ConfirmationCard } from '../conversation/ConfirmationCard';
+import { DURATION, EASE_OUT, SHIFT } from '../../motion/motionTokens';
+import { Composer } from './Composer';
 
 /**
- * v2 输入区座位：决定「此刻输入位置该放什么」。
+ * 输入区座位：决定「此刻输入位置该放什么」。
  *
- * 结构与 v1 的 `ComposerSlot` 同构（同一张分支表、同一份判定输入、同一条优先级规则：
- * 新增一种接管形态只加一项），差别在接管卡的进入方式——v2 用 motion 把它从下方
- * 推入，让「输入卡被替换成确认卡」这件事看起来是一次接管，而不是一次跳变。
+ * 分支表只认一份快照，新增一种接管形态只加一项。接管卡的进入方式是一段从下方推入的
+ * 过渡，让「输入卡被替换成确认卡」看起来是一次接管，而不是一次跳变。
  *
- * 接管卡片本身仍复用共享的 `ConfirmationCard`（props 驱动），两版的确认语义因此
- * 只有一处实现。
+ * 输入卡挂载在唯一位置（`.appSeat`），首屏与活动态只靠容器的 `data-phase` 切换外观。
+ * `key={sessionId}` 让切换会话时重建输入卡，清掉上一个会话的提交与补全状态；
+ * 草稿本身在 store 里按会话保存，因此重建不会丢文字。
  */
 interface SeatView {
   /** 宿主正在等待用户决定的写入预览；没有则为 null。 */
@@ -47,10 +47,10 @@ const SEAT_BRANCHES: SeatBranch[] = [
       if (pending === null) return null;
       return (
         <motion.div
-          className="v2CardSeat"
-          initial={{ opacity: 0, y: V2_SHIFT.panel }}
+          className="appCardSeat"
+          initial={{ opacity: 0, y: SHIFT.panel }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: V2_DURATION.slow, ease: V2_EASE_OUT }}
+          transition={{ duration: DURATION.slow, ease: EASE_OUT }}
         >
           <ConfirmationCard
             confirmation={pending}
@@ -65,7 +65,7 @@ const SEAT_BRANCHES: SeatBranch[] = [
   },
 ];
 
-export function ComposerSeatV2(): ReactNode {
+export function ComposerSeat(): ReactNode {
   const actions = useActions();
   const pending = useAppSelector(state => state.stream.pending);
   const answering = useAppSelector(state => state.stream.answering);
@@ -81,8 +81,8 @@ export function ComposerSeatV2(): ReactNode {
   const branch = SEAT_BRANCHES.find(candidate => candidate.match(view));
 
   return (
-    <div className="v2Seat">
-      {branch ? branch.render(view) : <ComposerV2 key={sessionId} />}
+    <div className="appSeat">
+      {branch ? branch.render(view) : <Composer key={sessionId} />}
     </div>
   );
 }

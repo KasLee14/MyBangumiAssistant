@@ -1,49 +1,23 @@
 # 内容组件库（`components/content/`）
 
-## 使用说明
-
-### 这份文档是什么
+## 简介
 
 内容组件库的规格：注册表模式与它的五条约束、校验与降级规则、新增一种内容 `kind` 的逐步清单、`markdown.tsx` 的约束。
 
+**不覆盖**：内容条目的样式皮肤（见 [../styles/content-and-brand.md](../styles/content-and-brand.md)）、轮次与流式区的装配（见 [main-page.md](main-page.md)）。
+
 上层：[readme.md](readme.md)。这一层是"用表代替分支"规格最高的地方——**新增一种内容展示只应该改一张表 + 一份协议类型**。
 
-### 怎么读（章节 → 场景）
+## 使用说明
 
-| 章节 | 什么时候读 |
-|---|---|
-| §组成 | 找某个文件或某个 `kind` 的渲染器 |
-| §注册表的风格约束 | **改动注册表或新增 `kind` 前必读**（五条约束各含失败模式） |
-| §校验与降级 | 遇到降级块、要改校验规则或数组上限时 |
-| §新增一种内容 `kind` 的完整清单 | **新增内容展示时逐步照做**（7 步，缺一步会编译失败或静默丢弃） |
-| §`markdown.tsx` 的约束 | 改助手文本渲染时 |
+- **改动注册表、校验或新增 `kind` 之前先读 §规则**：五条约束与校验规则各含失败模式（静默丢弃、编译失败、运行时炸掉整棵 React 树）；违反后果都直接落在界面上。
+- **只想查「某个 `kind` 对应哪个渲染器」「某个文件负责什么」**：直接查 §索引 的「组成」（文件表 + 12 个 `kind` 清单），不必通读 §规则。
+- **新增一种内容展示**：严格按 §规则 末条「新增一种内容 `kind` 的完整清单」的 7 步做，缺一步会编译失败或静默丢弃；做完再按 [../regression/session-flow.md](../regression/session-flow.md) 里"内容条目渲染"的用例验证降级与截断行为。
+- 理解「为什么要在接收侧再校验一次」看 §规则「校验与降级（`validate.ts` + `index.tsx`）」；改样式前先读 [../styles/content-and-brand.md](../styles/content-and-brand.md)。
 
-### 必须遵守的规则
+## 规则
 
-本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
-
-1. **`kind` 只有一个来源（`registry.tsx`）** —— 违反后果：协议漂移后条目被静默丢弃。
-2. **`satisfies` 完整性与 `ContentRegistryCoverage` 断言不得放宽** —— 违反后果：协议新增 kind 时前端静默漏渲染。
-3. **取渲染函数必须走 `contentRenderer()`** —— 违反后果：把表项当函数调用，运行时炸掉整棵 React 树。
-4. **未知 `kind` 一律丢弃 + 告警，不做降级渲染** —— 违反后果：误导用户以为渲染成功。
-5. **`markdown.tsx` 不注入 HTML** —— 违反后果：渲染不可控，且引入注入面。
-
-## 组成
-
-| 文件 | 职责 |
-|---|---|
-| `registry.tsx` | **注册表本体**：`kind` 清单、`kind → { field, limit, render }` 表、分发入口、覆盖率断言 |
-| `index.tsx` | `ContentItem`：接收侧的二次校验 + 分发 + 降级/丢弃 |
-| `validate.ts` | 单条条目的载荷校验（零依赖手写守卫），返回 `ok` / `degraded` / `dropped` |
-| `ContentFallback.tsx` | 降级块：把问题清单与原始 JSON 呈现给用户 |
-| `markdown.tsx` | `Markdown` 渲染器（行内标记 + 表格 + 分隔线），**以 React 节点输出，不注入 HTML** |
-| 12 个渲染组件 | `SubjectCards`、`StatsCard`、`ProgressView`、`InfoBox`、`DataTable`、`Timeline`、`TagCloud`、`Gallery`、`CompareTable`、`QuoteBlock`、`Callout`、`LinkList` |
-
-12 个 `kind`：`subjects` / `stats` / `progress` / `infobox` / `table` / `timeline` / `tags` / `gallery` / `compare` / `quote` / `callout` / `links`。
-
-## 注册表的风格约束（重点）
-
-### 1. `kind` 只有一个来源
+### `kind` 只有一个来源（`registry.tsx`）
 
 ```ts
 export type ContentKind = 'subjects' | … | 'links';   // registry.tsx
@@ -51,7 +25,11 @@ export type ContentKind = 'subjects' | … | 'links';   // registry.tsx
 
 `ContentItemView` 用 `Extract<TranscriptItemView, { kind: ContentKind }>` **从协议里挑**，不复制类型定义——协议改动会自动传导到前端。
 
-### 2. 表必须完整，且键要对齐协议成员
+**违反后果**：协议漂移后条目被静默丢弃。
+
+### `satisfies` 完整性与 `ContentRegistryCoverage` 断言不得放宽
+
+**表必须完整，且键要对齐协议成员**
 
 ```ts
 export const CONTENT_RENDERERS = { subjects: { field: 'subjects', limit: …, render: item => <SubjectCards view={item.subjects} /> }, … }
@@ -64,7 +42,7 @@ export const CONTENT_RENDERERS = { subjects: { field: 'subjects', limit: …, re
 - `limit` 可选，给出载荷内数组字段的规模上限；
 - `render` 的参数类型精确到该 kind 的协议成员——**载荷字段名拼错会直接编译失败**，这是它替代 `switch` + `never` 穷尽检查的方式。
 
-### 3. 协议新增 kind 但忘了改这里，也要编译失败
+**协议新增 kind 但忘了改这里，也要编译失败**
 
 ```ts
 export type ContentRegistryCoverage = AssertNever<
@@ -74,9 +52,11 @@ export type ContentRegistryCoverage = AssertNever<
 
 协议加了第 13 个内容 kind 却忘了扩 `ContentKind` 时，这一行会报错。**不要为了让它通过而放宽这个断言**——它正是防止"协议漂移"的闸门。
 
-`BaseTranscriptKind`（`header`/`user`/`assistant`/`notice`/`error`/`activity`/`confirmation`）是有意排除在注册表之外的：这些条目由 `TurnView` 的分支渲染，不走内容组件库。
+`BaseTranscriptKind`（`header`/`user`/`assistant`/`notice`/`error`/`activity`/`confirmation`）是有意排除在注册表之外的：这些条目由 `Turn.tsx` 的分支渲染，不走内容组件库。
 
-### 4. 取渲染函数必须走 `contentRenderer()`
+**违反后果**：协议新增 kind 时前端静默漏渲染。
+
+### 取渲染函数必须走 `contentRenderer()`
 
 ```ts
 export function contentRenderer(kind: unknown): ((item: ContentItemView) => ReactNode) | undefined
@@ -84,11 +64,15 @@ export function contentRenderer(kind: unknown): ((item: ContentItemView) => Reac
 
 不能直接 `CONTENT_RENDERERS[kind](item)`：表项是 `{ field, limit, render }` **对象**，当函数调用会在运行时炸掉整棵 React 树，而类型断言恰好不会报错。收窄只能在这一层做一次（判别式联合无法表达"按 kind 索引的函数表"）。
 
-### 5. 未知 `kind` 一律丢弃，不做降级
+**违反后果**：把表项当函数调用，运行时炸掉整棵 React 树。
+
+### 未知 `kind` 一律丢弃 + 告警，不做降级渲染
 
 `renderContentItem` 对未登记的 kind 返回 `null`。理由：未知类型没有可依据的载荷语义，硬渲染占位比不渲染更容易误导。告警由调用方（`ContentItem` 的 `console.warn`）负责，注册表本身在渲染期不产生副作用。
 
-## 校验与降级（`validate.ts` + `index.tsx`）
+**违反后果**：误导用户以为渲染成功。
+
+### 校验与降级（`validate.ts` + `index.tsx`）
 
 三态结果：
 
@@ -106,13 +90,22 @@ export function contentRenderer(kind: unknown): ((item: ContentItemView) => Reac
 
 `limit: { field, max }` 声明载荷内数组的软上限，超限截断并在降级块里计数。取值参考一次生成的信息量与流式帧布局成本（例如 `table.rows` 200、`stats.entries` 100、`tags.tags` 50）。
 
-## 新增一种内容 `kind` 的完整清单
+### `markdown.tsx` 不注入 HTML
+
+**不注入 HTML**：行内标记（粗体、行内代码、链接）与表格/分隔线都以 React 节点输出，`INLINE` 白名单之外的内容按纯文本渲染。
+
+- 外部链接一律 `target="_blank" rel="noreferrer noopener"`。
+- 它被 `Turn.tsx`（历史助手条目）与 `Streaming.tsx`（流式正文）使用；改渲染规则等于改所有助手文本的呈现，回归时至少覆盖一条含表格与链接的回答。
+
+**违反后果**：渲染不可控，且引入注入面。
+
+### 新增一种内容 `kind` 的完整清单
 
 按顺序做完这 7 步，缺一步都会有编译错误或运行时静默丢弃：
 
 1. **协议**：在 `bangumi/src/web/protocol.ts` 的 `TranscriptItemView` 联合里加成员（含 `kind` 与载荷字段）；
 2. **`registry.tsx` 的 `ContentKind`**：加该 kind；
-3. **`registry.tsx` 的 `CONTENT_KINDS`**：按展示顺序加（顺序与 `docs/bgm-design/component-library.html` 章节一致）；
+3. **`registry.tsx` 的 `CONTENT_KINDS`**：按展示顺序加（顺序与仓库根 `docs/bgm-design/component-library.html` 的章节一致；该目录未纳入版本控制）；
 4. **渲染组件**：在 `components/content/` 建 `Xxx.tsx`，接收 `{ view }: { view: XxxView }`（`XxxView` 从协议取）；
 5. **`CONTENT_RENDERERS`**：加表项，写 `field` / `limit`（有数组时）/ `render`；
 6. **`validate.ts`**：为载荷加守卫（形状、字段类型、规模上限），让非法数据降级而不是崩；
@@ -120,8 +113,31 @@ export function contentRenderer(kind: unknown): ((item: ContentItemView) => Reac
 
 然后跑 `npm run typecheck`，并按 [../regression/session-flow.md](../regression/session-flow.md) 里"内容条目渲染"的用例验证降级与截断行为。
 
-## `markdown.tsx` 的约束
+## 索引
 
-- **不注入 HTML**：行内标记（粗体、行内代码、链接）与表格/分隔线都以 React 节点输出，`INLINE` 白名单之外的内容按纯文本渲染。
-- 外部链接一律 `target="_blank" rel="noreferrer noopener"`。
-- 它被 `MessageParts`（流式正文、历史助手条目）与 `TurnView` 使用；改渲染规则等于改所有助手文本的呈现，回归时至少覆盖一条含表格与链接的回答。
+### 章节 → 场景
+
+| 章节 | 什么时候读 |
+|---|---|
+| §规则「`kind` 只有一个来源（`registry.tsx`）」 | 想另写一份 kind 清单、怀疑协议漂移时 |
+| §规则「`satisfies` 完整性与 `ContentRegistryCoverage` 断言不得放宽」 | 注册表编译报错、想放宽断言时 |
+| §规则「取渲染函数必须走 `contentRenderer()`」 | 写分发代码、想直接索引渲染表时 |
+| §规则「未知 `kind` 一律丢弃 + 告警，不做降级渲染」 | 讨论要不要给未知 kind 兜底渲染时 |
+| §规则「校验与降级（`validate.ts` + `index.tsx`）」 | 遇到降级块、要改校验规则时 |
+| §规则「数组规模上限」 | 改数组上限、遇到超长载荷时 |
+| §规则「`markdown.tsx` 不注入 HTML」 | 改助手文本渲染时 |
+| §规则「新增一种内容 `kind` 的完整清单」 | **新增内容展示时逐步照做**（7 步，缺一步会编译失败或静默丢弃） |
+| §索引「组成」 | 找某个文件或某个 `kind` 的渲染器 |
+
+### 组成
+
+| 文件 | 职责 |
+|---|---|
+| `registry.tsx` | **注册表本体**：`kind` 清单、`kind → { field, limit, render }` 表、分发入口、覆盖率断言 |
+| `index.tsx` | `ContentItem`：接收侧的二次校验 + 分发 + 降级/丢弃 |
+| `validate.ts` | 单条条目的载荷校验（零依赖手写守卫），返回 `ok` / `degraded` / `dropped` |
+| `ContentFallback.tsx` | 降级块：把问题清单与原始 JSON 呈现给用户 |
+| `markdown.tsx` | `Markdown` 渲染器（行内标记 + 表格 + 分隔线），**以 React 节点输出，不注入 HTML** |
+| 12 个渲染组件 | `SubjectCards`、`StatsCard`、`ProgressView`、`InfoBox`、`DataTable`、`Timeline`、`TagCloud`、`Gallery`、`CompareTable`、`QuoteBlock`、`Callout`、`LinkList` |
+
+12 个 `kind`：`subjects` / `stats` / `progress` / `infobox` / `table` / `timeline` / `tags` / `gallery` / `compare` / `quote` / `callout` / `links`。

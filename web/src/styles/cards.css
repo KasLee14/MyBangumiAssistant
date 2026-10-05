@@ -7,35 +7,8 @@
  */
 
 /* 卡外框：确认卡的座位 */
-.cardSeat {
-  --dsh-chat-content-width: min(calc(100cqw - 32px), clamp(680px, 64cqw, 920px));
-  --dsh-composer-card-max-width: calc(var(--dsh-chat-content-width) + 32px);
-  position: sticky;
-  bottom: 0;
-  z-index: 7;
-  width: min(calc(var(--dsh-composer-card-max-width) + 2 * var(--dsh-composer-side-clearance)), 100%);
-  margin: 0 auto;
-  padding: 6px calc(var(--dsh-composer-side-clearance) + 16px) 10px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--dsw-alias-bg-base) 0%, transparent) 0px,
-    var(--dsw-alias-bg-base) 36px
-  );
-}
 
 /* 通用卡面：抬高表面（会话内联卡也用这一层） */
-.surfaceCard {
-  --dsw-elevation-stroke-color: var(--dsw-alias-border-l2-darkmode-thin);
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: var(--dsh-composer-card-max-width);
-  margin: 0 auto;
-  border-radius: var(--dsw-radius-xl);
-  background: var(--dsw-specific-input-major);
-  box-shadow: var(--dsw-elevation-panel);
-  color: var(--dsw-alias-label-primary);
-}
 
 /* ---------------------------------------------------------------- 写入确认卡 */
 
@@ -46,11 +19,11 @@
   width: 100%;
   max-width: var(--dsh-composer-card-max-width);
   margin: 0 auto;
-  border: 1px solid var(--dsw-alias-state-warn-secondary);
-  border-radius: var(--dsw-radius-xl);
-  background: var(--dsw-specific-input-major);
-  box-shadow: var(--dsw-shadow-lv2);
   color: var(--dsw-alias-label-primary);
+  border: 1px solid color-mix(in srgb, var(--bgm-primary) 30%, transparent);
+  border-radius: var(--app-radius-panel);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-card);
   overflow: hidden;
 }
 
@@ -68,9 +41,10 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: var(--dsw-alias-state-warn-tertiary);
-  color: var(--dsw-alias-label-primary);
   font: 13px/18px var(--dsw-font-family);
+  border-bottom: 1px solid var(--bgm-border-soft);
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
 }
 
 .planCard[data-state='accepted'] .planStrip {
@@ -95,25 +69,28 @@
   max-height: 336px;
   padding: 12px 16px 0;
   overflow-y: auto;
+  color: var(--bgm-text);
 }
 
 /* 宿主生成的业务说明：普通正文、保留换行，浏览器不截断也不改写 */
 .planPreview {
   margin: 0;
   padding: 10px 12px;
-  border-radius: var(--dsw-radius-md);
-  background: var(--dsw-alias-bg-module-platform);
-  color: var(--dsw-alias-label-primary);
   font: var(--dsw-font-s-14);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  background: var(--bgm-sunken);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-sm);
+  color: var(--bgm-text);
 }
 
 .planNote {
   margin: 0;
-  color: var(--dsw-alias-label-caption);
   font: var(--dsw-font-xxs-12);
   white-space: pre-wrap;
+  font-size: 12px;
+  color: var(--bgm-text-muted);
 }
 
 .planActions {
@@ -122,6 +99,7 @@
   justify-content: flex-end;
   gap: 8px;
   padding: 14px 16px;
+  border-top: 1px solid var(--app-hairline);
 }
 
 /* ---------------------------------------------------------------- 按钮基元 */
@@ -140,6 +118,7 @@
   font: var(--dsw-font-s-14);
   cursor: pointer;
   transition: background-color 100ms ease;
+  font-size: 12px;
 }
 
 .button:disabled {
@@ -148,12 +127,14 @@
 }
 
 .button.primary {
-  background: var(--dsw-alias-button-primary-fill);
-  color: var(--dsw-alias-label-primary-foreground);
+  background: var(--bgm-primary);
+  border: 1px solid var(--bgm-primary);
+  color: #fff;
 }
 
 .button.primary:hover:not(:disabled) {
-  background: var(--dsw-alias-button-primary-hover);
+  background: var(--bgm-interactive);
+  border-color: var(--bgm-interactive);
 }
 
 .button.outline {
@@ -186,66 +167,59 @@
 /* ---------------------------------------------------------------- 流式思考 */
 
 .thinkingBlock {
+  margin-top: 12px;
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-sm);
+  background: var(--bgm-surface-alt);
   display: flex;
   flex-direction: column;
-  margin-top: 12px;
+  gap: 8px;
 }
 
 .thinkingTitle {
+  width: 100%;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  text-align: left;
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 0 0 8px;
-  border: 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
-  background: transparent;
-  color: var(--dsw-alias-label-tertiary);
-  font: var(--dsw-font-xs-13);
-  text-align: left;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--app-hairline);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  font: 13px/1.5 var(--bgm-font);
   cursor: pointer;
+  transition: border-color var(--app-dur-fast) var(--app-ease-out);
 }
 
 .thinkingTitle:hover {
   color: var(--dsw-alias-label-secondary);
+  border-color: var(--app-hairline-strong);
 }
 
 .thinkingTitle .count {
-  margin-left: auto;
-  color: var(--dsw-alias-label-caption);
   font: var(--dsw-font-xxs-12);
+  margin-left: auto;
+  color: var(--bgm-text-weak);
+  font-size: 12px;
 }
 
 .thinkingBody {
   max-height: min(240px, 40vh);
-  margin: 8px 0 0;
-  padding: 10px 12px;
-  border-radius: var(--dsw-radius-md);
-  background: var(--dsw-alias-bg-module-platform);
-  color: var(--dsw-alias-label-tertiary);
-  font: var(--dsw-font-xs-13);
-  white-space: pre-wrap;
   overflow-y: auto;
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  font: 12px/1.7 var(--bgm-mono);
+  white-space: pre-wrap;
 }
 
 /* ---------------------------------------------------------------- 提示条 */
-
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: 22px;
-  z-index: 50;
-  transform: translateX(-50%);
-  padding: 8px 18px;
-  border-radius: 999px;
-  corner-shape: round;
-  background: var(--dsw-alias-toast-bg);
-  color: var(--dsw-alias-toast-label);
-  font: var(--dsw-font-xs-13);
-  box-shadow: var(--dsw-elevation-panel);
-}
 
 /* ---------------------------------------------------------------- 工具活动状态 */
 
@@ -263,5 +237,16 @@
 }
 
 .activityRow[data-state='error'] {
-  color: var(--dsw-alias-state-error-primary);
+  color: var(--bgm-danger);
+}
+
+/* ---------------------------------------------------------------- 外观层补充
+ * 这里集中放基础文件里没有的形状（由原先分散的覆写层合并而来）：与基础同名的选择器
+ * 已经并入上面的规则，因此同一元素同一属性只有一个来源。
+ * ---------------------------------------------------------------- */
+
+.button.primary:disabled {
+  background: var(--bgm-border-soft);
+  border-color: var(--bgm-border-soft);
+  color: var(--bgm-text-disabled);
 }

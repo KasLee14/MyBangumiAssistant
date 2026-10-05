@@ -1,34 +1,33 @@
 import type { ReactNode } from 'react';
 import { useActions, useAppSelector } from '../../../store/hooks';
-import { UiVariantToggle } from './UiVariantToggle';
 
+/* 图标统一 16px、fill/stroke 走 currentColor，与既有图标槽的约定一致。 */
 const ICON = { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': true } as const;
 
 /**
- * 会话顶栏：标题行、连接状态与设置入口。
+ * 顶栏：标题、当前栏、连接状态与设置入口。
  *
- * 连接状态来自会话流切片（`EventSource` 的 open / error），设置入口把设置弹窗
- * 打开到主面板（`pane` 为 null）。
+ * 数据来源遵循规则 B（外壳直接消费 store），因此这里不接收任何 props。
+ * 连接状态点的变化、按钮的按下与聚焦都由 `styles/frame.css` 给出过渡。
  */
 export function Header(): ReactNode {
   const actions = useActions();
   const connected = useAppSelector(state => state.stream.connected);
+
   return (
-    <header className="conversationHeader">
-      <div className="titleRow">
-        <span className="title">Bangumi 助手</span>
-        <span className="tab" aria-selected="true">会话</span>
+    <header className="appHeader">
+      <div className="appTitleRow">
+        <span className="appTitle">Bangumi 助手</span>
+        <span className="appTab" aria-current="page">会话</span>
       </div>
-      <div className="headerMeta">
-        {/* 两版界面唯一的共同入口：切到 v2 也就切到了动效外观，切回来即恢复既有外观。 */}
-        <UiVariantToggle />
-        <span className="chip" data-state={connected ? 'on' : 'off'} title="连接状态">
-          <span className="dot" />
+      <div className="appHeaderMeta">
+        <span className="appChip" data-state={connected ? 'on' : 'off'} title="连接状态">
+          <span className="appChipDot" aria-hidden="true" />
           {connected ? '已连接' : '连接中断'}
         </span>
         <button
           type="button"
-          className="iconButton"
+          className="appIconButton"
           title="设置：模型、代理端口、登录状态"
           aria-label="设置"
           onClick={() => void actions.openSettings(null)}

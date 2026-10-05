@@ -1,7 +1,7 @@
 import type { CatalogView, SessionOptionView } from '../../../bangumi/src/web/protocol';
 import type { CatalogAction } from './reducers/catalog';
 import type { PendingEcho, StreamAction, StreamFrame } from './reducers/stream';
-import type { SettingsPane, UiAction, UiVariant } from './reducers/ui';
+import type { SettingsPane, UiAction } from './reducers/ui';
 
 /** 全部 action 由根 reducer 定义；这里转出，调用方从 actions 取即可。 */
 export type { AppAction } from './reducers';
@@ -22,6 +22,7 @@ export const answerSettled = (id: string): StreamAction => ({ type: 'stream/answ
 export const catalogLoaded = (catalog: CatalogView): CatalogAction => ({ type: 'catalog/loaded', catalog });
 export const sessionsUpdated = (sessions: SessionOptionView[]): CatalogAction => ({ type: 'catalog/sessions', sessions });
 export const switchingSet = (switching: boolean): UiAction => ({ type: 'ui/switching', switching });
+/** 草稿按会话保存：`draftSet` 覆盖，`draftRestored` 只在草稿仍为空时写回（乐观发送的失败回滚）。 */
 export const draftSet = (sessionId: string, text: string): UiAction => ({ type: 'ui/draft', sessionId, text });
 export const draftRestored = (sessionId: string, text: string): UiAction => ({ type: 'ui/draftRestore', sessionId, text });
 
@@ -37,5 +38,3 @@ export const collapsedSet = (collapsed: boolean): UiAction => ({ type: 'ui/colla
 export const collapsedToggled = (): UiAction => ({ type: 'ui/collapsedToggled' });
 export const revealIncremented = (): UiAction => ({ type: 'ui/revealIncremented' });
 export const credentialProviderSet = (provider: string): UiAction => ({ type: 'ui/credentialProviderSet', provider });
-/** 只改内存里的外观版本；持久化由 `operations.setUiVariant` 负责，避免 reducer 产生副作用。 */
-export const variantSet = (variant: UiVariant): UiAction => ({ type: 'ui/variantSet', variant });
