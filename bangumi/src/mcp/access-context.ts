@@ -1,5 +1,5 @@
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
-import { AppError, READ_DIAGNOSIS_SCHEMA } from '../support/errors.js';
+import { AppError, READ_DIAGNOSIS_SCHEMA, CONTRACT_ISSUE_SCHEMA } from '../support/errors.js';
 import { isDeepStrictEqual } from 'node:util';
 import { SEARCH_LIMITATIONS, type QueryCoverage } from './search-capabilities.js';
 
@@ -108,6 +108,11 @@ export function withAccessContext(schema: JsonSchema): JsonSchema {
         properties.rejection = submissionRejectionSchema;
         properties.sourceTool = { type: 'string', minLength: 1, maxLength: 100 };
         properties.diagnosis = READ_DIAGNOSIS_SCHEMA;
+        properties.contractIssue = CONTRACT_ISSUE_SCHEMA;
+        node.allOf = [...(node.allOf as JsonSchema[] ?? []), {
+          if: { properties: { contractIssue: CONTRACT_ISSUE_SCHEMA }, required: ['contractIssue'] },
+          then: { properties: { code: { const: 'MCP_INVALID_RESULT' }, sourceTool: { const: 'browse_subjects' } }, required: ['code', 'sourceTool'] },
+        }];
         properties.recovery = { type: 'object', additionalProperties: false, properties: {
           stage: { type: 'string', const: 'response_contract' }, retryable: { type: 'boolean', const: false },
         }, required: ['stage', 'retryable'] };

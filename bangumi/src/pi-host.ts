@@ -12,6 +12,8 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { credentialValues, redact, registerCredentials } from './support/errors.js';
 import { loadApplicationSkills } from './strategies/native-skills.js';
+import { withContentConstraint } from './output/provider-options.js';
+import { decodeProviderOutput } from './output/provider-output.js';
 
 export interface BangumiRuntimeOptions {
   cwd: string;
@@ -40,24 +42,26 @@ function protectProviderErrors(model: Model<Api>, start: () => AssistantMessageE
 }
 
 /** 仅注入 HTTP 传输；模型协议、流解析和工具循环均由 Pi 实现。 */
-export function withProviderFetch(provider: Provider, fetch: FetchFunction): Provider {
+export function withProviderFetch(provider: Provider, fetch?: FetchFunction): Provider {
   return {
     ...provider,
     stream: <T extends Api>(model: Model<T>, context: TranscriptContext, options?: ApiStreamOptions<T>) =>
-      protectProviderErrors(model, () => provider.stream(model, context, { ...options, fetch, maxRetries: 0 } as ApiStreamOptions<T>), options?.apiKey),
+      protectProviderErrors(model, () => decodeProviderOutput(model, context, options, () => provider.stream(model, context,
+        withContentConstraint(model, context, { ...options, ...(fetch ? { fetch } : {}), maxRetries: 0 } as ApiStreamOptions<T>))), options?.apiKey),
     streamSimple: (model, context, options) => protectProviderErrors(model,
-      () => provider.streamSimple(model, context, { ...options, fetch, maxRetries: 0 }), options?.apiKey),
+      () => decodeProviderOutput(model, context, options, () => provider.streamSimple(model, context,
+        withContentConstraint(model, context, { ...options, ...(fetch ? { fetch } : {}), maxRetries: 0 }))), options?.apiKey),
     ...(provider.fetchDeferred ? {
       fetchDeferred: (model, handle, options) => protectProviderErrors(model,
-        () => provider.fetchDeferred!(model, handle, { ...options, fetch, maxRetries: 0 }), options?.apiKey),
+      () => provider.fetchDeferred!(model, handle, { ...options, ...(fetch ? { fetch } : {}), maxRetries: 0 }), options?.apiKey),
     } : {}),
     ...(provider.cancelDeferred ? {
-      cancelDeferred: (model, handle, options) => provider.cancelDeferred!(model, handle, { ...options, fetch }),
+      cancelDeferred: (model, handle, options) => provider.cancelDeferred!(model, handle, { ...options, ...(fetch ? { fetch } : {}) }),
     } : {}),
   };
 }
 
-const injectedRuntimes = new WeakMap<ModelRuntime, FetchFunction>();
+const injectedRuntimes = new WeakMap<ModelRuntime, FetchFunction | undefined>();
 
 export async function createBangumiRuntime(options: BangumiRuntimeOptions): Promise<AgentSessionRuntime> {
   const agentDir = resolve(options.agentDir);
@@ -66,8 +70,9 @@ export async function createBangumiRuntime(options: BangumiRuntimeOptions): Prom
     const modelRuntime = options.modelRuntime ?? await ModelRuntime.create({
       authPath: join(agentDir, 'auth.json'), modelsPath: join(agentDir, 'models.json'), allowModelNetwork: false,
     });
-    if (options.fetch && injectedRuntimes.get(modelRuntime) !== options.fetch) {
+    if (!injectedRuntimes.has(modelRuntime) || injectedRuntimes.get(modelRuntime) !== options.fetch) {
       for (const provider of [...modelRuntime.getProviders()]) {
+        // 是否启用依据每次请求的有效系统标记；共享运行时不共享解码器状态。
         modelRuntime.registerNativeProvider(withProviderFetch(provider, options.fetch));
       }
       injectedRuntimes.set(modelRuntime, options.fetch);

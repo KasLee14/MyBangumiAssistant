@@ -1,10 +1,11 @@
-import { AppError } from '../support/errors.js';
+import { AppError, ContractError } from '../support/errors.js';
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
 import { object } from '../support/bangumi.js';
 import { withAccessContext, type AccessContext } from './access-context.js';
 import { checkCollectionQuery, dateMatches, fullDate, type DateBounds } from './collection-query.js';
 import { normalizeInfobox, type InfoboxItem } from './infobox-output.js';
 import { checkSubjectQueryCoverage } from './search-capabilities.js';
+import { browseDateEvidenceSchema, resolveBrowseDate, matchesBrowseDate, checkBrowseDateEvidence } from './browse-date.js';
 
 export const SUBJECT_INCLUDES = ['summary', 'infobox', 'tagStats', 'ratingDistribution'] as const;
 export type SubjectInclude = typeof SUBJECT_INCLUDES[number];
@@ -44,6 +45,14 @@ const properties = {
 };
 const required = Object.keys(properties).filter(key => !['relation', 'staff', 'characters', 'series'].includes(key));
 export const subjectSummarySchema = closed(properties, required);
+const browseSummarySchema = closed({ ...properties, dateEvidence: browseDateEvidenceSchema }, [...required, 'dateEvidence']);
+const browseFilterCoverageSchema = closed({
+  scope: { const: 'source_window', description: '仅评价当前来源窗口的日期筛选核实，不代表全站完整。' },
+  scannedCount: { ...integer(), maximum: 100, description: '当前窗口经NSFW处理后参与日期核实的条目数。' },
+  matchedCount: { ...integer(), maximum: 100 }, unknownDateCount: { ...integer(), maximum: 100 },
+  unknownDateSubjectIds: { type: 'array', maxItems: 100, uniqueItems: true, items: integer(1) },
+  complete: { type: 'boolean', description: '当前窗口日期筛选没有未知条目；分页和NSFW覆盖另见page/accessContext。' },
+});
 const infoboxSchema = { type: 'array', maxItems: 300, items: closed({ key: string(300), value: {
   anyOf: [string(20_000), { type: 'array', maxItems: 300, items: closed({ k: string(1000), v: string(20_000) }, ['v']) }],
 } }) };
@@ -103,13 +112,14 @@ export function subjectOutputSchema(name: string, inputSchema: JsonSchema): Json
     personalTags: stringList, private: nullable({ type: 'boolean' }), chapters: { ...nullable(integer()), description: '书籍已读章数；动画/三次元为派生已看集数，不能直接写ep_status。' }, volumes: nullable(integer()), updatedAt: nullable(string(100)),
   });
   const indexItem = closed({ subject: subjectSummarySchema, relationId: nullable(integer(1)), order: nullable(integer()), comment: nullable(string(2000)) });
-  const collection = name === 'get_user_collections'; const index = name === 'get_index_subjects';
+  const collection = name === 'get_user_collections'; const index = name === 'get_index_subjects'; const browse = name === 'browse_subjects';
   const page = closed({ schemaVersion: { type: 'integer', const: 1 }, kind: { type: 'string', const: 'page' },
     entity: { type: 'string', const: collection ? 'collection' : index ? 'indexSubject' : 'subject' },
-    data: { type: 'array', maxItems: 100, items: collection ? collectionItem : index ? indexItem : subjectSummarySchema },
+    data: { type: 'array', maxItems: 100, items: collection ? collectionItem : index ? indexItem : browse ? browseSummarySchema : subjectSummarySchema },
     page: pageSchema, scope, visibility: { type: 'string', enum: collection || index ? ['public', 'self'] : ['public'] }, readAt: string(50),
     ...(collection || index ? { account: closed({ id: integer(1), username: { ...string(200), minLength: 1 } }) } : {}),
-  }, ['schemaVersion', 'kind', 'entity', 'data', 'page', 'scope', 'visibility', 'readAt']);
+    ...(browse ? { filterCoverage: browseFilterCoverageSchema } : {}),
+  }, ['schemaVersion', 'kind', 'entity', 'data', 'page', 'scope', 'visibility', 'readAt', ...(browse ? ['filterCoverage'] : [])]);
   if (collection || index) {
     page.if = { properties: { visibility: { const: 'self' } }, required: ['visibility'] };
     page.then = { properties: { account: (page.properties as Record<string, JsonSchema>).account }, required: ['account'] };
@@ -163,13 +173,24 @@ export function checkSubjectResponse(name: string, value: unknown, args: Record<
       }
     }
     if (name === 'browse_subjects') for (const subject of subjects) {
-      const date = fullDate(subject.date);
-      if ((args.year !== undefined || args.month !== undefined) && (!date
-        || args.year !== undefined && Number(date.slice(0, 4)) !== args.year
-        || args.month !== undefined && Number(date.slice(5, 7)) !== args.month)) throw new AppError('MCP_INVALID_RESULT', '浏览作品日期不符合明确年月条件。');
-      if (args.platform !== undefined && subject.platform !== args.platform) throw new AppError('MCP_INVALID_RESULT', '浏览作品平台不符合明确条件。');
-      if (args.cat !== undefined && browseCategory(Number(subject.subjectType), subject.platform) !== args.cat) throw new AppError('MCP_INVALID_RESULT', '浏览作品形式未知或不符合明确cat条件。');
-      if (args.series !== undefined && subject.series !== args.series) throw new AppError('MCP_INVALID_RESULT', '浏览作品系列事实未知或不符合明确条件。');
+      checkBrowseDateEvidence(subject);
+      if (matchesBrowseDate(subject.dateEvidence as ReturnType<typeof resolveBrowseDate>, args) !== 'match')
+        throw new ContractError('browse_date_mismatch', '/data/dateEvidence', Number(subject.id));
+      checkBrowseForm(subject, args);
+    }
+    if (name === 'browse_subjects') {
+      const coverage = object(result.filterCoverage);
+      const ids = coverage.unknownDateSubjectIds;
+      const consumed = Number(coverage.scannedCount) + Number(page.excludedNsfwCount ?? 0) + Number(page.unknownNsfwCount ?? 0);
+      if (!compileSchema(browseFilterCoverageSchema)(coverage) || !Array.isArray(ids)
+        || coverage.matchedCount !== data.length || coverage.unknownDateCount !== ids.length
+        || coverage.scannedCount !== data.length + ids.length || Number(coverage.scannedCount) > Number(args.limit)
+        || ids.some(id => subjects.some(subject => subject.id === id))
+        || coverage.complete !== (ids.length === 0) || args.year === undefined && args.month === undefined && ids.length !== 0
+        || consumed > Number(args.limit) || !Object.hasOwn(page, 'sourceNextOffset') || !Object.hasOwn(page, 'sourceHasMore')
+        || page.sourceNextOffset !== null && page.sourceNextOffset !== Number(args.offset) + consumed) {
+        throw new ContractError('browse_filter_coverage_invalid', '/filterCoverage', null);
+      }
     }
     if (page.limit !== args.limit || page.offset !== args.offset || page.returnedCount !== data.length
       || Object.keys(args).some(key => JSON.stringify(scope[key]) !== JSON.stringify(args[key]))
@@ -266,6 +287,40 @@ export function subjectPage(value: unknown, args: Record<string, unknown>, relat
   if (!relation && items.some(item => item.subjectType === null || !item.name || args.subject_type !== undefined && item.subjectType !== args.subject_type)) throw new AppError('INVALID_RESPONSE', '作品列表身份或媒体筛选错误。');
   return { schemaVersion: 1, kind: 'page', entity: 'subject', data: items,
     page: pageMetadata(raw, items.length, limit, offset), scope: { ...args }, visibility: 'public', readAt: new Date().toISOString() };
+}
+/** 在NSFW/日期过滤之前冻结连续来源窗口的游标，避免短页或空页漏读。 */
+export function browseSourceWindow(value: unknown, args: Record<string, unknown>) {
+  const raw = object(value);
+  const base = subjectPage({ ...raw, totalKind: 'unknown' }, args);
+  const offset = Number(args.offset ?? 0);
+  const hasMore = Object.hasOwn(raw, 'sourceHasMore') ? raw.sourceHasMore === true
+    : base.page.nextOffset !== null || typeof raw.total === 'number' && offset + base.data.length < raw.total;
+  if (hasMore && base.data.length === 0) throw new AppError('INCOMPLETE_DATA', '浏览来源声称还有记录但返回空窗口，不能推进分页。');
+  return { ...raw, totalKind: 'unknown', sourceNextOffset: hasMore ? base.page.nextOffset ?? offset + base.data.length : null, sourceHasMore: hasMore };
+}
+export function browseSubjectPage(value: unknown, args: Record<string, unknown>) {
+  const raw = object(value);
+  // 直接调用适配器时也先计算来源游标；服务链路已在NSFW过滤前冻结它。
+  const window: Record<string, unknown> = Object.hasOwn(raw, 'sourceNextOffset') ? raw : browseSourceWindow(raw, args);
+  const base = subjectPage(window, args);
+  const unknownDateSubjectIds: number[] = [];
+  const data = base.data.flatMap((subject, index) => {
+    // 日期未知不能掩盖来源已明确违反的其他硬条件。
+    checkBrowseForm(subject as unknown as Record<string, unknown>, args);
+    const dateEvidence = resolveBrowseDate(object((window.data as unknown[])[index]));
+    const match = matchesBrowseDate(dateEvidence, args);
+    if (match === 'mismatch') throw new ContractError('browse_date_mismatch', '/data/dateEvidence', subject.id);
+    if (match === 'unknown') { unknownDateSubjectIds.push(subject.id); return []; }
+    return [{ ...subject, dateEvidence }];
+  });
+  return { ...base, data, page: { ...base.page, returnedCount: data.length, complete: false },
+    filterCoverage: { scope: 'source_window', scannedCount: base.data.length, matchedCount: data.length,
+      unknownDateCount: unknownDateSubjectIds.length, unknownDateSubjectIds, complete: unknownDateSubjectIds.length === 0 } };
+}
+function checkBrowseForm(subject: Record<string, unknown>, args: Record<string, unknown>): void {
+  if (args.platform !== undefined && subject.platform !== args.platform) throw new AppError('MCP_INVALID_RESULT', '浏览作品平台不符合明确条件。');
+  if (args.cat !== undefined && browseCategory(Number(subject.subjectType), subject.platform) !== args.cat) throw new AppError('MCP_INVALID_RESULT', '浏览作品形式未知或不符合明确cat条件。');
+  if (args.series !== undefined && subject.series !== args.series) throw new AppError('MCP_INVALID_RESULT', '浏览作品系列事实未知或不符合明确条件。');
 }
 function browseCategory(type: number, platform: unknown): number | null {
   if (typeof platform !== 'string') return null;

@@ -23,12 +23,44 @@ export class AppError extends Error {
   readonly sourceTool?: string;
   readonly recovery?: { stage: 'response_contract'; retryable: false };
   readonly diagnosis?: ReadDiagnosis;
+  readonly contractIssue?: ContractIssue;
   constructor(public readonly code: string, message: string, public readonly accessContext?: AccessContext) {
     super(message);
     this.name = 'AppError';
   }
 }
 export interface InputIssue { path: string; rule: string; hint: string; allowed?: readonly unknown[] }
+const contractPaths = {
+  browse_date_mismatch: '/data/dateEvidence', browse_date_evidence_invalid: '/data/dateEvidence',
+  browse_filter_coverage_invalid: '/filterCoverage',
+} as const;
+export interface ContractIssue { reason: keyof typeof contractPaths; path: typeof contractPaths[keyof typeof contractPaths]; subjectId: number | null }
+export const CONTRACT_ISSUE_SCHEMA: Record<string, unknown> = { type: 'object', additionalProperties: false,
+  properties: { reason: { enum: Object.keys(contractPaths) }, path: { enum: [...new Set(Object.values(contractPaths))] },
+    subjectId: { anyOf: [{ type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER }, { type: 'null' }] } },
+  required: ['reason', 'path', 'subjectId'],
+};
+export function isContractIssue(value: unknown): value is ContractIssue {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const issue = value as ContractIssue;
+  return Object.keys(issue).length === 3 && Object.hasOwn(contractPaths, issue.reason) && issue.path === contractPaths[issue.reason]
+    && (issue.subjectId === null || Number.isSafeInteger(issue.subjectId) && issue.subjectId > 0)
+    && (issue.reason === 'browse_filter_coverage_invalid' ? issue.subjectId === null : issue.subjectId !== null);
+}
+export function contractIssueMessage(issue: ContractIssue): string {
+  const messages = { browse_date_mismatch: '浏览作品日期不符合明确年月条件',
+    browse_date_evidence_invalid: '浏览作品日期证据或精度无效', browse_filter_coverage_invalid: '浏览日期筛选覆盖计数或分页不一致' };
+  return `${messages[issue.reason]}${issue.subjectId === null ? '' : `（作品 ${issue.subjectId}）`}，字段 ${issue.path}。`;
+}
+export class ContractError extends AppError {
+  constructor(reason: ContractIssue['reason'], path: ContractIssue['path'], subjectId: number | null) {
+    const issue = { reason, path, subjectId };
+    super('MCP_INVALID_RESULT', contractIssueMessage(issue));
+    if (!isContractIssue(issue)) throw new Error('本地契约诊断参数无效。');
+    Object.defineProperty(this, 'contractIssue', { value: issue });
+    Object.defineProperty(this, 'sourceTool', { value: 'browse_subjects' });
+  }
+}
 /** 仅本地固定契约生成的反馈；不包含原始参数值或服务端正文。 */
 export class SchemaInputError extends AppError {
   readonly networkAttempted = false;
@@ -61,7 +93,7 @@ export class SubmissionError extends AppError {
     if (isSubmissionRejection(rejection)) Object.defineProperty(this, 'rejection', { value: structuredClone(rejection) });
   }
 }
-export interface SafeError { code: string; message: string; issues?: readonly InputIssue[]; networkAttempted?: false; rejection?: SubmissionRejection; submission?: SubmissionReceipt; accessContext?: AccessContext; sourceTool?: string; recovery?: { stage: 'response_contract'; retryable: false }; diagnosis?: ReadDiagnosis }
+export interface SafeError { code: string; message: string; issues?: readonly InputIssue[]; networkAttempted?: false; rejection?: SubmissionRejection; submission?: SubmissionReceipt; accessContext?: AccessContext; sourceTool?: string; recovery?: { stage: 'response_contract'; retryable: false }; diagnosis?: ReadDiagnosis; contractIssue?: ContractIssue }
 const localSecrets = new Set<string>();
 /** 本地凭据也参与模型、日志和终端的统一裁剪，原值不进入配置或会话。 */
 export function registerCredentials(values: readonly string[]): void { for (const value of values) if (value) localSecrets.add(value); }
@@ -115,7 +147,8 @@ export function credentialValues(env: NodeJS.ProcessEnv = process.env): string[]
 export function safeError(error: unknown): SafeError {
   const context = error instanceof AppError ? { ...(error.accessContext ? { accessContext: structuredClone(error.accessContext) } : {}), ...(error.sourceTool ? { sourceTool: error.sourceTool } : {}),
     ...(isSubmissionRejection(error.rejection) ? { rejection: structuredClone(error.rejection) } : {}),
-    ...(error.recovery ? { recovery: structuredClone(error.recovery) } : {}), ...(error.diagnosis ? { diagnosis: structuredClone(error.diagnosis) } : {}), ...(error.networkAttempted === false ? { networkAttempted: false as const } : {}) } : {};
+    ...(error.recovery ? { recovery: structuredClone(error.recovery) } : {}), ...(error.diagnosis ? { diagnosis: structuredClone(error.diagnosis) } : {}),
+    ...(isContractIssue(error.contractIssue) ? { contractIssue: structuredClone(error.contractIssue) } : {}), ...(error.networkAttempted === false ? { networkAttempted: false as const } : {}) } : {};
   if (error instanceof SubmissionError) return { code: error.code, message: redact(error.message, credentialValues()), submission: structuredClone(error.submission), ...context };
   if (error instanceof SchemaInputError) return { code: error.code, message: redact(error.message, credentialValues()), issues: error.issues, networkAttempted: false, ...context };
   if (error instanceof AppError) return { code: error.code, message: redact(error.message, credentialValues()), ...context };

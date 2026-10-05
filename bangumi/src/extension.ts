@@ -19,6 +19,8 @@ import { registerTraceHooks } from './tracing/pi-hooks.js';
 import type { TraceOptions } from './tracing/schema.js';
 import { TOOL_DEFINITIONS } from './mcp/catalog.js';
 import { clearReadRecoveryScope } from './mcp/read-recovery.js';
+import { CONTENT_OUTPUT_INSTRUCTION } from './output/content-schema.js';
+import { COMPONENT_SELECTION_INSTRUCTION } from './output/component-selection.js';
 
 export interface BangumiExtensionConfig {
   authDir: string;
@@ -130,7 +132,11 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       input = { text: event.source === 'extension' ? '' : redact(event.text, credentialValues()), generation: input.generation + 1, requestId: randomUUID() };
       if (event.source !== 'extension') activeReadTurnId = input.requestId;
     });
-    pi.on('before_agent_start', event => ({ systemPrompt: `${event.systemPrompt}\n\n${instructions}` }));
+    pi.on('before_agent_start', event => {
+      // 默认启用，可替换的命名 section 避免恢复会话后重复累积输出契约。
+      event.systemPromptOptions.sections.bangumi = instructions;
+      event.systemPromptOptions.sections.bangumi_content_output = `${CONTENT_OUTPUT_INSTRUCTION}\n${COMPONENT_SELECTION_INSTRUCTION}`;
+    });
     pi.on('agent_settled', () => { clearReadTurn(); });
     pi.on('session_start', () => { clearReadTurn(); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; });
     pi.on('session_shutdown', async () => { clearReadTurn(); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; unsubscribeProxy?.(); await client.close?.(); });

@@ -2,7 +2,7 @@ import { AppError, SubmissionError, safeError } from '../support/errors.js';
 import { findToolDefinition, validateToolArguments } from './catalog.js';
 import type { McpTransport, McpReadScope } from './transport.js';
 import { preparedBaseline, type PreparedBaseline } from './prepared.js';
-import { subjectDetails, subjectSummary, subjectPage, collectionPage, indexSubjectPage, checkOutput, checkSubjectResponse, type SubjectInclude } from './subject-output.js';
+import { subjectDetails, subjectSummary, subjectPage, browseSourceWindow, browseSubjectPage, collectionPage, indexSubjectPage, checkOutput, checkSubjectResponse, type SubjectInclude } from './subject-output.js';
 import { resourceResult, checkResourceResponse, entitySummary, episodeCollectionStatus } from './resource-output.js';
 import { SubmissionTracker, checkSubmission } from './submission.js';
 import { isDeepStrictEqual } from 'node:util';
@@ -425,7 +425,8 @@ export class BangumiMcpService {
     if (name === 'get_subject_details') result = subjectDetails(value, args.include as SubjectInclude[], Number(args.subject_id));
     if (name === 'get_user_collections') result = collectionPage(value, args);
     if (name === 'get_index_subjects') result = indexSubjectPage(value, args);
-    if (['search_subjects', 'browse_subjects', 'get_subject_relations', 'get_character_subjects', 'get_person_subjects'].includes(name)) {
+    if (name === 'browse_subjects') result = browseSubjectPage(value, args);
+    if (['search_subjects', 'get_subject_relations', 'get_character_subjects', 'get_person_subjects'].includes(name)) {
       const page = obj(value);
       result = subjectPage({ ...page, ...(context.queryCoverage ? { totalKind: page.totalKind ?? context.queryCoverage.totalKind } : {}) }, args, !['search_subjects', 'browse_subjects'].includes(name));
     }
@@ -514,7 +515,7 @@ export class BangumiMcpService {
     }
     if (name === 'browse_subjects') {
       requireBrowseCoverage(args.nsfw, context, !context.account || args.platform !== undefined);
-      return publicCall('/v0/subjects', { query: compact({ type: args.subject_type, cat: args.cat, series: args.series, platform: args.platform, sort: args.sort, year: args.year, month: args.month, limit, offset }) });
+      return browseSourceWindow(await publicCall('/v0/subjects', { query: compact({ type: args.subject_type, cat: args.cat, series: args.series, platform: args.platform, sort: args.sort, year: args.year, month: args.month, limit, offset }) }), args);
     }
     if (name === 'get_subject_details') return canonicalSubject(await publicCall(`/v0/subjects/${id('subject_id')}`));
     if (name === 'get_episode_details') return publicCall(`/v0/episodes/${id('episode_id')}`);

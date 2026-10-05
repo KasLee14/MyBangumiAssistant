@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { executeReadRecovery, diagnoseReadError, checkReadDiagnosis, clearReadRecoveryScope } from '../dist/src/mcp/read-recovery.js';
-import { AppError, safeError } from '../dist/src/support/errors.js';
+import { AppError, ContractError, safeError } from '../dist/src/support/errors.js';
 import { createReadTools } from '../dist/src/mcp/pi-tools.js';
 import { validateToolArguments } from '../dist/src/mcp/catalog.js';
 import { createBangumiExtension } from '../dist/src/extension.js';
@@ -46,6 +46,19 @@ test('响应契约失败仅阻止完全相同请求，独立新对象和关键�
   clearReadRecoveryScope(turnId);
   await assert.rejects(executeReadRecovery('search_subjects', { keyword: '第一' }, fail, { turnId }));
   assert.equal(count, 3); clearReadRecoveryScope(turnId);
+});
+
+test('相同浏览失败从任务缓存返回时保留固定字段诊断且不重发', async () => {
+  const turnId = 'browse-contract-cache'; let calls = 0;
+  const error = new ContractError('browse_date_mismatch', '/data/dateEvidence', 666478);
+  const fail = async () => { calls++; throw error; };
+  try {
+    for (let i = 0; i < 2; i++) await assert.rejects(executeReadRecovery('browse_subjects', { subject_type: 2 }, fail, { turnId }), observed => {
+      assert.deepEqual(safeError(observed).contractIssue, error.contractIssue);
+      assert.equal(observed.sourceTool, 'browse_subjects'); assert.equal(observed.diagnosis.retryable, false); return true;
+    });
+    assert.equal(calls, 1);
+  } finally { clearReadRecoveryScope(turnId); }
 });
 
 test('取消在重试等待中立即停止并清理任务，不再派发', async () => {

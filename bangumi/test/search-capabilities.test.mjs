@@ -3,7 +3,7 @@ import test from 'node:test';
 import { compileSubjectSearch, requireBrowseCoverage, applySearchPlan, checkSubjectQueryCoverage } from '../dist/src/mcp/search-capabilities.js';
 import { anonymousContext } from '../dist/src/mcp/access-context.js';
 import { findToolDefinition } from '../dist/src/mcp/catalog.js';
-import { checkOutput, subjectSummary, subjectPage, checkSubjectResponse } from '../dist/src/mcp/subject-output.js';
+import { checkOutput, subjectSummary, subjectPage, browseSubjectPage, checkSubjectResponse } from '../dist/src/mcp/subject-output.js';
 
 const context = (allowed = true) => ({ mode: 'account', account: { id: 42, username: 'tester' }, nsfw: { preference: true, allowed, state: allowed === null ? 'unknown' : allowed ? 'enabled' : 'disabled' }, source: 'p1', nsfwApplied: true, checkedAt: new Date().toISOString() });
 const body = filter => ({ keyword: '', sort: 'score', filter: { type: [2], ...filter } });
@@ -77,8 +77,10 @@ test('估计总数短页采用来源窗口续页，不能声称完整', () => {
 test('浏览必须核实年月和作品形式，未知不能当筛选通过', () => {
   const args = { subject_type: 2, year: 2026, month: 4, cat: 1, limit: 20, offset: 0 };
   const ctx = anonymousContext(); requireBrowseCoverage(undefined, ctx);
-  const create = override => ({ ...subjectPage({ data: [{ id: 1, type: 2, name: '测试', nsfw: false, date: '2026-04-01', platform: 'TV', ...override }],
+  const create = override => ({ ...browseSubjectPage({ data: [{ id: 1, type: 2, name: '测试', nsfw: false, date: '2026-04-01', platform: 'TV', ...override }],
     total: 1, totalKind: 'unknown', sourceNextOffset: null, sourceHasMore: false }, args), accessContext: ctx });
   checkSubjectResponse('browse_subjects', create({}), args);
-  for (const override of [{ date: null }, { date: '2025-04-01' }, { date: '2026-05-01' }, { platform: null }, { platform: 'OVA' }]) assert.throws(() => checkSubjectResponse('browse_subjects', create(override), args));
+  const unknown = create({ date: null }); checkSubjectResponse('browse_subjects', unknown, args);
+  assert.equal(unknown.filterCoverage.complete, false); assert.deepEqual(unknown.filterCoverage.unknownDateSubjectIds, [1]);
+  for (const override of [{ date: '2025-04-01' }, { date: '2026-05-01' }, { platform: null }, { platform: 'OVA' }]) assert.throws(() => checkSubjectResponse('browse_subjects', create(override), args));
 });

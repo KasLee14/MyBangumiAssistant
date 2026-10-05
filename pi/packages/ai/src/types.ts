@@ -395,6 +395,8 @@ export interface TextSignatureV1 {
 export interface TextContent {
 	type: "text";
 	text: string;
+	/** Application hint for the immediately following content block; null means the last block. */
+	nextType?: string | null;
 	textSignature?: string; // e.g., for OpenAI responses, message metadata (legacy id string or TextSignatureV1 JSON)
 }
 
@@ -423,6 +425,20 @@ export interface ToolCall {
 	/** OpenAI Responses namespace for calls to dynamically loaded or namespaced tools. */
 	namespace?: string;
 }
+
+/**
+ * Application-owned assistant content, registered through declaration merging.
+ * Keys are distinct content type names; values contain that block's fields except `type`.
+ */
+export interface AssistantContentExtensions {
+	// Empty by default - applications register their own content types.
+}
+
+export type ExtendedAssistantContent = {
+	[TType in keyof AssistantContentExtensions]: { type: TType } & AssistantContentExtensions[TType];
+}[keyof AssistantContentExtensions];
+
+export type AssistantContent = TextContent | ThinkingContent | ToolCall | ExtendedAssistantContent;
 
 export interface Usage {
 	input: number;
@@ -545,7 +561,7 @@ export interface UserMessage {
 
 export interface AssistantMessage {
 	role: "assistant";
-	content: (TextContent | ThinkingContent | ToolCall)[];
+	content: AssistantContent[];
 	api: Api;
 	provider: ProviderId;
 	model: string;
@@ -766,6 +782,8 @@ export type TranscriptContext = {
  */
 export type AssistantMessageEvent =
 	| { type: "start"; partial: AssistantMessage }
+	/** Application content inserted or updated at contentIndex in the shared partial message. */
+	| { type: "content_update"; contentIndex: number; partial: AssistantMessage }
 	| { type: "text_start"; contentIndex: number; partial: AssistantMessage }
 	| { type: "text_delta"; contentIndex: number; delta: string; partial: AssistantMessage }
 	| { type: "text_end"; contentIndex: number; content: string; partial: AssistantMessage }

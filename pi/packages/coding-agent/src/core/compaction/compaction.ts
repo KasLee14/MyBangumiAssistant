@@ -325,6 +325,8 @@ export function estimateTokens(message: AgentMessage): number {
 					chars += block.thinking.length;
 				} else if (block.type === "toolCall") {
 					chars += block.name.length + JSON.stringify(block.arguments).length;
+				} else {
+					chars += JSON.stringify(block).length;
 				}
 			}
 			return Math.ceil(chars / 4);

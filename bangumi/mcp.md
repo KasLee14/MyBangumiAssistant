@@ -133,11 +133,12 @@
 | value.schemaVersion | integer | 是 | — | 固定 1 |  |
 | value.kind | string | 是 | — | 固定 page |  |
 | value.entity | string | 是 | — | 固定 subject |  |
-| value.data | array<search_subjects_dataItem> | 是 | — | 最多项 100 |  |
+| value.data | array<browse_subjects_dataItem> | 是 | — | 最多项 100 |  |
 | value.page | search_subjects_page | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
 | value.visibility | string | 是 | — | 允许 public |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.filterCoverage | browse_subjects_filterCoverage | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
 ## `get_subject_details`
@@ -2208,7 +2209,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `search_subjects_dataItem`
 
@@ -2251,6 +2255,44 @@
 | sourceHasMore | boolean | 否 | — | — |  |
 | excludedNsfwCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
 | unknownNsfwCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+
+### `browse_subjects_dataItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| schemaVersion | integer | 是 | — | 固定 1 |  |
+| entity | string | 是 | — | 固定 subject |  |
+| id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| subjectType | integer / null | 是 | — | anyOf 2 个分支；integer：允许 1、2、3、4、6 |  |
+| name | string | 是 | — | 最长字符数 300 |  |
+| nameCn | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| date | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 50 |  |
+| platform | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| score | number / null | 是 | — | anyOf 2 个分支；number：≥ 0；≤ 10 |  |
+| nsfw | boolean / null | 是 | — | anyOf 2 个分支 |  |
+| rank | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 1；≤ 9007199254740991 |  |
+| ratingCount | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| totalEpisodes | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| totalVolumes | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| tags | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| metaTags | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| url | string | 是 | — | 最长字符数 100；正则 ^https://bgm\.tv/subject/[1-9]\d*$ |  |
+| relation | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| staff | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| series | boolean / null | 否 | — | anyOf 2 个分支 |  |
+| characters | array<get_subject_details_charactersItem> | 否 | — | 最多项 100 |  |
+| dateEvidence | browse_subjects_dataItem_dateEvidence / null | 是 | — | anyOf 2 个分支 |  |
+
+### `browse_subjects_filterCoverage`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| scope | object（本工具输入字段） | 是 | — | 固定 source_window | 仅评价当前来源窗口的日期筛选核实，不代表全站完整。 |
+| scannedCount | integer | 是 | — | ≥ 0；≤ 100 | 当前窗口经NSFW处理后参与日期核实的条目数。 |
+| matchedCount | integer | 是 | — | ≥ 0；≤ 100 |  |
+| unknownDateCount | integer | 是 | — | ≥ 0；≤ 100 |  |
+| unknownDateSubjectIds | array<integer> | 是 | — | 最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 |  |
+| complete | boolean | 是 | — | — | 当前窗口日期筛选没有未知条目；分页和NSFW覆盖另见page/accessContext。 |
 
 ### `get_subject_details_charactersItem`
 
@@ -2310,7 +2352,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `SubjectPersonRow`
 
@@ -2452,7 +2497,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `SafeError_3`
 
@@ -2467,7 +2515,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `characterCollectionItem`
 
@@ -2568,7 +2619,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `SafeError_5`
 
@@ -2583,7 +2637,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `personCollectionItem`
 
@@ -2651,7 +2708,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `SelfSubjectSnapshot`
 
@@ -2714,7 +2774,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `EpisodeState`
 
@@ -2757,7 +2820,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `update_single_episode_collection_target`
 
@@ -2780,7 +2846,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `get_person_revisions_dataItem`
 
@@ -2924,7 +2993,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `update_index_itemsItem`
 
@@ -2958,7 +3030,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `get_index_subjects_dataItem`
 
@@ -3019,7 +3094,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `update_index_subject_itemsItem`
 
@@ -3053,7 +3131,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `remove_subject_from_index_itemsItem`
 
@@ -3087,7 +3168,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `collect_index_itemsItem`
 
@@ -3121,7 +3205,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `SafeError_16`
 
@@ -3136,7 +3223,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `get_subject_comments_dataItem`
 
@@ -3200,7 +3290,10 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `get_subject_reviews_dataItem`
 
@@ -3458,12 +3551,32 @@
 | replanAllowed | boolean | 是 | — | — |  |
 | retryable | boolean | 是 | — | — |  |
 
+### `SafeError_contractIssue`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| reason | string | 是 | — | 允许 browse_date_mismatch、browse_date_evidence_invalid、browse_filter_coverage_invalid |  |
+| path | string | 是 | — | 允许 /data/dateEvidence、/filterCoverage |  |
+| subjectId | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 1；≤ 9007199254740991 |  |
+
 ### `SafeError_recovery`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | stage | string | 是 | — | 固定 response_contract |  |
 | retryable | boolean | 是 | — | 固定 false |  |
+
+### `browse_subjects_dataItem_dateEvidence`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| year | integer | 是 | — | ≥ 1；≤ 9999 |  |
+| month | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 1；≤ 12 |  |
+| day | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 1；≤ 31 |  |
+| precision | string | 是 | — | 允许 year、month、day |  |
+| source | string | 是 | — | 允许 date、infobox |  |
+| sourceField | string | 是 | — | 允许 date、发售日、发行日期、出版日期、放送开始、上映年度、上映日期、开始 |  |
+| sourceValue | string | 是 | — | 最短字符数 1；最长字符数 50 | 可重新解析的日期原文；不补造月或日。 |
 
 ### `get_subject_details_infoboxItem_valueItem`
 

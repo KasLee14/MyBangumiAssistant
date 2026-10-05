@@ -93,6 +93,7 @@ export async function executeReadRecovery<T>(name: string, args: Record<string, 
     const repeated = previous instanceof SchemaInputError ? new SchemaInputError(previous.issues) : new AppError(previous.code, previous.message, previous.accessContext);
     if (previous.networkAttempted === false) Object.defineProperty(repeated, 'networkAttempted', { value: false });
     if (previous.recovery) Object.defineProperty(repeated, 'recovery', { value: structuredClone(previous.recovery) });
+    if (previous.contractIssue) Object.defineProperty(repeated, 'contractIssue', { value: structuredClone(previous.contractIssue) });
     Object.defineProperty(repeated, 'sourceTool', { value: name });
     throw exhausted(diagnoseReadError(name, args, repeated));
   }

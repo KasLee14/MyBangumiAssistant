@@ -22,8 +22,14 @@ import { TraceWriter } from '../dist/src/tracing/writer.js';
 
 const gate = () => { let release; const promise = new Promise(resolve => { release = resolve; }); return { promise, release }; };
 const text = content => typeof content === 'string' ? content : content.filter(part => part.type === 'text').map(part => part.text).join('');
-const message = (content, options) => ({ ...fauxAssistantMessage(content, options),
-  usage: { input: 8, output: 3, cacheRead: 2, cacheWrite: 0, totalTokens: 13, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
+const message = (content, options) => {
+  const assistant = fauxAssistantMessage(content, options);
+  // 模拟最终文字走默认 provider 契约；工具调用和思考仍走原生通道。
+  const blocks = assistant.stopReason === 'stop' ? assistant.content.map(part => part.type === 'text'
+    ? { ...part, text: JSON.stringify({ content: [{ type: 'text', nextType: null, text: part.text }] }) } : part) : assistant.content;
+  return { ...assistant, content: blocks,
+    usage: { input: 8, output: 3, cacheRead: 2, cacheWrite: 0, totalTokens: 13, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } };
+};
 
 function summaries(root) {
   try { return readdirSync(root, { recursive: true }).filter(file => file.endsWith('summary.json')).map(file => {
@@ -40,7 +46,7 @@ async function fixture(t, { responses = [message('离线回答')], client, named
   const runtimes = [];
   const warnings = [];
   const calls = [];
-  const faux = fauxProvider(modelOptions);
+  const faux = fauxProvider({ ...modelOptions, api: 'openai-responses' });
   faux.setResponses(responses);
   // 离线供应商也走 Pi 的 payload 回调，验证原生观察钩子；不发送 HTTP。
   const provider = { ...faux.provider, streamSimple: (model, context, options) => lazyStream(model, async () => {

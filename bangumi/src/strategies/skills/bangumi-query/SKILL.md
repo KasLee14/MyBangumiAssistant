@@ -26,6 +26,7 @@ description: Bangumi只读检索、条件筛选与资料核实，涵盖作品、
 - 找具体作品使用keyword；按题材筛选使用filter.tag/meta_tags，纯筛选时keyword为空字符串并提供有效filter。多标签及不同筛选条件为且；“搞笑或喜剧”等或条件分别检索后按作品ID合并去重，不能直接把同义标签一起传入且条件。
 - 评分使用filter.rating，评分人数使用filter.rating_count；search_subjects的sort仅match/heat/rank/score，browse_subjects仅date/rank，不混用。sort只决定排序，不证明相似或评分接近。评分接近须依据基准作品真实评分限定范围并比较分差。
 - browse_subjects的cat表示作品形式，不表示题材；动画TV使用适用的cat，不能把platform或series传给动画浏览。get_subject_relations用于核实实际作品关系，不能直接当作相似度排序。
+- browse_subjects的dateEvidence标明日期精度与来源；年月查询可采用明确的年月证据，不能将未知日补成1日，精确日范围仍须完整日期。filterCoverage仅评价当前来源窗口的日期筛选，unknownDateCount/unknownDateSubjectIds表示证据不足的缺口；complete=true不代表全站完整或覆盖R18。按page.nextOffset续页，不能因过滤后短页或空页停止，也不能把来源total当作已核实匹配数量。
 - 优先结构化筛选，排序依据本次查询目标和用户要求；定位具体作品优先match，不默认把所有查询改为按评分排序。按返回的nextOffset续页。search_subjects、search_persons、search_characters共用服务分页适配，每次HTTP请求最多20条并补齐工具请求范围，不反复探索页大小或手工绕过。仅使用实际登记工具，不假定存在复合工具、批量收藏查询、宿主索引或缓存。
 - 整理指定开播日期范围内的收藏优先query_user_collections，一次提交媒体、明确状态、日期上下界及用户已确认的跨月补入ID，直接使用匹配项和coverage。不用get_user_collections把原始收藏逐页搬进模型。该查询由宿主验证分页、去重、筛选和排序；本人使用账户API覆盖私密收藏，第三方使用公开v0完整分页，不能按收藏更新日期提前停止。
 - 收藏API的更新时间排序和since均不是开播日期，不能凭某页出现旧番提前停止；日期相同可能跨页，04-01是包含边界。coverage.complete=false时说明未知日期等缺口，不能声称完整整理。

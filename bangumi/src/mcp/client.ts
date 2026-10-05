@@ -3,7 +3,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { isAbsolute } from 'node:path';
-import { AppError, SubmissionError, isSubmissionRejection, type SubmissionReceipt } from '../support/errors.js';
+import { AppError, SubmissionError, isSubmissionRejection, isContractIssue, contractIssueMessage, type SubmissionReceipt } from '../support/errors.js';
 import { object, positiveId } from '../support/bangumi.js';
 import { policyFor, type ProxyOptions } from '../support/proxy.js';
 import { TOOL_DEFINITIONS, validateToolArguments, remoteInputError } from './catalog.js';
@@ -204,6 +204,8 @@ export class LocalMcpClient implements McpCallClient {
     if (result.isError === true) {
       const remote = object(structured.error, 'MCP错误');
       const code = typeof remote.code === 'string' && /^[A-Z][A-Z_0-9]{0,79}$/.test(remote.code) ? remote.code : 'MCP_TOOL_ERROR';
+      if (remote.contractIssue !== undefined && (name !== 'browse_subjects' || code !== 'MCP_INVALID_RESULT' || !isContractIssue(remote.contractIssue)))
+        throw new AppError('MCP_INVALID_RESULT', 'MCP契约诊断与工具、错误码或字段不一致。');
       if (remote.sourceTool !== undefined && remote.sourceTool !== name || remote.recovery !== undefined && code !== 'MCP_INVALID_RESULT') throw new AppError('MCP_INVALID_RESULT', 'MCP错误来源或恢复分类与本次工具不一致。');
       if (remote.rejection !== undefined && (definition.effect !== 'write' || code !== 'BGM_RATE_LIMIT_REJECTED' || !isSubmissionRejection(remote.rejection)
         || remote.networkAttempted === false)) throw new AppError('MCP_INVALID_RESULT', 'MCP明确拒绝与原写入工具、固定错误码或派发事实不一致。');
@@ -214,7 +216,8 @@ export class LocalMcpClient implements McpCallClient {
           throw diagnoseReadError(name, parameters, feedback);
         }
       }
-      const message = code === 'BGM_HTTP_404' ? '当前可见范围内未取得资源，可能受NSFW或权限限制；不能据此认定条目不存在。' : TOOL_ERROR_MESSAGES[code] ?? 'Bangumi MCP 操作未完成，请核对输入及网站状态。';
+      const message = isContractIssue(remote.contractIssue) ? contractIssueMessage(remote.contractIssue)
+        : code === 'BGM_HTTP_404' ? '当前可见范围内未取得资源，可能受NSFW或权限限制；不能据此认定条目不存在。' : TOOL_ERROR_MESSAGES[code] ?? 'Bangumi MCP 操作未完成，请核对输入及网站状态。';
       if (definition.effect === 'write' && remote.submission !== undefined) {
         checkSubmission(name, remote.submission, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
         const error = new SubmissionError(code, message, remote.submission as SubmissionReceipt);
@@ -226,6 +229,7 @@ export class LocalMcpClient implements McpCallClient {
         throw error;
       }
       const error = new AppError(code, message, remote.accessContext === undefined ? undefined : structuredClone(remote.accessContext) as AccessContext);
+      if (remote.contractIssue !== undefined) Object.defineProperty(error, 'contractIssue', { value: structuredClone(remote.contractIssue) });
       if (remote.diagnosis !== undefined) checkReadDiagnosis(name, parameters, error, remote.diagnosis);
       if (remote.networkAttempted === false) Object.defineProperty(error, 'networkAttempted', { value: false });
       if (remote.recovery !== undefined) Object.defineProperty(error, 'recovery', { value: structuredClone(remote.recovery) });

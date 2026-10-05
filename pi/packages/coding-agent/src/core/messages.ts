@@ -181,9 +181,18 @@ export function convertToLlm(messages: AgentMessage[]): Message[] {
 						],
 						timestamp: m.timestamp,
 					};
+				case "assistant": {
+					let converted = false;
+					const content = m.content.map((block) => {
+						if (block.type === "text" || block.type === "thinking" || block.type === "toolCall") return block;
+						// Preserve application content as facts in model requests and compaction summaries.
+						converted = true;
+						return { type: "text" as const, text: JSON.stringify(block) };
+					});
+					return converted ? { ...m, content } : m;
+				}
 				case "system":
 				case "user":
-				case "assistant":
 				case "toolResult":
 					return m;
 				default:

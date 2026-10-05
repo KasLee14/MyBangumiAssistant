@@ -54,7 +54,7 @@ const categoryDescriptions: Record<number, string> = { 1: '书籍：0其他、10
   3: '音乐仅0其他。', 4: '游戏：0其他、4001游戏、4002软件、4003扩展包、4005桌游。',
   6: '三次元：0其他、1日剧、2欧美剧、3华语剧、6001电视剧、6002电影、6003演出、6004综艺。' };
 const browseCommon = { sort: enumeration(['date', 'rank'], 'string'), year: int(1800, 2200), month: int(1, 12), nsfw: nsfwScope, ...page };
-tool('browse_subjects', '按媒体、作品形式、日期浏览；cat不是题材标签。默认公共SFW，浏览源不覆盖R18；显式nsfw=account也保留SFW结果并报告缺口，补充NSFW须选支持账户范围的来源。sort=date日期、rank排名，与搜索排序枚举不同。未指定TV时不自动添加cat=1。返回覆盖限制见accessContext.queryCoverage。series仅书籍可提供（false也一样），platform仅游戏可提供。标签和评分条件使用search_subjects。', {
+tool('browse_subjects', '按媒体、作品形式、日期浏览；cat不是题材标签。年月按dateEvidence精度核实，date缺失时可用固定infobox日期字段，不补造具体日。日期筛选证据不足的条目列入filterCoverage.unknownDateSubjectIds；complete仅表示当前来源窗口日期核实无缺口，不代表全站完整。按page.nextOffset续页，不能按过滤后条数推进。默认公共SFW，浏览源不覆盖R18；显式nsfw=account也保留SFW结果并报告缺口，补充NSFW须选支持账户范围的来源。sort=date日期、rank排名，与搜索排序枚举不同。未指定TV时不自动添加cat=1。返回覆盖限制见accessContext.queryCoverage。series仅书籍可提供（false也一样），platform仅游戏可提供。标签和评分条件使用search_subjects。', {
   subject_type: subjectType, cat: enumeration([...new Set(Object.values(BROWSE_CATEGORIES).flat())]),
   series: { ...boolean, description: '仅书籍；其他媒体必须省略，包括false。' }, platform: text(100, 1, { description: '仅游戏平台；动画TV/OVA用cat，不能传platform。' }), ...browseCommon }, ['subject_type']);
 const browse = definitions.at(-1)!;
