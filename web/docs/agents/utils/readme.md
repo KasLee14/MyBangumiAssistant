@@ -76,6 +76,7 @@
 | [turns.ts](turns.md) | 条目 → 轮次的展示投影 | `projectTurns`、`TurnGroup` | 改轮次分组规则（哪些条目算过程、会话头归属）时 |
 | [credentialLabel.ts](credentialLabel.md) | 凭据来源的共用措辞 | `AUTH_LABEL` | 改凭据来源的展示措辞时 |
 | [relativeTime.ts](relativeTime.md) | 会话「最后对话时间」的相对文案 | `relativeTimeLabel` | 改历史会话右侧的时间文案或分档规则时 |
+| [debugMode.ts](debugMode.md) | 调试页开关（URL hash） | `isDebugHash`、`enterDebug`、`exitDebug` | 改调试页入口、或讨论这个开关该放哪一层时 |
 
 ### 章节 → 场景
 

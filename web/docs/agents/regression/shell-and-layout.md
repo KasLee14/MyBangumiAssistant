@@ -169,7 +169,7 @@ getComputedStyle(document.querySelector('.appSeat')).paddingLeft         // 同�
 
 **步骤**：把窗口缩放一次（触发重排）后，抽查三处颜色/形态：侧栏选中行、输入卡边框、弹窗表面。
 
-**预期**：三处都呈品牌值（不是 DSH 默认蓝/白）。若出现"部分生效"，检查 `main.tsx` 的 import 顺序是否为 `tokens → frame → composer → cards → modal → bgm → content`。
+**预期**：三处都呈品牌值（不是 DSH 默认蓝/白）。若出现"部分生效"，检查 `main.tsx` 的 import 顺序是否为 `tokens → frame → composer → cards → modal → bgm → content → debug`（`debug.css` 只消费令牌，排在最后不影响 `bgm.css` 的重定向）。
 
 **判定**：肉眼；命令行核对顺序：`Select-String -Path web/src/main.tsx -Pattern "styles/"`。
 

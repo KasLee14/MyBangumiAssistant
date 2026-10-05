@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { useActions, useAppSelector } from '../../../store/hooks';
 import { relativeTimeLabel } from '../../../utils/relativeTime';
 import { DURATION, EASE_OUT, SHIFT } from '../../motion/motionTokens';
+import { enterDebug } from '../../../utils/debugMode';
+import { SidebarBrand } from './SidebarBrand';
 
 /* 图标统一 16px、fill/stroke 走 currentColor，与既有图标槽的约定一致。 */
 const ICON = { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': true } as const;
@@ -41,8 +43,10 @@ export function Sidebar(): ReactNode {
 
   return (
     <aside className="appSidebar">
-      <div className="appLogoRow">
-        <span className="appBrand">Bangumi 助手</span>
+      <SidebarBrand
+        title="双击进入调试页"
+        onDoubleClick={() => { enterDebug(); }}
+      >
         <button
           type="button"
           className="appIconButton"
@@ -52,7 +56,7 @@ export function Sidebar(): ReactNode {
         >
           <PanelIcon />
         </button>
-      </div>
+      </SidebarBrand>
       <button
         type="button"
         className="appNewSession"

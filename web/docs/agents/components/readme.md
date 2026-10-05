@@ -12,7 +12,7 @@
 
 | 目录 | 服务对象 | 判据 | 子文档 |
 |---|---|---|---|
-| `mainPage/` | 主界面外壳 | 只在会话外壳内部使用；换成别的外壳就不需要它 | [main-page.md](main-page.md) |
+| `mainPage/` | 主界面外壳 | 为会话外壳而写；**允许被第二个外壳复用**（`SidebarBrand` 就被调试页复用），但判据不是"被谁用"，而是"它不依赖 store、只靠 props 就能摆进任何外壳" | [main-page.md](main-page.md) |
 | `dialog/` | 弹窗与浮层 | 有遮罩层、独立于会话流、可被多处唤起 | [dialog.md](dialog.md) |
 | `content/` | 内容条目渲染 | 输入是协议里的内容 `kind`，可脱离外壳单独渲染 | [content.md](content.md) |
 
@@ -92,6 +92,7 @@
 | `Stage` / `Turn` / `Streaming` / `MessageParts` / `ConfirmationCard` / `Hero` | A | props（由 `Shell` 从 store 读出后传入） |
 | `content/**`、`content/markdown.tsx` | A | props（协议条目） |
 | `StatsDock` | A | props（由 `Composer` 从 store 读出后传入） |
+| `SidebarBrand` | A | props（`onDoubleClick` / `title` / `children`；主界面传"进入调试页"、调试页传"返回主界面"，见 [../utils/debugMode.md](../utils/debugMode.md)） |
 | `motion/**` | A | props 或无状态 |
 | `Sidebar` / `Header` / `Composer` / `ComposerSeat` / `ThinkingPicker` / `DialogStage` / `Toast` | B | store |
 | `dialog/**` | B | store（弹窗开合状态在 `store/reducers/ui.ts`） |
@@ -102,7 +103,7 @@
 
 | 子目录 | 区域 | 文件 |
 |---|---|---|
-| `shell/` | 侧栏与顶栏 | `Sidebar.tsx`、`Header.tsx` |
+| `shell/` | 侧栏与顶栏 | `Sidebar.tsx`、`SidebarBrand.tsx`、`Header.tsx` |
 | `conversation/` | 会话正文 | `Stage.tsx`、`Turn.tsx`、`Streaming.tsx`、`Hero.tsx`、`MessageParts.tsx`、`ConfirmationCard.tsx` |
 | `composer/` | 输入区 | `Composer.tsx`、`ComposerSeat.tsx`、`StatsDock.tsx`、`ThinkingPicker.tsx` |
 | `overlays/` | 浮层挂载点 | `DialogStage.tsx`、`Toast.tsx` |

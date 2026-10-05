@@ -4,7 +4,7 @@
 
 页面层的规则与索引：这一层负责什么、目录怎么分、有哪些强制约束。
 
-**不覆盖**：具体页面的实现细节（见 [main-page.md](main-page.md)）、组件与状态层的内容。
+**不覆盖**：具体页面的实现细节（见 [main-page.md](main-page.md) 与 [debug.md](debug.md)）、组件与状态层的内容。
 
 上层入口：[AGENTS.md](../../../AGENTS.md)。
 
@@ -50,6 +50,8 @@
 
 `MainPage` 里没有 `useState`。需要跨组件共享的状态一律进 store；组件私有的状态留在该组件内。
 
+**例外只有一处**：`main.tsx` 的 `Root` 持有 `useState`（调试分流标志，初值来自 `isDebugHash()`，由 `hashchange` 同步）。它是**构建入口的分流器**，不在 `page/` 下，也不属于任何页面——两个页面互斥挂载这件事本身就是它的职责，没有第二个住处可言。
+
 **违反后果**：状态出现第二个住处，流式帧与界面不同步。
 
 ### DOM 骨架是契约
@@ -60,11 +62,19 @@
 
 ### 新增一个页面时
 
-当前只有一个页面（`mainPage`）。若要新增（例如一个不含会话流的设置页）：
+当前有**两个页面**：`mainPage`（会话界面，见 [main-page.md](main-page.md)）与 `debug`（调试页，见 [debug.md](debug.md)）。两者由 `main.tsx` 的 `Root` **按 hash 互斥挂载**，同一个时刻只有一个在页面上：
+
+```tsx
+return debug ? <DebugPage /> : <MainPage />;
+```
+
+互斥的原因不只是"显示哪一屏"：主界面挂载时会建立 SSE 连接、拉取目录，而调试页全程不需要宿主。分开挂载后，调试期间不会有任何到宿主的请求；主 store 不受影响——切回主界面时重新建连，首帧本来就是全量快照（这一性质见 [../store/hooks-and-stream.md](../store/hooks-and-stream.md)）。分流标志来自 hash 开关 `utils/debugMode.ts`，`Root` 监听 `hashchange` 同步它。
+
+若要新增第三个页面（例如一个不含会话流的设置页）：
 
 1. 建 `web/src/page/<name>/index.tsx`，导出该页面组件；
 2. 数据从 `store` 取，副作用用 `store/hooks.ts` 里已有的 hook，缺少时先在那里加；
-3. 在 `main.tsx` 里挂载（当前无路由，直接替换或按条件渲染）；
+3. 在 `main.tsx` 的 `Root` 里挂载（无路由库：替换、按条件渲染，或照调试页那样加一个 hash 开关）；
 4. 在本文件与 [AGENTS.md](../../../AGENTS.md) 的索引里登记。
 
 ## 索引
@@ -75,15 +85,19 @@
 |---|---|
 | 本文件 | 决定"某段逻辑该不该放页面层"、新增页面时 |
 | [main-page.md](main-page.md) | 改 `main.tsx`、`MainPage` 或 `Shell` 的装配、订阅、props 接线时 |
+| [debug.md](debug.md) | 改调试页（`page/debug/**`）、核对 event → frame 映射时 |
 | `Shell.tsx` | 改外壳装配（见 §简介「外壳（`Shell.tsx`）」） |
 
 ### 目录
 
 | 路径 | 说明 |
 |---|---|
-| `web/src/main.tsx` | 应用入口：`createRoot` + `StrictMode` + `<Provider store={store}>`，并引入全部样式（顺序是契约，见 [main-page.md](main-page.md)） |
-| `web/src/page/mainPage/index.tsx` | 唯一页面 `MainPage`：四个生命周期订阅，然后直接渲染 `<Shell />`（**薄壳**，不读业务数据） |
+| `web/src/main.tsx` | 应用入口：`createRoot` + `StrictMode` + `<Provider store={store}>`，`Root` 按 hash 在 `MainPage` 与 `DebugPage` 之间互斥挂载，并引入全部样式（顺序是契约，见 [main-page.md](main-page.md)） |
+| `web/src/page/mainPage/index.tsx` | 主界面 `MainPage`：四个生命周期订阅，然后直接渲染 `<Shell />`（**薄壳**，不读业务数据） |
 | `web/src/page/mainPage/Shell.tsx` | 外壳装配：从 store 取出的数据按槽位交给组件（业务逻辑一律不在这里） |
+| `web/src/page/debug/index.tsx` | 调试页 `DebugPage`：自建调试专用 store，解析输入并逐字播放，预览复用 `<Stage>`（见 [debug.md](debug.md)） |
+| `web/src/page/debug/simulator.ts` | event → frame 映射器：宿主 `handleEvent` 的复刻，纯函数无状态 |
+| `web/src/page/debug/DebugInputPanel.tsx` | 调试页左侧输入区：两个 textarea、5 个 mock 用例、预览 / 清空并重置、状态栏（纯 props 驱动） |
 
 `main.tsx` 在 `src/` 根而不是 `page/` 下：它是**构建入口**（`web/index.html` 直接引用 `/src/main.tsx`），与"页面"这一层是两件事，放在根上更准确地表达这一点。
 

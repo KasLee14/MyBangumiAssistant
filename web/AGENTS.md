@@ -65,7 +65,7 @@
 ### 模块化：依赖方向与宿主分界
 
 ```
-page/         页面：装配与生命周期，不含业务逻辑
+page/         页面：装配与生命周期，不含业务逻辑（mainPage 主界面、debug 调试页）
   │ 从 store 取数据 → 以 props 传入组件
   ▼
 components/   组件：三类（mainPage / dialog / content），边界判定见 components/readme.md
@@ -73,7 +73,7 @@ components/   组件：三类（mainPage / dialog / content），边界判定见
   ▼
 utils/        工具：按功能类别一个文件，纯函数 + 宿主接口封装
 store/        状态：三切片 + 动作 + 选择器 + hooks（与 page/components 双向：读用 selector，写用 actions）
-styles/       样式：7 个文件，令牌驱动，按作用对象分文件
+styles/       样式：8 个文件，令牌驱动，按作用对象分文件
 ```
 
 **依赖方向不得反向**：页面只装配、组件 props 驱动、工具层无状态。违反后果：分层失效，同一份数据出现第二个来源。
@@ -86,7 +86,7 @@ styles/       样式：7 个文件，令牌驱动，按作用对象分文件
 
 ### 外观层硬约定
 
-1. **同一元素同一属性只有一个来源**：样式按作用对象分文件（外壳 → `frame.css`，输入区 → `composer.css`，卡片与按钮 → `cards.css`，弹窗 → `modal.css`，内容条目 → `content.css`），令牌集中在 `tokens.css`（`--dsw-*` / `--dsh-*` / `--app-*`）与 `bgm.css`（`--bgm-*` 与语义别名重定向）。**不要在别处再覆写一遍**——这层没有"覆盖层"概念，重复声明会被当成 bug。
+1. **同一元素同一属性只有一个来源**：样式按作用对象分文件（外壳 → `frame.css`，输入区 → `composer.css`，卡片与按钮 → `cards.css`，弹窗 → `modal.css`，内容条目 → `content.css`，调试页 → `debug.css`），令牌集中在 `tokens.css`（`--dsw-*` / `--dsh-*` / `--app-*`）与 `bgm.css`（`--bgm-*` 与语义别名重定向）。**不要在别处再覆写一遍**——这层没有"覆盖层"概念，重复声明会被当成 bug。需要给既有组件类加属性时，起一个**组合类**（范例：`debug.css` 的 `.appBrandAction` 与 `.appBrand` 并用），而不是在第二个文件里改那个既有类。
 2. **动效令牌只有一处定义、两处消费**：CSS 用 `styles/tokens.css` 的 `--app-dur-*` / `--app-ease-*` / `--app-shift-*`，JS 用 `components/motion/motionTokens.ts`。改一处必须同时改另一处。
 3. **只动 `transform` / `opacity`（少量 `filter`）**：不做 layout 动画。会话区的 `content-visibility: auto` 屏外优化与流式期间的 `memo` 都依赖稳定结构，motion 的 layout 动画会强制重排并让它们失效。
 4. **不做常驻循环动画**：没有呼吸、脉冲、无限扫光。`BorderGlow` 传 `animated={false}`；唯一例外是流式光标（它表达「还在写」，且只在流式期间存在）。
@@ -104,6 +104,7 @@ styles/       样式：7 个文件，令牌驱动，按作用对象分文件
 | 接宿主接口、改命令表、改条目投影 | 工具层 | [utils/readme.md](docs/agents/utils/readme.md) |
 | 加状态、加动作、改帧合并、加 selector | 状态层 | [store/readme.md](docs/agents/store/readme.md) |
 | 改样式、令牌、品牌外观 | 样式层 | [styles/readme.md](docs/agents/styles/readme.md) |
+| 调试页（输入 event / frame 预览渲染） | 页面层 | [page/debug.md](docs/agents/page/debug.md) |
 | 改动完成后回归验证 | 回归用例 | [regression/readme.md](docs/agents/regression/readme.md) |
 | 查技术栈、环境、命令 | 本文 | §索引 的「技术栈选型」「运行与验证命令」 |
 | 不确定该放哪、跨层边界不清 | 本文 | §规则 的「模块化：依赖方向与宿主分界」 |
@@ -120,9 +121,9 @@ styles/       样式：7 个文件，令牌驱动，按作用对象分文件
 | 语言 | TypeScript 5.9 | `strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`verbatimModuleSyntax`、`noUnusedLocals/Parameters` |
 | 构建 | Vite 8.3 | 配置在 `bangumi/vite.config.ts`，`root` 指向 `../web`，产物落 `bangumi/dist/web` |
 | 状态 | redux 5.0 + react-redux 9.3 | **裸 redux**：无 RTK、无中间件；异步动作是闭包 `dispatch` 的普通函数 |
-| 样式 | 手写 CSS + 设计令牌 | 无 CSS 框架、无 CSS-in-JS、无 CSS Modules；共 7 个文件在 `web/src/styles/` |
+| 样式 | 手写 CSS + 设计令牌 | 无 CSS 框架、无 CSS-in-JS、无 CSS Modules；共 8 个文件在 `web/src/styles/`（第 8 个是调试页的 `debug.css`） |
 | 动效 | motion 14 + gsap 3.15 | ReactBits 组件的原生依赖 |
-| 路由 | 无 | 单页应用；查询参数不参与分流 |
+| 路由 | 无路由库 | 单页应用；`main.tsx` 的 `Root` 按 URL hash（`#debug`）在 `MainPage` 与 `DebugPage` 之间互斥挂载，其余查询参数不参与分流 |
 | 测试 | 无前端测试运行器 | 前端回归靠 `docs/agents/regression/` 的文档化用例 + `npm run typecheck`；宿主侧另有 `npm run test:mcp`（node:test，不覆盖前端） |
 
 ### 运行与验证命令
@@ -145,8 +146,12 @@ styles/       样式：7 个文件，令牌驱动，按作用对象分文件
 page/mainPage/
   index.tsx    薄壳：四个生命周期订阅 + 装配 Shell（订阅必须留在这里，见文件注释）
   Shell.tsx    外壳装配：取 store 数据 → 按槽位交给组件
+page/debug/
+  index.tsx    调试页：左侧输入 event/frame、右侧预览；自带独立 store（与主 store 隔离）
+  simulator.ts event → frame 映射器（宿主 handleEvent 的浏览器侧复刻）
+  DebugInputPanel.tsx / DebugPreview.tsx  两侧面板，props 驱动
 components/mainPage/
-  shell/         Header / Sidebar（顶栏与侧栏）
+  shell/         Header / Sidebar / SidebarBrand（顶栏、侧栏与品牌区）
   conversation/  Stage / Turn / Streaming / Hero（会话容器、轮次、流式区、首屏）
                  MessageParts / ConfirmationCard（props 驱动的共享原子行与确认卡）
   composer/      Composer / ComposerSeat / StatsDock / ThinkingPicker（输入区、座位、读数、思考强度）
@@ -154,7 +159,7 @@ components/mainPage/
 components/motion/
   vendor/          ReactBits 组件源码（BlurText / TextType / BorderGlow / Magnet / AnimatedContent / CountUp / AnimatedList）
   motionTokens.ts  JS 侧动效令牌，与 styles/tokens.css 的 --app-* 一一对应
-styles/           7 个文件：tokens / frame / composer / cards / modal / bgm / content（见下）
+styles/           8 个文件：tokens / frame / composer / cards / modal / bgm / content / debug（见下）
 ```
 
 **命名规则**：外壳与容器类用 `app*` 前缀（`.appFrame`、`.appStage`、`.appComposerCard`…）；会话流里的原子行、过程折叠块、确认卡、思考块、统计底栏、内容条目沿用**共享渲染器的类名**（`.userRow`、`.bubble`、`.processTitle`、`.planCard`、`.contentTable`…），组件与样式两边改一处即可。
@@ -164,7 +169,7 @@ styles/           7 个文件：tokens / frame / composer / cards / modal / bgm 
 `main.tsx` 的引入顺序是契约：
 
 ```ts
-tokens → frame → composer → cards → modal → bgm → content
+tokens → frame → composer → cards → modal → bgm → content → debug
 ```
 
 | 文件 | 作用对象 | 令牌体系 |
@@ -176,8 +181,9 @@ tokens → frame → composer → cards → modal → bgm → content
 | `modal.css` | 弹窗（遮罩、表面、字段、选项行、状态条、设置行、会话选择列表） | 消费 `--bgm-*` / `--app-*` |
 | `bgm.css` | **只有令牌**：定义 `--bgm-*`，并把组件实际用到的 `--dsw-*` 别名重定向过去 | 定义 `--bgm-*`，重定向 `--dsw-*` |
 | `content.css` | 内容组件库（12 种内容条目的皮肤） | 消费 `--bgm-*` / `--app-*` |
+| `debug.css` | 调试页（左侧输入区、预览条、空态）、`.appBrandAction`，以及 `html[data-debug='on']` 下的侧栏加宽 | 消费 `--bgm-*` / `--app-*` |
 
-关键顺序约束：`bgm.css` 必须在 `tokens/frame/composer/cards/modal` **之后**（重定向靠"后定义覆盖先定义"生效），`content.css` 最后（它只消费令牌）。
+关键顺序约束：`bgm.css` 必须在 `tokens/frame/composer/cards/modal` **之后**（重定向靠"后定义覆盖先定义"生效），`content.css` 与 `debug.css` 最后（它们只消费令牌，位置不影响前两条）。
 
 ### 现状：已完成 / 已知未做
 

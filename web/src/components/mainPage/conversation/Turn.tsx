@@ -107,6 +107,8 @@ export const Turn = memo(function Turn({ turn, running, reveal, onConfirm, onRej
   onConfirm(id: string): void;
   onReject(id: string): void;
 }): ReactNode {
+  console.log('turn',turn);
+  
   const process = turn.process.filter((item): item is ActivityItemView => item.kind === 'activity');
   return (
     <section className="appTurn" id={`turn-${turn.id}`} data-turn={turn.id}>

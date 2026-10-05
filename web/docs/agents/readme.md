@@ -61,9 +61,9 @@
 
 | 层 | 文件 |
 |---|---|
-| page | [readme.md](page/readme.md)、[main-page.md](page/main-page.md) |
+| page | [readme.md](page/readme.md)、[main-page.md](page/main-page.md)、[debug.md](page/debug.md) |
 | components | [readme.md](components/readme.md)、[main-page.md](components/main-page.md)、[dialog.md](components/dialog.md)、[content.md](components/content.md) |
 | store | [readme.md](store/readme.md)、[reducers.md](store/reducers.md)、[actions-and-operations.md](store/actions-and-operations.md)、[hooks-and-stream.md](store/hooks-and-stream.md)、[selectors-and-instance.md](store/selectors-and-instance.md) |
-| utils | [readme.md](utils/readme.md)、[api.md](utils/api.md)、[commands.md](utils/commands.md)、[turns.md](utils/turns.md)、[credentialLabel.md](utils/credentialLabel.md)、[relativeTime.md](utils/relativeTime.md) |
-| styles | [readme.md](styles/readme.md)、[tokens.md](styles/tokens.md)、[frame.md](styles/frame.md)、[components.md](styles/components.md)、[content-and-brand.md](styles/content-and-brand.md) |
+| utils | [readme.md](utils/readme.md)、[api.md](utils/api.md)、[commands.md](utils/commands.md)、[turns.md](utils/turns.md)、[credentialLabel.md](utils/credentialLabel.md)、[relativeTime.md](utils/relativeTime.md)、[debugMode.md](utils/debugMode.md) |
+| styles | [readme.md](styles/readme.md)、[tokens.md](styles/tokens.md)、[frame.md](styles/frame.md)、[components.md](styles/components.md)、[content-and-brand.md](styles/content-and-brand.md)、[debug.md](styles/debug.md) |
 | regression | [readme.md](regression/readme.md)、[commands-and-shortcuts.md](regression/commands-and-shortcuts.md)、[session-flow.md](regression/session-flow.md)、[settings-and-credentials.md](regression/settings-and-credentials.md)、[shell-and-layout.md](regression/shell-and-layout.md)（不套四段式，见 §规则） |
