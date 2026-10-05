@@ -7,7 +7,7 @@ const ACTIVITY: Record<ActivityItemView['state'], { mark: string; label: string 
   unknown: { mark: '?', label: '结果待核实' }, error: { mark: '×', label: '失败' },
 };
 
-/** 两种外观共用活动语义；批次计数与每项缺口来自宿主的中文投影。 */
+/** 工具活动的六种状态各自的记号与文案；批次计数与每项缺口来自宿主的中文投影。 */
 export function ToolActivity({ item }: { item: ActivityItemView }): ReactNode {
   const status = ACTIVITY[item.state];
   const showDetail = Boolean(item.detail && (item.showDetail || item.state !== 'ok'));

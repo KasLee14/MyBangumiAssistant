@@ -144,7 +144,7 @@ function isBaseKind(value: string): value is BaseTranscriptKind {
 /**
  * base 条目的形状。
  *
- * 它们不参与内容注册表（`TurnView` 用自己的分支渲染），但调试面板可以粘贴它们，
+ * 它们不参与内容注册表（`Turn` 用自己的分支渲染），但调试面板可以粘贴它们，
  * 因此校验器一并覆盖，避免「面板能贴内容条目、贴 base 条目却报未知类型」。
  */
 function validateBase(kind: BaseTranscriptKind, raw: Record<string, unknown>, bag: IssueBag): void {

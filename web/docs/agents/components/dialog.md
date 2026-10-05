@@ -1,33 +1,90 @@
 # 弹窗（`components/dialog/`）
 
-## 使用说明
+## 简介
 
-### 这份文档是什么
+弹窗层的规格：基础件 `Modal` 的行为、八个弹窗的对照表、开合状态与两级关闭语义、表单约定与新增步骤。
 
-弹窗层的规格：基础件 `Modal` 的行为、九个弹窗的对照表、开合状态与两级关闭语义、表单约定与新增步骤。
+**不覆盖**：浮层挂载点与进出过渡的实现（见 [main-page.md](main-page.md) 的浮层挂载点）。
 
 上层：[readme.md](readme.md)。这些组件**直接消费 store**（规则 B）；开合状态住在 `store/reducers/ui.ts`。
 
-### 怎么读（章节 → 场景）
+## 使用说明
+
+- **动开合、`pane`、互斥或关闭语义之前先读 §规则**：互斥只在 reducer 里保证一次、两级关闭各管一层、失败写本地 `error`；违反会让两处逻辑分叉、Esc 行为错乱，或让用户看不出是哪个字段错了。
+- **只想查「某个弹窗读写什么」「`Modal` 有哪些行为」**：直接查 §索引 的三张表（基础件、八个弹窗、章节 → 场景），不必通读 §规则。
+- **新增弹窗**：先读 §规则 末条「新增一个弹窗的步骤」（6 步），再从 §索引「八个弹窗」里挑一个最接近的照抄结构。
+- 这些弹窗都套 `Modal`，Esc 与遮罩的关闭行为由它统一提供（见 §索引「基础件：`Modal.tsx`」）。
+
+## 规则
+
+### 互斥由 reducer 保证，组件不重复判断
+
+两个布尔 + 一个 pane 决定当前显示什么：
+
+```ts
+ui.settingsOpen: boolean          // 设置弹窗是否打开
+ui.settingsPane: SettingsPane | null   // 'credential' | 'model' | 'proxy' | 'login' | 'logout' | null
+ui.sessionsOpen: boolean          // 会话弹窗是否打开
+```
+
+- **互斥由 reducer 保证**：`ui/settingsOpened` 会同时把 `sessionsOpen` 置 false，`ui/sessionsOpened` 反之。组件里不要再写互斥逻辑。
+- `settingsPane` 住在 store 而不是 `SettingsDialog` 的 `useState`，是为了让 `/model` 命令能从外部直达"模型选择"行。
+- 「模型选择」行在没有可用模型时置灰，且 `SettingsDialog` 会在 `pane === 'model' && models.length === 0` 时退回主面板。
+
+**违反后果**：两处逻辑分叉。
+
+### 两级关闭不得混用：`closePane` 回设置主面板，`closeSettings` 关整个弹窗
+
+**两级关闭语义**（容易写错）：
+
+- `closePane()` → `settingsPane = null`：从子弹窗**回到设置主面板**（设置弹窗仍打开）；
+- `closeSettings()` → `settingsOpen = false`：关闭整个设置弹窗；
+- `closeSessions()` → 关闭会话弹窗。
+
+**违反后果**：Esc 行为错乱。
+
+### 弹窗内的失败写本地 `error`，不吞成全局提示
+
+每个弹窗自己持有**输入与请求状态**（`useState`：字段值、`busy`、`error`），因为它们是组件私有的临时状态：
+
+| 约定 | 说明 |
+|---|---|
+| 成功 | 动作函数内部已 dispatch 提示（`ui/notice`）→ 组件只管 `closePane()` / `closeSettings()` |
+| 失败 | 动作函数**抛出**（`applyCredential`、`pickModel`、`applyProxy`、`startBangumiLogin`、`bangumiLogout`），组件 `catch` 后写进本地 `error` 并在弹窗内显示；不要吞成全局提示，否则用户看不到是哪个字段错了 |
+| 例外 | `pickThinkingLevel` 成功与失败都只发全局提示（它是常驻菜单，没有弹窗承载错误文案） |
+| 忙碌 | 请求期间禁用提交按钮（`busy`），避免重复提交 |
+| 输入清空 | 失败的登录只清密码、保留邮箱，方便重试 |
+
+**违反后果**：用户看不出是哪个字段错了。
+
+### 表单请求走 `useActions()`，不直接 `import utils/api`
+
+**违反后果**：绕过提示与状态更新（见 [../store/readme.md](../store/readme.md) 的「改全局状态只能经 store/ 的动作」）。
+
+### 新增一个弹窗的步骤
+
+1. 在 `components/dialog/` 建 `XxxDialog.tsx`，套 `Modal`；
+2. 数据用 `useAppSelector` 取，动作用 `useActions()` 取（**不要**在组件里直接 `import utils/api`，那会绕过提示与状态更新）；
+3. 若它是设置里的某一行：在 `store/reducers/ui.ts` 的 `SettingsPane` 里加成员、在 `SettingsDialog` 加一行与分支、在 `store/operations.ts` 加 `switchPane` 的调用点；
+4. 若它是独立浮层（如会话弹窗）：在 `ui` 切片加开合字段 + 动作，并在 `overlays/DialogStage.tsx` 挂载；
+5. 在本文件与 [readme.md](readme.md) 的表格里登记；
+6. `npm run typecheck`，回归 [../regression/settings-and-credentials.md](../regression/settings-and-credentials.md) 的相关用例。
+
+## 索引
+
+### 章节 → 场景
 
 | 章节 | 什么时候读 |
 |---|---|
-| §基础件：`Modal.tsx` | 新增弹窗、改 Esc 或遮罩关闭行为时 |
-| §九个弹窗 | 查某个弹窗的数据来源与成功后的行为 |
-| §弹窗状态与层级 | **动开合、`pane`、互斥或关闭语义时必读** |
-| §表单约定 | 写弹窗表单、忙态与错误显示时 |
-| §新增一个弹窗的步骤 | 新增弹窗时逐步照做 |
+| §规则「互斥由 reducer 保证，组件不重复判断」 | **动开合、`pane`、互斥时必读** |
+| §规则「两级关闭不得混用：`closePane` 回设置主面板，`closeSettings` 关整个弹窗」 | 改 Esc、关闭按钮或返回主面板的语义时 |
+| §规则「弹窗内的失败写本地 `error`，不吞成全局提示」 | 写弹窗表单、忙态与错误显示时 |
+| §规则「表单请求走 `useActions()`，不直接 `import utils/api`」 | 弹窗里要发请求时 |
+| §规则「新增一个弹窗的步骤」 | 新增弹窗时逐步照做 |
+| §索引「基础件：`Modal.tsx`」 | 新增弹窗、改 Esc 或遮罩关闭行为时 |
+| §索引「八个弹窗」 | 查某个弹窗的数据来源与成功后的行为 |
 
-### 必须遵守的规则
-
-本层通用规则见 [readme.md](readme.md) 的「必须遵守的规则」。本篇专属：
-
-1. **互斥由 reducer 保证，组件不重复判断** —— 违反后果：两处逻辑分叉。
-2. **两级关闭不得混用**：`closePane` 回设置主面板，`closeSettings` 关整个弹窗 —— 违反后果：Esc 行为错乱。
-3. **弹窗内的失败写本地 `error`，不吞成全局提示** —— 违反后果：用户看不出是哪个字段错了。
-4. **表单请求走 `useActions()`，不直接 `import utils/api`** —— 违反后果：绕过提示与状态更新（见 [../store/readme.md](../store/readme.md) 的「改全局状态只能经 store/ 的动作」）。
-
-## 基础件：`Modal.tsx`
+### 基础件：`Modal.tsx`
 
 所有弹窗都套它。它只做四件事：
 
@@ -40,7 +97,7 @@
 
 props：`title`、`eyebrow?`、`wide?`、`onClose`、`children`、`footer?`。`eyebrow` 与 `title` 相同时不渲染，避免「设置 / 设置」这种重复。
 
-## 九个弹窗
+### 八个弹窗
 
 | 文件 | 唤起方式 | 读什么 | 成功后做什么 |
 |---|---|---|---|
@@ -51,46 +108,7 @@ props：`title`、`eyebrow?`、`wide?`、`onClose`、`children`、`footer?`。`e
 | `BangumiLoginDialog.tsx` | 设置 → 登录状态行「登录」 | `stream.loginBusy` / `loginStatus` | `startBangumiLogin` → 回设置主面板；关闭时 `cancelBangumiLogin` |
 | `BangumiLogoutDialog.tsx` | 设置 → 登录状态行「退出登录」 | `stream.loginUsername` | `bangumiLogout` → 回设置主面板 |
 | `SessionDialog.tsx` | `/sessions` 命令、`openSessions()` | `catalog.sessions` | `pickSession`（先关弹窗再切换） |
-| `LoginDialog.tsx` | 宿主下发 `stream.loginPrompt` 时由 `DialogHost` 自动挂载 | props 里的 `prompt.id`（用于换请求时清空输入） | `answerLoginInput`（提交或取消） |
+| `LoginDialog.tsx` | 宿主下发 `stream.loginPrompt` 时由 `DialogStage` 自动挂载 | props 里的 `prompt.id`（用于换请求时清空输入） | `answerLoginInput`（提交或取消） |
 | `Modal.tsx` | —（基础件） | — | — |
 
 `SessionDialog` 与侧栏按 `session.id === stream.sessionId` 判断当前会话，并优先显示「待确认 / 待登录 / 运行中 / 当前」。其余行共用 [`relativeTimeLabel`](../utils/relativeTime.md) 显示「最后对话时间」（`刚刚` / `N分钟` / `N小时` / `N天` / `N个月` / `N年`）。两处口径必须一致。
-
-## 弹窗状态与层级
-
-两个布尔 + 一个 pane 决定当前显示什么：
-
-```ts
-ui.settingsOpen: boolean          // 设置弹窗是否打开
-ui.settingsPane: SettingsPane | null   // 'credential' | 'model' | 'proxy' | 'login' | 'logout' | null
-ui.sessionsOpen: boolean          // 会话弹窗是否打开
-```
-
-- **互斥由 reducer 保证**：`ui/settingsOpened` 会同时把 `sessionsOpen` 置 false，`ui/sessionsOpened` 反之。组件里不要再写互斥逻辑。
-- **两级关闭语义**（容易写错）：
-  - `closePane()` → `settingsPane = null`：从子弹窗**回到设置主面板**（设置弹窗仍打开）；
-  - `closeSettings()` → `settingsOpen = false`：关闭整个设置弹窗；
-  - `closeSessions()` → 关闭会话弹窗。
-- `settingsPane` 住在 store 而不是 `SettingsDialog` 的 `useState`，是为了让 `/model` 命令能从外部直达"模型选择"行。
-- 「模型选择」行在没有可用模型时置灰，且 `SettingsDialog` 会在 `pane === 'model' && models.length === 0` 时退回主面板。
-
-## 表单约定
-
-每个弹窗自己持有**输入与请求状态**（`useState`：字段值、`busy`、`error`），因为它们是组件私有的临时状态：
-
-| 约定 | 说明 |
-|---|---|
-| 成功 | 动作函数内部已 dispatch 提示（`ui/notice`）→ 组件只管 `closePane()` / `closeSettings()` |
-| 失败 | 动作函数**抛出**（`applyCredential`、`pickModel`、`applyProxy`、`startBangumiLogin`、`bangumiLogout`），组件 `catch` 后写进本地 `error` 并在弹窗内显示；不要吞成全局提示，否则用户看不到是哪个字段错了 |
-| 例外 | `pickThinkingLevel` 成功与失败都只发全局提示（它是常驻菜单，没有弹窗承载错误文案） |
-| 忙碌 | 请求期间禁用提交按钮（`busy`），避免重复提交 |
-| 输入清空 | 失败的登录只清密码、保留邮箱，方便重试 |
-
-## 新增一个弹窗的步骤
-
-1. 在 `components/dialog/` 建 `XxxDialog.tsx`，套 `Modal`；
-2. 数据用 `useAppSelector` 取，动作用 `useActions()` 取（**不要**在组件里直接 `import utils/api`，那会绕过提示与状态更新）；
-3. 若它是设置里的某一行：在 `store/reducers/ui.ts` 的 `SettingsPane` 里加成员、在 `SettingsDialog` 加一行与分支、在 `store/operations.ts` 加 `switchPane` 的调用点；
-4. 若它是独立浮层（如会话弹窗）：在 `ui` 切片加开合字段 + 动作，并在 `overlays/DialogHost.tsx` 挂载；
-5. 在本文件与 [readme.md](readme.md) 的表格里登记；
-6. `npm run typecheck`，回归 [../regression/settings-and-credentials.md](../regression/settings-and-credentials.md) 的相关用例。

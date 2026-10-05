@@ -1,25 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from 'react';
 import type { TranscriptItemView } from '../../../../../bangumi/src/web/protocol';
 import { projectTurns } from '../../../utils/turns';
-import { StreamingV2 } from './StreamingV2';
-import { TurnV2 } from './TurnV2';
+import { Streaming } from './Streaming';
+import { Turn } from './Turn';
 
 /**
- * v2 会话容器。
+ * 会话容器：滚动、贴底跟随、轮次高亮与轮次导航。
  *
- * 这是 v1 `ConversationView` 在 v2 的对应实现：滚动、贴底跟随、轮次高亮与轮次导航
- * 的取舍与它逐条一致（包括那几个「为什么这么做」的边界），换的是 DOM 与类名，
- * 因为 v2 要自己掌控轮次与行的入场动效，也要按自己的结构重写屏外优化选择器。
+ * props 驱动：数据由调用方从 store 取后传入，组件本身不依赖全局状态。
  *
- * 与 v1 一样保持 props 驱动：数据由调用方从 store 取后传入，组件本身不依赖全局状态。
- *
- * 三处刻意与 v1 保持一致的实现细节（改了会出问题）：
- * - `.v2Stage` 带 `container-type: inline-size`，`.v2StageColumn` 的宽度按 `100cqw` 算；
- * - 屏外优化依赖完整祖先链 `.v2StageScroll > .v2StageFlow > .v2StageColumn > .v2Turn`
- *   （见 `styles/v2/conversation.css`），所以这三层不能被替换或省略；
+ * 三处刻意保持的实现细节（改了会出问题）：
+ * - `.appStage` 带 `container-type: inline-size`，`.appStageColumn` 的宽度按 `100cqw` 算；
+ * - 屏外优化依赖完整祖先链 `.appStageScroll > .appStageFlow > .appStageColumn > .appTurn`
+ *   （见 `styles/frame.css`），所以这三层不能被替换或省略；
  * - 贴底要在一个短窗口内贴三次：屏外轮次分批算出真实高度，只贴一次会被推回中段。
  */
-export interface StageV2Props {
+export interface StageProps {
   /** 条目列表：与生产同一形状。 */
   items: TranscriptItemView[];
   /** 流式正文与思考；与 `ChatScalarsView` 同义。 */
@@ -43,10 +39,10 @@ export interface StageV2Props {
   pendingEcho?: ReactNode;
 }
 
-export function StageV2({
+export function Stage({
   items, liveText, liveThinking, busy, status, cancelling, startedAt,
   sessionId, reveal, onConfirm, onReject, composer, hero, pendingEcho,
-}: StageV2Props): ReactNode {
+}: StageProps): ReactNode {
   const [activeTurn, setActiveTurn] = useState<number | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
@@ -55,7 +51,7 @@ export function StageV2({
   const scrollIdle = useRef(0);
 
   // 投影只在条目真正变化时重算：流式帧只改标量，items 引用不变，于是 turns 引用稳定，
-  // 配合 TurnV2 的 memo 让历史轮次整体跳过重渲染。
+  // 配合 Turn 的 memo 让历史轮次整体跳过重渲染。
   const turns = useMemo(() => projectTurns(items), [items]);
   // 轮次导航只标记真实对话轮次，前导内容（会话头）不算一轮。
   const railTurns = useMemo(() => turns.filter(turn => turn.user !== null), [turns]);
@@ -137,7 +133,7 @@ export function StageV2({
     }, 150);
   };
 
-  /** v2 的轮次跳转：滚动行为交给 CSS 的 `scroll-behavior`，这里只更新高亮与贴底标记。 */
+  /** 轮次跳转：滚动行为交给 CSS 的 `scroll-behavior`，这里只更新高亮与贴底标记。 */
   const jumpTo = useCallback((id: number): void => {
     document.getElementById(`turn-${id}`)?.scrollIntoView({ block: 'start' });
     setActiveTurn(id);
@@ -145,15 +141,15 @@ export function StageV2({
   }, []);
 
   return (
-    <div className="v2Stage" data-phase={heroPhase ? 'hero' : 'active'} id="v2-stage">
-      <div className="v2StageBody">
-        {/* id 供 `AnimatedContent`（gsap ScrollTrigger）定位滚动容器，见 TurnV2 的注释。 */}
-        <div className="v2StageScroll" id="v2-stage-scroll" ref={scroller} onScroll={onScroll} data-phase={heroPhase ? 'hero' : 'active'}>
+    <div className="appStage" data-phase={heroPhase ? 'hero' : 'active'} id="app-stage">
+      <div className="appStageBody">
+        {/* id 供 `AnimatedContent`（gsap ScrollTrigger）定位滚动容器，见 Turn 的注释。 */}
+        <div className="appStageScroll" id="app-stage-scroll" ref={scroller} onScroll={onScroll} data-phase={heroPhase ? 'hero' : 'active'}>
           {heroPhase ? hero : (
-            <div className="v2StageFlow">
-              <div className="v2StageColumn">
+            <div className="appStageFlow">
+              <div className="appStageColumn">
                 {turns.map((turn, index) => (
-                  <TurnV2
+                  <Turn
                     key={turn.id}
                     turn={turn}
                     running={busy && index === turns.length - 1}
@@ -163,7 +159,7 @@ export function StageV2({
                   />
                 ))}
                 {pendingEcho}
-                <StreamingV2
+                <Streaming
                   liveText={liveText}
                   liveThinking={liveThinking}
                   busy={busy}
@@ -176,12 +172,12 @@ export function StageV2({
           )}
         </div>
         {!heroPhase && railTurns.length >= 2 ? (
-          <nav className="v2Rail" aria-label="轮次导航">
+          <nav className="appRail" aria-label="轮次导航">
             {railTurns.map((turn, index) => (
               <button
                 key={turn.id}
                 type="button"
-                className="v2RailButton"
+                className="appRailButton"
                 data-active={turn.id === activeTurn}
                 aria-label={`跳到第 ${index + 1} 轮`}
                 title={`第 ${index + 1} 轮`}

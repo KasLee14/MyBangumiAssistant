@@ -8,136 +8,13 @@
  *   ui-model-selection/ModelSelect.module.css（触发器 28px 高）
  */
 
-.composerSeat {
-  /* 与 .column 同源：卡宽 = 内容宽 + 32px */
-  --dsh-chat-content-width: min(calc(100cqw - 32px), clamp(680px, 64cqw, 920px));
-  --dsh-composer-card-max-width: calc(var(--dsh-chat-content-width) + 32px);
-  position: sticky;
-  bottom: 0;
-  z-index: 7;
-  width: min(calc(var(--dsh-composer-card-max-width) + 2 * var(--dsh-composer-side-clearance)), 100%);
-  margin: 0 auto;
-  padding: 0 var(--dsh-composer-side-clearance) var(--dsh-composer-dock-inset);
-  /* 遮罩带：36px 内由透明过渡到背景色，浮在滚动内容之上。底栏读数在带外，
-     它自带实心底（见 .statsDock），因此这里不必为了它拉长渐变。 */
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--dsw-alias-bg-base) 0%, transparent) 0px,
-    var(--dsw-alias-bg-base) 36px
-  );
-}
-
 /* 输入卡与它下面的底栏读数：同一栈、同一宽度轴，卡片在上、读数在下 */
-.composerStack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-}
-
-.composerCard {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: var(--dsh-composer-card-max-width);
-  margin: 0 auto;
-  padding-top: 8px;
-  border-radius: var(--dsw-radius-panel);
-  background: var(--dsw-specific-input-major);
-  box-shadow: var(--dsw-elevation-soft);
-  font-size: var(--dsh-content-font-size, 14px);
-  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
-}
-
-.composerNotice {
-  margin: 0 12px 6px;
-  padding: 4px 8px;
-  border-radius: var(--dsw-radius-md);
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-tertiary);
-  font: var(--dsw-font-xxs-12);
-}
 
 /* 弹层锚点：卡片顶边的零高条带，弹层由此向上展开 */
-.overlayAnchor {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 0;
-}
 
-.composerScroll {
-  max-height: var(--dsh-composer-text-max-height, 336px);
-  margin-right: 4px;
-  overflow-y: auto;
-}
 
-.composerInput {
-  display: block;
-  width: 100%;
-  min-height: 36px;
-  padding: 4px 8px 0 14px;
-  border: 0;
-  outline: none;
-  resize: none;
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font: inherit;
-  caret-color: var(--dsw-alias-state-business-primary);
-}
-
-.composerInput::placeholder {
-  color: var(--dsw-alias-label-caption);
-}
-
-.composerHero .composerInput {
-  min-height: 52px;
-}
-
-.composerRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 2px 8px 6px;
-  container-type: inline-size;
-}
-
-@container (max-width: 560px) {
-  .composerRow {
-    gap: 8px;
-  }
-}
-
-.composerTools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.composerHint {
-  color: var(--dsw-alias-label-caption);
-  font: var(--dsw-font-xxs-12);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* 本地校验提示（未知命令等）：只出现在输入卡内，不进会话记录 */
-.composerProblem {
-  flex: none;
-  color: var(--dsw-alias-state-error-primary);
-  font: var(--dsw-font-xxs-12);
-}
-
-.composerTrailing {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
 
 /* ------------------------------------------------------------ 思考强度入口 */
 
@@ -152,19 +29,20 @@
   align-items: center;
   height: 24px;
   padding: 0 9px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
   font: var(--dsw-font-xxs-12);
   white-space: nowrap;
   cursor: pointer;
-  transition: color 100ms ease, border-color 100ms ease;
+  border: 1px solid var(--app-hairline);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  transition: border-color var(--app-dur-fast) var(--app-ease-out), background var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
 }
 
 .thinkingTrigger:hover:not(:disabled) {
-  color: var(--dsw-alias-label-primary);
-  border-color: var(--dsw-alias-label-caption);
+  border-color: color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
 }
 
 .thinkingTrigger:disabled {
@@ -180,64 +58,21 @@
   z-index: 100;
   min-width: 190px;
   padding: 4px;
-  border-radius: var(--dsw-radius-lg);
-  box-shadow: var(--dsw-elevation-panel);
   color: var(--dsw-alias-label-primary);
   overflow: hidden;
+  backdrop-filter: none;
+  border: 1px solid var(--app-hairline-strong);
+  border-radius: var(--app-radius-panel);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-panel);
+  animation: app-popup-in var(--app-dur-base) var(--app-ease-out) both;
 }
 
 /* 发送与停止共用同一按钮位（上游 .primary）：34×34 圆形，上抬 2px */
-.sendButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  corner-shape: round;
-  background: var(--dsw-alias-button-info-fill);
-  color: #fff;
-  transform: translateY(-2px);
-  cursor: pointer;
-  transition: background-color 100ms ease;
-}
-
-.sendButton:hover:not(:disabled) {
-  background: var(--dsw-alias-button-info-hover);
-}
-
-.sendButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.sendButton svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
-}
 
 /* ---------------------------------------------------------------- 命令弹窗 */
 
-.composerPopup {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(100% + 4px);
-  z-index: 100;
-  padding: 4px;
-  max-height: 400px;
-  border-radius: var(--dsw-radius-lg);
-  box-shadow: var(--dsw-elevation-panel);
-  color: var(--dsw-alias-label-primary);
-  overflow: hidden;
-}
-
-/* 表面色与模糊放在材质子层，卡片本身只负责定位与几何（上游 MenuSurface 做法） */
-.composerPopupMaterial,
-.menuMaterial {
+/* 表面色与模糊放在材质子层，卡片本身只负责定位与几何（上游 MenuSurface 做法） */.menuMaterial {
   position: absolute;
   inset: 0;
   z-index: -1;
@@ -245,73 +80,10 @@
   background: var(--dsw-specific-menu);
   backdrop-filter: var(--dsw-menu-backdrop-filter);
   box-shadow: var(--dsw-elevation-stroke);
-}
-
-.composerPopupViewport {
-  max-height: 376px;
-  overflow-y: auto;
-  padding-right: 2px;
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
-  --dsh-scrollbar-width: 6px;
-  --dsh-scrollbar-track-margin: 12px;
-}
-
-.popupSection {
-  min-height: 23px;
-  padding: 5px 8px 2px;
-  color: var(--dsw-alias-label-caption);
-  font: 500 11px/16px var(--dsw-font-family);
-}
-
-.popupItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  min-height: 34px;
-  padding: 6px 8px;
-  border: 0;
-  border-radius: var(--dsw-radius-md);
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font: 13px/20px var(--dsw-font-family);
-  text-align: left;
-  cursor: pointer;
-}
-
-.popupItem.active {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-.popupItem .value {
-  font-family: var(--ds-font-family-code);
-}
-
-.popupItem .hint {
-  margin-left: auto;
-  color: var(--dsw-alias-label-caption);
+  opacity: 0;
 }
 
 /* ---------------------------------------------------------------- 锚定菜单 */
-
-.menuAnchor {
-  position: relative;
-}
-
-.menuSurface {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 100;
-  min-width: 240px;
-  max-width: min(420px, calc(100vw - 32px));
-  padding: 4px;
-  border-radius: var(--dsw-radius-lg);
-  box-shadow: var(--dsw-elevation-panel);
-  color: var(--dsw-alias-label-primary);
-  overflow: hidden;
-}
 
 .menuViewport {
   max-height: min(360px, calc(100vh - 96px));
@@ -324,14 +96,15 @@
 
 .menuLabel {
   padding: 6px 8px;
-  color: var(--dsw-alias-label-caption);
   font: 500 11px/15px var(--dsw-font-family);
+  color: var(--bgm-text-weak);
 }
 
 .menuSeparator {
   height: 0.5px;
   margin: 3px 2px;
-  background: var(--dsw-alias-border-l2);
+  border-top: 1px solid var(--bgm-border-soft);
+  background: var(--app-hairline);
 }
 
 .menuItem {
@@ -342,18 +115,22 @@
   min-height: 34px;
   padding: 6px 8px;
   border: 0;
-  border-radius: var(--dsw-radius-md);
   background: transparent;
   color: var(--dsw-alias-label-primary);
   font: 13px/20px var(--dsw-font-family);
   text-align: left;
   cursor: pointer;
+  border-radius: var(--app-radius-control);
+  transition: background var(--app-dur-instant) var(--app-ease-out);
 }
 
 .menuItem:hover:not(:disabled),
 .menuItem:focus-visible {
-  background: var(--dsw-alias-interactive-bg-hover);
+  background: var(--bgm-interactive);
+  color: #fff;
+  background: var(--bgm-primary-soft);
   outline: none;
+  box-shadow: var(--bgm-focus);
 }
 
 .menuItem:disabled {
@@ -372,7 +149,7 @@
  *
  * 输入卡最后一行：累计 token 胶囊与上下文占用环，居中排列。形态与交互对齐
  * deepseek-harness 的 composer 统计条（StatsPills / ContextMeter），配色改成
- * Bangumi 令牌，浮层 portal 到 body 后 fixed 定位——输入卡在 `.scrollBody`
+ * Bangumi 令牌，浮层 portal 到 body 后 fixed 定位——输入卡在 `.appStageScroll`
  * （overflow-y: auto）里，留在卡内的绝对定位浮层会被那个滚动容器裁掉。
  * ------------------------------------------------------------ */
 
@@ -384,12 +161,12 @@
   max-width: 100%;
   /* 卡外读数：上方留出与卡片的间距，左右不额外留白（宽度由 .composerStack 决定） */
   padding: 6px 0 2px;
-  /* 读数行自带实心底：它落在座内遮罩带之外，透明会让滚动内容压到文字下面 */
-  background: var(--dsw-alias-bg-base);
   /* 读数比正文低一档：辅助信息 12px */
   font: var(--dsw-font-xxs-12);
   line-height: 20px;
   font-variant-numeric: tabular-nums;
+  /* 底栏读数落在输入卡之外：透明才不会在白面上多出一条白条，胶囊直接落在页面底色上。 */
+  background: transparent;
 }
 
 /* 浮层锚点：收缩到触发器大小，面板位置以它的视口矩形为基准 */
@@ -405,14 +182,14 @@
   gap: 6px;
   max-width: 100%;
   padding: 1px 8px;
-  border: 1px solid transparent;
-  border-radius: var(--bgm-r-pill);
-  background: transparent;
-  color: var(--bgm-text-weak);
   font: inherit;
   white-space: nowrap;
   cursor: pointer;
-  transition: var(--bgm-fast);
+  border: 1px solid var(--app-hairline);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  transition: border-color var(--app-dur-fast) var(--app-ease-out), background var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
 }
 
 .statsPill svg {
@@ -424,9 +201,9 @@
 /* 交互反馈用站点的交互蓝：整行填充 + 白字 */
 .statsPill:hover,
 .statsPill[aria-expanded='true'] {
-  background: var(--bgm-interactive);
-  border-color: var(--bgm-interactive);
-  color: #fff;
+  border-color: var(--app-hairline-strong);
+  background: var(--app-surface);
+  color: var(--bgm-text);
 }
 
 .statsLabel {
@@ -450,21 +227,21 @@
   align-items: center;
   gap: 6px;
   padding: 1px 8px;
-  border: 1px solid transparent;
-  border-radius: var(--bgm-r-pill);
-  background: transparent;
-  color: var(--bgm-text-weak);
   font: inherit;
   white-space: nowrap;
   cursor: pointer;
-  transition: var(--bgm-fast);
+  border: 1px solid var(--app-hairline);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  transition: border-color var(--app-dur-fast) var(--app-ease-out), background var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
 }
 
 .contextTrigger:hover,
 .contextTrigger[aria-expanded='true'] {
-  background: var(--bgm-interactive);
-  border-color: var(--bgm-interactive);
-  color: #fff;
+  border-color: var(--app-hairline-strong);
+  background: var(--app-surface);
+  color: var(--bgm-text);
 }
 
 .contextTrigger[data-warn='true'] {
@@ -482,6 +259,7 @@
   stroke: var(--bgm-text-muted);
   stroke-width: 2;
   stroke-linecap: round;
+  transition: stroke-dasharray var(--app-dur-slow) var(--app-ease-out);
 }
 
 .contextTrigger[data-warn='true'] .contextFill {
@@ -490,12 +268,19 @@
 
 /* 浮层：站点卡片形态（1px 淡描边 + 15px 圆角 + 轻投影），不做玻璃模糊，
    否则下面的对话会透上来，看起来像浮层被写进了输入卡里 */
+
+/* 浮层本体：定位、几何与表面。材质子层（.statsPanelMaterial）只做占位，
+   底色与模糊都不显示——面板自己要干净的白面。 */
 .statsPanel {
   position: fixed;
   z-index: 1100;
   box-sizing: border-box;
   padding: 12px;
-  border-radius: var(--bgm-r-lg);
+  border: 1px solid var(--app-hairline-strong);
+  border-radius: var(--app-radius-panel);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-panel);
+  animation: app-popup-in var(--app-dur-base) var(--app-ease-out) both;
   font: var(--dsw-font-xxs-12);
   line-height: 18px;
   color: var(--bgm-text-muted);
@@ -511,6 +296,7 @@
   border-radius: inherit;
   background: var(--bgm-surface);
   box-shadow: var(--bgm-shadow-soft);
+  opacity: 0;
 }
 
 .statsPanelBody {
@@ -524,8 +310,8 @@
   margin-bottom: 8px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--bgm-border-soft);
-  color: var(--bgm-text-strong);
   font-weight: 700;
+  color: var(--bgm-text-strong);
 }
 
 .statsTitleLabel {
@@ -543,6 +329,7 @@
 
 .statsTitleValue {
   font-variant-numeric: tabular-nums;
+  color: var(--bgm-text-strong);
 }
 
 .statsRows {
@@ -563,8 +350,8 @@
 
 .statsRow dd {
   margin: 0;
-  color: var(--bgm-text-strong);
   font-variant-numeric: tabular-nums;
+  color: var(--bgm-text-strong);
 }
 
 /* 上下文面板比用量面板窄：它只有一行读数与一条进度条 */
@@ -579,19 +366,19 @@
 }
 
 .contextHeadline {
-  color: var(--bgm-text-muted);
+  color: var(--bgm-text-strong);
 }
 
 .contextPercent {
-  color: var(--bgm-text-strong);
   font-weight: 700;
+  color: var(--bgm-text-strong);
 }
 
 .contextFigures {
   margin-left: auto;
-  color: var(--bgm-text-strong);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--bgm-text-muted);
 }
 
 .contextBar {
@@ -599,8 +386,8 @@
   height: 4px;
   margin: 10px 0 2px;
   border-radius: var(--bgm-r-pill);
-  background: var(--bgm-border-soft);
   overflow: hidden;
+  background: var(--bgm-border-soft);
 }
 
 .contextSegment {
@@ -608,8 +395,257 @@
   min-width: 2px;
   border-radius: 1px;
   background: var(--bgm-primary);
+  transition: width var(--app-dur-slow) var(--app-ease-out);
 }
 
 .contextSegment[data-warn='true'] {
-  background: var(--bgm-warn);
+  background: var(--bgm-danger);
+}
+
+/* ---------------------------------------------------------------- 外观层补充
+ * 这里集中放基础文件里没有的形状（由原先分散的覆写层合并而来）：与基础同名的选择器
+ * 已经并入上面的规则，因此同一元素同一属性只有一个来源。
+ * ---------------------------------------------------------------- */
+
+.menuItem:hover {
+  background: var(--bgm-interactive);
+  color: #fff;
+}
+
+.menuItem:hover .meta {
+  color: rgba(255, 255, 255, .88);
+}
+
+/*
+ * 输入区座位：全界面唯一的输入卡挂载点。
+ *
+ * 首屏与活动态只是容器上的 `data-phase` 不同，输入卡本身不换挂载点——换挂载点会让
+ * textarea 被卸载重建，输入焦点与 IME 组合态一起丢失。会话切换时由座位给 `Composer`
+ * 传 `key={sessionId}` 主动重建，草稿按会话存在 store 里，因此重建不丢文字。
+ */
+.appSeat {
+  padding: 6px 24px 18px;
+}
+
+.appCardSeat {
+  display: block;
+}
+
+.appComposerStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.appGlow {
+  width: 100%;
+  border-radius: var(--app-radius-panel);
+}
+
+.appGlow .border-glow-inner {
+  overflow: visible;
+}
+
+.appComposerCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--app-radius-panel);
+}
+
+.appComposerCard:focus-within {
+  box-shadow: 0 0 0 3px var(--app-primary-veil);
+}
+
+.appComposerScroll {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 12px 14px 0;
+}
+
+.appComposerInput {
+  width: 100%;
+  min-height: 24px;
+  max-height: 220px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bgm-text-strong);
+  font: 14px/22px var(--bgm-font);
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+}
+
+.appComposerInput::placeholder {
+  color: var(--bgm-text-weak);
+}
+
+.appComposerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 10px 6px 14px;
+}
+
+.appComposerTools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.appComposerHint {
+  color: var(--bgm-text-weak);
+  font: 12px/1.4 var(--bgm-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appComposerProblem {
+  padding: 3px 9px;
+  border: 1px solid var(--bgm-danger-border);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-danger-soft);
+  color: var(--bgm-danger);
+  font: 12px/1.5 var(--bgm-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appComposerTrailing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.appSendButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-primary);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--app-dur-fast) var(--app-ease-out), box-shadow var(--app-dur-fast) var(--app-ease-out), transform var(--app-dur-instant) var(--app-ease-out);
+}
+
+.appSendButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bgm-primary) 86%, #000);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+}
+
+.appSendButton:active:not(:disabled) {
+  transform: scale(.95);
+}
+
+.appSendButton:disabled {
+  background: var(--bgm-border);
+  color: var(--bgm-surface);
+  cursor: not-allowed;
+}
+
+.appSendButton svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.appSendButton:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+.appComposerPopup {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  max-height: min(320px, 46vh);
+  padding: 6px;
+  border: 1px solid var(--app-hairline-strong);
+  border-radius: var(--app-radius-panel);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-panel);
+  overflow-y: auto;
+  /* 从触发它的输入卡方向展开：位移很小，只是让「从哪来」可读。 */
+  animation: app-popup-in var(--app-dur-base) var(--app-ease-out) both;
+}
+
+@keyframes app-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--app-shift-row));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.appPopupSection {
+  padding: 6px 8px;
+  color: var(--bgm-text-weak);
+  font: 500 12px/1.4 var(--bgm-font);
+  letter-spacing: .04em;
+}
+
+.appPopupItem {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--app-radius-control);
+  background: transparent;
+  color: var(--bgm-text);
+  font: 13px/1.5 var(--bgm-font);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--app-dur-instant) var(--app-ease-out);
+}
+
+.appPopupItem[data-active='true'] {
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+}
+
+.appPopupItem .hint {
+  margin-left: auto;
+  color: var(--bgm-text-weak);
+  font-size: 12px;
+}
+
+.thinkingTrigger:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+.menuItem.selected {
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+  font-weight: 700;
+}
+
+.statsPill:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+.contextTrigger:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
 }

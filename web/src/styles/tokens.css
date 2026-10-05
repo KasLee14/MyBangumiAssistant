@@ -403,3 +403,46 @@ body * {
   --dsw-elevation-soft:
     var(--dsw-elevation-stroke), 0 4px 16px 0 rgba(0, 0, 0, 0.03), 0 0 24px 0 rgba(0, 0, 0, 0.03);
 }
+
+/* ---------------------------------------------------------------- 外观层令牌
+ *
+ * 时长、缓动与位移刻度与 components/motion/motionTokens.ts 一一对应：
+ * 改一处必须同时改另一处，否则同一个界面会出现两条缓动曲线。
+ *
+ * 层次、表面与圆角全部由 `--bgm-*` 派生，不新增色值。
+ * ---------------------------------------------------------------- */
+:root {
+  /* ---- 时长阶梯：与 motionTokens.ts 的 DURATION 一一对应 ---- */
+  --app-dur-instant: 100ms;
+  --app-dur-fast: 150ms;
+  --app-dur-base: 200ms;
+  --app-dur-slow: 300ms;
+  --app-dur-slower: 450ms;
+
+  /* ---- 缓动：与 motionTokens.ts 的 EASE_* 一一对应 ---- */
+  --app-ease-out: cubic-bezier(.22, 1, .36, 1);
+  --app-ease-in-out: cubic-bezier(.4, 0, .2, 1);
+
+  /* ---- 位移刻度：入场位移只有两级，避免每处各写一个距离 ---- */
+  --app-shift-row: 8px;
+  --app-shift-panel: 16px;
+
+  /* ---- 层次：用两级阴影表达浮起，不做单层柔光 ---- */
+  --app-shadow-card: 0 1px 2px rgba(60, 60, 60, .05), 0 8px 24px rgba(60, 60, 60, .05);
+  --app-shadow-raised: 0 1px 1px rgba(60, 60, 60, .04), 0 4px 14px rgba(60, 60, 60, .07);
+  --app-shadow-panel: 0 2px 8px rgba(60, 60, 60, .08), 0 20px 48px rgba(60, 60, 60, .12);
+
+  /* ---- 表面与描边：全部由 --bgm-* 派生，不新增色值 ---- */
+  --app-surface: var(--bgm-surface);
+  --app-surface-sunken: var(--bgm-bg);
+  --app-surface-tint: color-mix(in srgb, var(--bgm-surface) 86%, var(--bgm-primary-soft));
+  --app-hairline: color-mix(in srgb, var(--bgm-border) 62%, transparent);
+  --app-hairline-strong: color-mix(in srgb, var(--bgm-border) 88%, transparent);
+  --app-primary-veil: color-mix(in srgb, var(--bgm-primary) 14%, transparent);
+  --app-accent-veil: color-mix(in srgb, var(--bgm-interactive) 12%, transparent);
+
+  /* ---- 圆角：Bangumi 的 5/10/15/20 阶梯里取中段，只用「控件 / 容器」两档 ---- */
+  --app-radius-control: var(--bgm-r-md);
+  --app-radius-panel: var(--bgm-r-lg);
+
+}
