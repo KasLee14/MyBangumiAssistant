@@ -1,0 +1,227 @@
+/*
+ * LogoLoop：循环由 CSS keyframes 驱动，只动 transform（合成器属性），不触发布局；
+ * 配色与时长全部由令牌派生（见 components/motion/vendor/LogoLoop.tsx 头部注释）。
+ */
+
+.logoLoop {
+  /* 由组件写入（gap / logoHeight / copies / duration / direction），这里给出与默认 props 一致的回退值 */
+  --logoLoop-gap: 32px;
+  --logoLoop-logoHeight: 28px;
+  --logoLoop-copies: 2;
+  --logoLoop-duration: 0s;
+  --logoLoop-direction: normal;
+  /* 两侧遮罩色：默认取当前表面色，而不是官方的 #ffffff / #0b0b0b */
+  --logoLoop-fadeColor: var(--app-surface);
+
+  position: relative;
+  overflow-x: hidden;
+}
+
+.logoLoop--vertical {
+  display: inline-block;
+  height: 100%;
+  overflow: hidden;
+}
+
+.logoLoop--scaleHover {
+  padding-top: calc(var(--logoLoop-logoHeight) * 0.1);
+  padding-bottom: calc(var(--logoLoop-logoHeight) * 0.1);
+}
+
+.logoLoop__track {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  width: max-content;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  user-select: none;
+}
+
+/* 只有确认能滚（speed > 0 且量到了序列长度）才挂动画；speed <= 0 时这里没有任何动画 */
+.logoLoop--animated .logoLoop__track {
+  animation-name: logoLoopShiftX;
+  animation-duration: var(--logoLoop-duration);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: var(--logoLoop-direction);
+}
+
+.logoLoop--vertical .logoLoop__track {
+  flex-direction: column;
+  width: 100%;
+  height: max-content;
+}
+
+.logoLoop--vertical.logoLoop--animated .logoLoop__track {
+  animation-name: logoLoopShiftY;
+}
+
+/* 悬停暂停：speed <= 0 时本来就不动，这两个类由组件按 pauseOnHover / hoverSpeed 决定是否挂上 */
+.logoLoop--hoverPause:hover .logoLoop__track {
+  animation-play-state: paused;
+}
+
+.logoLoop--hoverSpeed:hover .logoLoop__track {
+  animation-duration: var(--logoLoop-hover-duration, var(--logoLoop-duration));
+  animation-direction: var(--logoLoop-hover-direction, var(--logoLoop-direction));
+}
+
+/* 一个周期的位移 = 轨道总宽 / 份数 = 一份序列，因此轨道铺几份、容器多宽都无缝 */
+@keyframes logoLoopShiftX {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(calc(-100% / var(--logoLoop-copies)), 0, 0);
+  }
+}
+
+@keyframes logoLoopShiftY {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, calc(-100% / var(--logoLoop-copies)), 0);
+  }
+}
+
+/* 列表重置：本项目没有 Tailwind preflight，官方样式依赖了它 */
+.logoLoop__list {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.logoLoop--vertical .logoLoop__list {
+  flex-direction: column;
+}
+
+/* 末尾一项也留 gap：一份序列的长度必须含末尾间距，接缝处的间距才与项间距一致 */
+.logoLoop__item {
+  flex: 0 0 auto;
+  margin-right: var(--logoLoop-gap);
+  font-size: var(--logoLoop-logoHeight);
+  line-height: 1;
+}
+
+.logoLoop--vertical .logoLoop__item {
+  margin-right: 0;
+  margin-bottom: var(--logoLoop-gap);
+}
+
+.logoLoop__node {
+  display: inline-flex;
+  align-items: center;
+  transition: transform var(--app-dur-slow) var(--app-ease-out);
+}
+
+.logoLoop__item img {
+  display: block;
+  height: var(--logoLoop-logoHeight);
+  width: auto;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  transition: transform var(--app-dur-slow) var(--app-ease-out);
+}
+
+.logoLoop--scaleHover .logoLoop__item:hover img,
+.logoLoop--scaleHover .logoLoop__item:hover .logoLoop__node {
+  transform: scale(1.2);
+  transform-origin: center center;
+}
+
+.logoLoop__link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--bgm-r-sm);
+  text-decoration: none;
+  transition: opacity var(--app-dur-base) var(--app-ease-out);
+}
+
+.logoLoop__link:hover {
+  opacity: 0.8;
+}
+
+.logoLoop__link:focus-visible {
+  outline: 2px solid var(--bgm-interactive);
+  outline-offset: 2px;
+}
+
+/* 两侧渐隐遮罩：从表面色渐变到同一色的 0% 透明，避免透明关键字带来的偏灰过渡 */
+.logoLoop--fade::before,
+.logoLoop--fade::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: clamp(24px, 8%, 120px);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.logoLoop--fade::before {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    var(--logoLoop-fadeColor),
+    color-mix(in srgb, var(--logoLoop-fadeColor) 0%, transparent)
+  );
+}
+
+.logoLoop--fade::after {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    var(--logoLoop-fadeColor),
+    color-mix(in srgb, var(--logoLoop-fadeColor) 0%, transparent)
+  );
+}
+
+.logoLoop--vertical.logoLoop--fade::before,
+.logoLoop--vertical.logoLoop--fade::after {
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: clamp(24px, 8%, 120px);
+}
+
+.logoLoop--vertical.logoLoop--fade::before {
+  top: 0;
+  bottom: auto;
+  background: linear-gradient(
+    to bottom,
+    var(--logoLoop-fadeColor),
+    color-mix(in srgb, var(--logoLoop-fadeColor) 0%, transparent)
+  );
+}
+
+.logoLoop--vertical.logoLoop--fade::after {
+  top: auto;
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    var(--logoLoop-fadeColor),
+    color-mix(in srgb, var(--logoLoop-fadeColor) 0%, transparent)
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 减少动效：循环整体停掉并回到起点，而不是只把 transform 钉住 */
+  .logoLoop--animated .logoLoop__track {
+    animation: none;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .logoLoop__item img,
+  .logoLoop__node,
+  .logoLoop__link {
+    transition: none;
+  }
+}

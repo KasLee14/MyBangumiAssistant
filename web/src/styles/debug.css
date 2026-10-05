@@ -1,0 +1,251 @@
+/* ============================================================
+ * 调试页皮肤（web/src/page/debug）
+ * ------------------------------------------------------------
+ * 只服务调试页：左侧改为输入区、右侧预览复用真实对话区。这里不改动任何既有
+ * 组件的类，只新增 debug 前缀的类，并复用 --bgm-* / --app-* 令牌。
+ *
+ * 引入顺序：在 main.tsx 里排在 content.css 之后（只消费令牌，不参与重定向）。
+ * ============================================================ */
+
+/* 调试页需要更宽的输入区：只提高 .appFrame 那一条规则的特异性，不碰其它布局。 */
+html[data-debug='on'] .appFrame {
+  --app-sidebar-width: 436px;
+}
+
+/* 品牌区：双击进入/退出调试页的落点，需要一个可点的暗示。
+   用新增的 `appBrandAction` 组合类，而不是给既有组件类 `.appBrand` 加属性——
+   后者会让「同一元素同一属性只有一个来源」这条硬约定在 frame.css 之外多出一个来源。 */
+.appBrandAction {
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--app-radius-control);
+}
+
+.appBrandAction:hover {
+  color: var(--bgm-primary);
+}
+
+.appBrandAction:focus-visible {
+  outline: 2px solid var(--bgm-primary);
+  outline-offset: 2px;
+}
+
+/* ---------------- 输入区 ---------------- */
+
+.debugPane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.debugSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.debugSectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.debugSectionTitle {
+  font: 600 12px/1.4 var(--bgm-font);
+  letter-spacing: .04em;
+  color: var(--bgm-text-strong);
+  white-space: nowrap;
+}
+
+.debugSectionHint {
+  font: 11px/1.4 var(--bgm-font);
+  color: var(--bgm-text-weak);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debugTextarea {
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface);
+  color: var(--bgm-text);
+  font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  tab-size: 2;
+}
+
+.debugTextarea:focus-visible {
+  outline: 2px solid var(--bgm-primary);
+  outline-offset: 1px;
+}
+
+.debugTextarea[data-auto='true'] {
+  /* 自动生成的内容用略沉一档的底色区分：它会被 event 覆盖，不是主输入。 */
+  background: var(--bgm-bg);
+  color: var(--bgm-text-weak);
+}
+
+.debugActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.debugButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface);
+  color: var(--bgm-text);
+  font: 13px/1.4 var(--bgm-font);
+  cursor: pointer;
+}
+
+.debugButton:hover:not(:disabled) {
+  background: var(--bgm-bg);
+}
+
+.debugButton:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.debugButton[data-primary='true'] {
+  background: var(--bgm-primary);
+  border-color: var(--bgm-primary);
+  color: #fff;
+}
+
+.debugButton[data-primary='true']:hover:not(:disabled) {
+  filter: brightness(.96);
+}
+
+.debugStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  border: 1px solid var(--app-hairline);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface);
+  font: 11.5px/1.6 var(--bgm-font);
+  color: var(--bgm-text-weak);
+}
+
+.debugStatus b {
+  color: var(--bgm-text);
+  font-weight: 600;
+}
+
+.debugError {
+  padding: 7px 9px;
+  border: 1px solid var(--bgm-border);
+  border-left: 3px solid var(--bgm-danger, #c0453c);
+  border-radius: 0 var(--app-radius-control) var(--app-radius-control) 0;
+  background: var(--app-surface);
+  color: var(--bgm-danger, #c0453c);
+  font: 12px/1.6 var(--bgm-font);
+  word-break: break-word;
+}
+
+.debugNote {
+  font: 11.5px/1.6 var(--bgm-font);
+  color: var(--bgm-text-weak);
+}
+
+.debugSamples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.debugSamples .debugButton {
+  min-height: 24px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+  border-radius: 999px;
+}
+
+/* ---------------- 预览区 ---------------- */
+
+/* 预览区顶部的依据提示条：说明这一帧是由 event 还是 frame 渲染的。 */
+.debugPreviewBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--app-hairline);
+  background: var(--app-surface);
+  font: 12px/1.5 var(--bgm-font);
+  color: var(--bgm-text-weak);
+}
+
+.debugPreviewBar b {
+  color: var(--bgm-text);
+  font-weight: 600;
+}
+
+.debugPreviewBar .debugBadge {
+  padding: 1px 8px;
+  border: 1px solid var(--bgm-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--bgm-text);
+}
+
+/* 关闭按钮复用既有描边按钮观感，只压一下尺寸。 */
+.debugButton[data-compact='true'] {
+  min-height: 24px;
+  padding: 1px 9px;
+  font-size: 11.5px;
+}
+
+/* 顶栏的「组件库」入口是 <a>（新标签打开，调试页的输入只在内存里、同标签跳走会丢），
+   形态复用 .debugButton，只补掉浏览器默认给链接加的下划线。 */
+.debugLink,
+.debugLink:hover {
+  text-decoration: none;
+}
+
+/* ---------------- 空态 ---------------- */
+
+/* 没有条目也没有流式文本时的提示：说清两个输入框的关系。 */
+.debugHero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 52ch;
+  margin: 12vh auto 0;
+  padding: 0 24px;
+  color: var(--bgm-text-weak);
+  font: 13.5px/1.9 var(--bgm-font);
+}
+
+.debugHeroTitle {
+  color: var(--bgm-text-strong);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.debugHero code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bgm-bg);
+  color: var(--bgm-text);
+  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+}

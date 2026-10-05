@@ -11,10 +11,15 @@
 ### `web/src/main.tsx`（构建入口）
 
 ```tsx
+/** 顶层分流：调试页与主界面互斥挂载。 */
+function Root() {
+  return debug ? <DebugPage /> : <MainPage />;
+}
+
 createRoot(container).render(
   <StrictMode>
     <Provider store={store}>
-      <MainPage />
+      <Root />
     </Provider>
   </StrictMode>,
 );
@@ -22,9 +27,11 @@ createRoot(container).render(
 
 要点：
 
-- **无路由、无分流**。`web/index.html` 直接引用 `/src/main.tsx`，整页只有一个挂载点 `#root`；查询参数不参与渲染决策。
-- `Provider` 在这一层注入，页面与组件因此都能用 `useAppSelector` / `useActions`。
+- **无路由库，但 hash 参与分流**。`web/index.html` 直接引用 `/src/main.tsx`，整页只有一个挂载点 `#root`；`Root` 按 `isDebugHash()`（`location.hash === '#debug'`）在 `MainPage` 与 `DebugPage` 之间**互斥挂载**，并监听 `hashchange` 同步。查询参数仍不参与渲染决策。开关在 [../utils/debugMode.md](../utils/debugMode.md)，调试页在 [debug.md](debug.md)。
+- **互斥而不是"藏起来"**：主界面挂载会建立 SSE 连接、拉取目录，调试页全程不需要宿主；分开挂载后调试期间没有任何到宿主的请求。`Root` 还把 `data-debug="on|off"` 写在 `<html>` 上，供 `styles/debug.css` 圈定作用域。
+- `Provider` 在这一层注入（注入的是**主 store**）。调试页在自己的 `DebugPage` 里再套一层 `Provider`，用的是它自建的独立 store。
 - `StrictMode` 保留：开发模式下会双调用 effect，用于暴露清理不彻底的问题（SSE 订阅的清理函数是 `EventSource.close()`）。
+- **双击侧栏品牌区可进调试页**：`Sidebar` 把 `enterDebug()` 与提示语交给 `SidebarBrand`（见 [../components/main-page.md](../components/main-page.md) 的 §索引「一览」）；调试页的品牌区双击则是返回主界面。
 
 样式引入顺序同样是这一层的契约，见 §规则「样式引入顺序在 `main.tsx` 固定」。
 
@@ -74,7 +81,7 @@ composer={<ComposerSeat />}
 
 ### 样式引入顺序在 `main.tsx` 固定
 
-**样式引入顺序在这里固定**（`tokens → frame → composer → cards → modal → bgm → content`）：`bgm.css` 只定义 `--bgm-*` 并把组件实际用到的 `--dsw-*` 别名重定向过去，必须排在它重定向的那些文件之后（重定向靠「后定义覆盖先定义」生效）；`content.css` 只服务内容组件库。详见 [../styles/readme.md](../styles/readme.md)。
+**样式引入顺序在这里固定**（`tokens → frame → composer → cards → modal → bgm → content → debug`）：`bgm.css` 只定义 `--bgm-*` 并把组件实际用到的 `--dsw-*` 别名重定向过去，必须排在它重定向的那些文件之后（重定向靠「后定义覆盖先定义」生效）；`content.css` 只服务内容组件库；`debug.css` 只服务调试页、排在最后。详见 [../styles/readme.md](../styles/readme.md)。
 
 **违反后果**：顺序错了会出现"部分颜色不生效"这类难查的问题。
 
@@ -118,3 +125,4 @@ composer={<ComposerSeat />}
 | 会话区多一个数据字段 | 先确认它在协议里（`bangumi/src/web/protocol.ts`），再加进 store 切片与 selector，最后接到 props |
 | 加一个浮层（弹窗） | `components/dialog/` 加组件 → `components/mainPage/overlays/DialogStage.tsx` 挂载 → 开合状态放 `store/reducers/ui.ts` |
 | 调整外壳布局 | 改 `styles/frame.css` 与 `Shell` 的类名结构（两者是契约关系） |
+| 想进调试页看某个 event / frame 的效果 | **双击侧栏品牌区**（`SidebarBrand` 的 `onDoubleClick` → `enterDebug()`），或在地址栏加 `#debug`；细节见 [debug.md](debug.md) |

@@ -29,8 +29,8 @@
   --content-accent-text: color-mix(in srgb, var(--bgm-primary) 24%, var(--bgm-text-strong));
   --content-accent-soft: color-mix(in srgb, var(--bgm-primary) 10%, var(--app-surface));
   --content-accent: var(--bgm-primary);
-  --content-warn: #b26a00;
-  --content-warn-soft: var(--bgm-sunken);
+  --content-warn: var(--bgm-warn);
+  --content-warn-soft: color-mix(in srgb, var(--bgm-warn) 8%, var(--app-surface));
 }
 .contentBlockTitle {
   margin: 0 0 6px;
@@ -42,8 +42,13 @@
 }
 .contentEmpty {
   margin: 0;
-  padding: 6px 0;
+  padding: 16px 12px;
+  border: 1px dashed var(--app-hairline-strong);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface-sunken);
   font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
   color: var(--bgm-text-muted);
 }
 .contentNote {
@@ -145,16 +150,19 @@
 a.contentSubjectCard .contentSubjectName { color: var(--bgm-link); }
 a.contentSubjectCard:hover .contentSubjectName { color: var(--bgm-interactive); text-decoration: underline; }
 a.contentSubjectCard:focus-visible { outline: 0; box-shadow: var(--bgm-focus); border-radius: var(--bgm-r-sm); }
-/* 封面缺失或加载失败：斜纹占位块保持同样尺寸，卡片不跳版 */
+/* 封面缺失或加载失败：等尺寸占位块保持卡片不跳版。
+   用纯色 + 内描边而不是斜纹：斜纹在密集网格里会变成一片噪点，盖过真实内容。 */
 .contentSubjectCover[data-empty="true"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: repeating-linear-gradient(135deg, var(--bgm-border-soft) 0 6px, var(--bgm-surface-alt) 6px 12px);
+  background: var(--bgm-surface-alt);
+  box-shadow: inset 0 0 0 1px var(--bgm-border-soft);
 }
 .contentSubjectCover[data-empty="true"]::after {
   content: "无封面";
   font-size: 10px;
+  letter-spacing: .08em;
   color: var(--bgm-text-weak);
 }
 .contentSubjectName {
@@ -251,6 +259,46 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   font-variant-numeric: tabular-nums;
 }
 
+/* 组合类：把 vendor 组件自带的容器外观归零，只保留它提供的动效（光斑 / 掠光）。
+   这里是「给既有组件类加属性」的既定做法——不在第二个文件里改 vendor 自己的类。 */
+.contentSubjectSpotlight {
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  border-radius: var(--app-radius-control);
+}
+.contentTagGlare {
+  display: block;
+  width: 100%;
+  padding: 4px;
+}
+
+/* ---------- 行入场：参考 ReactBits Animated List 的错峰节奏，用 CSS 实现 ----------
+   为什么要自己写而不是 vendor 那个组件：它只接受 `items: string[]` 并统一渲染
+   `<p class="item-text">`，承载不了「标签 + 值」「时间 + 正文」这类结构化行。
+   只动 opacity / transform，不动布局；尊重 prefers-reduced-motion。 */
+@keyframes contentRowIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.contentInfoRow,
+.contentTimelineRow,
+.contentSubjectRow,
+.contentLinkRow {
+  animation: contentRowIn var(--app-dur-base) var(--app-ease-out) both;
+}
+.contentInfoRow:nth-child(2), .contentTimelineRow:nth-child(2),
+.contentSubjectRow:nth-child(2), .contentLinkRow:nth-child(2) { animation-delay: 30ms; }
+.contentInfoRow:nth-child(3), .contentTimelineRow:nth-child(3),
+.contentSubjectRow:nth-child(3), .contentLinkRow:nth-child(3) { animation-delay: 60ms; }
+.contentInfoRow:nth-child(4), .contentTimelineRow:nth-child(4),
+.contentSubjectRow:nth-child(4), .contentLinkRow:nth-child(4) { animation-delay: 90ms; }
+.contentInfoRow:nth-child(n+5), .contentTimelineRow:nth-child(n+5),
+.contentSubjectRow:nth-child(n+5), .contentLinkRow:nth-child(n+5) { animation-delay: 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  .contentInfoRow, .contentTimelineRow, .contentSubjectRow, .contentLinkRow { animation: none; }
+}
+
 /* ============================================================
  * stats：统计卡
  * ============================================================ */
@@ -316,10 +364,13 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 .contentStatBar {
   display: block;
+  width: 100%;
   height: 100%;
+  transform-origin: left center;
   border-radius: var(--bgm-r-pill);
   background: linear-gradient( 90deg, color-mix(in srgb, var(--bgm-primary) 78%, var(--app-surface)) 0%, var(--bgm-primary) 100% );
-  transition: width var(--app-dur-slow) var(--app-ease-out);
+  /* 长度用 scaleX 表达而不是 width：只动 transform，数据刷新时不触发布局重排 */
+  transition: transform var(--app-dur-slow) var(--app-ease-out);
 }
 .contentStatBarRow[data-tone="default"] .contentStatBar { background: var(--bgm-text-weak); }
 .contentStatBarRow[data-tone="primary"] .contentStatBar { background: var(--bgm-primary); }
@@ -333,7 +384,8 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   margin: 0;
   padding: 0;
   list-style: none;
-  height: 96px;
+  /* 轨道留足高度，柱高才看得出分布形状；96px 时最高一根也只有 20px，读不出差异 */
+  height: 120px;
 }
 .contentStatColumn {
   flex: 1;
@@ -356,16 +408,21 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   min-height: 2px;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   border-radius: var(--bgm-r-pill);
-  background: var(--bgm-border-soft);
+  /* 轨道只是参照，压到几乎看不见：数据本身（柱子）才是视觉主体 */
+  background: color-mix(in srgb, var(--bgm-border-soft) 55%, transparent);
 }
 .contentStatColumnBar {
   display: block;
-  width: 100%;
+  width: 62%;
+  height: 100%;
   min-height: 2px;
+  transform-origin: bottom center;
   border-radius: var(--bgm-r-pill);
-  background: linear-gradient( 90deg, color-mix(in srgb, var(--bgm-primary) 78%, var(--app-surface)) 0%, var(--bgm-primary) 100% );
-  transition: width var(--app-dur-slow) var(--app-ease-out);
+  /* 竖向柱用垂直渐变；官方那版是水平渐变，套在柱子上会显得方向错了 */
+  background: linear-gradient( 0deg, var(--bgm-primary) 0%, color-mix(in srgb, var(--bgm-primary) 52%, var(--app-surface)) 100% );
+  transition: transform var(--app-dur-slow) var(--app-ease-out);
 }
 .contentStatColumn[data-tone="muted"] .contentStatColumnBar { background: var(--bgm-border); }
 .contentStatColumnLabel {
@@ -424,10 +481,13 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 .contentProgressBar {
   display: block;
+  width: 100%;
   height: 100%;
+  transform-origin: left center;
   border-radius: var(--bgm-r-pill);
   background: var(--bgm-primary);
-  transition: width var(--app-dur-slow) var(--app-ease-out);
+  /* 与统计条形同一口径：进度长度走 scaleX，不写 width */
+  transition: transform var(--app-dur-slow) var(--app-ease-out);
 }
 
 .contentEpGrid {
@@ -514,16 +574,21 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   overflow: hidden;
   background: var(--app-surface);
 }
+/* 表格标题已经在区块标题（h3）里出现过一次，caption 再显示一遍就是同一个词读两遍。
+   视觉上藏掉、保留给读屏器：表格需要自己的可访问名称。 */
 .contentTableCaption {
-  caption-side: top;
-  text-align: left;
-  padding: 0 0 5px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--bgm-text-muted);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 .contentTable thead th {
-  padding: 5px 8px;
+  padding: 0;
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid var(--app-hairline-strong);
@@ -538,7 +603,6 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   text-align: left;
   vertical-align: top;
   border-bottom: 1px solid var(--app-hairline);
-  border-bottom: 1px solid var(--app-hairline);
 }
 .contentTable tbody tr:last-child td,
 .contentTable tbody tr:last-child th { border-bottom: 0; }
@@ -547,23 +611,29 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+/* 整格可点：padding 从 th 移到按钮上，单元格里不再留一段点不到的死区 */
 .contentTableSort {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
+  justify-content: flex-start;
   gap: 4px;
-  padding: 0;
+  width: 100%;
+  padding: 8px;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
+  text-align: inherit;
   cursor: pointer;
-  border-radius: var(--app-radius-control);
-  transition: color var(--app-dur-fast) var(--app-ease-out);
+  transition: color var(--app-dur-fast) var(--app-ease-out), background var(--app-dur-fast) var(--app-ease-out);
 }
-.contentTableSort:hover { color: var(--bgm-interactive); }
+.contentTableCell[data-align="right"] .contentTableSort { justify-content: flex-end; }
+.contentTableSort:hover {
+  background: var(--app-primary-veil);
+  color: var(--bgm-primary);
+}
 .contentTableSort:focus-visible {
-  border-radius: var(--bgm-r-sm);
   outline: none;
   box-shadow: var(--bgm-focus);
 }
@@ -577,21 +647,44 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 /* ============================================================
  * timeline：时间线
  * ============================================================ */
+/* 一条连续的竖轴 + 每行一个节点：原先每行各画一段 border-left，行距一拉开线就断了 */
 .contentTimelineList {
+  position: relative;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 16px;
   list-style: none;
-  border-top: 1px solid var(--bgm-border);
+}
+.contentTimelineList::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: var(--bgm-r-pill);
+  background: linear-gradient(to bottom, var(--bgm-primary-soft), var(--app-hairline));
 }
 .contentTimelineRow {
+  position: relative;
   display: grid;
   grid-template-columns: 76px 1fr;
   gap: 10px;
   padding: 6px 0;
   border-bottom: 1px dotted var(--bgm-dotted);
-  border-left: 2px solid var(--app-hairline);
-  transition: border-color var(--app-dur-fast) var(--app-ease-out);
 }
+.contentTimelineRow::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--app-surface);
+  box-shadow: 0 0 0 2px var(--bgm-border);
+}
+/* 最新一条（列表首项）用主色节点：时间线天然倒序，第一个就是「刚刚发生」 */
+.contentTimelineRow:first-child::before { box-shadow: 0 0 0 2px var(--bgm-primary); }
 .contentTimelineRow:last-child { border-bottom: 0; }
 .contentTimelineTime {
   font-family: var(--bgm-mono);
@@ -669,7 +762,8 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   border-radius: var(--app-radius-control);
 }
 .contentGalleryCover[data-empty="true"] {
-  background: repeating-linear-gradient(135deg, var(--bgm-border-soft) 0 6px, var(--bgm-surface-alt) 6px 12px);
+  background: var(--bgm-surface-alt);
+  box-shadow: inset 0 0 0 1px var(--bgm-border-soft);
 }
 .contentGalleryCover[data-empty="true"]::after {
   content: "无封面";
@@ -769,13 +863,26 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   align-items: baseline;
   gap: 4px 8px;
   padding: 7px 10px;
-  border-left-width: 2px;
+  position: relative;
+  overflow: hidden;
   font-size: 13px;
   line-height: 1.6;
+  /* 顺序要紧：先用简写给四边，再单独给左侧加宽。反过来写会被简写重置成 1px。 */
   border: 1px solid color-mix(in srgb, var(--content-warn) 22%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--content-warn) 55%, transparent);
   border-radius: var(--app-radius-control);
   background: color-mix(in srgb, var(--content-warn) 7%, var(--app-surface));
 }
+/* StarBorder 装饰层：铺满整个提示块、不参与布局，也不吃指针事件 */
+.contentCalloutGlow {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* 定位层级：装饰层是 absolute（会绘制在非定位元素之上），正文要显式提为定位元素 */
+.contentCallout > :not(.contentCalloutGlow) { position: relative; }
 .contentCalloutMark {
   font-weight: 700;
   color: var(--content-accent-text);
@@ -965,8 +1072,9 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 
 @media (hover: hover) {
-  .contentTimelineRow:hover {
-      border-left-color: color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+  /* 竖轴不再挂在行上，hover 改为点亮该行节点 */
+  .contentTimelineRow:hover::before {
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--bgm-primary) 45%, transparent);
   }
 }
 

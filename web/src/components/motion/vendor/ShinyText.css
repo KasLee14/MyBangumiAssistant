@@ -1,0 +1,69 @@
+/* ShinyText：只动 background-position（合成器属性），不触发布局；配色全部由令牌派生。 */
+
+.shinyText {
+  /* 由组件的 speed / delay / spread / color / shineColor 写入，这里给出与默认 props 一致的回退值 */
+  --shinyText-duration: 2s;
+  --shinyText-delay: 0s;
+  --shinyText-spread: 120deg;
+  --shinyText-color: var(--bgm-text-muted);
+  --shinyText-shine: var(--bgm-primary);
+
+  display: inline-block;
+  /* 高光就是 shineColor 本身：浅色主题下白面扫过等于没扫，默认主色才有对比 */
+  --shinyText-highlight: var(--shinyText-shine);
+
+  color: var(--shinyText-color);
+  /* 文字靠 background-clip 着色，所以两端必须是**不透明的底字色**：
+     写 transparent 会让「没扫到的地方」变成透明，动画停在终点后整段文字消失。 */
+  background-image: linear-gradient(
+    var(--shinyText-spread),
+    var(--shinyText-color) 40%,
+    var(--shinyText-highlight) 50%,
+    var(--shinyText-color) 60%
+  );
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* 默认只扫一次：fill-mode both 让延迟期间停在起点（底色可见），结束后停在终点 */
+  animation-name: shinyTextSweep;
+  animation-duration: var(--shinyText-duration);
+  animation-delay: var(--shinyText-delay);
+  animation-timing-function: linear;
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
+}
+
+/* 需要表达「进行中」时才循环 */
+.shinyText--shimmer {
+  animation-iteration-count: infinite;
+}
+
+/* 停用：直接停到起点，只显示底字 */
+.shinyText--disabled {
+  animation: none !important;
+  background-position: 0% center;
+}
+
+@keyframes shinyTextSweep {
+  from {
+    /* 高光停在文字右侧屏外 */
+    background-position: 100% center;
+  }
+
+  to {
+    /* 高光扫到文字左侧屏外 */
+    background-position: 0% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shinyText {
+    /* 静止展示底字，不留任何扫描 */
+    animation: none !important;
+    background-position: 0% center;
+  }
+}

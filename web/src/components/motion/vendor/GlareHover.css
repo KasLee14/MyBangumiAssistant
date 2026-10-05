@@ -1,0 +1,76 @@
+/* GlareHover：只动 background-position（合成器属性），不触发布局；配色全部由令牌 / 使用方派生。 */
+
+.glareHover {
+  /* 由组件的 props 写入，这里给出与默认 props 一致的回退值 */
+  --gh-width: 500px;
+  --gh-height: 500px;
+  --gh-bg: transparent;
+  --gh-br: 10px;
+  --gh-border: var(--app-hairline);
+  --gh-angle: -45deg;
+  --gh-duration: 650ms;
+  --gh-size: 250%;
+  --gh-rgba: color-mix(in srgb, var(--bgm-surface) 70%, transparent);
+
+  width: var(--gh-width);
+  height: var(--gh-height);
+  background: var(--gh-bg);
+  border-radius: var(--gh-br);
+  border: 1px solid var(--gh-border);
+  overflow: hidden;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.glareHover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* 两端透明停点用 transparent 关键字（等价于官方的 hsla(0, 0%, 0%, 0)，但不引入硬编码色值） */
+  background: linear-gradient(
+    var(--gh-angle),
+    transparent 60%,
+    var(--gh-rgba) 70%,
+    transparent,
+    transparent 100%
+  );
+  transition: var(--gh-duration) var(--app-ease-out);
+  background-size:
+    var(--gh-size) var(--gh-size),
+    100% 100%;
+  background-repeat: no-repeat;
+  background-position:
+    -100% -100%,
+    0 0;
+}
+
+.glareHover:hover {
+  cursor: pointer;
+}
+
+.glareHover:hover::before {
+  background-position:
+    100% 100%,
+    0 0;
+}
+
+.glareHover--playOnce::before {
+  transition: none;
+}
+
+.glareHover--playOnce:hover::before {
+  transition: var(--gh-duration) var(--app-ease-out);
+  background-position:
+    100% 100%,
+    0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 静止：不做扫光过渡，hover 时直接落到终点位置 */
+  .glareHover::before,
+  .glareHover--playOnce::before,
+  .glareHover--playOnce:hover::before {
+    transition: none;
+  }
+}

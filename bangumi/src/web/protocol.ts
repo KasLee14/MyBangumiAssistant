@@ -146,9 +146,11 @@ export interface TimelineView {
   entries: { time: string; text: string; actor?: string }[];
 }
 
-/** 标签云。 */
-export interface TagCloudView {
-  tags: { name: string; count?: number; selected?: boolean }[];
+/** 标签云里的一项；条目载荷就是这个数组（见 `TranscriptItemView` 的 `tags` 成员）。 */
+export interface TagCloudItemView {
+  name: string;
+  count?: number;
+  selected?: boolean;
 }
 
 /** 横向封面或人物列表。 */
@@ -197,7 +199,7 @@ export type TranscriptItemView =
   | (TranscriptItemBase & { kind: 'infobox'; info: InfoBoxView })
   | (TranscriptItemBase & { kind: 'table'; table: TableView })
   | (TranscriptItemBase & { kind: 'timeline'; timeline: TimelineView })
-  | (TranscriptItemBase & { kind: 'tags'; tags: TagCloudView })
+  | (TranscriptItemBase & { kind: 'tags'; tags: TagCloudItemView[] })
   | (TranscriptItemBase & { kind: 'gallery'; gallery: GalleryView })
   | (TranscriptItemBase & { kind: 'compare'; compare: CompareView })
   | (TranscriptItemBase & { kind: 'quote'; quote: QuoteView })

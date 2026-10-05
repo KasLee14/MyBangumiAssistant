@@ -1,0 +1,342 @@
+/* Stepper：进度指示与内容切换只动 transform / opacity；高度变化直接布局，不做动画；配色全部由令牌派生。 */
+
+.stepper {
+  display: block;
+  width: 100%;
+  color: var(--bgm-text);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.stepperPanel {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+  border: 1px solid var(--app-hairline);
+  border-radius: var(--app-radius-panel);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-raised);
+}
+
+/* ---------- 指示器行 ---------- */
+
+.stepperIndicatorRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem;
+}
+
+.stepperIndicatorSlot {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
+.stepperIndicatorSlot:last-child {
+  flex: 0 0 auto;
+}
+
+.stepperIndicator {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  border-radius: 9999px;
+  cursor: default;
+}
+
+button.stepperIndicator {
+  cursor: pointer;
+}
+
+button.stepperIndicator:focus-visible {
+  outline: 2px solid var(--bgm-interactive);
+  outline-offset: 3px;
+}
+
+.stepperIndicatorInner {
+  display: flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--bgm-border);
+  background: var(--app-surface);
+  color: var(--bgm-text-muted);
+  font-weight: 600;
+  transition:
+    background-color var(--app-dur-base) var(--app-ease-out),
+    border-color var(--app-dur-base) var(--app-ease-out),
+    color var(--app-dur-base) var(--app-ease-out);
+}
+
+.stepperStepIsActive > .stepperIndicatorInner {
+  border-color: var(--bgm-primary);
+  background: var(--bgm-primary);
+  color: var(--bgm-surface);
+}
+
+.stepperStepIsComplete > .stepperIndicatorInner {
+  border-color: color-mix(in srgb, var(--bgm-primary) 45%, var(--bgm-border));
+  background: color-mix(in srgb, var(--bgm-primary) 60%, var(--bgm-text));
+  color: var(--bgm-surface);
+}
+
+button.stepperIndicator:hover > .stepperIndicatorInner {
+  border-color: color-mix(in srgb, var(--bgm-primary) 55%, var(--bgm-border));
+}
+
+.stepperStepNumber {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepperActiveDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--bgm-surface);
+}
+
+.stepperCheck {
+  width: 1rem;
+  height: 1rem;
+  color: currentColor;
+}
+
+.stepperCheckPath {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: stepperCheckDraw var(--app-dur-slow) var(--app-ease-out) forwards;
+}
+
+/* ---------- 连接线（横 / 竖共用，只动 transform） ---------- */
+
+.stepperConnector {
+  display: block;
+  flex: 1 1 auto;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--bgm-border-soft);
+}
+
+.stepper--horizontal .stepperConnector {
+  height: 0.125rem;
+  margin-inline: 0.5rem;
+}
+
+.stepper--horizontal .stepperConnectorInner {
+  transform-origin: left center;
+}
+
+.stepper--vertical .stepperConnector {
+  width: 0.125rem;
+  min-height: 1.5rem;
+  margin-block: 0.25rem;
+}
+
+.stepper--vertical .stepperConnectorInner {
+  transform-origin: center top;
+}
+
+.stepperConnectorInner {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--bgm-primary);
+}
+
+/* ---------- 竖向布局：指示器列在左，文字在右 ---------- */
+
+.stepper--vertical .stepperIndicatorRow {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.stepper--vertical .stepperIndicatorSlot {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ---------- 内容区：底稿层撑高，动画层叠放，只跑 opacity + translate ---------- */
+
+.stepperContent {
+  position: relative;
+  overflow: hidden;
+}
+
+.stepperStage {
+  display: grid;
+  grid-template-areas: 'stack';
+}
+
+.stepperStage > * {
+  grid-area: stack;
+  min-width: 0;
+}
+
+/* 底稿层：唯一参与高度的层；不可见、不可读 */
+.stepperBackdrop {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stepperLayer {
+  z-index: 2;
+  animation: stepperStepIn var(--stepperStepDuration, var(--app-dur-base)) var(--stepperStepEase, var(--app-ease-out)) both;
+}
+
+.stepperLayerOut {
+  z-index: 1;
+  animation-name: stepperStepOut;
+}
+
+.stepperStep {
+  padding: 0 1.25rem 0.25rem;
+}
+
+.stepperStepIn1 {
+  --stepperStepFrom: 12px;
+}
+
+.stepperStepIn2 {
+  --stepperStepFrom: -12px;
+}
+
+.stepperStepIn3 {
+  --stepperStepFrom: 8px;
+}
+
+.stepperStepOut1 {
+  --stepperStepFrom: 12px;
+}
+
+.stepperStepOut2 {
+  --stepperStepFrom: -12px;
+}
+
+.stepperStepOut3 {
+  --stepperStepFrom: 8px;
+}
+
+@keyframes stepperStepIn {
+  from {
+    opacity: 0;
+    transform: translateX(var(--stepperStepFrom, 12px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes stepperStepOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--stepperStepFrom, 12px) * -1));
+  }
+}
+
+@keyframes stepperCheckDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---------- 底栏 ---------- */
+
+.stepperFooter {
+  padding: 0 1.25rem 1.25rem;
+}
+
+.stepperFooterNav {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.stepperFooterNavSpread {
+  justify-content: space-between;
+}
+
+.stepperBack {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: var(--app-radius-control);
+  background: none;
+  appearance: none;
+  color: var(--bgm-text-muted);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    color var(--app-dur-base) var(--app-ease-out),
+    background-color var(--app-dur-base) var(--app-ease-out);
+}
+
+.stepperBack:hover {
+  color: var(--bgm-text-strong);
+  background: var(--bgm-surface-alt);
+}
+
+.stepperBack:focus-visible {
+  outline: 2px solid var(--bgm-interactive);
+  outline-offset: 2px;
+}
+
+.stepperNext {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.875rem;
+  border: none;
+  border-radius: 9999px;
+  background: var(--bgm-primary);
+  appearance: none;
+  color: var(--bgm-surface);
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-base) var(--app-ease-out),
+    box-shadow var(--app-dur-base) var(--app-ease-out);
+}
+
+.stepperNext:hover {
+  background: color-mix(in srgb, var(--bgm-primary) 80%, var(--bgm-interactive));
+}
+
+.stepperNext:focus-visible {
+  outline: 2px solid var(--bgm-interactive);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 一切动效静止：直接落位，不留滑动与描边 */
+  .stepperLayer,
+  .stepperLayerOut,
+  .stepperCheckPath {
+    animation: none;
+  }
+
+  .stepperLayerOut {
+    display: none;
+  }
+}

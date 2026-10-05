@@ -1,5 +1,5 @@
 import {
-  CONTENT_RENDERERS, isContentKind,
+  CONTENT_RENDERERS, isBaseTranscriptKind, isContentKind,
   type BaseTranscriptKind, type ContentKind,
 } from './registry';
 
@@ -131,14 +131,6 @@ function eachRecord(
   });
 }
 
-const BASE_KINDS: ReadonlySet<string> = new Set<string>([
-  'header', 'user', 'assistant', 'notice', 'error', 'activity', 'confirmation',
-]);
-
-function isBaseKind(value: string): value is BaseTranscriptKind {
-  return BASE_KINDS.has(value);
-}
-
 /* ---------------------------------------------------------------- base 条目 */
 
 /**
@@ -177,7 +169,9 @@ function validateBase(kind: BaseTranscriptKind, raw: Record<string, unknown>, ba
 
 /* ---------------------------------------------------------------- 内容载荷 */
 
-function validateSubjects(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateSubjects(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkEnum(bag, payload.layout, ['grid', 'list'], `${path}.layout`, false);
   checkText(bag, payload.title, `${path}.title`, true);
   checkNumber(bag, payload.total, `${path}.total`, true);
@@ -200,7 +194,9 @@ function validateSubjects(bag: IssueBag, payload: Record<string, unknown>, path:
   });
 }
 
-function validateStats(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateStats(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkEnum(bag, payload.mode, ['list', 'bars', 'histogram'], `${path}.mode`, false);
   checkText(bag, payload.title, `${path}.title`, true);
   checkText(bag, payload.note, `${path}.note`, true);
@@ -223,7 +219,9 @@ function validateStats(bag: IssueBag, payload: Record<string, unknown>, path: st
   });
 }
 
-function validateProgress(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateProgress(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   // 无必填字段：数值进度、章节网格、note 都缺席时由组件显示空态。
   checkText(bag, payload.title, `${path}.title`, true);
   checkNumber(bag, payload.current, `${path}.current`, true);
@@ -241,7 +239,9 @@ function validateProgress(bag: IssueBag, payload: Record<string, unknown>, path:
   });
 }
 
-function validateInfoBox(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateInfoBox(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkText(bag, payload.title, `${path}.title`, true);
   const rows = checkArray(bag, payload.rows, `${path}.rows`);
   if (rows === null) return;
@@ -252,7 +252,9 @@ function validateInfoBox(bag: IssueBag, payload: Record<string, unknown>, path: 
   });
 }
 
-function validateTable(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateTable(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkText(bag, payload.title, `${path}.title`, true);
   checkText(bag, payload.note, `${path}.note`, true);
   const columns = checkArray(bag, payload.columns, `${path}.columns`);
@@ -276,7 +278,9 @@ function validateTable(bag: IssueBag, payload: Record<string, unknown>, path: st
   });
 }
 
-function validateTimeline(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateTimeline(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkText(bag, payload.title, `${path}.title`, true);
   const entries = checkArray(bag, payload.entries, `${path}.entries`);
   if (entries === null) return;
@@ -287,17 +291,20 @@ function validateTimeline(bag: IssueBag, payload: Record<string, unknown>, path:
   });
 }
 
-function validateTags(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
-  const tags = checkArray(bag, payload.tags, `${path}.tags`);
+function validateTags(bag: IssueBag, value: unknown, path: string): void {
+  // 唯一一个载荷就是数组本身的 kind：没有外层对象，直接校验数组。
+  const tags = checkArray(bag, value, path);
   if (tags === null) return;
-  eachRecord(bag, tags, `${path}.tags`, (tag, at) => {
+  eachRecord(bag, tags, path, (tag, at) => {
     checkText(bag, tag.name, `${at}.name`, false);
     checkNumber(bag, tag.count, `${at}.count`, true);
     checkBoolean(bag, tag.selected, `${at}.selected`, true);
   });
 }
 
-function validateGallery(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateGallery(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkText(bag, payload.title, `${path}.title`, true);
   const items = checkArray(bag, payload.items, `${path}.items`);
   if (items === null) return;
@@ -310,7 +317,9 @@ function validateGallery(bag: IssueBag, payload: Record<string, unknown>, path: 
   });
 }
 
-function validateCompare(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateCompare(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkText(bag, payload.title, `${path}.title`, true);
   checkText(bag, payload.note, `${path}.note`, true);
   const rows = checkArray(bag, payload.rows, `${path}.rows`);
@@ -323,19 +332,25 @@ function validateCompare(bag: IssueBag, payload: Record<string, unknown>, path: 
   });
 }
 
-function validateQuote(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateQuote(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkText(bag, payload.text, `${path}.text`, false);
   checkBoolean(bag, payload.mono, `${path}.mono`, false);
   checkText(bag, payload.title, `${path}.title`, true);
 }
 
-function validateCallout(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateCallout(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkEnum(bag, payload.tone, ['progress', 'success', 'warning', 'error'], `${path}.tone`, false);
   checkText(bag, payload.text, `${path}.text`, false);
   checkText(bag, payload.detail, `${path}.detail`, true);
 }
 
-function validateLinks(bag: IssueBag, payload: Record<string, unknown>, path: string): void {
+function validateLinks(bag: IssueBag, value: unknown, path: string): void {
+  const payload = checkRecord(bag, value, path);
+  if (payload === null) return;
   checkText(bag, payload.title, `${path}.title`, true);
   const links = checkArray(bag, payload.links, `${path}.links`);
   if (links === null) return;
@@ -346,7 +361,13 @@ function validateLinks(bag: IssueBag, payload: Record<string, unknown>, path: st
   });
 }
 
-const CONTENT_VALIDATORS: { [K in ContentKind]: (bag: IssueBag, payload: Record<string, unknown>, path: string) => void } = {
+/**
+ * 各 kind 的载荷守卫。
+ *
+ * 入参是该 kind 的载荷**原样值**（`raw[field]`），形状由各守卫自己收窄——多数 kind 的
+ * 载荷是对象，`tags` 是数组本身，所以「载荷必须是对象」这件事不能在这一层统一假设。
+ */
+const CONTENT_VALIDATORS: { [K in ContentKind]: (bag: IssueBag, value: unknown, path: string) => void } = {
   subjects: validateSubjects,
   stats: validateStats,
   progress: validateProgress,
@@ -382,10 +403,10 @@ export function validateTranscriptItem(raw: unknown): ItemValidation {
 
   const bag: IssueBag = { issues: [] };
   if (isContentKind(kind)) {
+    // 载荷字段名来自注册表；形状由对应的守卫收窄（`tags` 的载荷是数组，不是对象）。
     const field = CONTENT_RENDERERS[kind].field;
-    const payload = checkRecord(bag, raw[field], field);
-    if (payload !== null) CONTENT_VALIDATORS[kind](bag, payload, field);
-  } else if (isBaseKind(kind)) {
+    CONTENT_VALIDATORS[kind](bag, raw[field], field);
+  } else if (isBaseTranscriptKind(kind)) {
     validateBase(kind, raw, bag);
   } else {
     return { status: 'dropped', kind, reason: `未知的内容类型「${kind}」` };

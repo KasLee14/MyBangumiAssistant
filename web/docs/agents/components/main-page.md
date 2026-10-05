@@ -122,7 +122,8 @@ const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 
 | 子目录 | 文件 | 职责 | 读 store | 写 store |
 |---|---|---|---|---|
-| `shell/` | `Sidebar.tsx` | 品牌行、折叠按钮、新建会话、历史会话列表（右侧为后台状态或最后对话时间） | `ui.collapsed`、`catalog.sessions`、`stream.sessionId` | `toggleSidebar`、`newSession`、`resumeSession` |
+| `shell/` | `Sidebar.tsx` | 折叠按钮、新建会话、历史会话列表（右侧为后台状态或最后对话时间）；品牌行交给 `SidebarBrand` | `ui.collapsed`、`catalog.sessions`、`stream.sessionId` | `toggleSidebar`、`newSession`、`resumeSession` |
+| | `SidebarBrand.tsx` | 品牌行（`.appLogoRow` 里的 `.appBrand` + 右侧控件）；双击品牌区切换页面——主界面传 `enterDebug`、调试页传 `exitDebug` | —（props） | —（props） |
 | | `Header.tsx` | 标题行、当前栏、连接状态 chip、设置入口 | `stream.connected` | `openSettings(null)` |
 | `conversation/` | `Stage.tsx` | 滚动容器、轮次列表、流式区、轮次导轨、贴底跟随 | —（props） | —（props） |
 | | `Turn.tsx` | 一个轮次：用户气泡 + 过程折叠块 + 主体条目 | — | — |

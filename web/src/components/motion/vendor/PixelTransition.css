@@ -1,0 +1,70 @@
+/*
+ * PixelTransition：像素幕布与内容层全部由 opacity 驱动（不切 display、不动几何尺寸），
+ * 配色与时长全部由令牌派生（见 components/motion/vendor/PixelTransition.tsx 头部注释）。
+ */
+
+.pixelTransition {
+  /* 由组件写入（gridSize / pixelColor），这里给出与默认 props 一致的回退值 */
+  --pixelTransition-grid: 7;
+  --pixelTransition-pixelColor: var(--bgm-primary);
+
+  position: relative;
+  overflow: hidden;
+  width: 300px;
+  max-width: 100%;
+  border: 1px solid var(--app-hairline-strong);
+  border-radius: var(--app-radius-panel);
+  background-color: var(--bgm-surface);
+  color: var(--bgm-text);
+}
+
+.pixelTransition:focus-visible {
+  outline: 0;
+  box-shadow: var(--bgm-focus);
+}
+
+/* 占位层：只有它参与文档流，卡片高度由 aspectRatio（padding-top 百分比）撑开 */
+.pixelTransition__ratio {
+  width: 100%;
+}
+
+.pixelTransition__default,
+.pixelTransition__second,
+.pixelTransition__pixels {
+  position: absolute;
+  inset: 0;
+}
+
+/* 第二层：靠 opacity 叠在第一层之上，交互交给 pointer-events，不做 display 切换 */
+.pixelTransition__second {
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--app-dur-fast) var(--app-ease-out);
+}
+
+.pixelTransition--active .pixelTransition__second {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 像素幕布：格数由 --pixelTransition-grid 决定，像素格自身不带任何定位内联样式 */
+.pixelTransition__pixels {
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(var(--pixelTransition-grid), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--pixelTransition-grid), minmax(0, 1fr));
+  pointer-events: none;
+}
+
+.pixelTransition__pixel {
+  opacity: 0;
+  background-color: var(--pixelTransition-pixelColor);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 减少动效：层切换不再过渡（幕布本身在 JS 侧已被跳过） */
+  .pixelTransition__second {
+    transition: none;
+  }
+}
