@@ -33,7 +33,7 @@ export interface DebugInputPanelProps {
   onExit(): void;
 }
 
-/** 六个 mock 用例与说明；按验收标准的顺序排列。 */
+/** 八个 mock 用例与说明；按验收标准的顺序排列。 */
 const SAMPLES: readonly { label: string; hint: string; json?: string; frame?: string; clearEvent?: boolean }[] = [
   {
     label: '1 文本流式',
@@ -43,6 +43,14 @@ const SAMPLES: readonly { label: string; hint: string; json?: string; frame?: st
       assistantMessageEvent: {
         type: 'text_delta',
         delta: '整体来看，这部的口碑集中在**中后段**。\n\n## 评分分布\n\n| 分段 | 人数 |\n| --- | ---: |\n| 8 分 | 1,204 |',
+        // 一条 message_update 必须带 `partial.content` 快照：宿主与调试页都只从快照投影，
+        // 不累加 delta（见 message-blocks.ts 的说明）。
+        partial: {
+          content: [{
+            type: 'text',
+            text: '整体来看，这部的口碑集中在**中后段**。\n\n## 评分分布\n\n| 分段 | 人数 |\n| --- | ---: |\n| 8 分 | 1,204 |',
+          }],
+        },
       },
     }, null, 2),
   },
@@ -84,20 +92,26 @@ const SAMPLES: readonly { label: string; hint: string; json?: string; frame?: st
       full: true,
       items: [
         {
-          id: 100, version: 1, kind: 'table',
-          table: {
-            title: '章节',
-            columns: [{ key: 'ep', label: '话' }, { key: 'score', label: '评分', align: 'right' }],
-            rows: [{ ep: '第 1 话', score: '8.2' }, { ep: '第 2 话', score: '7.9' }],
-          },
+          id: 100, version: 1, kind: 'assistant',
+          content: [
+            { type: 'text', text: '章节与放送信息：' },
+            {
+              type: 'DataTable',
+              props: {
+                title: '章节',
+                columns: [{ key: 'ep', label: '话' }, { key: 'score', label: '评分', align: 'right' }],
+                rows: [{ ep: '第 1 话', score: '8.2' }, { ep: '第 2 话', score: '7.9' }],
+              },
+            },
+            { type: 'InfoBox', props: { rows: [{ label: '放送开始', value: '2026-04-05' }] } },
+          ],
         },
-        { id: 101, version: 1, kind: 'infobox', info: { rows: [{ label: '放送开始', value: '2026-04-05' }] } },
       ],
       state: {
         ready: true, busy: false, cancelling: false, startedAt: 0, status: '',
         modelLabel: 'debug/mock-model', sessionId: 'debug-session', sessionName: '调试预览',
         thinking: { current: 'off', currentLabel: '关闭', available: [], supported: false },
-        tokenUsage: null, contextUsage: null, liveText: '', liveThinking: '',
+        tokenUsage: null, contextUsage: null, liveContent: [], liveThinking: '',
         pending: null, loginPrompt: null, loginBusy: false, loginStatus: '',
         loginText: '未登录', loginState: 'signed-out', loginUsername: '',
         proxyLabel: '直连', proxyMode: 'direct', proxyAddress: '',
@@ -109,14 +123,153 @@ const SAMPLES: readonly { label: string; hint: string; json?: string; frame?: st
     hint: 'event 数组 = 一个 flush 窗口：多条事件合并成一帧，只看到批次结束时的最终状态',
     json: JSON.stringify([
       { type: 'agent_start' },
-      { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: '先说第一句。' } },
-      { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: '再说第二句。' } },
+      {
+        type: 'message_update',
+        assistantMessageEvent: {
+          type: 'text_delta', delta: '先说第一句。',
+          partial: { content: [{ type: 'text', text: '先说第一句。' }] },
+        },
+      },
+      {
+        type: 'message_update',
+        assistantMessageEvent: {
+          type: 'text_delta', delta: '再说第二句。',
+          partial: { content: [{ type: 'text', text: '先说第一句。再说第二句。' }] },
+        },
+      },
       {
         type: 'message_end',
         message: {
           role: 'assistant',
           stopReason: 'stop',
           content: [{ type: 'text', text: '先说第一句。再说第二句。' }],
+        },
+      },
+    ], null, 2),
+  },
+  {
+    label: '7 内容块（骨架）',
+    hint: '文本 + 内容块的 pending 骨架：不校验载荷、不显示降级块（先点它，再点 8）',
+    json: JSON.stringify([
+      { type: 'message_start', message: { role: 'assistant', content: [] } },
+      {
+        type: 'message_update',
+        assistantMessageEvent: {
+          type: 'text_delta', contentIndex: 0, delta: '先看这组数据：',
+          partial: { content: [{ type: 'text', text: '先看这组数据：' }] },
+        },
+      },
+      {
+        type: 'message_update',
+        assistantMessageEvent: {
+          type: 'text_delta', contentIndex: 1, delta: '',
+          partial: {
+            content: [
+              { type: 'text', text: '先看这组数据：' },
+              // 第二项出现且 `pending: true` → 预览区渲染骨架（载荷故意不完整）。
+              { type: 'StatsCard', pending: true, props: { title: '评分分布', mode: 'bars' } },
+            ],
+          },
+        },
+      },
+    ], null, 2),
+  },
+  {
+    label: '8 组件块（落定与续写）',
+    hint: '骨架 → 真实数据 → 续写文本 → 落成历史条目（先点 7 看骨架）',
+    json: JSON.stringify([
+      { type: 'message_start', message: { role: 'assistant', content: [] } },
+      {
+        type: 'message_update',
+        assistantMessageEvent: {
+          type: 'text_delta', contentIndex: 0, delta: '先看这组数据：',
+          partial: { content: [{ type: 'text', text: '先看这组数据：' }] },
+        },
+      },
+      {
+        type: 'message_update',
+        assistantMessageEvent: {
+          type: 'text_delta', contentIndex: 1, delta: '',
+          partial: {
+            content: [
+              { type: 'text', text: '先看这组数据：' },
+              // 第二项出现，`pending: true` → 前端渲染骨架（此时载荷故意不完整）。
+              { type: 'StatsCard', pending: true, props: { title: '评分分布', mode: 'bars' } },
+            ],
+          },
+        },
+      },
+      {
+        type: 'message_update',
+        assistantMessageEvent: {
+          type: 'text_delta', contentIndex: 1, delta: '',
+          partial: {
+            content: [
+              { type: 'text', text: '先看这组数据：' },
+              // pending 消失 → 校验并渲染真实数据（此后内容不再变）。
+              {
+                type: 'StatsCard',
+                props: {
+                  title: '评分分布', mode: 'bars',
+                  entries: [
+                    { label: '10 分', value: '128', ratio: 0.21, tone: 'primary' },
+                    { label: '9 分', value: '204', ratio: 0.33 },
+                    { label: '8 分', value: '176', ratio: 0.29 },
+                    { label: '7 分', value: '102', ratio: 0.17, tone: 'muted' },
+                  ],
+                  note: '共 610 人评分',
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        type: 'message_update',
+        assistantMessageEvent: {
+          type: 'text_delta', contentIndex: 2, delta: '总体偏高。',
+          partial: {
+            content: [
+              { type: 'text', text: '先看这组数据：' },
+              {
+                type: 'StatsCard',
+                props: {
+                  title: '评分分布', mode: 'bars',
+                  entries: [
+                    { label: '10 分', value: '128', ratio: 0.21, tone: 'primary' },
+                    { label: '9 分', value: '204', ratio: 0.33 },
+                    { label: '8 分', value: '176', ratio: 0.29 },
+                    { label: '7 分', value: '102', ratio: 0.17, tone: 'muted' },
+                  ],
+                  note: '共 610 人评分',
+                },
+              },
+              { type: 'text', text: '总体偏高。' },
+            ],
+          },
+        },
+      },
+      {
+        type: 'message_end',
+        message: {
+          role: 'assistant', stopReason: 'stop',
+          content: [
+            { type: 'text', text: '先看这组数据：' },
+            {
+              type: 'StatsCard',
+              props: {
+                title: '评分分布', mode: 'bars',
+                entries: [
+                  { label: '10 分', value: '128', ratio: 0.21, tone: 'primary' },
+                  { label: '9 分', value: '204', ratio: 0.33 },
+                  { label: '8 分', value: '176', ratio: 0.29 },
+                  { label: '7 分', value: '102', ratio: 0.17, tone: 'muted' },
+                ],
+                note: '共 610 人评分',
+              },
+            },
+            { type: 'text', text: '总体偏高。' },
+          ],
         },
       },
     ], null, 2),
@@ -187,7 +340,7 @@ export const DebugInputPanel = memo(function DebugInputPanel({
             ))}
           </div>
           <div className="debugNote">
-            用例 2、3 必须按顺序：模拟器要记住同一 `toolCallId` 的进行中条目。用例 5 请先清空 event 框，再把 frame 贴进右侧输入框。用例 6 是 event 数组：多条事件按宿主 40ms 的 flush 窗口合并成一帧。
+            用例 2、3 必须按顺序：模拟器要记住同一 `toolCallId` 的进行中条目。用例 5 请先清空 event 框，再把 frame 贴进右侧输入框。用例 6 是 event 数组：多条事件按宿主 40ms 的 flush 窗口合并成一帧。用例 7、8 是本轮「内容块」的验收用例，**按顺序点**：7 只看骨架，8 把骨架换成真实数据并落成条目（数组会被合并成一帧，所以一次喂完整条链路就看不到骨架那一跳）。
           </div>
         </div>
 

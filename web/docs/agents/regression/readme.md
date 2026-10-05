@@ -70,7 +70,7 @@
 | 改 store 切片 / 动作 | 该切片相关的全部用例 + `K9`、`L4` |
 | 改样式文件 | `L1`、`L5`、`L7`（`--dsw-*`、`--bgm-*` 或 `--app-*` 令牌改动则全量 `L`） |
 | 改 `utils/api.ts` 或协议 | 对应端点的用例（`C*` / `S*`）+ `L4` |
-| 改消息渲染 / 内容组件 | `S2`、`S3`、`S10` + `A2` + [../components/content.md](../components/content.md) 的"新增 kind 清单"核对 |
+| 改消息渲染 / 内容组件 | `S2`、`S3`、`S10`、`S12` + `A2` + [../components/content.md](../components/content.md) 的"新增 kind 清单"核对 |
 | 改 `page/mainPage/*`、`components/mainPage/**`、`components/motion/**` | `A1`–`A5`（其中 `A1`、`A2` 是本组的关键项） |
 | 改**共享组件**（`Modal`、`StatsDock`、`MessageParts`、`content/**`） | `A5`、`A6` + 该组件所在链路的用例 |
 | 加动效或改动效令牌 | `A3`、`A4` + [../styles/tokens.md](../styles/tokens.md) 的 `--app-*` 与 `motionTokens.ts` 同步核对 |

@@ -50,6 +50,7 @@
 2. **改全局状态只能落在 `store/`**：组件里的 `useState` 只承载组件私有状态（提交标记、菜单开合、滚动位置）；输入草稿按会话统一保存在 `ui.drafts`。违反后果：状态更新散落各处，流式帧与界面不同步。详见 [store/readme.md](docs/agents/store/readme.md)。
 3. **样式不写裸值、不越界声明**：颜色走令牌；每个样式文件只负责它那一类元素，同一元素同一属性只声明一次。违反后果：改一处不生效，出问题无法定位来源。详见 [styles/readme.md](docs/agents/styles/readme.md)。
 4. **高度模块化处用「表」，不用「分支」**：新增一种形态只应改一张表 + 一份类型。违反后果：每加一种形态都要回来改多处且容易漏。范例：`components/content/registry.tsx`、`components/mainPage/composer/ComposerSeat.tsx`。
+5. **助手消息的正文只有一个渲染入口（`components/content/MessageBlocks`）**：流式区（`Streaming`）与历史条目（`Turn`）都必须把 `MessageBlock[]` 交给它渲染，不得各自处理块、也不得绕过它直接渲染文本。违反后果：流式期与历史条目的形态会不一致（文本写完那一瞬跳变），并把「骨架 / 降级 / 未知块丢弃」三套分支复制到两处，迟早各自漂移。
 
 ### 技术栈约束
 

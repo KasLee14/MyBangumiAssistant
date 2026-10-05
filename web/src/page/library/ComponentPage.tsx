@@ -1,26 +1,24 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Button, Card, Divider, Table, Tag, Tooltip, Typography, type TableProps } from 'antd';
-import { ContentItem } from '../../components/content';
-import { eventText, frameText, itemOf } from './items';
+import { ContentBlock } from '../../components/content';
+import { eventText, frameText, blockOf } from './items';
 import type { LibrarySection, ParamRow } from './samples';
 
 /**
  * 单个 kind 的详情页。
  *
- * 内容严格只有五块（这是产品定的边界，别往里加第六块）：
- * 1. UI 预览——真实 `ContentItem` 渲染主载荷，另给一张「空数据」变体；
- * 2. customType——`customType: "<kind>"` 与载荷字段名（独立一块，不和参数表混在一起）；
- * 3. 参数——字段表，**下面一行参考附注**；
- * 4. 调试页 event 输入——可直接复制粘贴的 JSON；
- * 5. 调试页 frame 输入——同上。
+ * 内容严格只有四块（这是产品定的边界，别往里加第五块）：
+ * 1. UI 预览——真实 `ContentBlock` 渲染主载荷，另给一张「空数据」变体；
+ * 2. 参数——字段表，**下面一行参考附注**；
+ * 3. 调试页 event 输入——可直接复制粘贴的 JSON；
+ * 4. 调试页 frame 输入——同上。
  *
- * 页内目录由 `App` 指向这五块的 id，所以 id 命名是契约（见 `PAGE_ANCHORS`）。
+ * 页内目录由 `App` 指向这四块的 id，所以 id 命名是契约（见 `PAGE_ANCHORS`）。
  */
 
-/** 五个块的锚点 id 与标题；`App` 的右侧目录按这份清单生成。 */
+/** 四个块的锚点 id 与标题；`App` 的右侧目录按这份清单生成。 */
 export const PAGE_ANCHORS = [
   { id: 'ui-preview', title: 'UI 预览' },
-  { id: 'custom-type', title: 'customType' },
   { id: 'params', title: '参数' },
   { id: 'event', title: 'event 输入' },
   { id: 'frame', title: 'frame 输入' },
@@ -90,8 +88,8 @@ function ReferenceLine({ section }: { section: LibrarySection }): ReactNode {
 }
 
 export function ComponentPage({ section }: { section: LibrarySection }): ReactNode {
-  const main = useMemo(() => itemOf(section.kind, section.payload, 1), [section]);
-  const empty = useMemo(() => itemOf(section.kind, section.empty, 1), [section]);
+  const main = useMemo(() => blockOf(section.kind, section.payload), [section]);
+  const empty = useMemo(() => blockOf(section.kind, section.empty), [section]);
   const event = useMemo(() => eventText(section), [section]);
   const frame = useMemo(() => frameText(section), [section]);
 
@@ -117,22 +115,11 @@ export function ComponentPage({ section }: { section: LibrarySection }): ReactNo
             </Tooltip>
           )}
         >
-          <ContentItem item={main} />
+          <ContentBlock block={main} />
         </Card>
         <Card size="small" className="libPreviewCard" title="空数据">
-          <ContentItem item={empty} />
+          <ContentBlock block={empty} />
         </Card>
-      </section>
-
-      <section id="custom-type" className="libBlock">
-        <Divider titlePlacement="start" className="libBlockDivider">customType</Divider>
-        <Typography.Paragraph className="libCustomType">
-          <Typography.Text code>{`customType: "${section.kind}"`}</Typography.Text>
-          <Typography.Text type="secondary">
-            {' '}载荷放在事件的 <Typography.Text code>details</Typography.Text> 里，本条约目的载荷字段是
-            {' '}<Typography.Text code>{payloadFieldOf(section.kind)}</Typography.Text>。
-          </Typography.Text>
-        </Typography.Paragraph>
       </section>
 
       <section id="params" className="libBlock">
@@ -162,7 +149,6 @@ export function ComponentPage({ section }: { section: LibrarySection }): ReactNo
   );
 }
 
-/** 载荷字段名：与 `registry.tsx` 的 `field` 一致，只有 `infobox` 不是同名。 */
-function payloadFieldOf(kind: LibrarySection['kind']): string {
-  return kind === 'infobox' ? 'info' : kind;
-}
+// 这里原本有一个 `payloadFieldOf(kind)`：它回答「这个 kind 的载荷挂在块上的哪个字段名」。
+// 定制组件的块形状统一为 `{ type, pending?, props }` 之后，块上的载荷字段恒为 `props`，
+// 这个问题不再存在，函数与 `registry.tsx` 的 `field` 表一并移除。

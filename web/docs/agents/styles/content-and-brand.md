@@ -114,7 +114,7 @@
 
 ### `content.css`（~1100 行）：内容组件库样式
 
-服务 `components/content/` 的 12 个 `kind`（`subjects` / `stats` / `progress` / `infobox` / `table` / `timeline` / `tags` / `gallery` / `compare` / `quote` / `callout` / `links`），另有降级块 `.contentFallback`。
+服务 `components/content/` 的 12 个 `kind`（`SubjectCards` / `StatsCard` / `ProgressView` / `InfoBox` / `DataTable` / `Timeline` / `TagCloud` / `Gallery` / `CompareTable` / `QuoteBlock` / `Callout` / `LinkList`——取值就是组件名），另有降级块 `.contentFallback`。
 
 `.contentBlock` 上集中算一次语义派生变量（`--content-accent` / `--content-accent-text` / `--content-accent-soft` / `--content-warn` / `--content-warn-soft`），其余规则引用它们。写法约定见 §规则「`content.css` 的约定」；本轮改动的 10 条结论见 §规则「`content.css` 这一轮的 10 处修复」。
 

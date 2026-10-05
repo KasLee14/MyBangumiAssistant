@@ -101,7 +101,7 @@
 
 | 切片 | 装什么 | 典型字段 |
 |---|---|---|
-| `stream` | 宿主下发的会话状态与条目（外加一个前端本地字段 `answering`） | `items`、`busy`、`liveText`、`pending`、`connected`、`pendingEcho`、`answering` |
+| `stream` | 宿主下发的会话状态与条目（外加一个前端本地字段 `answering`） | `items`、`busy`、`liveContent`、`pending`、`connected`、`pendingEcho`、`answering` |
 | `catalog` | 目录类数据（属于"有哪些东西可选"） | `models`、`sessions`、`providers`、`commands`、`canPersistCredentials` |
 | `ui` | 纯界面状态 | `switching`、`drafts`、`settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider` |
 

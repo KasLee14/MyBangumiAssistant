@@ -107,9 +107,9 @@ return debug ? <DebugPage /> : <MainPage />;
 | `web/src/page/library/App.tsx` | 文档页骨架：antd `Layout` / `Menu` / `Input.Search` + 左侧两层分组导航 + 右侧自绘目录（`PageToc`）；按 hash 路由渲染总览页 / 详情页 / 「没有这个组件」 |
 | `web/src/page/library/router.ts` | 文档页的极简 hash 路由：`parseRoute` / `useRoute` / `navigate` 与 `OVERVIEW_HREF` / `componentHref` |
 | `web/src/page/library/search.ts` | 顶部搜索的过滤口径 `filterSections`（kind 名 / 标题 / summary / 载荷 JSON / 参数表） |
-| `web/src/page/library/Overview.tsx` | 总览页：12 张卡（真实 `ContentItem` 小预览），点卡进详情页 |
-| `web/src/page/library/ComponentPage.tsx` | 详情页：严格五块（UI 预览 / customType / 参数 / event / frame）+ 参数表五列 + 一行参考附注；`PAGE_ANCHORS` 是这五项的 id 契约（`ui-preview` / `custom-type` / `params` / `event` / `frame`） |
-| `web/src/page/library/items.ts` | 载荷 → 条目 / event / frame 文本（`itemOf` / `eventText` / `frameText` / `FRAME_STATE`） |
+| `web/src/page/library/Overview.tsx` | 总览页：12 张卡（真实 `ContentBlock` 小预览），点卡进详情页 |
+| `web/src/page/library/ComponentPage.tsx` | 详情页：严格四块（UI 预览 / 参数 / event / frame）+ 参数表五列 + 一行参考附注；`PAGE_ANCHORS` 是这四块的 id 契约（`ui-preview` / `params` / `event` / `frame`） |
+| `web/src/page/library/items.ts` | 载荷 → 块 / event / frame 文本（`blockOf` / `eventText` / `frameText` / `FRAME_STATE`） |
 | `web/src/page/library/samples.ts` | 文档页的示例数据与参数表（`LIBRARY_SECTIONS`）：12 个 `kind` 的主载荷、空载荷、参数与参考 |
 | `web/src/page/library/theme.ts` | antd 主题（`LIBRARY_THEME`）：token 色值抄自 `bgm.css` 的 `--bgm-*`，**改令牌要同步改它** |
 

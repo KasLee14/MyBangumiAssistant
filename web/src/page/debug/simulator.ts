@@ -1,5 +1,10 @@
-import { customContentDraft } from '../../../../bangumi/src/web/custom-content';
-import type { ChatScalarsView, ServerEvent, TranscriptItemView } from '../../../../bangumi/src/web/protocol';
+import {
+  blocksFromContent,
+  blocksFromMessage,
+  customContentBlocks,
+  hasRenderableBlock,
+} from '../../../../bangumi/src/web/message-blocks';
+import type { ChatScalarsView, MessageBlock, ServerEvent, TranscriptItemView } from '../../../../bangumi/src/web/protocol';
 
 /**
  * 调试页的宿主模拟器。
@@ -23,21 +28,22 @@ export type SimFrame = Extract<ServerEvent, { type: 'state' }>;
 /** event 载荷：按 `handleEvent` 用到的字段声明，不引入 Pi 的完整类型。 */
 export type SimEvent = Record<string, unknown> & { type: string };
 
-/** `play: KEEP` 表示「不改动流式区当前内容」；空串表示清空流式区。 */
-export const KEEP = Symbol('keep-live-text');
+/** `play: KEEP` 表示「不改动流式区当前内容」；空数组表示清空流式区。 */
+export const KEEP = Symbol('keep-live-content');
 
 /**
  * 引擎返回的一「步」。
  *
- * `play` 是这一帧**播放完之后**流式区应该显示的文本：页面先按字符把它演出来，
- * 再提交 `frame`。没有文本变化的事件传 `KEEP`，直接提交。
+ * `play` 是这一帧**播放完之后**流式区应该显示的块数组：页面把最后一个文本块按字符演出来，
+ * 其余块（含已出现的文本块与内容块）直接显示，再提交 `frame`。没有内容变化的事件传 `KEEP`。
  *
- * 为什么需要它：宿主把 `liveText` 累加在事件处理里、末尾才 `emit()`，而调试页一次
- * 只喂一个 event。要让「逐字出现」可见，就得由页面把这一帧的最终文本演一遍。
+ * 为什么需要它：宿主把块投影在事件处理里、末尾才 `emit()`，而调试页一次只喂一个 event。
+ * 要让「逐字出现」与「骨架先出现、参数到了才变真实数据」两件事都可观察，就得由页面把
+ * 这一帧的目标块数组演一遍。
  */
 export interface SimStep {
   frame: SimFrame;
-  play: string | typeof KEEP;
+  play: MessageBlock[] | typeof KEEP;
 }
 
 /* ============================================================
@@ -139,7 +145,7 @@ export interface SimulatorState {
   cancelling: boolean;
   startedAt: number;
   status: string;
-  liveText: string;
+  liveBlocks: MessageBlock[];
   liveThinking: string;
   sessionId: string;
   /** emit 计数，充当帧的 revision。 */
@@ -170,7 +176,7 @@ export function createSimulatorState(sessionId = 'debug-session', revision = -1)
     cancelling: false,
     startedAt: 0,
     status: '',
-    liveText: '',
+    liveBlocks: [],
     liveThinking: '',
     sessionId,
     revision,
@@ -208,7 +214,7 @@ function scalars(state: SimulatorState): ChatScalarsView {
     // 宿主在轮次结束时才算这两个值；调试页不复刻该计算，保持 null（界面不显示这两项）。
     tokenUsage: null,
     contextUsage: null,
-    liveText: state.liveText,
+    liveContent: state.liveBlocks,
     liveThinking: state.liveThinking,
     pending: null,
     loginText: SIMULATED.loginText,
@@ -224,7 +230,7 @@ function scalars(state: SimulatorState): ChatScalarsView {
 }
 
 /** 自增 revision 并压出一帧。`play` 为 `KEEP` 表示流式区不变。 */
-function emit(state: SimulatorState, play: string | typeof KEEP): SimStep {
+function emit(state: SimulatorState, play: MessageBlock[] | typeof KEEP): SimStep {
   state.revision += 1;
   return {
     frame: {
@@ -257,8 +263,8 @@ function asMessage(event: SimEvent): MessageLike {
 /**
  * 处理一条 event，返回需要提交的步骤。
  *
- * 与宿主的一处结构性差异：宿主把 `liveText` 的累加与 `emit()` 分开
- * （`message_update` 不单独下发），这里让 delta 也产出一帧，否则调试页看不到变化。
+ * 与宿主的一处结构性差异：宿主把块投影与 `emit()` 分开
+ * （`message_update` 不单独下发），这里让每次投影也产出一帧，否则调试页看不到变化。
  */
 export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
   switch (event.type) {
@@ -286,27 +292,37 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
     case 'message_update': {
       const update = event['assistantMessageEvent'];
       if (update && typeof update === 'object') {
-        const { type, delta } = update as { type?: string; delta?: string };
-        if (type === 'text_delta' && typeof delta === 'string') state.liveText += delta;
-        else if (type === 'thinking_delta' && typeof delta === 'string') state.liveThinking += delta;
+        const { type, delta, partial } = update as {
+          type?: string;
+          delta?: string;
+          partial?: { content?: unknown };
+        };
+        // 与宿主同构：不判别事件 type，只从 `partial.content` 重新投影——调的是同一份纯函数
+        // （`message-blocks.ts`），所以「快照即唯一入口」与结构化共享在调试页同样生效。
+        if (partial !== undefined && Array.isArray(partial.content))
+          state.liveBlocks = blocksFromContent(partial.content, state.liveBlocks);
+        if (type === 'thinking_delta' && typeof delta === 'string') state.liveThinking += delta;
       }
-      // 播放整段累积文本（而不是单个 delta），保证与这一帧的 liveText 完全一致。
-      return [emit(state, state.liveText)];
+      // 播放整段块数组（而不是单个 delta），保证与这一帧的 liveBlocks 完全一致。
+      return [emit(state, state.liveBlocks)];
     }
 
     case 'message_end': {
       const message = asMessage(event);
-      // 对应宿主的 custom 分支：调的是同一份映射（custom-content.ts），所以调试页演练的
+      // 对应宿主的 custom 分支：调的是同一份映射（message-blocks.ts），所以调试页演练的
       // 就是宿主真实走的逻辑，不是又抄一遍。play 传 KEEP：custom 消息与流式区无关。
-      const custom = customContentDraft(message);
+      const custom = customContentBlocks(message);
       if (custom !== undefined) {
-        pushItem(state, { ...custom, id: state.nextItemId++, version: 1 });
+        pushItem(state, {
+          id: state.nextItemId++, version: 1, kind: 'assistant', content: custom, origin: 'extension',
+        });
         return [emit(state, KEEP)];
       }
       if (message.role !== 'assistant') return [emit(state, KEEP)];
-      const text = messageText(message);
-      if (text.trim()) pushItem(state, { id: state.nextItemId++, version: 1, kind: 'assistant', text });
-      state.liveText = '';
+      const blocks = blocksFromMessage(message);
+      if (hasRenderableBlock(blocks))
+        pushItem(state, { id: state.nextItemId++, version: 1, kind: 'assistant', content: blocks });
+      state.liveBlocks = [];
       state.liveThinking = '';
       if (message.stopReason === 'error') {
         pushItem(state, {
@@ -319,9 +335,9 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
           text: '本轮已停止；已发送的变更以回读结果及操作记录为准。',
         });
       }
-      // 传空串：提交这一帧时流式区被清空，而文本已落成历史条目——
+      // 传空数组：提交这一帧时流式区被清空，而块已落成历史条目——
       // 「流式区消失、条目出现」的交接因此是可观察的。
-      return [emit(state, '')];
+      return [emit(state, [])];
     }
 
     case 'tool_execution_start': {
@@ -415,8 +431,8 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
  *
  * 实现直接复用 `applyEvent`：状态是同一个 state，依次生效；只保留**最后一步**。每次 `emit`
  * 都基于 `state.items` 的全量快照，因此最后一帧天然包含整批变更，被丢弃的中间帧在真实链路上
- * 本来也会被后续帧覆盖。流式区同理：这一批播放的文本由最后一步的 `play` 给出（若批末清空了
- * 流式区，`play` 就是空串，与单条 `message_end` 的交接语义一致）。
+ * 本来也会被后续帧覆盖。流式区同理：这一批播放的块由最后一步的 `play` 给出（若批末清空了
+ * 流式区，`play` 就是空数组，与单条 `message_end` 的交接语义一致）。
  *
  * 单条 event 不走合并，仍原样返回 `applyEvent` 的每一步：一个事件可能刻意产出多帧（例如
  * `message_update` 也提交一帧，否则逐字过程看不见），那是调试页与真实链路的已知结构性差异，

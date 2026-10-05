@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { MotionConfig } from 'motion/react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
+import type { MessageBlock } from '../../../../bangumi/src/web/protocol';
 import { INITIAL_ROOT_STATE, rootReducer } from '../../store/reducers';
 import { exitDebug } from '../../utils/debugMode';
 import { DebugInputPanel } from './DebugInputPanel';
@@ -18,9 +19,10 @@ import {
  * 1. **与真实会话完全隔离**：这里自己建一个 redux store，用同一份 `rootReducer`。
  *    调试数据只进这个 store，主 store 一个字节都不动。
  * 2. **预览就是真实渲染**：直接复用 `<Stage>`（它连同 `Turn` / `Streaming` /
- *    `ContentItem` / `Markdown` 都是 props 驱动的），所以「预览所见 = 真实会话所见」。
- * 3. **流式由播放驱动**：模拟器按事件给出目标帧，页面把 `liveText` 按字符演一遍
- *    再提交——对应宿主每 40ms 一帧的下发节奏。
+ *    `MessageBlocks` / `Markdown` 都是 props 驱动的），所以「预览所见 = 真实会话所见」。
+ * 3. **流式由播放驱动**：模拟器按事件给出目标帧与目标块数组，页面把最后一个文本块按字符
+ *    演一遍再提交——对应宿主每 40ms 一帧的下发节奏；内容块的「骨架 → 真实数据」是一次
+ *    状态切换，不做补间。
  *
  * 每个动画片段提交的字符数与间隔：对应宿主 40ms 一帧的观感。
  */
@@ -126,12 +128,12 @@ export function DebugPage(): ReactNode {
 /**
  * 预览区装配。
  *
- * `displayLiveText` 是**受控**的流式文本：`Stage` 显示它，而不是读 store 里的
- * `liveText`——因为逐字播放发生在 reducer 之外，store 里只保留「已提交帧」的状态。
+ * `displayBlocks` 是**受控**的流式块数组：`Stage` 显示它，而不是读 store 里的
+ * `liveContent`——因为逐字播放发生在 reducer 之外，store 里只保留「已提交帧」的状态。
  */
 function DebugShell({ store }: { store: DebugStore }): ReactNode {
   const simulator = useRef<SimulatorState>(createSimulatorState());
-  const [displayLiveText, setDisplayLiveText] = useState('');
+  const [displayBlocks, setDisplayBlocks] = useState<MessageBlock[]>([]);
   const [eventText, setEventText] = useState('');
   const [frameText, setFrameText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -141,8 +143,8 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
   const [reveal, setReveal] = useState(0);
   /** 播放令牌：新一次预览或重置会让在途播放立即失效。 */
   const playToken = useRef(0);
-  /** 在途播放的目标文本：跳过动画时用它一次性补齐。 */
-  const playTarget = useRef('');
+  /** 在途播放的目标块数组：跳过动画时用它一次性补齐。 */
+  const playTarget = useRef<MessageBlock[]>([]);
 
   useEffect(() => () => {
     // 卸载时终止在途播放，避免对已卸载组件 setState。
@@ -181,7 +183,7 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
         state: { ...INITIAL_ROOT_STATE.stream, sessionId: simulator.current.sessionId },
       },
     });
-    setDisplayLiveText('');
+    setDisplayBlocks([]);
     setEventText('');
     setFrameText('');
     setError(null);
@@ -190,31 +192,49 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
   }, [store, stopPlay]);
 
   /**
-   * 按字符播放一段文本，播完即止。
+   * 播放一段块数组：**最后一个文本块**按字符演出来，其余块直接显示。
+   *
+   * 只演最后一个文本块：流式期增长的只有它，更早的文本块与内容块（含骨架）都不应该重播；
+   * 内容块的 `pending` 变化是一次状态切换，直接显示即可。
    *
    * 步长自适应：整段播放控制在 `PLAY_BUDGET_TICKS` 个片段内，所以短文本是逐字出现、
    * 长文本自动加快——调试页不该为了看一段 2000 字的回答让用户等半分钟。
    */
-  const playText = useCallback(async (text: string): Promise<void> => {
+  const playBlocks = useCallback(async (blocks: MessageBlock[]): Promise<void> => {
     const token = playToken.current;
     const alive = (): boolean => playToken.current === token;
-    playTarget.current = text;
-    const step = Math.max(CHARS_PER_TICK, Math.ceil(text.length / PLAY_BUDGET_TICKS));
-    setDisplayLiveText('');
-    for (let end = step; end < text.length + step; end += step) {
+    playTarget.current = blocks;
+    let lastTextIndex = -1;
+    for (const [index, block] of blocks.entries()) if (block.type === 'text') lastTextIndex = index;
+    const lastText = lastTextIndex < 0 ? undefined : blocks[lastTextIndex];
+    if (lastText === undefined || lastText.type !== 'text') {
+      setDisplayBlocks(blocks);
+      return;
+    }
+    const full = lastText.text;
+    const head = blocks.slice(0, lastTextIndex);
+    const tail = blocks.slice(lastTextIndex + 1);
+    /** 把最后一个文本块替换成前缀 `text` 之后的块数组。 */
+    const withText = (text: string): MessageBlock[] => {
+      const next: MessageBlock[] = [...head, { type: 'text', text }, ...tail];
+      return next;
+    };
+    const step = Math.max(CHARS_PER_TICK, Math.ceil(full.length / PLAY_BUDGET_TICKS));
+    setDisplayBlocks(withText(''));
+    for (let end = step; end < full.length + step; end += step) {
       await new Promise(resolve => setTimeout(resolve, TICK_MS));
       if (!alive()) return;
-      setDisplayLiveText(text.slice(0, end));
+      setDisplayBlocks(withText(full.slice(0, end)));
     }
     if (!alive()) return;
-    setDisplayLiveText(text);
+    setDisplayBlocks(blocks);
   }, []);
 
   /** 跳过剩余动画：直接显示这一帧的最终内容（长文本时用）。 */
   const skipPlay = useCallback((): void => {
     playToken.current += 1;
     setPlaying(false);
-    setDisplayLiveText(playTarget.current);
+    setDisplayBlocks(playTarget.current);
   }, []);
 
   const runPreview = useCallback(async (): Promise<void> => {
@@ -238,9 +258,9 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
         for (const step of steps) {
           if (!alive()) return;
           commit(step.frame);
-          const target = step.play === KEEP ? step.frame.state.liveText : step.play;
-          if (target.length > 0 && target !== displayLiveText) await playText(target);
-          else setDisplayLiveText(target);
+          const target = step.play === KEEP ? step.frame.state.liveContent : step.play;
+          if (target.length > 0 && target !== displayBlocks) await playBlocks(target);
+          else setDisplayBlocks(target);
         }
       } else if (parsed.frame !== undefined) {
         // frame 通道不做补间：这一帧本来就已经是最终状态。
@@ -249,7 +269,7 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
         // 表现为点了「预览」什么都不发生。这里把编号接到当前之后，粘贴即生效。
         const frame = { ...parsed.frame, revision: store.getState().stream.revision + 1 };
         commit(frame, false);
-        setDisplayLiveText(frame.state.liveText);
+        setDisplayBlocks(frame.state.liveContent);
       }
     } catch (cause) {
       const detail = cause instanceof Error ? cause.message : String(cause);
@@ -258,7 +278,7 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
     } finally {
       if (alive()) setPlaying(false);
     }
-  }, [commit, displayLiveText, eventText, frameText, playText]);
+  }, [commit, displayBlocks, eventText, frameText, playBlocks]);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -281,7 +301,7 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
           />
         </aside>
         <DebugPreview
-          liveText={displayLiveText}
+          liveBlocks={displayBlocks}
           source={eventText.trim() ? 'event' : frameText.trim() ? 'frame' : 'none'}
           hasInput={eventText.trim().length > 0 || frameText.trim().length > 0}
           playing={playing}

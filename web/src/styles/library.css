@@ -191,10 +191,6 @@
   background: var(--bgm-surface-alt);
 }
 
-.libCustomType {
-  margin-bottom: 12px !important;
-}
-
 .libParamTable .ant-table {
   font-size: 13px;
 }

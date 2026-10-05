@@ -23,7 +23,7 @@ import { selectHeroPhase } from '../../store/selectors';
 export function Shell(): ReactNode {
   const actions = useActions();
   const items = useAppSelector(state => state.stream.items);
-  const liveText = useAppSelector(state => state.stream.liveText);
+  const liveContent = useAppSelector(state => state.stream.liveContent);
   const liveThinking = useAppSelector(state => state.stream.liveThinking);
   const busy = useAppSelector(state => state.stream.busy);
   const status = useAppSelector(state => state.stream.status);
@@ -43,7 +43,7 @@ export function Shell(): ReactNode {
           <Header />
           <Stage
             items={items}
-            liveText={liveText}
+            liveContent={liveContent}
             liveThinking={liveThinking}
             busy={busy}
             status={status}

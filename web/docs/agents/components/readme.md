@@ -14,9 +14,9 @@
 |---|---|---|---|
 | `mainPage/` | 主界面外壳 | 为会话外壳而写；**允许被第二个外壳复用**（`SidebarBrand` 就被调试页复用），但判据不是"被谁用"，而是"它不依赖 store、只靠 props 就能摆进任何外壳" | [main-page.md](main-page.md) |
 | `dialog/` | 弹窗与浮层 | 有遮罩层、独立于会话流、可被多处唤起 | [dialog.md](dialog.md) |
-| `content/` | 内容条目渲染 | 输入是协议里的内容 `kind`，可脱离外壳单独渲染 | [content.md](content.md) |
+| `content/` | 消息内容块渲染 | 输入是协议里的消息内容块（`MessageBlock`），可脱离外壳单独渲染；助手正文的唯一入口 `MessageBlocks` 也在这里 | [content.md](content.md) |
 
-拿不准时按这个顺序问：① 它是内容 `kind` 的渲染器吗 → `content/`；② 它带遮罩、整页浮在会话之上吗 → `dialog/`；③ 否则 → `mainPage/`。
+拿不准时按这个顺序问：① 它是内容块（`type`）的渲染器、或助手正文的排布吗 → `content/`；② 它带遮罩、整页浮在会话之上吗 → `dialog/`；③ 否则 → `mainPage/`。
 
 `components/` 下还有一个**不属于上述三类**的目录：
 
@@ -58,7 +58,7 @@
 
 ### 不做过度 memo
 
-只有流式期间会被高频重渲染的行才 `memo`（`MessageParts` 的四行、`Turn`、`Streaming` 内部的 `Clock` / `LiveText` / `ThinkingBlock` / `RunningRow`、`ContentItem`、`Markdown`），普通组件不加。
+只有流式期间会被高频重渲染的行才 `memo`（`MessageParts` 的四行、`Turn`、`Streaming` 内部的 `Clock` / `LiveBlocks` / `ThinkingBlock` / `RunningRow`、`MessageBlocks` 及其块级 `BlockSlot`、`ContentBlock`、`Markdown`），普通组件不加。`MessageBlocks` 的 `memo` 带自定义比较：骨架（`pending`）与载荷无关，内容块没换 type 就跳过——没有它，文本每多一个字都会让所有内容块重新校验、重新渲染。
 
 **违反后果**：比较开销白付、代码噪音。
 
@@ -97,7 +97,7 @@
 | 组件 | 规则 | 数据来源 |
 |---|---|---|
 | `Stage` / `Turn` / `Streaming` / `MessageParts` / `ConfirmationCard` / `Hero` | A | props（由 `Shell` 从 store 读出后传入） |
-| `content/**`、`content/markdown.tsx` | A | props（协议条目） |
+| `content/**`、`content/markdown.tsx` | A | props（消息块 / 文本） |
 | `StatsDock` | A | props（由 `Composer` 从 store 读出后传入） |
 | `SidebarBrand` | A | props（`onDoubleClick` / `title` / `children`；主界面传"进入调试页"、调试页传"返回主界面"，见 [../utils/debugMode.md](../utils/debugMode.md)） |
 | `motion/**` | A | props 或无状态 |

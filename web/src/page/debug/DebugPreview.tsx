@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from 'react';
 import { useSelector } from 'react-redux';
+import type { MessageBlock } from '../../../../bangumi/src/web/protocol';
 import { Stage } from '../../components/mainPage/conversation/Stage';
 import type { RootState } from '../../store/reducers';
 
@@ -15,8 +16,8 @@ import type { RootState } from '../../store/reducers';
  */
 
 export interface DebugPreviewProps {
-  /** 受控的流式正文：逐字播放由调用方驱动，不读 store 里的 liveText。 */
-  liveText: string;
+  /** 受控的流式内容块：逐字播放由调用方驱动，不读 store 里的 liveContent。 */
+  liveBlocks: MessageBlock[];
   /** 当前依据，用于提示条。 */
   source: 'event' | 'frame' | 'none';
   /** 是否有可渲染的输入：决定空态提示。 */
@@ -31,7 +32,7 @@ export interface DebugPreviewProps {
 }
 
 export const DebugPreview = memo(function DebugPreview({
-  liveText, source, hasInput, playing, frameCount, eventCount, reveal, onReveal, onSkip,
+  liveBlocks, source, hasInput, playing, frameCount, eventCount, reveal, onReveal, onSkip,
 }: DebugPreviewProps): ReactNode {
   const scalars = useSelector((state: RootState) => state.stream);
   const items = useSelector((state: RootState) => state.stream.items);
@@ -67,7 +68,7 @@ export const DebugPreview = memo(function DebugPreview({
       </div>
       <Stage
         items={items}
-        liveText={liveText}
+        liveContent={liveBlocks}
         liveThinking={scalars.liveThinking}
         busy={scalars.busy}
         status={scalars.status}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from 'react';
-import type { TranscriptItemView } from '../../../../../bangumi/src/web/protocol';
+import type { MessageBlock, TranscriptItemView } from '../../../../../bangumi/src/web/protocol';
 import { projectTurns } from '../../../utils/turns';
 import { Streaming } from './Streaming';
 import { Turn } from './Turn';
@@ -18,8 +18,8 @@ import { Turn } from './Turn';
 export interface StageProps {
   /** 条目列表：与生产同一形状。 */
   items: TranscriptItemView[];
-  /** 流式正文与思考；与 `ChatScalarsView` 同义。 */
-  liveText: string;
+  /** 流式内容块与思考；与 `ChatScalarsView` 同义。 */
+  liveContent: MessageBlock[];
   liveThinking: string;
   busy: boolean;
   status: string;
@@ -40,7 +40,7 @@ export interface StageProps {
 }
 
 export function Stage({
-  items, liveText, liveThinking, busy, status, cancelling, startedAt,
+  items, liveContent, liveThinking, busy, status, cancelling, startedAt,
   sessionId, reveal, onConfirm, onReject, composer, hero, pendingEcho,
 }: StageProps): ReactNode {
   const [activeTurn, setActiveTurn] = useState<number | null>(null);
@@ -84,7 +84,7 @@ export function Stage({
     const raf = requestAnimationFrame(pin);
     const timer = setTimeout(pin, 120);
     return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
-  }, [items, liveText, liveThinking, busy, hasPendingEcho]);
+  }, [items, liveContent, liveThinking, busy, hasPendingEcho]);
 
   const recomputeActiveTurn = useCallback((force = false): void => {
     if (pendingFrame.current && !force) return;
@@ -160,7 +160,7 @@ export function Stage({
                 ))}
                 {pendingEcho}
                 <Streaming
-                  liveText={liveText}
+                  liveContent={liveContent}
                   liveThinking={liveThinking}
                   busy={busy}
                   status={status}

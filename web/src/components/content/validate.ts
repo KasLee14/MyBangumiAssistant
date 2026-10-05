@@ -1,5 +1,5 @@
 import {
-  CONTENT_RENDERERS, isBaseTranscriptKind, isContentKind,
+  isBaseTranscriptKind, isContentKind,
   type BaseTranscriptKind, type ContentKind,
 } from './registry';
 
@@ -143,10 +143,14 @@ function validateBase(kind: BaseTranscriptKind, raw: Record<string, unknown>, ba
   switch (kind) {
     case 'header':
     case 'user':
-    case 'assistant':
     case 'notice':
     case 'error':
       checkText(bag, raw.text, 'text', false);
+      return;
+    case 'assistant':
+      // 助手的正文是消息内容块数组：这里只确认它是数组，块本身的形状由
+      // `validateMessageBlock` 逐块校验（`text` 字段在块化后已不存在）。
+      checkArray(bag, raw.content, 'content');
       return;
     case 'activity':
       checkText(bag, raw.label, 'label', false);
@@ -368,18 +372,18 @@ function validateLinks(bag: IssueBag, value: unknown, path: string): void {
  * 载荷是对象，`tags` 是数组本身，所以「载荷必须是对象」这件事不能在这一层统一假设。
  */
 const CONTENT_VALIDATORS: { [K in ContentKind]: (bag: IssueBag, value: unknown, path: string) => void } = {
-  subjects: validateSubjects,
-  stats: validateStats,
-  progress: validateProgress,
-  infobox: validateInfoBox,
-  table: validateTable,
-  timeline: validateTimeline,
-  tags: validateTags,
-  gallery: validateGallery,
-  compare: validateCompare,
-  quote: validateQuote,
-  callout: validateCallout,
-  links: validateLinks,
+  SubjectCards: validateSubjects,
+  StatsCard: validateStats,
+  ProgressView: validateProgress,
+  InfoBox: validateInfoBox,
+  DataTable: validateTable,
+  Timeline: validateTimeline,
+  TagCloud: validateTags,
+  Gallery: validateGallery,
+  CompareTable: validateCompare,
+  QuoteBlock: validateQuote,
+  Callout: validateCallout,
+  LinkList: validateLinks,
 };
 
 /* ---------------------------------------------------------------- 对外接口 */
@@ -403,9 +407,8 @@ export function validateTranscriptItem(raw: unknown): ItemValidation {
 
   const bag: IssueBag = { issues: [] };
   if (isContentKind(kind)) {
-    // 载荷字段名来自注册表；形状由对应的守卫收窄（`tags` 的载荷是数组，不是对象）。
-    const field = CONTENT_RENDERERS[kind].field;
-    CONTENT_VALIDATORS[kind](bag, raw[field], field);
+    // 定制组件的载荷恒在 `props` 上（形状统一为 `{ type, pending?, props }`）。
+    CONTENT_VALIDATORS[kind](bag, raw['props'], 'props');
   } else if (isBaseTranscriptKind(kind)) {
     validateBase(kind, raw, bag);
   } else {
@@ -413,4 +416,42 @@ export function validateTranscriptItem(raw: unknown): ItemValidation {
   }
 
   return bag.issues.length === 0 ? { status: 'ok' } : { status: 'degraded', kind, issues: bag.issues };
+}
+
+/**
+ * 校验单个**消息内容块**（`MessageBlock`）。
+ *
+ * 内容块走这条路而不是 `validateTranscriptItem`：块的信封字段是 `type` 与 `pending`
+ * （没有 `id` / `version`），文本块也在同一个联合里。三种结果与条目时代一致：
+ * - `ok`：正常渲染；
+ * - `degraded`：`type` 已知但载荷非法 → `ContentFallback`（问题清单 + 原始数据）；
+ * - `dropped`：`type` 未登记 → 丢弃并告警（未知类型没有可依据的载荷语义）。
+ *
+ * **`pending` 不参与校验**：它是"载荷还在传"，调用方（`ContentBlock`）看到它就渲染骨架、
+ * 根本不进这里。所以本函数只描述**终态**载荷的形状。
+ */
+export function validateMessageBlock(raw: unknown): ItemValidation {
+  if (!isRecord(raw)) {
+    return { status: 'degraded', kind: '未知', issues: [{ path: '', reason: '块必须是一个对象' }] };
+  }
+
+  const type = raw.type;
+  if (typeof type !== 'string' || type === '') {
+    return { status: 'degraded', kind: '未知', issues: [{ path: 'type', reason: '缺少 type 字段' }] };
+  }
+
+  const bag: IssueBag = { issues: [] };
+  if (type === 'text') {
+    // 允许空串：空文本块是否落条目由宿主侧的空判定决定（见 message-blocks.ts 的
+    // `hasRenderableBlock`），校验器不替它做这个判断。
+    checkText(bag, raw.text, 'text', false);
+    return bag.issues.length === 0 ? { status: 'ok' } : { status: 'degraded', kind: type, issues: bag.issues };
+  }
+
+  if (!isContentKind(type)) {
+    return { status: 'dropped', kind: type, reason: `未知的内容块类型「${type}」` };
+  }
+  const field = 'props';
+  CONTENT_VALIDATORS[type](bag, raw[field], field);
+  return bag.issues.length === 0 ? { status: 'ok' } : { status: 'degraded', kind: type, issues: bag.issues };
 }

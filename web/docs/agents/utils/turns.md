@@ -36,7 +36,7 @@
 
 ### 投影结果必须在 `Stage` 里用 `useMemo` 固定引用
 
-在 `Stage` 里用 `useMemo(() => projectTurns(items), [items])`。原因：流式帧只改标量（`liveText` 等），`items` 引用不变 → `turns` 引用稳定 → 配合 `Turn` 的 `memo` 让历史轮次整体跳过重渲染。
+在 `Stage` 里用 `useMemo(() => projectTurns(items), [items])`。原因：流式帧只改标量（`liveContent` 等），`items` 引用不变 → `turns` 引用稳定 → 配合 `Turn` 的 `memo` 让历史轮次整体跳过重渲染。
 
 **违反后果**：流式帧每帧重算，历史轮次全部重渲染。
 

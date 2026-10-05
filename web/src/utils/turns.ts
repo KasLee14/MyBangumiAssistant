@@ -1,6 +1,12 @@
 import type { TranscriptItemView } from '../../../bangumi/src/web/protocol';
 
-type TextItem = Extract<TranscriptItemView, { kind: 'user' | 'assistant' | 'notice' | 'error' }>;
+/**
+ * 带纯文本的条目：`user` / `notice` / `error`。
+ *
+ * 助手条目**不在其中**——它的正文是内容块数组（`content: MessageBlock[]`），不再有 `text`；
+ * 轮次里助手条目落在 `body`，只有 `user` 占 `user` 槽位。
+ */
+type TextItem = Extract<TranscriptItemView, { kind: 'user' | 'notice' | 'error' }>;
 
 /** 一个轮次：用户消息 + 该轮的过程（工具活动）与主体（回答、结果、确认卡）。 */
 export interface TurnGroup {
