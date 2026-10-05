@@ -60,6 +60,8 @@ export default defineConfig({
       // 滚动触发与时间线：ReactBits 的 AnimatedContent / TextType 用它。子路径同样在前。
       'gsap/ScrollTrigger': resolve(modules, 'gsap/ScrollTrigger.js'),
       gsap: resolve(modules, 'gsap/index.js'),
+      // 组件库文档页（library.html）的骨架：antd 6。**只有那个入口用它**，主界面 bundle 不含它。
+      antd: resolve(modules, 'antd'),
     },
   },
   build: {
@@ -68,5 +70,18 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: false,
     chunkSizeWarningLimit: 1200,
+    /**
+     * 两个入口：主界面（index.html）与内容组件库文档页（library.html）。
+     *
+     * 文档页与主界面共用同一份令牌、`content.css` 与真实内容组件，因此必须同源构建，
+     * 否则「预览所见」与「会话所见」会各走一套样式。dev server 不需要这项配置——
+     * 它按请求路径直接服务 root 下的任意 HTML。
+     */
+    rollupOptions: {
+      input: {
+        index: resolve(webRoot, 'index.html'),
+        library: resolve(webRoot, 'library.html'),
+      },
+    },
   },
 });

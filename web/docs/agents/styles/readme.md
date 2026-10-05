@@ -2,7 +2,7 @@
 
 ## 简介
 
-样式层的规则与索引：8 个文件的职责与引入顺序、三套令牌体系、「同一元素同一属性只有一个来源」的约定与改动步骤。
+样式层的规则与索引：9 个文件的职责与引入顺序、三套令牌体系、「同一元素同一属性只有一个来源」的约定与改动步骤。
 
 **不覆盖**：具体组件的视觉规格（见五个子文档与 `docs/bgm-design/ui-style.md`）。
 
@@ -19,7 +19,7 @@
 
 ### 六条硬规则
 
-1. **引入顺序固定**：`tokens → frame → composer → cards → modal → bgm → content → debug`，`bgm.css` 必须在它重定向的那些文件之后。违反后果：品牌令牌不生效，部分颜色回到 DSH 默认。见 §规则「引入顺序是契约」。
+1. **引入顺序固定**：`tokens → frame → composer → cards → modal → bgm → content → debug`（组件库文档页的入口 `library.tsx` 在最前面多引一份 `antd/dist/reset.css`，其余用同一顺序、末位换成 `library.css`），`bgm.css` 必须在它重定向的那些文件之后。违反后果：品牌令牌不生效，部分颜色回到 DSH 默认。见 §规则「引入顺序是契约」。
 2. **同一元素同一属性只有一个来源**：样式按作用对象分文件，改既有类就改它那一条规则，不要再叠一条覆写。违反后果：改一处不生效，出问题无法定位来源。见 §规则「同一元素同一属性只有一个来源」。
 3. **不写死颜色，一律走令牌**：违反后果：换令牌时局部不跟随，视觉不一致。见 §规则「不写死颜色，一律走令牌」。
 4. **每个文件只用自己的命名前缀与作用对象**：违反后果：样式互相污染，出问题难以定位来源。见 §规则「隔离规则」。
@@ -59,13 +59,15 @@
 tokens → frame → composer → cards → modal → bgm → content → debug
 ```
 
+**第二条链（组件库文档页）**：`web/src/library.tsx` 在**最前面**引一份 `antd/dist/reset.css`（antd 的全局重置，只服务这一个入口），然后用**同一顺序**、末位换成 `library.css`，即 `antd/dist/reset → tokens → frame → composer → cards → modal → bgm → content → library`（不引入 `debug.css`，因为文档页没有调试页的皮肤）。新增样式文件时，要放进它服务的那条链的正确位置。
+
 三条硬约束：
 
 1. **`bgm.css` 必须排在 `tokens/frame/composer/cards/modal` 之后**：它靠"后定义覆盖先定义"把 60 条 `--dsw-*` / `--dsh-*` 语义别名重定向到 `--bgm-*` 品牌令牌。位置错了会出现"部分颜色不生效"。
 2. **`content.css` 必须排在 `bgm.css` 之后**：它只服务内容组件库，且只消费 `--bgm-*` / `--app-*`，放其后可确保品牌令牌已就位。
-3. **`debug.css` 排最后**：调试页皮肤同样只消费令牌、不参与重定向，位置不影响前两条；细节见 [debug.md](debug.md)。
+3. **`debug.css` 与 `library.css` 各自排在它那条链的最后**：两者都只消费令牌、不参与重定向，位置不影响前两条；细节见 [debug.md](debug.md) 与 [content-and-brand.md](content-and-brand.md)。
 
-新增样式文件时，同样要放进这条链的正确位置，并在 `main.tsx` 里加 import。
+新增样式文件时，同样要放进这条链的正确位置，并在对应的入口（`main.tsx` 或 `library.tsx`）里加 import。
 
 **违反后果**：品牌令牌不生效，部分颜色回到 DSH 默认。
 
@@ -81,9 +83,10 @@ tokens → frame → composer → cards → modal → bgm → content → debug
 | `modal.css` | `.modalOverlay`、`.modalSurface`、`.modalHeader`、`.modalEyebrow`、`.modalClose`、`.modalBody`、`.modalFooter`、`.modalField`、`.modalInput`、`.modalCheck`、`.modalHint`、`.modalError`、`.modalStatus`、`.modalSteps`、`.modalChoiceRow`、`.pickerList`、`.pickerRow`、`.settingsRow`、`.label`、`.value`、`.actions`、`.note`、`.dot`，以及 `.modalSurface .menuMaterial` |
 | `content.css` | `.content*`（与 `components/content/` 的组件一一对应） |
 | `bgm.css` | **没有任何形态规则**：只有 `:root` 上的 `--bgm-*` 定义与 `--dsw-*` / `--dsh-*` 重定向 |
-| `debug.css` | 调试页：`.debug*`（`.debugPane`、`.debugSection*`、`.debugTextarea`、`.debugButton`、`.debugSamples`、`.debugActions`、`.debugStatus`、`.debugError`、`.debugNote`、`.debugPreviewBar`、`.debugBadge`、`.debugHero*`）、`.appBrandAction`（与 `.appBrand` 组合使用的可点暗示），以及 `html[data-debug='on'] .appFrame` 那一条 `--app-sidebar-width` 覆盖；见 [debug.md](debug.md) §规则 |
+| `debug.css` | 调试页：`.debug*`（`.debugPane`、`.debugSection*`、`.debugTextarea`、`.debugButton`、`.debugSamples`、`.debugActions`、`.debugStatus`、`.debugError`、`.debugNote`、`.debugPreviewBar`、`.debugBadge`、`.debugHero*`）、组合类 `.appBrandAction`（与 `.appBrand` 组合使用的可点暗示）与 `.debugLink`（与 `.debugButton` 组合使用的顶栏「组件库」链接，只补 `text-decoration: none`），以及 `html[data-debug='on'] .appFrame` 那一条 `--app-sidebar-width` 覆盖；见 [debug.md](debug.md) §规则 |
+| `library.css` | 组件库文档页：`.lib*`（`.libFrame`、`.libHeader` / `.libBrand*` / `.libSearch` / `.libTopMenu` / `.libHeaderActions`、`.libBody` / `.libSider` / `.libNavMenu`、`.libContent*`、`.libToc*`、`.libPageTitle` / `.libPageSummary`、`.libBlock*`、`.libPreviewCard`、`.libCode*`、`.libCustomType`、`.libParamTable`、`.libReference*`、`.libEmptyHint`、`.libOverview*` / `.libKindTag`），另有三条**只在本页类名上下文里**给 antd 元素让位的排版规则（`.libPreviewCard .ant-card-body`、`.libCodeCard .ant-card-body`、`.libParamTable .ant-table`）；三栏统一白底（`.libFrame` / `.libBody` / `.libContent` 的 `background` 都是 `var(--bgm-surface)`，靠 1px hairline 分区）；窄屏适配是 `@media (max-width: 1100px)`（隐藏右侧目录）与 `@media (max-width: 860px)`（顶栏换行、三栏改单列）；只由 `library.tsx` 引入，见 [content-and-brand.md](content-and-brand.md) §索引 |
 
-历史上调试面板的样式曾单独成文件（`.preview*`）并遵守同一规则，后被移除——**这条"前缀隔离"约定保留**：任何新样式文件都要有自己的前缀。现在 `debug.css` 就是这条约定下的又一个独立文件（`debug*` 前缀 + `html[data-debug='on']` 作用域）。
+历史上调试面板的样式曾单独成文件（`.preview*`）并遵守同一规则，后被移除——**这条"前缀隔离"约定保留**：任何新样式文件都要有自己的前缀。`debug.css`（`debug*` 前缀 + `html[data-debug='on']` 作用域）与 `library.css`（`lib*` 前缀 + `@media (max-width: 1100px)` / `@media (max-width: 860px)`）就是这条约定下的两个独立文件。
 
 **违反后果**：样式互相污染，出问题难以定位来源。
 
@@ -118,7 +121,7 @@ tokens → frame → composer → cards → modal → bgm → content → debug
 
 ### 这一层是什么
 
-手写 CSS，**无框架、无 CSS-in-JS、无 CSS Modules**。共 8 个 `.css` 文件（另有 `fonts/` 目录），按"作用对象"分层，靠**令牌**统一视觉、靠**类名前缀与作用对象**互相隔离。
+手写 CSS，**无框架、无 CSS-in-JS、无 CSS Modules**。共 9 个 `.css` 文件（另有 `fonts/` 目录），按"作用对象"分层，靠**令牌**统一视觉、靠**类名前缀与作用对象**互相隔离。
 
 | 文件 | 行数级别 | 作用对象 | 令牌体系 | 子文档 |
 |---|---|---|---|---|
@@ -128,8 +131,9 @@ tokens → frame → composer → cards → modal → bgm → content → debug
 | `cards.css` | ~250 | 写入确认卡、按钮基元、流式思考块、工具活动状态色 | 消费 `--bgm-*` / `--app-*` | [components.md](components.md) |
 | `modal.css` | ~470 | 弹窗（遮罩、表面、字段、选项行、状态条、设置行、会话选择列表） | 消费 `--bgm-*` / `--app-*` | [components.md](components.md) |
 | `bgm.css` | ~150 | **只有令牌**：定义 `--bgm-*`，并把组件实际用到的 60 条 `--dsw-*` / `--dsh-*` 别名重定向过去 | 定义 `--bgm-*`，重定向 `--dsw-*` / `--dsh-*` | [content-and-brand.md](content-and-brand.md) |
-| `content.css` | ~980 | 内容组件库（12 种内容条目的皮肤）；末尾另有一节以 `@media (hover: hover)` 包裹的补充规则 | 消费 `--bgm-*` / `--app-*` | [content-and-brand.md](content-and-brand.md) |
-| `debug.css` | ~245 | 调试页（左侧输入区、预览条、空态）与 `html[data-debug='on']` 下的侧栏加宽 | 消费 `--bgm-*` / `--app-*` | [debug.md](debug.md) |
+| `content.css` | ~1100 | 内容组件库（12 种内容条目的皮肤）；含 `@keyframes contentRowIn` 行级入场与末尾一节以 `@media (hover: hover)` 包裹的补充规则 | 消费 `--bgm-*` / `--app-*` | [content-and-brand.md](content-and-brand.md) |
+| `debug.css` | ~250 | 调试页（左侧输入区、预览条、空态）、`.appBrandAction` 与 `.debugLink` 两个组合类，以及 `html[data-debug='on']` 下的侧栏加宽 | 消费 `--bgm-*` / `--app-*` | [debug.md](debug.md) |
+| `library.css` | ~315 | 组件库文档页：antd 三栏骨架的**粘性布局**与顶栏内元素间距、**三栏统一白底**（`--bgm-surface`，靠 1px hairline 分区）、右侧**自绘**目录（`libToc*`）、内容区预览卡 / 代码块 / 参数表 / 参考行的排版与窄屏适配（`@media (max-width: 1100px)` 隐藏目录、`(max-width: 860px)` 改单列）；**只由 `library.tsx` 引入**，排在 `content.css` 之后，`antd/dist/reset.css` 在整条链最前 | 消费 `--bgm-*` / `--app-*` | [content-and-brand.md](content-and-brand.md) |
 | `fonts/` | — | Montserrat（OFL，三个字重 woff2 + 许可文件） | — | [tokens.md](tokens.md) |
 
 ### 怎么读（文件 → 场景）
@@ -140,8 +144,8 @@ tokens → frame → composer → cards → modal → bgm → content → debug
 | [tokens.md](tokens.md) | 改设计令牌、外观层令牌（`--app-*`）、字体、圆角刻度、焦点环时 |
 | [frame.md](frame.md) | 改外壳网格、侧栏与顶栏、会话区布局、共享渲染器（消息行 / 过程折叠 / Markdown / 流式区）、滚动与首屏行为时 |
 | [components.md](components.md) | 改确认卡、按钮基元、输入区、浮层、弹窗样式时 |
-| [content-and-brand.md](content-and-brand.md) | 改内容条目样式、品牌令牌或 `--bgm-*` 重定向时 |
-| [debug.md](debug.md) | 改调试页皮肤、`html[data-debug='on']` 作用域、或品牌区的 `.appBrandAction` 组合类时 |
+| [content-and-brand.md](content-and-brand.md) | 改内容条目样式、品牌令牌、`--bgm-*` 重定向，或组件库文档页皮肤（`library.css` 的 `lib*` 类）时 |
+| [debug.md](debug.md) | 改调试页皮肤、`html[data-debug='on']` 作用域、或品牌区的 `.appBrandAction`、顶栏的 `.debugLink` 组合类时 |
 
 ### 三套令牌体系
 

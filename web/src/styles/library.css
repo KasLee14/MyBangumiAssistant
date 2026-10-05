@@ -1,0 +1,316 @@
+/* ============================================================
+ * 组件库文档页（library.html）皮肤
+ * ------------------------------------------------------------
+ * 骨架由 antd 提供（Layout / Menu / Input / Card / Table / Typography），配色通过
+ * `page/library/theme.ts` 的 ConfigProvider token 映射到 `--bgm-*` 的当前色值。
+ *
+ * 这一页**不守**本项目其它外观约定（间距、阴影尺度自己定）——产品明确要求它对齐
+ * ant.design 文档站的形态；只有**配色**必须与站点一致，所以下面所有颜色都走
+ * `--bgm-*` / `--app-*` 令牌，不写裸色值。
+ *
+ * 只声明 `lib*` 前缀的类，不覆写 antd 或内容组件的既有类。
+ * ============================================================ */
+
+.libFrame {
+  min-height: 100vh;
+  /* 三栏统一白底，靠 1px hairline 分区（对齐 ant 文档站；此前是灰底白卡） */
+  background: var(--bgm-surface);
+}
+
+/* ---------------------------------------------------------------- 顶栏 */
+
+.libHeader {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid var(--app-hairline);
+}
+
+.libBrand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: none;
+}
+
+.libBrandMark {
+  font-family: var(--dsw-font-family-brand);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--bgm-primary);
+}
+
+.libBrandTitle {
+  font-size: 15px;
+  color: var(--bgm-text-muted);
+}
+
+/* 搜索框居中：ant 的顶栏是「品牌 | 导航 | 居中搜索 | 工具」，这里用 auto 外边距把它推到中间 */
+.libSearch {
+  flex: 1 1 auto;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* 横向菜单嵌在顶栏里：去掉它自带的下边线与多余内边距 */
+.libTopMenu {
+  flex: none;
+  border-bottom: 0;
+  background: transparent;
+  line-height: 62px;
+}
+
+.libTopMenu::after {
+  display: none;
+}
+
+.libHeaderActions {
+  margin-left: auto;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- 三栏骨架 */
+
+.libBody {
+  align-items: flex-start;
+  background: var(--bgm-surface);
+}
+
+.libSider {
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  border-right: 1px solid var(--app-hairline);
+}
+
+.libNavMenu {
+  border-inline-end: 0;
+  padding: 12px 8px 32px;
+}
+
+.libContent {
+  min-width: 0;
+  background: var(--bgm-surface);
+}
+
+.libContentInner {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 32px 120px;
+}
+
+.libTocSider {
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  border-left: 1px solid var(--app-hairline);
+  padding: 20px 12px;
+}
+
+/* 右侧页内目录：自绘（antd 的 Anchor 会抢 hash，与「一组件一页」的路由冲突） */
+.libToc {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 2px solid var(--app-hairline);
+}
+
+.libTocLink {
+  display: block;
+  width: 100%;
+  padding: 4px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--bgm-text-muted);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-out);
+}
+
+.libTocLink:hover {
+  color: var(--bgm-primary);
+}
+
+.libTocLink[data-active='true'] {
+  color: var(--bgm-primary-text);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--bgm-primary);
+}
+
+/* ---------------------------------------------------------------- 内容区 */
+
+.libPageTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px !important;
+}
+
+.libPageSummary {
+  margin-bottom: 0 !important;
+}
+
+.libBlock {
+  scroll-margin-top: 80px;
+}
+
+.libBlockDivider {
+  margin: 32px 0 20px !important;
+  font-size: 15px !important;
+}
+
+.libPreviewCard {
+  margin-bottom: 12px;
+}
+
+.libPreviewCard .ant-card-body {
+  background: var(--app-surface);
+}
+
+.libCodeCard .ant-card-body {
+  padding: 0;
+}
+
+.libCodeBody {
+  margin: 0;
+  padding: 14px 16px;
+  max-height: 340px;
+  overflow: auto;
+  font-family: var(--bgm-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre;
+  color: var(--bgm-text);
+  background: var(--bgm-surface-alt);
+}
+
+.libCustomType {
+  margin-bottom: 12px !important;
+}
+
+.libParamTable .ant-table {
+  font-size: 13px;
+}
+
+.libReferenceLine {
+  margin: 12px 0 0 !important;
+  font-size: 13px;
+}
+
+.libReferenceUsage {
+  margin-left: 8px;
+  color: var(--bgm-text-weak);
+}
+
+.libEmptyHint {
+  margin-top: 24px !important;
+}
+
+/* ---------------------------------------------------------------- 总览页 */
+
+.libOverviewCard {
+  height: 100%;
+}
+
+.libOverviewTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.libKindTag {
+  font-family: var(--bgm-mono);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.libOverviewSummary {
+  margin-bottom: 12px !important;
+  font-size: 12px;
+}
+
+/* 小预览：裁到固定高度，只露出这条目的「第一眼」形态 */
+.libOverviewPreview {
+  position: relative;
+  max-height: 148px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.libOverviewPreview::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 32px;
+  background: linear-gradient(to bottom, transparent, var(--bgm-surface));
+}
+
+/* ---------------------------------------------------------------- 窄屏 */
+
+@media (max-width: 1100px) {
+  .libTocSider {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .libHeader {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    height: auto;
+    padding: 12px 16px;
+  }
+
+  .libSearch {
+    order: 3;
+    max-width: 100%;
+  }
+
+  .libTopMenu {
+    line-height: 46px;
+  }
+
+  /* 窄屏把三栏改成竖排。
+     **必须用 .libFrame > .libBody 这种更高特异性**：antd 的样式是运行时注入的，位置在我们的
+     样式表之后，同优先级（`.ant-layout` vs `.libBody`）它会赢——只写 `.libBody` 时
+     flex-direction 根本改不掉，Content 会被 `align-items: flex-start` 压成 0 宽。 */
+  .libFrame > .libBody {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* antd 的 Sider 宽度是内联 style，覆盖它必须 !important —— 这里没有更干净的办法 */
+  .libFrame .libSider {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: none !important;
+    position: static;
+    height: auto;
+    max-height: 38vh;
+    overflow-y: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-hairline);
+  }
+
+  /* 与 Sider 同理：antd 的 `.ant-layout-content` 带着 flex 上下文的宽度约束，
+     在竖排布局下会把内容区压成 0 宽（实测：只靠 `.libFrame .libContent` 的更高特异性仍不够，
+     注入 `width: 100% !important` 才生效）。这一条是必要的例外，别去掉。 */
+  .libFrame .libContent {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .libContentInner {
+    padding: 20px 16px 80px;
+  }
+}

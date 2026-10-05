@@ -215,6 +215,13 @@ html[data-debug='on'] .appFrame {
   font-size: 11.5px;
 }
 
+/* 顶栏的「组件库」入口是 <a>（新标签打开，调试页的输入只在内存里、同标签跳走会丢），
+   形态复用 .debugButton，只补掉浏览器默认给链接加的下划线。 */
+.debugLink,
+.debugLink:hover {
+  text-decoration: none;
+}
+
 /* ---------------- 空态 ---------------- */
 
 /* 没有条目也没有流式文本时的提示：说清两个输入框的关系。 */

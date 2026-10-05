@@ -7,7 +7,7 @@ import { exitDebug } from '../../utils/debugMode';
 import { DebugInputPanel } from './DebugInputPanel';
 import { DebugPreview } from './DebugPreview';
 import {
-  KEEP, SUPPORTED_EVENTS, applyEvent, createSimulatorState, DEBUG_INSTANCE_ID,
+  KEEP, SUPPORTED_EVENTS, applyEvents, createSimulatorState, DEBUG_INSTANCE_ID,
   type SimFrame, type SimEvent, type SimulatorState,
 } from './simulator';
 
@@ -39,12 +39,22 @@ function createDebugStore() {
 }
 
 interface ParsedInput {
-  event?: SimEvent;
+  /** 一个 flush 窗口内的若干 event：单个对象也归一成一项数组。 */
+  events?: SimEvent[];
   frame?: SimFrame;
   error: string | null;
 }
 
-/** 解析两个输入框；event 非空时忽略 frame（已确认：以 event 为准）。 */
+/**
+ * 解析两个输入框；event 非空时忽略 frame（已确认：以 event 为准）。
+ *
+ * event 框接受两种写法，对应宿主的两种观察口径：
+ * - **单个对象**：一条 `AgentSessionEvent`；
+ * - **数组**：一个 flush 窗口内的若干事件（宿主 `server.ts` 每 40ms 把窗口内的改动合并成
+ *   一帧下发），预览时按批次合并成一帧，见 `simulator.ts` 的 `applyEvents`。
+ *
+ * 数组必须非空，且逐项是带非空 `type` 的对象；报错指明是第几项，免得在一长串 JSON 里找。
+ */
 function parseInputs(eventText: string, frameText: string): ParsedInput {
   const eventRaw = eventText.trim();
   const frameRaw = frameText.trim();
@@ -56,12 +66,19 @@ function parseInputs(eventText: string, frameText: string): ParsedInput {
     } catch (cause) {
       return { error: `event 不是合法 JSON：${cause instanceof Error ? cause.message : String(cause)}` };
     }
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      return { error: 'event 必须是一个 JSON 对象。' };
+    const list = Array.isArray(parsed) ? parsed : [parsed];
+    if (list.length === 0) return { error: 'event 数组不能为空。' };
+    const events: SimEvent[] = [];
+    for (const [index, item] of list.entries()) {
+      const where = Array.isArray(parsed) ? `event 数组第 ${index + 1} 项` : 'event';
+      if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+        return { error: `${where}必须是一个 JSON 对象。` };
+      }
+      const type = (item as { type?: unknown }).type;
+      if (typeof type !== 'string' || !type) return { error: `${where}缺少 type 字段。` };
+      events.push(item as SimEvent);
     }
-    const type = (parsed as { type?: unknown }).type;
-    if (typeof type !== 'string' || !type) return { error: 'event 缺少 type 字段。' };
-    return { event: parsed as SimEvent, error: null };
+    return { events, error: null };
   }
 
   if (frameRaw) {
@@ -146,13 +163,17 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
 
   const resetAll = useCallback((): void => {
     stopPlay();
-    simulator.current = createSimulatorState();
+    // 重置帧的编号必须**接上**已提交的那一帧：reducer 丢弃「同一实例、revision 更小」的帧
+    // （见 store/reducers/stream.ts），若这里又压回 0，重置帧与随后新预览的帧都会被丢掉，
+    // 界面就会停在上一个用例上。
+    const revision = store.getState().stream.revision + 1;
+    simulator.current = createSimulatorState(undefined, revision - 1);
     store.dispatch({
       type: 'stream/frame',
       frame: {
         type: 'state',
         instanceId: DEBUG_INSTANCE_ID,
-        revision: 0,
+        revision,
         full: true,
         items: [],
         // sessionId 取 simulator 的默认值，而不是 INITIAL_ROOT_STATE 的空串：
@@ -209,9 +230,11 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
     const alive = (): boolean => playToken.current === token;
 
     try {
-      if (parsed.event !== undefined) {
-        const steps = applyEvent(simulator.current, parsed.event);
-        setEventCount(count => count + 1);
+      const events = parsed.events;
+      if (events !== undefined) {
+        // 一批 event 只产一帧（flush 语义）；单条仍可能产多帧，见 applyEvents 的注释。
+        const steps = applyEvents(simulator.current, events);
+        setEventCount(count => count + events.length);
         for (const step of steps) {
           if (!alive()) return;
           commit(step.frame);
@@ -221,8 +244,12 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
         }
       } else if (parsed.frame !== undefined) {
         // frame 通道不做补间：这一帧本来就已经是最终状态。
-        commit(parsed.frame, false);
-        setDisplayLiveText(parsed.frame.state.liveText);
+        // 手工粘贴的帧没有「序列」语义——它的 revision 是写死的（组件库文档页生成的帧恒为 1），
+        // 而 store 里的编号会随每次预览增长，直接用会被 reducer 的「同实例旧帧丢弃」守卫吃掉，
+        // 表现为点了「预览」什么都不发生。这里把编号接到当前之后，粘贴即生效。
+        const frame = { ...parsed.frame, revision: store.getState().stream.revision + 1 };
+        commit(frame, false);
+        setDisplayLiveText(frame.state.liveText);
       }
     } catch (cause) {
       const detail = cause instanceof Error ? cause.message : String(cause);

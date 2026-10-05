@@ -3,7 +3,7 @@ import type { ActivityItemView, TranscriptItemView } from '../../../../../bangum
 import type { TurnGroup } from '../../../utils/turns';
 import { Markdown } from '../../content/markdown';
 import { ContentItem, type ContentItemView } from '../../content';
-import { isContentKind } from '../../content/registry';
+import { isBaseTranscriptKind, isContentKind } from '../../content/registry';
 import { ConfirmationCard } from './ConfirmationCard';
 import { ErrorRow, NoticeRow, SessionBanner, UserBubble } from './MessageParts';
 import { ToolActivity } from './ToolActivity';
@@ -25,6 +25,14 @@ import { AnimatedContent } from '../../motion/vendor/AnimatedContent';
 function isContentItem(item: TranscriptItemView): item is ContentItemView {
   return isContentKind(item.kind);
 }
+
+/**
+ * 已经告警过的未知 kind。
+ *
+ * 宿主下发未知 kind 时界面什么都不显示，开发期必须能发现这件事；但一轮渲染里同一条会
+ * 反复走到这里（流式期间 `Turn` 会随所在轮次重渲染），所以同一个 kind 只报一次。
+ */
+const warnedKinds = new Set<string>();
 
 function Chevron({ className }: { className: string }): ReactNode {
   return (
@@ -96,6 +104,13 @@ function BodyItem({ item, onConfirm, onReject }: {
         <ContentItem item={item} />
       </AnimatedContent>
     );
+  }
+  // 走到这里说明这条既不是 base 条目、也不是注册表登记的内容条目：宿主下发了本组件库不
+  // 认识的 kind。丢弃是刻意的（未知类型没有可依据的载荷语义），但告警必须在这里补——
+  // `ContentItem` 的 `dropped` 分支永远到不了，上面对内容 kind 的预判已经把它拦在外面。
+  if (!isBaseTranscriptKind(item.kind) && !warnedKinds.has(item.kind)) {
+    warnedKinds.add(item.kind);
+    console.warn(`[content] 未登记的内容 kind「${item.kind}」，该条目已丢弃。`);
   }
   return null;
 }

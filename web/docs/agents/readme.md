@@ -61,7 +61,7 @@
 
 | 层 | 文件 |
 |---|---|
-| page | [readme.md](page/readme.md)、[main-page.md](page/main-page.md)、[debug.md](page/debug.md) |
+| page | [readme.md](page/readme.md)、[main-page.md](page/main-page.md)、[debug.md](page/debug.md)、[library.md](page/library.md) |
 | components | [readme.md](components/readme.md)、[main-page.md](components/main-page.md)、[dialog.md](components/dialog.md)、[content.md](components/content.md) |
 | store | [readme.md](store/readme.md)、[reducers.md](store/reducers.md)、[actions-and-operations.md](store/actions-and-operations.md)、[hooks-and-stream.md](store/hooks-and-stream.md)、[selectors-and-instance.md](store/selectors-and-instance.md) |
 | utils | [readme.md](utils/readme.md)、[api.md](utils/api.md)、[commands.md](utils/commands.md)、[turns.md](utils/turns.md)、[credentialLabel.md](utils/credentialLabel.md)、[relativeTime.md](utils/relativeTime.md)、[debugMode.md](utils/debugMode.md) |

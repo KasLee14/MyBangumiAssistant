@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
-import type { AgentMessage, ThinkingLevel } from "@earendil-works/pi-agent-core";
+import type {
+  AgentMessage,
+  ThinkingLevel,
+} from "@earendil-works/pi-agent-core";
 import {
   SessionManager,
   type AgentSession,
@@ -16,8 +19,12 @@ import {
   safeError,
 } from "../support/errors.js";
 import { policyFor } from "../support/proxy.js";
-import { discoverProxy, type ProxyController } from "../support/proxy-controller.js";
+import {
+  discoverProxy,
+  type ProxyController,
+} from "../support/proxy-controller.js";
 import { sessionDisplayName } from "../session-title.js";
+import { customContentDraft } from "./custom-content.js";
 import { projectWriteActivity } from "./write-activity.js";
 import type { TaskQueue } from "../support/task-queue.js";
 import type {
@@ -39,6 +46,49 @@ import type {
 
 /** 单条工具活动与结果细节的最大呈现长度，避免把整份工具输出塞进浏览器。 */
 const DETAIL_LIMIT = 4000;
+
+/**
+ * Pi 会话事件的类型标识，取自 `AgentSessionEvent` 的判别字段 `type`。
+ *
+ * 取值由 Pi 定义，必须与 `AgentSessionEvent["type"]` 逐字一致；收成枚举只是为了让
+ * `handleEvent` 的 `switch` 有一个可读、可跳转的名字，并给每个事件记一句「本会话
+ * 拿它做什么」。枚举成员与字面量联合可以直接比较，因此 `switch` 的收窄不受影响。
+ *
+ * 这里只列出本会话真正关心的事件。Pi 还会发出 `turn_start`、`turn_end`、
+ * `queue_update`、`entry_appended`、`thinking_level_changed`、
+ * `summarization_retry_*` 等事件，它们不影响浏览器视图，统一落到 `switch` 的
+ * `default` 分支被忽略。
+ */
+enum AgentSessionEventType {
+  /** 一轮 agent 循环开始：置忙、复位取消标记并记录开始时间。 */
+  AgentStart = "agent_start",
+  /** 新消息写入会话：本轮输入已回显时跳过 user 消息，避免出现重复条目。 */
+  MessageStart = "message_start",
+  /** 助手消息的流式增量：只累加实时文本与思考预览，不产生会话条目。 */
+  MessageUpdate = "message_update",
+  /** 一条消息结束：助手消息在此落成条目，并处理 error / aborted 两种停止原因。 */
+  MessageEnd = "message_end",
+  /** 工具开始执行：新建一条「进行中」的活动条目，并按 toolCallId 登记。 */
+  ToolExecutionStart = "tool_execution_start",
+  /** 工具执行中的中间结果：原地更新活动条目并递增版本，让浏览器看到进度。 */
+  ToolExecutionUpdate = "tool_execution_update",
+  /** 工具执行结束：补齐最终状态与细节，随后从活动表中移除。 */
+  ToolExecutionEnd = "tool_execution_end",
+  /** 一轮 agent 结束：解除忙碌状态并重算 token 用量。 */
+  AgentEnd = "agent_end",
+  /** 会话彻底静默（重试与压缩都已结束）：复位状态并刷新本机登录元数据。 */
+  AgentSettled = "agent_settled",
+  /** 开始压缩上下文：手动压缩与自动压缩给出不同提示。 */
+  CompactionStart = "compaction_start",
+  /** 压缩结束：按失败、中止、成功三种结果分别提示。 */
+  CompactionEnd = "compaction_end",
+  /** 自动重试开始：提示当前是第几次重试。 */
+  AutoRetryStart = "auto_retry_start",
+  /** 自动重试结束：按成败给出对应提示。 */
+  AutoRetryEnd = "auto_retry_end",
+  /** 会话名称等元信息变化：条目里已经带上名称，这里无需额外处理。 */
+  SessionInfoChanged = "session_info_changed",
+}
 
 /**
  * 思考强度的中文展示名。
@@ -252,7 +302,9 @@ export class WebSession {
   } | null = null;
   private login: {
     id: number;
-    settle: (credentials: { email: string; password: string } | undefined) => void;
+    settle: (
+      credentials: { email: string; password: string } | undefined,
+    ) => void;
     fail: (error: unknown) => void;
   } | null = null;
   private nextLoginId = 1;
@@ -329,25 +381,43 @@ export class WebSession {
     return { ...this.scalars(), items: [...this.items] };
   }
 
-  get id(): string { return this.runtime.session.sessionId; }
-  get file(): string | undefined { return this.runtime.session.sessionFile; }
+  get id(): string {
+    return this.runtime.session.sessionId;
+  }
+  get file(): string | undefined {
+    return this.runtime.session.sessionFile;
+  }
 
   /** 列表摘要不复制正在增长的会话正文。 */
   summary(): SessionOptionView {
     const session = this.runtime.session;
-    const firstUser = this.items.find(item => item.kind === 'user');
+    const firstUser = this.items.find((item) => item.kind === "user");
     return {
-      id: this.id, path: this.file ?? '', name: sessionDisplayName(session.sessionName,
-        firstUser?.kind === 'user' ? firstUser.text : ''),
-      modified: new Date(this.startedAt || session.sessionManager.getLeafEntry()?.timestamp
-        || session.sessionManager.getHeader()?.timestamp || Date.now()).toISOString(),
-      messageCount: session.messages.filter(message => message.role === 'user' || message.role === 'assistant').length,
-      current: false, busy: this.busy, awaitingConfirmation: this.pending !== null,
+      id: this.id,
+      path: this.file ?? "",
+      name: sessionDisplayName(
+        session.sessionName,
+        firstUser?.kind === "user" ? firstUser.text : "",
+      ),
+      modified: new Date(
+        this.startedAt ||
+          session.sessionManager.getLeafEntry()?.timestamp ||
+          session.sessionManager.getHeader()?.timestamp ||
+          Date.now(),
+      ).toISOString(),
+      messageCount: session.messages.filter(
+        (message) => message.role === "user" || message.role === "assistant",
+      ).length,
+      current: false,
+      busy: this.busy,
+      awaitingConfirmation: this.pending !== null,
       awaitingLogin: this.login !== null || this.loginBusy,
     };
   }
 
-  notifySettingsChange(): void { this.emit(); }
+  notifySettingsChange(): void {
+    this.emit();
+  }
 
   private scalars(): ChatScalarsView {
     const session = this.runtime.session;
@@ -391,9 +461,13 @@ export class WebSession {
    * 的原因是凭据还没配置。
    */
   private thinking(session: AgentSession): ThinkingView {
-    const label = (level: ThinkingLevel): string => THINKING_LABELS[level as ThinkingLevelName];
+    const label = (level: ThinkingLevel): string =>
+      THINKING_LABELS[level as ThinkingLevelName];
     const model = session.model;
-    const placeholder = model !== undefined && model.provider === "unknown" && model.id === "unknown";
+    const placeholder =
+      model !== undefined &&
+      model.provider === "unknown" &&
+      model.id === "unknown";
     if (model === undefined || placeholder)
       return { current: "", currentLabel: "", available: [], supported: false };
     const current = session.thinkingLevel;
@@ -423,7 +497,8 @@ export class WebSession {
       if (stats.tokens.total === 0 && stats.cost === 0) {
         this.tokenUsage = null;
       } else {
-        const promptTokens = stats.tokens.input + stats.tokens.cacheRead + stats.tokens.cacheWrite;
+        const promptTokens =
+          stats.tokens.input + stats.tokens.cacheRead + stats.tokens.cacheWrite;
         this.tokenUsage = {
           input: stats.tokens.input,
           output: stats.tokens.output,
@@ -433,14 +508,18 @@ export class WebSession {
           cost: Number(stats.cost.toFixed(6)),
           cacheHitPercent:
             promptTokens > 0
-              ? Number(((stats.tokens.cacheRead / promptTokens) * 100).toFixed(1))
+              ? Number(
+                  ((stats.tokens.cacheRead / promptTokens) * 100).toFixed(1),
+                )
               : null,
         };
       }
       // 上下文占用是另一个数：压缩后会变小，压缩后到下次响应之间 Pi 给不出值。
       const context = this.runtime.session.getContextUsage();
       this.contextUsage =
-        context === undefined || context.tokens === null || context.percent === null
+        context === undefined ||
+        context.tokens === null ||
+        context.percent === null
           ? null
           : {
               tokens: context.tokens,
@@ -473,6 +552,13 @@ export class WebSession {
   private rebuild(): void {
     this.items = [];
     for (const entry of this.runtime.session.sessionManager.buildContextEntries()) {
+      // 扩展注入的结构化内容落盘为 `custom_message` 条目（而不是 `message` 条目），走同一份
+      // 映射：会话切换或重启后这些卡片能从历史重建，而不是只在产生它的那一轮可见。
+      if (entry.type === "custom_message") {
+        const draft = customContentDraft(entry);
+        if (draft) this.push({ ...draft, id: this.nextItemId++ });
+        continue;
+      }
       if (entry.type !== "message") continue;
       const message = entry.message;
       if (message.role === "user") {
@@ -492,23 +578,34 @@ export class WebSession {
             text: redact(message.errorMessage, credentialValues()),
           });
         }
-      } else if (message.role === "toolResult" && message.toolName === "execute_write_batch") {
+      } else if (
+        message.role === "toolResult" &&
+        message.toolName === "execute_write_batch"
+      ) {
         const projected = projectWriteActivity(message, true);
-        if (projected) this.push({ id: this.nextItemId++, kind: "activity", label: "执行修改计划",
-          ...projected, detail: redact(projected.detail, credentialValues()) });
+        if (projected)
+          this.push({
+            id: this.nextItemId++,
+            kind: "activity",
+            label: "执行修改计划",
+            ...projected,
+            detail: redact(projected.detail, credentialValues()),
+          });
       }
     }
   }
 
   private handleEvent = (event: AgentSessionEvent): void => {
+    console.log("event", event);
+
     switch (event.type) {
-      case "agent_start":
+      case AgentSessionEventType.AgentStart:
         this.busy = true;
         this.cancelling = false;
         this.startedAt = Date.now();
         this.status = "正在处理";
         break;
-      case "message_start": {
+      case AgentSessionEventType.MessageStart: {
         const message = event.message;
         if (message.role === "user") {
           // 提交时已经回显过本轮输入；扩展命令不会产生 user 消息，所以这里才需要去重。
@@ -522,15 +619,23 @@ export class WebSession {
         }
         break;
       }
-      case "message_update": {
+      case AgentSessionEventType.MessageUpdate: {
         const update = event.assistantMessageEvent;
         if (update.type === "text_delta") this.liveText += update.delta;
         else if (update.type === "thinking_delta")
           this.liveThinking += update.delta;
         break;
       }
-      case "message_end": {
+      case AgentSessionEventType.MessageEnd: {
         const message = event.message;
+        // 扩展注入的结构化内容：`customType` 是条目 kind、`details` 是载荷，宿主原样透传，
+        // 由前端注册表决定渲染还是丢弃（见 custom-content.ts）。Pi 对 custom 消息是
+        // `message_start` / `message_end` 连发，所以只在 end 处落条目，start 处不处理。
+        if (message.role === "custom") {
+          const draft = customContentDraft(message);
+          if (draft) this.push({ ...draft, id: this.nextItemId++ });
+          break;
+        }
         if (message.role === "assistant") {
           const text = messageText(message);
           if (text.trim())
@@ -556,37 +661,61 @@ export class WebSession {
         }
         break;
       }
-      case "tool_execution_start": {
+      case AgentSessionEventType.ToolExecutionStart: {
         this.activities.set(
           event.toolCallId,
           this.push({
             id: this.nextItemId++,
             kind: "activity",
-            label: event.toolName === "execute_write_batch" ? "执行修改计划" : event.toolName,
+            label:
+              event.toolName === "execute_write_batch"
+                ? "执行修改计划"
+                : event.toolName,
             state: "running",
             detail: "",
           }),
         );
         break;
       }
-      case "tool_execution_update": {
+      case AgentSessionEventType.ToolExecutionUpdate: {
         const item = this.activities.get(event.toolCallId);
-        const projected = event.toolName === "execute_write_batch" ? projectWriteActivity(event.partialResult) : undefined;
+        const projected =
+          event.toolName === "execute_write_batch"
+            ? projectWriteActivity(event.partialResult)
+            : undefined;
         if (item?.kind === "activity" && projected) {
-          Object.assign(item, projected, { detail: redact(projected.detail, credentialValues()) });
+          Object.assign(item, projected, {
+            detail: redact(projected.detail, credentialValues()),
+          });
           item.version++;
-          this.status = projected.state === "waiting" ? "正在等待写入额度" : "正在执行修改计划";
+          this.status =
+            projected.state === "waiting"
+              ? "正在等待写入额度"
+              : "正在执行修改计划";
         }
         break;
       }
-      case "tool_execution_end": {
+      case AgentSessionEventType.ToolExecutionEnd: {
         const item = this.activities.get(event.toolCallId);
         if (item?.kind === "activity") {
-          const value = (event.result as { details?: { value?: { state?: string } } })?.details?.value;
-          const projected = event.toolName === "execute_write_batch" ? projectWriteActivity(event.result, true) : undefined;
-          if (projected) Object.assign(item, projected, { detail: redact(projected.detail, credentialValues()) });
+          const value = (
+            event.result as { details?: { value?: { state?: string } } }
+          )?.details?.value;
+          const projected =
+            event.toolName === "execute_write_batch"
+              ? projectWriteActivity(event.result, true)
+              : undefined;
+          if (projected)
+            Object.assign(item, projected, {
+              detail: redact(projected.detail, credentialValues()),
+            });
           else {
-            item.state = event.isError || value?.state === "failed" || value?.state === "unknown" ? "error" : "ok";
+            item.state =
+              event.isError ||
+              value?.state === "failed" ||
+              value?.state === "unknown"
+                ? "error"
+                : "ok";
             item.detail = resultDetail(event.result);
           }
           this.status = "正在处理";
@@ -596,13 +725,13 @@ export class WebSession {
         this.activities.delete(event.toolCallId);
         break;
       }
-      case "agent_end":
+      case AgentSessionEventType.AgentEnd:
         this.busy = false;
         this.status = "";
         // 本轮的 token 用量此时已经写入会话条目，重算一次让顶栏跟着增长。
         this.recomputeTokenUsage();
         break;
-      case "agent_settled":
+      case AgentSessionEventType.AgentSettled:
         this.busy = false;
         this.cancelling = false;
         this.startedAt = 0;
@@ -610,14 +739,14 @@ export class WebSession {
         // 本轮可能执行过 /bangumi-login 或 /bangumi-logout，结束后刷新本机登录元数据。
         void this.refreshLogin();
         break;
-      case "compaction_start":
+      case AgentSessionEventType.CompactionStart:
         this.pushNotice(
           event.reason === "manual"
             ? "正在压缩会话上下文…"
             : "上下文接近上限，正在自动压缩…",
         );
         break;
-      case "compaction_end":
+      case AgentSessionEventType.CompactionEnd:
         if (event.errorMessage)
           this.pushNotice(
             `会话压缩失败：${safeError(event.errorMessage).message}`,
@@ -626,12 +755,12 @@ export class WebSession {
         else if (event.aborted) this.pushNotice("会话压缩已停止。");
         else this.pushNotice("会话上下文已压缩。");
         break;
-      case "auto_retry_start":
+      case AgentSessionEventType.AutoRetryStart:
         this.pushNotice(
           `请求失败，正在重试（第 ${event.attempt}/${event.maxAttempts} 次）…`,
         );
         break;
-      case "auto_retry_end":
+      case AgentSessionEventType.AutoRetryEnd:
         this.pushNotice(
           event.success
             ? "重试成功。"
@@ -639,7 +768,7 @@ export class WebSession {
           event.success ? "notice" : "error",
         );
         break;
-      case "session_info_changed":
+      case AgentSessionEventType.SessionInfoChanged:
         break;
       default:
         break;
@@ -653,7 +782,11 @@ export class WebSession {
     signal: AbortSignal | undefined,
     options: WriteConfirmOptions = {},
   ): Promise<boolean> {
-    if (!this.channel.canConfirm()) throw new AppError("AUTHORIZATION_REQUIRED", "没有已连接的Web终端，未提交修改。");
+    if (!this.channel.canConfirm())
+      throw new AppError(
+        "AUTHORIZATION_REQUIRED",
+        "没有已连接的Web终端，未提交修改。",
+      );
     if (this.pending)
       throw new AppError(
         "CONFIRMATION_PENDING",
@@ -681,9 +814,7 @@ export class WebSession {
         // 结论写在同一条目上，靠版本递增让浏览器替换掉「待确认」那张卡。
         if (item.kind === "confirmation") item.version++;
         this.pushNotice(
-          accepted
-            ? "已授权，正在执行本次操作。"
-            : "已取消本次修改，未提交。",
+          accepted ? "已授权，正在执行本次操作。" : "已取消本次修改，未提交。",
         );
         this.emit();
         resolve(accepted);
@@ -759,7 +890,9 @@ export class WebSession {
             reject(new AppError("CANCELLED", "登录已取消。"));
           else {
             this.loginDraft = credentials;
-            resolve(kind === "email" ? credentials.email : credentials.password);
+            resolve(
+              kind === "email" ? credentials.email : credentials.password,
+            );
           }
         },
         fail: (error) => {
@@ -804,7 +937,8 @@ export class WebSession {
    * agent 轮次，只在 `agent_settled` 里刷新就永远等不到。
    */
   async startLogin(email: string, password: string): Promise<void> {
-    if (!this.channel.canLogin()) throw new AppError("BGM_LOGIN_UI_REQUIRED", "登录需要已连接的Web终端。");
+    if (!this.channel.canLogin())
+      throw new AppError("BGM_LOGIN_UI_REQUIRED", "登录需要已连接的Web终端。");
     if (this.loginBusy)
       throw new AppError("LOGIN_PENDING", "已有一次登录正在进行。");
     const controller = new AbortController();
@@ -813,18 +947,20 @@ export class WebSession {
     this.loginStatus = "正在准备登录…";
     this.emit();
     try {
-      const performLogin = () => login(this.store, {
-        signal: controller.signal,
-        // 取当前线路：运行中换过代理后，登录也跟着走新线路。
-        proxy: this.proxy.current,
-        requestTimeoutMs: this.timeoutMs,
-        prompt: async (kind) => (kind === "email" ? email : password),
-        notice: (message) => {
-          this.loginStatus = message;
-          this.emit();
-        },
-      });
-      if (this.accountQueue) await this.accountQueue.run(performLogin, controller.signal);
+      const performLogin = () =>
+        login(this.store, {
+          signal: controller.signal,
+          // 取当前线路：运行中换过代理后，登录也跟着走新线路。
+          proxy: this.proxy.current,
+          requestTimeoutMs: this.timeoutMs,
+          prompt: async (kind) => (kind === "email" ? email : password),
+          notice: (message) => {
+            this.loginStatus = message;
+            this.emit();
+          },
+        });
+      if (this.accountQueue)
+        await this.accountQueue.run(performLogin, controller.signal);
       else await performLogin();
       this.loginStatus = "登录成功，正在保存本机会话…";
       await this.refreshLogin();
@@ -848,7 +984,8 @@ export class WebSession {
    * 状态；结果只反映在登录元数据里，不产生会话条目。
    */
   async logout(): Promise<void> {
-    if (this.accountQueue) await this.accountQueue.run(() => this.store.clear());
+    if (this.accountQueue)
+      await this.accountQueue.run(() => this.store.clear());
     else await this.store.clear();
     await this.refreshLogin();
   }
@@ -992,9 +1129,15 @@ export class WebSession {
       current: sessionFile !== undefined && info.path === sessionFile,
     }));
     // 首条消息尚未落盘时也展示当前会话；命名事件随后驱动浏览器刷新列表。
-    if (sessionFile && !sessions.some(info => info.current)) {
-      sessions.unshift({ id: session.sessionId, path: sessionFile, name: sessionDisplayName(session.sessionName, ''),
-        modified: new Date().toISOString(), messageCount: 0, current: true });
+    if (sessionFile && !sessions.some((info) => info.current)) {
+      sessions.unshift({
+        id: session.sessionId,
+        path: sessionFile,
+        name: sessionDisplayName(session.sessionName, ""),
+        modified: new Date().toISOString(),
+        messageCount: 0,
+        current: true,
+      });
     }
     const commands: CommandOptionView[] = session.extensionRunner
       .getRegisteredCommands()
@@ -1003,8 +1146,13 @@ export class WebSession {
         description: command.description ?? "",
         source: "extension",
       }));
-    for (const skill of this.runtime.services.resourceLoader.getSkills().skills) {
-      commands.push({ name: `skill:${skill.name}`, description: skill.description, source: "skill" });
+    for (const skill of this.runtime.services.resourceLoader.getSkills()
+      .skills) {
+      commands.push({
+        name: `skill:${skill.name}`,
+        description: skill.description,
+        source: "skill",
+      });
     }
     // 可填入密钥的提供方：来自 Pi 自己的模型目录与 models.json 覆盖。
     const modelRuntime = session.modelRuntime;
@@ -1030,7 +1178,6 @@ export class WebSession {
     };
   }
 
-
   /**
    * 为某个提供方注入模型密钥。
    *
@@ -1045,8 +1192,15 @@ export class WebSession {
     persist: boolean = false,
   ): Promise<void> {
     const modelRuntime = this.runtime.session.modelRuntime;
-    if (!modelRuntime.getProviders().some((candidate) => candidate.id === provider)) {
-      throw new AppError("PROVIDER_NOT_FOUND", "该提供方不在 Pi 的模型目录中。");
+    if (
+      !modelRuntime
+        .getProviders()
+        .some((candidate) => candidate.id === provider)
+    ) {
+      throw new AppError(
+        "PROVIDER_NOT_FOUND",
+        "该提供方不在 Pi 的模型目录中。",
+      );
     }
     if (persist) {
       try {
@@ -1074,7 +1228,8 @@ export class WebSession {
       current !== undefined &&
       available.some(
         (candidate) =>
-          candidate.provider === current.provider && candidate.id === current.id,
+          candidate.provider === current.provider &&
+          candidate.id === current.id,
       );
     let switched = "";
     if (!usable && available[0] !== undefined) {
@@ -1102,8 +1257,15 @@ export class WebSession {
    */
   async clearCredential(provider: string): Promise<void> {
     const modelRuntime = this.runtime.session.modelRuntime;
-    if (!modelRuntime.getProviders().some((candidate) => candidate.id === provider)) {
-      throw new AppError("PROVIDER_NOT_FOUND", "该提供方不在 Pi 的模型目录中。");
+    if (
+      !modelRuntime
+        .getProviders()
+        .some((candidate) => candidate.id === provider)
+    ) {
+      throw new AppError(
+        "PROVIDER_NOT_FOUND",
+        "该提供方不在 Pi 的模型目录中。",
+      );
     }
     await modelRuntime.logout(provider);
     this.pushNotice(`已清除 ${provider} 保存在本机的密钥。`);
@@ -1118,12 +1280,21 @@ export class WebSession {
    * 所有消费者：Pi 的模型请求换 dispatcher、本地 MCP 子进程重启（线路写在子进程
    * 环境变量里，改不了已启动的进程）、下次登录走新线路。
    */
-  async setProxy(mode: "auto" | "direct" | "manual", url?: string): Promise<void> {
+  async setProxy(
+    mode: "auto" | "direct" | "manual",
+    url?: string,
+  ): Promise<void> {
     const address = (url ?? "").trim();
-    if (mode === "manual" && address === "") throw new AppError("INVALID_INPUT", "请填写代理地址，例如 http://127.0.0.1:7890。");
+    if (mode === "manual" && address === "")
+      throw new AppError(
+        "INVALID_INPUT",
+        "请填写代理地址，例如 http://127.0.0.1:7890。",
+      );
     const policy =
-      mode === "direct" ? policyFor(null, "config")
-        : mode === "manual" ? policyFor(address, "config")
+      mode === "direct"
+        ? policyFor(null, "config")
+        : mode === "manual"
+          ? policyFor(address, "config")
           : await discoverProxy();
     await this.proxy.set(policy, mode);
     this.pushNotice(`网络线路已切换为${this.proxy.summary}，仅本次运行生效。`);

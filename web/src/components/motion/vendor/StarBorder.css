@@ -1,0 +1,88 @@
+/* StarBorder：默认静止（animation-play-state: paused），animated 为 true 时才 running；
+   两层星光只动 transform / opacity（合成器属性），配色全部由令牌派生。 */
+
+.starBorder {
+  display: inline-block;
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.starBorderGradientBottom,
+.starBorderGradientTop {
+  position: absolute;
+  width: 300%;
+  height: 50%;
+  opacity: 0.7;
+  border-radius: 50%;
+  z-index: 0;
+
+  /* 与默认 props（speed = '6s'）一致的回退值，实际由内联 style 的 animationDuration 覆盖 */
+  animation-duration: 6s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  /* 默认静止：官方是常驻循环，这里等 animated 打开 */
+  animation-play-state: paused;
+}
+
+.starBorderGradientBottom {
+  bottom: -12px;
+  right: -250%;
+  animation-name: starBorderMoveBottom;
+}
+
+.starBorderGradientTop {
+  top: -12px;
+  left: -250%;
+  animation-name: starBorderMoveTop;
+}
+
+.starBorder--animated .starBorderGradientBottom,
+.starBorder--animated .starBorderGradientTop {
+  animation-play-state: running;
+}
+
+.starBorderInner {
+  position: relative;
+  border: 1px solid var(--app-hairline);
+  background: var(--app-surface);
+  color: var(--bgm-text);
+  font-size: 16px;
+  text-align: center;
+  padding: 16px 26px;
+  border-radius: 20px;
+  z-index: 1;
+}
+
+@keyframes starBorderMoveBottom {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-100%, 0%);
+    opacity: 0;
+  }
+}
+
+@keyframes starBorderMoveTop {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(100%, 0%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 减少动效：animated 打开也一律静止 */
+  .starBorder--animated .starBorderGradientBottom,
+  .starBorder--animated .starBorderGradientTop {
+    animation-play-state: paused;
+  }
+}

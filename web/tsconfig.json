@@ -25,8 +25,14 @@
       "motion/react": ["../bangumi/node_modules/motion/dist/react.d.ts"],
       "motion": ["../bangumi/node_modules/motion/dist/index.d.ts"],
       "gsap/ScrollTrigger": ["../bangumi/node_modules/gsap/types/ScrollTrigger.d.ts"],
-      "gsap": ["../bangumi/node_modules/gsap/types/index.d.ts"]
+      "gsap": ["../bangumi/node_modules/gsap/types/index.d.ts"],
+      "antd": ["../bangumi/node_modules/antd/es/index.d.ts"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "../bangumi/src/web/protocol.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../bangumi/src/web/protocol.ts",
+    "../bangumi/src/web/custom-content.ts"
+  ]
 }

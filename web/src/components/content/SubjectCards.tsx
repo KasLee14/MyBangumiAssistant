@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { SubjectCardView, SubjectCollectionView, SubjectKind } from '../../../../bangumi/src/web/protocol';
+import { SpotlightCard } from '../motion/vendor/SpotlightCard';
 
 /** 类型角标的文案与简写；未知值只显示角标色块，不猜测媒体类型。 */
 const KIND_LABEL: Record<SubjectKind, string> = {
@@ -52,15 +53,19 @@ function GridCard({ item }: { item: SubjectCardView }): ReactNode {
   const score = scoreText(item.score);
   return (
     <li className="contentSubjectGridItem">
-      <Shell url={item.url} className="contentSubjectCard">
-        <Cover className="contentSubjectCover" image={item.image} name={item.name} />
-        <p className="contentSubjectName">{item.name}</p>
-        <p className="contentSubjectFacts">
-          <span className="contentKindBadge" title={KIND_LABEL[item.kind]}>{KIND_SHORT[item.kind]}</span>
-          {KIND_LABEL[item.kind]}
-          {score === null ? null : <span className="contentSubjectScore">{score}</span>}
-        </p>
-      </Shell>
+      {/* ReactBits 的 SpotlightCard 提供指针跟随光斑（参考 https://www.reactbits.dev/components/spotlight-card）；
+          组合类把它的自带白面/内边距归零，外观仍由 .contentSubjectCard 决定。 */}
+      <SpotlightCard className="contentSubjectSpotlight">
+        <Shell url={item.url} className="contentSubjectCard">
+          <Cover className="contentSubjectCover" image={item.image} name={item.name} />
+          <p className="contentSubjectName">{item.name}</p>
+          <p className="contentSubjectFacts">
+            <span className="contentKindBadge" title={KIND_LABEL[item.kind]}>{KIND_SHORT[item.kind]}</span>
+            {KIND_LABEL[item.kind]}
+            {score === null ? null : <span className="contentSubjectScore">{score}</span>}
+          </p>
+        </Shell>
+      </SpotlightCard>
     </li>
   );
 }

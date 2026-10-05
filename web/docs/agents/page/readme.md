@@ -4,7 +4,7 @@
 
 页面层的规则与索引：这一层负责什么、目录怎么分、有哪些强制约束。
 
-**不覆盖**：具体页面的实现细节（见 [main-page.md](main-page.md) 与 [debug.md](debug.md)）、组件与状态层的内容。
+**不覆盖**：具体页面的实现细节（见 [main-page.md](main-page.md)、[debug.md](debug.md) 与 [library.md](library.md)）、组件与状态层的内容。
 
 上层入口：[AGENTS.md](../../../AGENTS.md)。
 
@@ -77,6 +77,8 @@ return debug ? <DebugPage /> : <MainPage />;
 3. 在 `main.tsx` 的 `Root` 里挂载（无路由库：替换、按条件渲染，或照调试页那样加一个 hash 开关）；
 4. 在本文件与 [AGENTS.md](../../../AGENTS.md) 的索引里登记。
 
+**另一条路：独立 HTML 入口**。不参与 `Root` 的 hash 分流、且不需要宿主与 store 的页面，可以照组件库文档页那样做——一个 `web/<name>.html` + 一个 `web/src/<name>.tsx`（见 [library.md](library.md)），并把它登记进 `bangumi/vite.config.ts` 的 `build.rollupOptions.input`。这条路的代价是多一个构建入口，收益是主界面完全不感知它。
+
 ## 索引
 
 ### 文件 → 场景
@@ -86,6 +88,7 @@ return debug ? <DebugPage /> : <MainPage />;
 | 本文件 | 决定"某段逻辑该不该放页面层"、新增页面时 |
 | [main-page.md](main-page.md) | 改 `main.tsx`、`MainPage` 或 `Shell` 的装配、订阅、props 接线时 |
 | [debug.md](debug.md) | 改调试页（`page/debug/**`）、核对 event → frame 映射时 |
+| [library.md](library.md) | 改组件库文档页（`page/library/**`、`library.html`、`src/library.tsx`）、核对内容条目的参数表与调试页示例时 |
 | `Shell.tsx` | 改外壳装配（见 §简介「外壳（`Shell.tsx`）」） |
 
 ### 目录
@@ -97,9 +100,20 @@ return debug ? <DebugPage /> : <MainPage />;
 | `web/src/page/mainPage/Shell.tsx` | 外壳装配：从 store 取出的数据按槽位交给组件（业务逻辑一律不在这里） |
 | `web/src/page/debug/index.tsx` | 调试页 `DebugPage`：自建调试专用 store，解析输入并逐字播放，预览复用 `<Stage>`（见 [debug.md](debug.md)） |
 | `web/src/page/debug/simulator.ts` | event → frame 映射器：宿主 `handleEvent` 的复刻，纯函数无状态 |
-| `web/src/page/debug/DebugInputPanel.tsx` | 调试页左侧输入区：两个 textarea、5 个 mock 用例、预览 / 清空并重置、状态栏（纯 props 驱动） |
+| `web/src/page/debug/DebugInputPanel.tsx` | 调试页左侧输入区：两个 textarea、6 个 mock 用例、预览 / 清空并重置、状态栏（纯 props 驱动） |
+| `web/library.html` | 组件库文档页的 HTML 入口（脚本指向 `/src/library.tsx`），与 `index.html` 一起作为 Vite 的第二个构建入口（见 [library.md](library.md)） |
+| `web/src/library.tsx` | 组件库文档页的入口：先引 `antd/dist/reset.css`，再按与 `main.tsx` 相同的样式顺序 + `styles/library.css`，只渲染 `LibraryPage`，**不连宿主、不发请求**（antd 只服务这一个入口） |
+| `web/src/page/library/index.tsx` | 文档页的导出面：`export { LibraryPage } from './App'` |
+| `web/src/page/library/App.tsx` | 文档页骨架：antd `Layout` / `Menu` / `Input.Search` + 左侧两层分组导航 + 右侧自绘目录（`PageToc`）；按 hash 路由渲染总览页 / 详情页 / 「没有这个组件」 |
+| `web/src/page/library/router.ts` | 文档页的极简 hash 路由：`parseRoute` / `useRoute` / `navigate` 与 `OVERVIEW_HREF` / `componentHref` |
+| `web/src/page/library/search.ts` | 顶部搜索的过滤口径 `filterSections`（kind 名 / 标题 / summary / 载荷 JSON / 参数表） |
+| `web/src/page/library/Overview.tsx` | 总览页：12 张卡（真实 `ContentItem` 小预览），点卡进详情页 |
+| `web/src/page/library/ComponentPage.tsx` | 详情页：严格五块（UI 预览 / customType / 参数 / event / frame）+ 参数表五列 + 一行参考附注；`PAGE_ANCHORS` 是这五项的 id 契约（`ui-preview` / `custom-type` / `params` / `event` / `frame`） |
+| `web/src/page/library/items.ts` | 载荷 → 条目 / event / frame 文本（`itemOf` / `eventText` / `frameText` / `FRAME_STATE`） |
+| `web/src/page/library/samples.ts` | 文档页的示例数据与参数表（`LIBRARY_SECTIONS`）：12 个 `kind` 的主载荷、空载荷、参数与参考 |
+| `web/src/page/library/theme.ts` | antd 主题（`LIBRARY_THEME`）：token 色值抄自 `bgm.css` 的 `--bgm-*`，**改令牌要同步改它** |
 
-`main.tsx` 在 `src/` 根而不是 `page/` 下：它是**构建入口**（`web/index.html` 直接引用 `/src/main.tsx`），与"页面"这一层是两件事，放在根上更准确地表达这一点。
+`main.tsx` 在 `src/` 根而不是 `page/` 下：它是**构建入口**（`web/index.html` 直接引用 `/src/main.tsx`），与"页面"这一层是两件事，放在根上更准确地表达这一点。`library.tsx` 同理——它由 `web/library.html` 直接引用，是独立于 `Root` 的第二个入口（**不参与 `Root` 的 hash 分流**，它有自己的总览 / 详情页 hash 路由，见 [library.md](library.md) §简介「路由与搜索」）。
 
 ### 章节 → 场景
 

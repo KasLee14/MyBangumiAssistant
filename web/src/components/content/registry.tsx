@@ -38,6 +38,24 @@ export type ContentItemView = Extract<TranscriptItemView, { kind: ContentKind }>
 export type BaseTranscriptKind =
   | 'header' | 'user' | 'assistant' | 'notice' | 'error' | 'activity' | 'confirmation';
 
+/**
+ * base 条目的 kind 清单。
+ *
+ * 定义在这里而不是 `validate.ts`：两处都要用它——接收侧校验靠它放行 base 条目，`Turn`
+ * 靠它判断「既不是 base 条目、也不是登记的内容条目」（那是未知 kind 的开发期告警点）。
+ * 清单只此一份。
+ */
+export const BASE_KINDS = [
+  'header', 'user', 'assistant', 'notice', 'error', 'activity', 'confirmation',
+] as const satisfies readonly BaseTranscriptKind[];
+
+const BASE_KIND_SET: ReadonlySet<string> = new Set<string>(BASE_KINDS);
+
+/** 判定一个未知字符串是否属于 base 条目 kind。 */
+export function isBaseTranscriptKind(value: unknown): value is BaseTranscriptKind {
+  return typeof value === 'string' && BASE_KIND_SET.has(value);
+}
+
 /** 某个 kind 的载荷字段名（去掉公共字段）。 */
 export type ContentPayloadKey<K extends ContentKind> =
   Exclude<keyof Extract<ContentItemView, { kind: K }>, 'id' | 'version' | 'kind'>;
@@ -110,7 +128,8 @@ export const CONTENT_RENDERERS = {
   },
   tags: {
     field: 'tags',
-    limit: { field: 'tags', max: 50 },
+    // 这个 kind 的载荷就是数组本身（协议里 `tags` 成员是 `TagCloudItemView[]`），没有
+    // 「载荷内的数组字段」可取，因此不声明 limit。
     render: item => <TagCloud view={item.tags} />,
   },
   gallery: {

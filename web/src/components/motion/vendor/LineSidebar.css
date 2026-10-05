@@ -1,0 +1,122 @@
+/* LineSidebar —— 样式（配套 LineSidebar.tsx，改动理由与来源见那边的头部注释）
+ *
+ * 来源：https://reactbits.dev/r/LineSidebar-TS-CSS
+ *       官方页面 https://www.reactbits.dev/components/line-sidebar
+ *
+ * 本文件相对官方 CSS 改了什么：
+ *   1. 类名统一加 `lineSidebar` 前缀、自定义属性统一加 `--lineSidebar-` 前缀
+ *      （官方用 `.line-sidebar__item`、`--accent-color` 这类通用名，本项目 CSS 是
+ *      全局作用域，会和 `.app*` / `.content*` 及同目录其它 vendor 组件撞名）；
+ *   2. 三个官方色值（#a855f7 / #c4c4c4 / #6c6c6c）换成 `--bgm-*` 令牌，缺省值写在
+ *      `var()` 的第二个参数里——值由组件的 props 内联传入，这里只兜底，同一个值
+ *      不在两处重复声明；
+ *   3. 删掉官方声明但无人消费的 `--smoothing`；新增 `--lineSidebar-shiftFactor`
+ *      作为 prefers-reduced-motion 的位移总开关。
+ *
+ * 动效范围：几何量只动 transform（标签 translateX、标尺线 scaleX）与 opacity
+ * （序号），不做 width / height / top / left / display 动画。标签与标尺线的颜色
+ * 由 color-mix 随 --effect 插值——那是纯绘制属性、不触发布局，与本项目 hover 变色
+ * 的既有约定一致。 */
+
+.lineSidebar {
+  /* 位移倍率：**只在这里声明**，不给内联样式留覆盖口（内联优先级更高，内联了就
+     关不掉）。reduced-motion 段把它置 0。 */
+  --lineSidebar-shiftFactor: 1;
+
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* 左侧留出标尺线的位置（官方的 --marker-length + --marker-gap） */
+.lineSidebar--markers {
+  padding-left: calc(var(--lineSidebar-markerLength, 60px) + var(--lineSidebar-markerGap, 0px));
+}
+
+.lineSidebarList {
+  list-style: none;
+  margin: 0;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lineSidebar-itemGap, 20px);
+}
+
+/* --effect（0..1）由 JS 的 rAF 逐条写进每个 <li>，下面所有派生属性都读同一个值，
+   所以颜色、位移、透明度始终同步，不需要用 CSS transition 去对齐时间轴。 */
+.lineSidebarItem {
+  position: relative;
+  cursor: pointer;
+}
+
+/* 把指针命中区放宽，条目在指针真正到达前就开始响应（官方 inset: -6px -48px） */
+.lineSidebarItem::before {
+  content: '';
+  position: absolute;
+  inset: -6px -48px;
+}
+
+.lineSidebarLabel {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  font-size: var(--lineSidebar-fontSize, 1.1rem);
+  line-height: 1.2;
+  /* 就近高亮：从 --lineSidebar-accent 派生，effect=0 时是静息色，effect=1 时是主色 */
+  color: color-mix(
+    in srgb,
+    var(--lineSidebar-accent, var(--bgm-primary)) calc(var(--effect, 0) * 100%),
+    var(--lineSidebar-text, var(--bgm-border))
+  );
+  transform: translateX(calc(var(--effect, 0) * var(--lineSidebar-maxShift, 30px) * var(--lineSidebar-shiftFactor)));
+}
+
+.lineSidebarIndex {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-right: 0.6rem;
+  font-size: 0.85em;
+  opacity: calc(0.55 + var(--effect, 0) * 0.45);
+}
+
+.lineSidebarMarker {
+  position: absolute;
+  top: 50%;
+  left: calc(-1 * var(--lineSidebar-markerLength, 60px) - var(--lineSidebar-markerGap, 0px));
+  height: 1px;
+  width: var(--lineSidebar-markerLength, 60px);
+  background-color: color-mix(
+    in srgb,
+    var(--lineSidebar-accent, var(--bgm-primary)) calc(var(--effect, 0) * 100%),
+    var(--lineSidebar-marker, var(--bgm-text-muted))
+  );
+  transform-origin: left center;
+  transform: translateY(-50%) scaleX(calc(0.7 + var(--effect, 0) * 0.5));
+}
+
+/* 两条菜单项正中间的短刻度（静态） */
+.lineSidebar--markers .lineSidebarItem:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: calc(100% + var(--lineSidebar-itemGap, 20px) / 2);
+  left: calc(-1 * var(--lineSidebar-markerLength, 60px) - var(--lineSidebar-markerGap, 0px));
+  height: 1px;
+  width: calc(var(--lineSidebar-markerLength, 60px) * var(--lineSidebar-tickScale, 0.5));
+  background-color: var(--lineSidebar-marker, var(--bgm-text-muted));
+  opacity: 0.5;
+  transform: translateY(-50%);
+}
+
+/* 开启 scaleTick 时，中间刻度也跟着指针远近生长 */
+.lineSidebar--scaleTick .lineSidebarItem:not(:last-child)::after {
+  transform-origin: left center;
+  transform: translateY(-50%) scaleX(calc(0.7 + var(--effect, 0) * 0.6));
+}
+
+/* 系统开启「减少动态效果」：JS 侧已改成直接落终值（见 LineSidebar.tsx），这里再把
+   标签位移整个关掉——近距离跟随带来的位移是这一档最容易引起不适的；颜色与透明度
+   的即时变化保留，因为它表达的是「指针正靠近哪一项」这个状态，本身没有运动。 */
+@media (prefers-reduced-motion: reduce) {
+  .lineSidebar {
+    --lineSidebar-shiftFactor: 0;
+  }
+}

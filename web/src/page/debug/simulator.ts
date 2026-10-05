@@ -1,3 +1,4 @@
+import { customContentDraft } from '../../../../bangumi/src/web/custom-content';
 import type { ChatScalarsView, ServerEvent, TranscriptItemView } from '../../../../bangumi/src/web/protocol';
 
 /**
@@ -46,6 +47,9 @@ export interface SimStep {
 interface MessageLike {
   role?: string;
   content?: unknown;
+  customType?: unknown;
+  display?: unknown;
+  details?: unknown;
   stopReason?: string;
   errorMessage?: string;
 }
@@ -148,7 +152,15 @@ export interface SimulatorState {
  */
 export const DEBUG_INSTANCE_ID = 'debug-instance';
 
-export function createSimulatorState(sessionId = 'debug-session'): SimulatorState {
+/**
+ * 建一份模拟器状态。
+ *
+ * `revision` 是帧编号的起点，默认 -1（`emit` 先自增，所以第一条帧编号是 0）。调试页
+ * 重置时要把当前已提交的编号传进来：`store/reducers/stream.ts` 会丢弃「同一实例、
+ * revision 更小」的帧，若重置后又从 0 起算，重置帧与之后的新帧都会被丢掉，界面停在
+ * 上一个用例上。
+ */
+export function createSimulatorState(sessionId = 'debug-session', revision = -1): SimulatorState {
   return {
     nextItemId: 1,
     items: [],
@@ -161,7 +173,7 @@ export function createSimulatorState(sessionId = 'debug-session'): SimulatorStat
     liveText: '',
     liveThinking: '',
     sessionId,
-    revision: -1,
+    revision,
   };
 }
 
@@ -284,6 +296,13 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
 
     case 'message_end': {
       const message = asMessage(event);
+      // 对应宿主的 custom 分支：调的是同一份映射（custom-content.ts），所以调试页演练的
+      // 就是宿主真实走的逻辑，不是又抄一遍。play 传 KEEP：custom 消息与流式区无关。
+      const custom = customContentDraft(message);
+      if (custom !== undefined) {
+        pushItem(state, { ...custom, id: state.nextItemId++, version: 1 });
+        return [emit(state, KEEP)];
+      }
       if (message.role !== 'assistant') return [emit(state, KEEP)];
       const text = messageText(message);
       if (text.trim()) pushItem(state, { id: state.nextItemId++, version: 1, kind: 'assistant', text });
@@ -385,6 +404,36 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
     default:
       throw new Error(`未支持的事件类型「${event.type}」。`);
   }
+}
+
+/**
+ * 处理一批 event：对应宿主 `server.ts` 的**一个 flush 窗口**。
+ *
+ * 宿主侧的真实链路是：`handleEvent` 每收到一条事件就改会话状态，`server.ts` 的 `schedule()`
+ * 用 40ms 定时器把窗口内的全部改动合并成**一帧**（`flush()` → `flushClient()` → `writeEvent()`）
+ * 经 SSE 下发。所以窗口里有多少条事件，浏览器都只看到一帧——这一批在调试页也应当只产一帧。
+ *
+ * 实现直接复用 `applyEvent`：状态是同一个 state，依次生效；只保留**最后一步**。每次 `emit`
+ * 都基于 `state.items` 的全量快照，因此最后一帧天然包含整批变更，被丢弃的中间帧在真实链路上
+ * 本来也会被后续帧覆盖。流式区同理：这一批播放的文本由最后一步的 `play` 给出（若批末清空了
+ * 流式区，`play` 就是空串，与单条 `message_end` 的交接语义一致）。
+ *
+ * 单条 event 不走合并，仍原样返回 `applyEvent` 的每一步：一个事件可能刻意产出多帧（例如
+ * `message_update` 也提交一帧，否则逐字过程看不见），那是调试页与真实链路的已知结构性差异，
+ * 不属于 flush 语义。
+ */
+export function applyEvents(state: SimulatorState, events: readonly SimEvent[]): SimStep[] {
+  if (events.length === 1) {
+    const only = events[0];
+    return only === undefined ? [] : applyEvent(state, only);
+  }
+  let last: SimStep | undefined;
+  for (const event of events) {
+    const steps = applyEvent(state, event);
+    const step = steps[steps.length - 1];
+    if (step !== undefined) last = step;
+  }
+  return last === undefined ? [] : [last];
 }
 
 /** 已知的事件类型，供调试页给出可读的错误提示。 */

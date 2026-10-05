@@ -22,7 +22,7 @@
 
 ### 只新增 `debug*` 前缀的类
 
-`debug.css` 里新增的类一律以 `debug` 开头：`.debugPane`、`.debugSection*`、`.debugTextarea`、`.debugButton`、`.debugSamples`、`.debugActions`、`.debugStatus`、`.debugError`、`.debugNote`、`.debugPreviewBar`、`.debugBadge`、`.debugHero`、`.debugHeroTitle`。
+`debug.css` 里新增的类一律以 `debug` 开头：`.debugPane`、`.debugSection*`、`.debugTextarea`、`.debugButton`、`.debugLink`、`.debugSamples`、`.debugActions`、`.debugStatus`、`.debugError`、`.debugNote`、`.debugPreviewBar`、`.debugBadge`、`.debugHero`、`.debugHeroTitle`。
 
 作用在**类内部**的元素级规则（`.debugStatus b`、`.debugPreviewBar .debugBadge`、`.debugHero code`）允许，但必须挂在 `debug*` 祖先之下——它就是这一层「前缀隔离」约定（[readme.md](readme.md) §规则「隔离规则」）在调试页上的落地。
 
@@ -72,6 +72,25 @@ html[data-debug='on'] .appFrame {
 
 **违反后果**：品牌区样式出现第二个来源，`frame.css` 与 `debug.css` 互相不知道对方改了同一个元素。
 
+### 顶栏「组件库」链接用组合类 `debugLink`，不碰 `.debugButton`
+
+调试页顶栏的「组件库」入口是 `<a className="debugButton debugLink" …>`（`DebugInputPanel.tsx`，见 [../page/debug.md](../page/debug.md) §规则「顶栏的「组件库」入口是新标签 `<a>`，用组合类 `.debugLink`」）：形态复用 `.debugButton`，新增的那一条属性只写在组合类上：
+
+```css
+.debugLink,
+.debugLink:hover {
+  text-decoration: none;
+}
+```
+
+规则块把 `.debugLink` 与 `.debugLink:hover` 合在一起声明，两种状态下都没有下划线。
+
+**为什么 hover 也要一起写**：链接的下划线来自元素默认样式与**将来可能出现的 `a:hover`** 这类规则。`.debugLink`（0,1,0）挡不住 `a:hover`（0,1,1——元素类型 + 伪类的特异性高于单个类），所以 hover 态必须显式再声明一次；这也是这一条唯一"同一属性写两处"的正当理由。
+
+**为什么**：`.debugButton` 是调试页的按钮基元，被多个按钮共用；`text-decoration` 只服务"这一个链接"，属于给既有组件类加属性，按本层惯例要起组合类（同上一节 `.appBrandAction` 的理由）。
+
+**违反后果**：按钮基元上多出一条只服务链接的属性，改 `.debugButton` 时无法判断它会不会波及顶栏入口。
+
 ### 颜色与尺寸一律走令牌
 
 颜色只用 `--bgm-*`（含 `--bgm-danger`），圆角、表面与描边只用 `--app-radius-*` / `--app-surface` / `--app-hairline`，字号字体用 `--bgm-font`。不写裸十六进制——唯一的例外是 `.debugButton[data-primary='true']` 的 `color: #fff`（主按钮上的白字）与 `.debugButton[data-primary='true']:hover` 的 `filter: brightness(.96)`。
@@ -86,6 +105,7 @@ html[data-debug='on'] .appFrame {
 |---|---|---|
 | `html[data-debug='on'] .appFrame` | 把 `--app-sidebar-width` 提到 436px | 调调试页输入区宽度时 |
 | `.appBrandAction` | 品牌区的可点暗示与焦点环（与 `.appBrand` 组合使用，见 §规则「品牌区用组合类」） | 改品牌区交互提示时 |
+| `.debugLink` | 顶栏「组件库」链接（与 `.debugButton` 组合使用）：`text-decoration: none`，`:hover` 一并归零 | 改顶栏入口、或看到链接带下划线时 |
 | `.debugPane` / `.debugSection` / `.debugSectionHead` / `.debugSectionTitle` / `.debugSectionHint` | 左侧输入区的纵向排布与分节标题 | 改输入区结构时 |
 | `.debugTextarea`（含 `[data-auto='true']`） | 两个 JSON 输入框；`frameAuto` 时用更沉的底色区分"会被覆盖" | 改输入框外观、或区分自动生成内容时 |
 | `.debugSamples` / `.debugActions` / `.debugButton`（含 `[data-primary]` / `[data-compact]` / `:disabled`） | 用例胶囊、按钮行与按钮基元 | 加按钮、调用例外观时 |
@@ -111,6 +131,7 @@ tokens → frame → composer → cards → modal → bgm → content → debug
 | §规则「`html[data-debug='on']` 是唯一的作用域」 | 想让某条规则只在调试页生效时 |
 | §规则「不得覆写既有组件的类」 | 想改 `.appFrame` / `.appStage*` 等既有类时 |
 | §规则「品牌区用组合类 `appBrandAction`」 | 改品牌区样式、或想给既有组件类加属性时 |
+| §规则「顶栏「组件库」链接用组合类 `debugLink`」 | 改顶栏入口、或疑惑链接为什么复用 `.debugButton` 时 |
 | §规则「宽度覆盖只改 `--app-sidebar-width` 这一条」 | 调侧栏宽度、遇到折叠态异常时 |
 | §规则「颜色与尺寸一律走令牌」 | 需要新颜色或尺寸时 |
 | §索引「引入位置」 | 加样式文件、调换引入顺序时 |

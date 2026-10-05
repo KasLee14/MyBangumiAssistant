@@ -9,7 +9,7 @@ import { SidebarBrand } from '../../components/mainPage/shell/SidebarBrand';
  */
 
 export interface DebugInputPanelProps {
-  /** event 输入框内容（`AgentSessionEvent` 的 JSON）。 */
+  /** event 输入框内容（`AgentSessionEvent` 的 JSON，单个对象或一个 flush 窗口的数组）。 */
   eventText: string;
   onEventChange(text: string): void;
   /** frame 输入框内容（`ServerEvent` 的 state 帧 JSON）。 */
@@ -33,7 +33,7 @@ export interface DebugInputPanelProps {
   onExit(): void;
 }
 
-/** 五个 mock 用例与说明；按验收标准的顺序排列。 */
+/** 六个 mock 用例与说明；按验收标准的顺序排列。 */
 const SAMPLES: readonly { label: string; hint: string; json?: string; frame?: string; clearEvent?: boolean }[] = [
   {
     label: '1 文本流式',
@@ -104,6 +104,23 @@ const SAMPLES: readonly { label: string; hint: string; json?: string; frame?: st
       },
     }, null, 2),
   },
+  {
+    label: '6 批量合并',
+    hint: 'event 数组 = 一个 flush 窗口：多条事件合并成一帧，只看到批次结束时的最终状态',
+    json: JSON.stringify([
+      { type: 'agent_start' },
+      { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: '先说第一句。' } },
+      { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: '再说第二句。' } },
+      {
+        type: 'message_end',
+        message: {
+          role: 'assistant',
+          stopReason: 'stop',
+          content: [{ type: 'text', text: '先说第一句。再说第二句。' }],
+        },
+      },
+    ], null, 2),
+  },
 ];
 
 const MODE_LABEL: Record<DebugInputPanelProps['source'], string> = {
@@ -119,6 +136,17 @@ export const DebugInputPanel = memo(function DebugInputPanel({
   return (
     <>
       <SidebarBrand title="双击返回主界面" onDoubleClick={onExit}>
+        {/* 新标签打开：调试页的输入只在内存里，同标签跳走会丢 */}
+        <a
+          className="debugButton debugLink"
+          data-compact="true"
+          href="./library.html"
+          target="_blank"
+          rel="noreferrer"
+          title="打开内容组件库文档（新标签页，不丢当前输入）"
+        >
+          组件库
+        </a>
         <button type="button" className="debugButton" data-compact="true" onClick={onExit} title="返回主界面">
           返回
         </button>
@@ -128,7 +156,7 @@ export const DebugInputPanel = memo(function DebugInputPanel({
         <div className="debugSection">
           <div className="debugSectionHead">
             <span className="debugSectionTitle">event 输入</span>
-            <span className="debugSectionHint">handleEvent 的入参</span>
+            <span className="debugSectionHint">handleEvent 的入参：对象，或一个 flush 窗口的数组</span>
           </div>
           <textarea
             id="debug-event-input"
@@ -136,7 +164,7 @@ export const DebugInputPanel = memo(function DebugInputPanel({
             className="debugTextarea"
             value={eventText}
             spellCheck={false}
-            placeholder='{"type":"message_update","assistantMessageEvent":{"type":"text_delta","delta":"…"}}'
+            placeholder='{"type":"message_update",…}　或　[{"type":"agent_start"},{"type":"message_end",…}]'
             aria-label="event 输入"
             onChange={event => onEventChange(event.target.value)}
           />
@@ -159,7 +187,7 @@ export const DebugInputPanel = memo(function DebugInputPanel({
             ))}
           </div>
           <div className="debugNote">
-            用例 2、3 必须按顺序：模拟器要记住同一 `toolCallId` 的进行中条目。用例 5 请先清空 event 框，再把 frame 贴进右侧输入框。
+            用例 2、3 必须按顺序：模拟器要记住同一 `toolCallId` 的进行中条目。用例 5 请先清空 event 框，再把 frame 贴进右侧输入框。用例 6 是 event 数组：多条事件按宿主 40ms 的 flush 窗口合并成一帧。
           </div>
         </div>
 

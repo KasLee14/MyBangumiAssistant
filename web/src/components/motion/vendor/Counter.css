@@ -1,0 +1,80 @@
+/* Counter —— 样式（配套 Counter.tsx，改动理由与来源见那边的头部注释）
+ *
+ * 来源：https://reactbits.dev/r/Counter-TS-CSS
+ *       官方页面 https://www.reactbits.dev/components/counter
+ *
+ * 本文件相对官方 CSS 改了什么：
+ *   1. 类名统一加 `counter` 前缀。官方除了 `.counter-*`，还用了 `.gradient-container`
+ *      / `.top-gradient` / `.bottom-gradient` 三个通用名，而 `.top-gradient` /
+ *      `.bottom-gradient` 正是同目录 AnimatedList.css 已有的类名——本项目 CSS 是
+ *      全局作用域，不加前缀会互相串味。
+ *   2. 补上 `.counterGradientTop` 的定位规则：官方只有 `.bottom-gradient` 的规则，
+ *      顶部渐变那个 span 是普通行内元素（行内元素忽略 height），实际高度塌成 0、
+ *      永远看不见，渐隐只有下边一半。这里补 `position: absolute; top: 0;
+ *      width: 100%`，让上下两端对称。
+ *
+ * 本文件不含任何色值：两端渐变的颜色由 props 以 `--bgm-*` 令牌传入（默认值在
+ * Counter.tsx 里）。height / width / top / left 在这里都是静态布局声明，不参与
+ * 动画——数字滚动只动 transform 的 `y`（见 Counter.tsx 的 Number）。 */
+
+.counterContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.counterValue {
+  display: flex;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.counterDigit {
+  position: relative;
+  width: 1ch;
+  font-variant-numeric: tabular-nums;
+}
+
+.counterNumber {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 覆盖在数字上的渐隐层：不挡指针事件 */
+.counterGradientOverlay {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.counterGradientTop {
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.counterGradientBottom {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+
+/* 系统开启「减少动态效果」：数字滚动是 JS 侧 motion 弹簧驱动的，真正的降级开关在
+   Counter.tsx 的 useReducedMotion 分支（切到普通 MotionValue，直接落终值）。
+   这里再显式写明不留任何 CSS 过渡/动画口子——本组件本来就没有 CSS 过渡，
+   这条规则是防止以后有人加回来时把降级绕过去。 */
+@media (prefers-reduced-motion: reduce) {
+  .counterNumber,
+  .counterDigit {
+    transition: none;
+    animation: none;
+  }
+}

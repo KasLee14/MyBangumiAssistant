@@ -73,7 +73,8 @@ export function ProgressView({ view }: { view: ProgressViewModel }): ReactNode {
               aria-valuenow={current}
               aria-label={progressLabel}
             >
-              <span className="contentProgressBar" style={{ width: `${percent.toFixed(2)}%` }} />
+              {/* 进度长度用 scaleX 而不是 width：只动 transform，数据刷新不触发布局重排 */}
+              <span className="contentProgressBar" style={{ transform: `scaleX(${(percent / 100).toFixed(4)})` }} />
             </div>
           )}
         </>

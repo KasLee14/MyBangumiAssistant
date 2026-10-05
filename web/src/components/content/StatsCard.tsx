@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { StatEntryView, StatsView } from '../../../../bangumi/src/web/protocol';
+import { Counter } from '../motion/vendor/Counter';
 
 /** 条形/柱形长度：ratio 缺失或越界时给出可预期的兜底，不让 NaN 进到样式里。 */
 function ratioOf(entry: StatEntryView): number {
@@ -30,7 +31,8 @@ function Bars({ entries }: { entries: StatEntryView[] }): ReactNode {
         <li key={`${entry.label}-${index}`} className="contentStatBarRow" data-tone={toneOf(entry)}>
           <span className="contentStatLabel">{entry.label}</span>
           <span className="contentStatTrack">
-            <span className="contentStatBar" style={{ width: `${(ratioOf(entry) * 100).toFixed(2)}%` }} />
+            {/* 长度用 scaleX 而不是 width：只动 transform，数据刷新时不触发布局重排 */}
+            <span className="contentStatBar" style={{ transform: `scaleX(${ratioOf(entry).toFixed(4)})` }} />
           </span>
           <EntryValue entry={entry} />
         </li>
@@ -54,7 +56,8 @@ function Histogram({ entries }: { entries: StatEntryView[] }): ReactNode {
           <li key={`${entry.label}-${index}`} className="contentStatColumn" data-tone={toneOf(entry)}>
             <span className="contentStatColumnValue">{entry.value}</span>
             <span className="contentStatColumnTrack">
-              <span className="contentStatColumnBar" style={{ height: `${(ratio * 100).toFixed(2)}%` }} />
+              {/* 柱高用 scaleY（transform-origin: bottom），不写 height */}
+              <span className="contentStatColumnBar" style={{ transform: `scaleY(${ratio.toFixed(4)})` }} />
             </span>
             <span className="contentStatColumnLabel">{entry.label}</span>
           </li>
@@ -86,12 +89,31 @@ function List({ entries }: { entries: StatEntryView[] }): ReactNode {
  */
 export function StatsCard({ view }: { view: StatsView }): ReactNode {
   const { title, headline, entries, mode, note } = view;
+  // 只在「纯数字字符串」上启用滚轮读数：带单位或千分位的值（75.9%、12,480）交给静态文本，
+  // 否则会把它显示成 75.9 / 12480 这种丢掉语义的数。
+  const headlineNumber =
+    headline !== undefined && /^-?\d+(\.\d+)?$/.test(headline.value.trim())
+      ? Number(headline.value)
+      : null;
   return (
     <section className="contentBlock contentStats" aria-label={title === undefined || title === '' ? '统计' : title}>
       {title === undefined || title === '' ? null : <h3 className="contentBlockTitle">{title}</h3>}
       {headline === undefined ? null : (
         <p className="contentStatHeadline">
-          <span className="contentStatHeadlineValue">{headline.value}</span>
+          <span className="contentStatHeadlineValue">
+            {headlineNumber === null ? headline.value : (
+              // ReactBits Counter（参考 https://www.reactbits.dev/components/counter）：数字首次出现时滚到位。
+              // 关掉官方那两层上下渐隐（gradientHeight=0）——它服务的是整屏大字，这里是 30px 的行内读数。
+              <Counter
+                value={headlineNumber}
+                fontSize={30}
+                gap={2}
+                horizontalPadding={0}
+                gradientHeight={0}
+                textColor="var(--bgm-text-strong)"
+              />
+            )}
+          </span>
           <span className="contentStatHeadlineLabel">{headline.label}</span>
         </p>
       )}
