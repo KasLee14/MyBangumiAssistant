@@ -2,7 +2,7 @@
 
 ## 简介
 
-组件库文档页：**形态对齐 ant.design 文档站（一组件一页 + 总览页），骨架用 antd 搭，但 12 种内容条目一律由项目自己的 `ContentItem` 真实渲染，并把可直接粘进调试页的 event / frame JSON 现场生成出来的开发期页面**。它不连宿主、不发请求，页面上的每个预览都是 `ContentItem` 的真实输出。
+组件库文档页：**形态对齐 ant.design 文档站（一组件一页 + 总览页），骨架用 antd 搭，但 12 种内容块一律由项目自己的 `ContentBlock` 真实渲染，并把可直接粘进调试页的 event / frame JSON 现场生成出来的开发期页面**。它不连宿主、不发请求，页面上的每个预览都是 `ContentBlock` 的真实输出。
 
 **不覆盖**：内容条目的渲染与校验（见 [../components/content.md](../components/content.md)）、条目皮肤（见 [../styles/content-and-brand.md](../styles/content-and-brand.md)）、这一页的布局与排版（见 [../../../src/styles/library.css](../../../src/styles/library.css)）、antd 的例外边界（见 [AGENTS.md](../../../AGENTS.md) §规则「技术栈约束」）、调试页本体（见 [debug.md](debug.md)）、主界面装配（见 [main-page.md](main-page.md)）。
 
@@ -26,7 +26,7 @@
 
 路由是 `router.ts` 手写的十几行（`parseRoute` + `hashchange` 订阅），**没有引路由库**——两个页面形态用十几行就够，不值得为静态文档页加依赖。切页写 `location.hash`（进历史，前进后退可用、URL 可直连），让"当前在哪一页"只有一处来源。
 
-顶部搜索是**真实过滤**（`search.ts`）：输入即过滤左侧导航，命中 kind 名（`subjects`）、中文标题、summary、参数表的字段 / 取值 / 类型 / 说明，以及**示例数据本身**（搜「轻音」能定位到 `subjects`，因为界面上就是那几个字）；回车跳到第一个匹配项，清空后恢复 13 项（12 个组件 + 组件总览）。
+顶部搜索是**真实过滤**（`search.ts`）：输入即过滤左侧导航，命中 kind 名（`SubjectCards`）、中文标题、summary、参数表的字段 / 取值 / 类型 / 说明，以及**示例数据本身**（搜「轻音」能定位到 `SubjectCards`，因为界面上就是那几个字）；回车跳到第一个匹配项，清空后恢复 13 项（12 个组件 + 组件总览）。
 
 ### 九个文件的分工
 
@@ -36,7 +36,7 @@
 | `router.ts` | 极简 hash 路由：`parseRoute` / `useRoute` / `navigate` 与两个 href 构造器 |
 | `search.ts` | 顶部搜索的过滤口径（`filterSections`） |
 | `Overview.tsx` | 总览页：12 张卡，每张是「kind 名 + 中文名 + 一句话 + 一张真实小预览」 |
-| `ComponentPage.tsx` | 详情页：严格五块（UI 预览 / customType / 参数 / event 输入 / frame 输入）+ 参数表五列 + 参数块下的一行参考附注；`PAGE_ANCHORS` 是这五块的锚点清单（`ui-preview` / `custom-type` / `params` / `event` / `frame`） |
+| `ComponentPage.tsx` | 详情页：严格四块（UI 预览 / 参数 / event 输入 / frame 输入）+ 参数表五列 + 参数块下的一行参考附注；`PAGE_ANCHORS` 是这四块的锚点清单（`ui-preview` / `params` / `event` / `frame`） |
 | `items.ts` | 载荷 → 条目 / event / frame 文本；frame 里的固定模拟标量 `FRAME_STATE` |
 | `samples.ts` | 数据源两张表：`LIBRARY_SECTIONS`（12 个 `kind` 的标题、简介、主载荷、空载荷、参数表、`reference`）与 `LIBRARY_GROUPS`（左侧导航的分组与组内顺序） |
 | `theme.ts` | antd 主题：把 token 映射到 `--bgm-*` 的**当前色值** |
@@ -46,7 +46,7 @@
 
 ## 使用说明
 
-- **改这一页之前先读 §规则**：骨架归 antd、内容归 `ContentItem`、详情页只有五块、两个 JSON 由同一份载荷生成、`theme.ts` 要跟着令牌改，都在那里。
+- **改这一页之前先读 §规则**：骨架归 antd、内容归 `ContentBlock`、详情页只有四块、两个 JSON 由同一份载荷生成、`theme.ts` 要跟着令牌改，都在那里。
 - **只想查「某个 `kind` 的载荷怎么写」「某个字段是什么意思」**：直接读那一页的 event 块与参数表（它们就是契约的抄本），或查 §索引 的「符号一览」。
 - **只想改外观**：骨架形态（顶栏 / 导航 / 搜索的观感）在 `page/library/theme.ts` 的 antd token 与 `web/src/styles/library.css`；**条目本身**的外观不在这里，去 [../styles/content-and-brand.md](../styles/content-and-brand.md)。
 - **新增一种内容 `kind`**：先按 [../components/content.md](../components/content.md) §规则 的 7 步清单做，再回来按 §规则「新增 `kind` 时这一页要跟着加一节」改那几处。
@@ -54,37 +54,36 @@
 
 ## 规则
 
-### 骨架用 antd，内容一律走真实 `ContentItem`
+### 骨架用 antd，内容一律走真实 `ContentBlock`
 
-骨架（`Layout` / `Menu` / `Input.Search` / `Card` / `Table` / `Typography` / `Divider` / `Button` / `Tag` / `Tooltip` / `ConfigProvider`）由 antd 提供，**但 12 种内容条目的渲染一律走项目自己的 `<ContentItem item={…} />`，antd 不参与内容渲染**。详情页的 UI 预览是 `itemOf(section.kind, section.payload, 1)` 造出的 `ContentItemView` 交给 `<ContentItem>` 的——与真实会话走**同一个组件、同一套接收侧校验与降级**；总览页的小预览同样是真实渲染，不是缩略图。
+骨架（`Layout` / `Menu` / `Input.Search` / `Card` / `Table` / `Typography` / `Divider` / `Button` / `Tag` / `Tooltip` / `ConfigProvider`）由 antd 提供，**但 12 种内容块的渲染一律走项目自己的 `<ContentBlock block={…} />`，antd 不参与内容渲染**。详情页的 UI 预览是 `blockOf(section.kind, section.payload)` 造出的内容块交给 `<ContentBlock>` 的——与真实会话走**同一个组件、同一套接收侧校验与降级**；总览页的小预览同样是真实渲染，不是缩略图。
 
 **为什么**：和调试页同一条理由（见 [debug.md](debug.md) §规则「预览必须复用 `<Stage>`，不得另写一套渲染」）。手抄一份 markup、或用 antd 组件重搭一个"长得像"的预览，第一处协议或皮肤漂移之后预览就不再等于会话所见；而这一页存在的唯一价值就是让"组件库长什么样"有唯一可信的一屏。
 
 **违反后果**：文档页展示的形态与会话里真实的形态出现第二套，改动据此判断会改错。
 
-### 详情页严格五块，不许加第六块
+### 详情页严格四块，不许加第五块
 
 固定顺序与 id 都是契约（`ComponentPage.tsx` 的 `PAGE_ANCHORS`，右侧目录按它生成）：
 
 1. **UI 预览**（`id="ui-preview"`）：主载荷 + 一张 `空数据` 变体，两张 antd `Card`；
-2. **customType**（`id="custom-type"`）：`customType: "<kind>"` 一行 + 「载荷放在事件的 `details` 里，本条约目的载荷字段是 `xxx`」一句；
-3. **参数**（`id="params"`）：参数表（antd `Table`，五列：字段 / 类型 / 必填 / 取值 / 说明），**下方一行参考附注**；
-4. **调试页 event 输入**（`id="event"`）：可复制的 JSON 块；
-5. **调试页 frame 输入**（`id="frame"`）：同上。
+2. **参数**（`id="params"`）：参数表（antd `Table`，五列：字段 / 类型 / 必填 / 取值 / 说明），**下方一行参考附注**；
+3. **调试页 event 输入**（`id="event"`）：可复制的 JSON 块；
+4. **调试页 frame 输入**（`id="frame"`）：同上。
 
-**customType 与参数是分开的两块**：前者只回答「这个 kind 叫什么、载荷挂在事件的哪个字段上」，后者只回答「字段怎么写」。此前这两件事合在 `id="api"` 的一块里，`api` 这个 id 现在**已不存在**；拆开之后右侧目录是五项。
+**曾经有过第 5 块「customType」**（`id="custom-type"`，写 `customType: "<kind>"` 与载荷字段名）：块的形状统一为 `{ type, pending?, props }`、且 `type` 的取值就是组件名之后，这一块不再回答任何问题——没有随 kind 变化的字段名可讲，`type` 本身在 UI 预览的 event JSON 里已经看得见。因此删除，**id `custom-type` 已不存在**，右侧目录是四项。
 
-**参考只能作为参数块下的一行附注**（`ReferenceLine`），不得升级成独立的一块——这是产品明确划的边界。同理，再塞第六类内容（另一套 demo、用法教程、截图、变更日志）之后，没人能一眼分辨哪一块是契约。
+**参考只能作为参数块下的一行附注**（`ReferenceLine`），不得升级成独立的一块——这是产品明确划的边界。同理，再塞第五类内容（另一套 demo、用法教程、截图、变更日志）之后，没人能一眼分辨哪一块是契约。
 
-**为什么**：五块正好覆盖三件事——长什么样、字段怎么写、怎么在调试页复现。
+**为什么**：四块正好覆盖三件事——长什么样、字段怎么写、怎么在调试页复现。
 
 **违反后果**：契约与说明混在一起，改协议时不知道该同步哪一块。
 
 ### event 与 frame 由同一份载荷现场生成（所见即所粘）
 
-`eventText(section)` 与 `frameText(section)` 都只读 `section.payload`：event 是 `message_end` + `role: "custom"` + `customType: kind` + `details: payload`；frame 是 `type: "state"`、`instanceId: "debug-instance"`、`revision: 1`、`full: true`，条目为一条 user 条目 + `itemOf(kind, payload, 2)`。
+`eventText(section)` 与 `frameText(section)` 都只读 `section.payload`：event 是 `message_end` + `role: "assistant"` + `content: [block]`；frame 是 `type: "state"`、`instanceId: "debug-instance"`、`revision: 1`、`full: true`，条目为一条 user 条目 + 一条 `kind: "assistant"` 条目（`content: [block]`）。
 
-- `itemOf()` 补信封字段（`id` / `version` / `kind`）后把载荷**原样**带上，与宿主 `customContentDraft()` 的展开方式一致；
+- `blockOf()` 把载荷**原样**放进 `props`（`{ type: kind, props: payload }`），与宿主 `message-blocks.ts` 的投影方式一致；
 - frame 的信封取值与调试页首帧的要求对齐（`instanceId` / `revision` / `full` 三者的理由见 [debug.md](debug.md) §规则「首帧 `instanceId` 必须是 `DEBUG_INSTANCE_ID`，重置时 `revision` 必须接上」）——frame 代码块的提示语里那句「先把 event 框清空」就是因为调试页以 event 优先（`parseInputs`）。
 
 **为什么**：一份数据两处输出，粘进调试页的结果必然与预览同源；另写一份 JSON 就会出现"预览是这个载荷、粘进去是那个载荷"的错配。
@@ -95,9 +94,9 @@
 
 `samples.ts` 的 `params`（`ParamRow`：`field` / `type` / `required` / `values` / `note`）是协议契约的**抄本**：字段名与 `bangumi/src/web/protocol.ts` 的视图类型一一对应，取值枚举（`layout`、`mode`、`tone`、`kind`、`state`…）与前端校验器 `web/src/components/content/validate.ts` 的守卫一致。
 
-**改协议或改校验就要同步改 `samples.ts`**（文件头注释写的就是这条），否则这一页会当着所有人的面说谎。`ComponentPage.tsx` 的 `payloadFieldOf(kind)` 里的「载荷字段名与 `registry.tsx` 的 `field` 一致、只有 `infobox` 是 `info`」属于同一类抄本——它是**已知的一处小重复**，协议加 kind 时要一起核。
+**改协议或改校验就要同步改 `samples.ts`**（文件头注释写的就是这条），否则这一页会当着所有人的面说谎。块的形状统一为 `{ type, pending?, props }` 之后，这一页不再需要「kind → 载荷字段名」的对照表——`samples.ts` 的 `params` 是仅剩的一处协议抄本。
 
-**违反后果**：参数表比源码旧，按它写的 `details` 会在接收侧降级或直接丢弃。
+**违反后果**：参数表比源码旧，按它写的载荷字段会在接收侧降级或直接丢弃。
 
 ### 配色映射的唯一代价：`theme.ts` 是 `--bgm-*` 的第二处抄本
 
@@ -133,7 +132,7 @@ antd 的配色通过 `ConfigProvider` 的 `theme.token` 映射，值写在 `page
 
 `PageToc`（在 `App.tsx` 里）是自绘的 `<ul>` + `IntersectionObserver`（`rootMargin: '-72px 0px -70% 0px'`）高亮，**没有用 antd 的 `Anchor`**。
 
-**为什么**：`Anchor` 的锚点实现依赖写 `location.hash`，而本页的「一组件一页」路由也占着 hash（`#/components/<kind>`），两者会互相覆盖——点一下目录就会把整页路由改掉。保路由（前进后退、可直连 URL 是确认过的形态）优先，目录改成自绘；右侧目录只在详情页出现（总览页没有五块可导航，留一列空白反而像坏了）。
+**为什么**：`Anchor` 的锚点实现依赖写 `location.hash`，而本页的「一组件一页」路由也占着 hash（`#/components/<kind>`），两者会互相覆盖——点一下目录就会把整页路由改掉。保路由（前进后退、可直连 URL 是确认过的形态）优先，目录改成自绘；右侧目录只在详情页出现（总览页没有四块可导航，留一列空白反而像坏了）。
 
 **违反后果**：点右侧目录会跳错页或丢掉当前路由。
 
@@ -150,8 +149,8 @@ antd 的配色通过 `ConfigProvider` 的 `theme.token` 映射，值写在 `page
 1. 在 `LIBRARY_SECTIONS` 里加一项（`kind` / `title` / `summary` / `payload` / `empty` / `params` / `reference`）；
 2. 在 `LIBRARY_GROUPS` 的某一组 `kinds` 里加上它（条目与集合 / 数据与统计 / 文本与提示）——**漏了这一步它只会出现在总览页、左侧导航里找不到**；
 3. 两项的顺序与 `registry.tsx` 的 `CONTENT_KINDS` 对齐；
-- `empty` 必须给：页面给每个 `kind` 都渲染一个「空数据」变体，空态是这一页的一半价值（12 个 `kind` 里 10 个用 `.contentEmpty`，`table` 的文案是「没有可展示的列。」，`quote` 与 `callout` 没有空态块）；
-- `reference` 为 `null` 时页面显示「未使用 ReactBits 组件。」。当前只有 4 节写真实落点（`subjects` / `stats` / `tags` / `quote`），`infobox` / `table` / `timeline` 写的是「Animated List（只参考节奏，未引入源码）」，其余 5 节（`progress` / `gallery` / `compare` / `callout` / `links`）是 `null`。**`reference` 只写真的落在该组件上的动效**：没有落点就写 `null`，"不为了用而用"（见 [../components/content.md](../components/content.md) §规则「每个 `kind` 的动效落点」）。
+- `empty` 必须给：页面给每个 `kind` 都渲染一个「空数据」变体，空态是这一页的一半价值（12 个 `kind` 里 10 个用 `.contentEmpty`，`DataTable` 的文案是「没有可展示的列。」，`QuoteBlock` 与 `Callout` 没有空态块）；
+- `reference` 为 `null` 时页面显示「未使用 ReactBits 组件。」。当前只有 4 节写真实落点（`SubjectCards` / `StatsCard` / `TagCloud` / `QuoteBlock`），`InfoBox` / `DataTable` / `Timeline` 写的是「Animated List（只参考节奏，未引入源码）」，其余 5 节（`ProgressView` / `Gallery` / `CompareTable` / `Callout` / `LinkList`）是 `null`。**`reference` 只写真的落在该组件上的动效**：没有落点就写 `null`，"不为了用而用"（见 [../components/content.md](../components/content.md) §规则「每个 `kind` 的动效落点」）。
 
 **违反后果**：协议多了第 13 种 `kind`，组件库这一页却没有它（或只在总览页有、导航里找不到）——文档页从"唯一可信的一屏"退化成过期截图。
 
@@ -170,24 +169,23 @@ antd 的配色通过 `ConfigProvider` 的 `theme.token` 映射，值写在 `page
 | 符号 | 位置 | 作用 | 什么时候读 |
 |---|---|---|---|
 | `LibraryPage` | `App.tsx` | 骨架本体：`ConfigProvider` + `Layout`（Header / Content / Sider）+ 左侧 `Menu` + `Input.Search`；按路由渲染总览 / 详情 / 未知页 | 改骨架、导航、搜索接线时 |
-| `LIBRARY_GROUPS` | `samples.ts` | 左侧导航的分组表：条目与集合（`subjects` / `gallery` / `tags` / `links`）、数据与统计（`stats` / `progress` / `table` / `compare` / `timeline`）、文本与提示（`infobox` / `quote` / `callout`）；`App.tsx` 从它派生 `Menu` 的 items | 调整导航分组、新增 kind 时 |
+| `LIBRARY_GROUPS` | `samples.ts` | 左侧导航的分组表：条目与集合（`SubjectCards` / `Gallery` / `TagCloud` / `LinkList`）、数据与统计（`StatsCard` / `ProgressView` / `DataTable` / `CompareTable` / `Timeline`）、文本与提示（`InfoBox` / `QuoteBlock` / `Callout`）；`App.tsx` 从它派生 `Menu` 的 items | 调整导航分组、新增 kind 时 |
 | `PageToc` | `App.tsx` | 右侧页内目录：自绘 + `IntersectionObserver` 高亮（不用 antd `Anchor`，理由见 §规则） | 改目录高亮、疑惑为什么不用 `Anchor` 时 |
 | `useRoute` / `parseRoute` | `router.ts` | hash → 路由（`overview` / `component` / `unknown`），并订阅 `hashchange` | 加页面形态、改 URL 契约时 |
 | `navigate` / `OVERVIEW_HREF` / `componentHref` | `router.ts` | 写 hash 切页（进历史）+ 内容区滚回顶部；两个 href 构造器 | 加跳转入口、排查"后退没用"时 |
 | `filterSections` | `search.ts` | 顶部搜索的过滤口径（kind 名 / 标题 / summary / 载荷 JSON / 参数表四列） | 改搜索命中范围时 |
-| `Overview` | `Overview.tsx` | 总览页：每个 kind 一张卡（数量与文案都取自 `LIBRARY_SECTIONS`，不写死数字），卡里是真实 `ContentItem` 小预览，点卡进详情页 | 改总览页、新增 kind 时 |
-| `ComponentPage` | `ComponentPage.tsx` | 详情页本体：严格五块 + 参数表 + 参考附注 | 改详情页结构时 |
-| `PAGE_ANCHORS` | `ComponentPage.tsx` | 五块的锚点 id 与标题（`ui-preview` / `custom-type` / `params` / `event` / `frame`）；`PageToc` 按它生成 | **改五块标题或 id 时**（id 是契约） |
+| `Overview` | `Overview.tsx` | 总览页：每个 kind 一张卡（数量与文案都取自 `LIBRARY_SECTIONS`，不写死数字），卡里是真实 `ContentBlock` 小预览，点卡进详情页 | 改总览页、新增 kind 时 |
+| `ComponentPage` | `ComponentPage.tsx` | 详情页本体：严格四块 + 参数表 + 参考附注 | 改详情页结构时 |
+| `PAGE_ANCHORS` | `ComponentPage.tsx` | 四块的锚点 id 与标题（`ui-preview` / `params` / `event` / `frame`）；`PageToc` 按它生成 | **改四块标题或 id 时**（id 是契约） |
 | `PARAM_COLUMNS` | `ComponentPage.tsx` | 参数表五列：字段 / 类型 / 必填 / 取值 / 说明 | 改参数表列时 |
 | `CodeBlock` | `ComponentPage.tsx` | 可复制的 JSON 块（antd `Card` + 复制按钮）；复制后 1.6s 内显示「已复制」，剪贴板不可用时**静默返回、不谎报成功** | 改复制交互、怀疑"复制没反应"时 |
 | `ReferenceLine` | `ComponentPage.tsx` | 参数块下方的**一行**参考附注（`reference` 为 `null` 时显示「未使用 ReactBits 组件。」） | 改参考文案、想把参考升级成一块时 |
-| `payloadFieldOf(kind)` | `ComponentPage.tsx` | `customType` 块那句提示里的载荷字段名（与 `registry.tsx` 的 `field` 一致，`infobox` → `info`） | 改提示文案、协议加 kind 时 |
-| `itemOf(kind, payload, id)` | `items.ts` | 把载荷包成 `ContentItemView`（补 `id` / `version` / `kind`），交给真实 `ContentItem` | 改预览载荷构造、排查预览与调试页不一致时 |
+| `blockOf(kind, payload)` | `items.ts` | 把载荷包成内容块（`{ type, props: payload }`），交给真实 `ContentBlock` | 改预览载荷构造、排查预览与调试页不一致时 |
 | `eventText` / `frameText` | `items.ts` | 由同一份载荷现场生成 event / frame JSON | 改「所见即所粘」时 |
 | `FRAME_STATE` | `items.ts` | frame 示例里的固定标量（组件库不连宿主，全部是模拟值） | 改 frame 示例时 |
 | `LIBRARY_SECTIONS` | `samples.ts` | 12 节的**唯一来源**：`kind` / `title` / `summary` / `payload` / `empty` / `params` / `reference` | 加节、改示例载荷、改参数表时 |
 | `LibrarySection` / `ParamRow` / `Reference` | `samples.ts` | 一节的类型、参数表行、ReactBits 参考（`reference` 可为 `null`） | 改数据结构时 |
-| `SUBJECT_ITEM` | `samples.ts` | `subjects` 的条目卡公共参数行（`gallery` 的 item 是另一套字段，**不能共用这张表**） | 改条目卡参数时 |
+| `SUBJECT_ITEM` | `samples.ts` | `SubjectCards` 的条目卡公共参数行（`Gallery` 的 item 是另一套字段，**不能共用这张表**） | 改条目卡参数时 |
 | `LIBRARY_THEME` | `theme.ts` | antd 主题 token：配色抄自 `bgm.css` 的 `--bgm-*` 当前色值，逐条注释 | **改站点令牌后必读** |
 
 ### 文件 → 场景
@@ -201,7 +199,7 @@ antd 的配色通过 `ConfigProvider` 的 `theme.token` 映射，值写在 `page
 | `web/src/page/library/router.ts` | 改 hash 契约、切页行为时 |
 | `web/src/page/library/search.ts` | 改搜索过滤口径时 |
 | `web/src/page/library/Overview.tsx` | 改总览页的卡片形态时 |
-| `web/src/page/library/ComponentPage.tsx` | **改详情页五块结构、参数表、两个 JSON 块时必读** |
+| `web/src/page/library/ComponentPage.tsx` | **改详情页四块结构、参数表、两个 JSON 块时必读** |
 | `web/src/page/library/items.ts` | 改 event / frame 的生成方式、frame 的模拟标量时 |
 | `web/src/page/library/samples.ts` | 加节、改示例载荷与参数表时（**协议改动后必读**） |
 | `web/src/page/library/theme.ts` | 改 antd 主题、或站点 `--bgm-*` 令牌变动后同步时（**改令牌后必读**） |
@@ -219,8 +217,8 @@ antd 的配色通过 `ConfigProvider` 的 `theme.token` 映射，值写在 `page
 | §简介「与主界面、调试页的关系」 | 疑惑这一页为什么不参与 `Root` 的 hash 分流、为什么不需要 store、antd 为什么没进主入口时 |
 | §简介「路由与搜索」 | 改 URL 契约、或想知道搜索命中哪些字段时 |
 | §简介「九个文件的分工」 | 找某个改动该落在哪个文件时 |
-| §规则「骨架用 antd，内容一律走真实 `ContentItem`」 | 想给预览写"更好看"的静态示例时 |
-| §规则「详情页严格五块，不许加第六块」 | 想给某一页加内容块、或想把参考写成一块时 |
+| §规则「骨架用 antd，内容一律走真实 `ContentBlock`」 | 想给预览写"更好看"的静态示例时 |
+| §规则「详情页严格四块，不许加第五块」 | 想给某一页加内容块、或想把参考写成一块时 |
 | §规则「event 与 frame 由同一份载荷现场生成（所见即所粘）」 | 示例与调试页渲染结果不一致时 |
 | §规则「参数表必须与 `protocol.ts` 及 `validate.ts` 对齐」 | **改协议、改校验后必读** |
 | §规则「配色映射的唯一代价：`theme.ts` 是 `--bgm-*` 的第二处抄本」 | **改 `--bgm-*` 令牌后必读**；文档页配色和站点不一致、或出现默认蓝时 |

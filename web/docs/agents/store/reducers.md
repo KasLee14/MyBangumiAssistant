@@ -55,6 +55,16 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 
 **违反后果**：缺任一条都会让界面残留旧状态；第 2 条缺失时还会出现 React key 重复。
 
+### 流式内容块走标量 `liveContent`，不进 `items`
+
+助手消息在流式期间**不进 `items`**：它的内容块放在标量 `liveContent`（`MessageBlock[]`）里随每帧覆盖，`message_end` 到了才把同一批块落成一个 `kind:'assistant'` 条目（`content: MessageBlock[]`）。所以上面三条帧合并规则**不需要为块做任何特殊处理**——块的增删改都发生在标量内部，条目合并仍然只看 `id` / `version`。
+
+`liveContent` 与历史条目的 `content` 是**同一个类型、同一套渲染组件**（见 [../components/content.md](../components/content.md)），差别只有"是否处于流式期"（`pending` 与光标）。
+
+**不要在 reducer 里对块做合并或补间**：块由宿主（或调试页的 simulator）投影成整份快照，reducer 只覆盖。这是"快照是唯一入口"那条契约在状态层的体现。
+
+**违反后果**：在 reducer 里按 `contentIndex` 再实现一遍合并，等于把上游的快照语义抄成第二份；两处一旦不一致，就会出现"文本正常、组件错位"这类最难定位的问题。
+
 ### 应答在途的撤下条件（`answering`）
 
 `answering` 是**前端本地状态**：正在应答中的确认 id，`null` 表示没有应答在途。它只用来在「已点下、宿主还没返回」这一小段里禁用确认卡按钮，防止重复提交。
@@ -104,6 +114,7 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 |---|---|
 | §根 reducer 必须手写，不用 `combineReducers` | 想改用 `combineReducers`、或遇到 `never` 推断报错时 |
 | §帧合并三条规则缺一不可 | 加或改流字段时；**改帧处理前必读** |
+| §流式内容块走标量 `liveContent`，不进 `items` | 想给流式块加合并/补间、或问"组件的流式状态存在哪"时 |
 | §应答在途的撤下条件（`answering`） | 改确认卡的禁用与解禁、查"按钮点不动"时 |
 | §乐观回显的撤下条件（`pendingEcho`） | 气泡不消失或过早消失时 |
 | §`ui/draft` 与 `ui/draftRestore` 必须分成两个 action | 改输入草稿、发送失败回滚时 |
@@ -114,7 +125,7 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 
 ### `stream` 切片（`reducers/stream.ts`）
 
-字段：`ChatScalarsView` 的全部标量（`ready` / `busy` / `cancelling` / `status` / `liveText` / `pending` / `sessionId` …）+ `instanceId` + `revision` + `items` + `connected` + `pendingEcho` + `answering`（前端本地状态，不在协议里）。
+字段：`ChatScalarsView` 的全部标量（`ready` / `busy` / `cancelling` / `status` / `liveContent` / `pending` / `sessionId` …）+ `instanceId` + `revision` + `items` + `connected` + `pendingEcho` + `answering`（前端本地状态，不在协议里）。
 初始值：`INITIAL_SCALARS` 加 `instanceId: ''`、`revision: -1`、`items: []`、`connected: false`、`pendingEcho: null`、`answering: null`。
 
 | action | 行为 |

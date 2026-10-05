@@ -4,7 +4,7 @@ import type { RootState } from './reducers';
 
 export const selectStream = (state: RootState) => state.stream;
 export const selectItems = (state: RootState) => state.stream.items;
-export const selectLiveText = (state: RootState) => state.stream.liveText;
+export const selectLiveContent = (state: RootState) => state.stream.liveContent;
 export const selectLiveThinking = (state: RootState) => state.stream.liveThinking;
 export const selectBusy = (state: RootState) => state.stream.busy;
 export const selectPending = (state: RootState) => state.stream.pending;
@@ -37,7 +37,7 @@ export const selectProblem = (state: RootState) => state.ui.problem;
 export const selectHeroPhase = (state: RootState): boolean =>
   state.stream.items.length === 0
   && !state.stream.busy
-  && !state.stream.liveText
+  && state.stream.liveContent.length === 0
   && !state.stream.liveThinking
   && state.stream.pendingEcho === null;
 

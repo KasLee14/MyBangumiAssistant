@@ -113,7 +113,7 @@ composer={<ComposerSeat />}
 
 ### `Shell` 从 store 取出的数据（`page/mainPage/Shell.tsx`）
 
-纯展示字段（`items`、`liveText`、`liveThinking`、`busy`、`status`、`cancelling`、`startedAt`、`sessionId`）、交互字段（`pendingEcho`、`reveal`、`collapsed`）与派生布尔 `heroPhase`（`selectHeroPhase`）。动作取 `actions.confirm` / `actions.reject`。
+纯展示字段（`items`、`liveContent`、`liveThinking`、`busy`、`status`、`cancelling`、`startedAt`、`sessionId`）、交互字段（`pendingEcho`、`reveal`、`collapsed`）与派生布尔 `heroPhase`（`selectHeroPhase`）。动作取 `actions.confirm` / `actions.reject`。
 
 **为什么这些字段在 `Shell` 读、而不是让 `Stage` 自己读**：`Stage` 与 `Turn` / `Streaming` / `MessageParts` / `content/**` 是 props 驱动的展示组件，脱离 store 也能渲染（这是它们可被单独复用与测试的前提）。`Shell` 是唯一"知道 store 存在"的那一层。
 

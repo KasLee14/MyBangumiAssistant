@@ -20,7 +20,7 @@ export const INITIAL_SCALARS: ChatScalarsView = {
   proxyLabel: '正在检查网络线路',
   proxyMode: 'auto',
   proxyAddress: '',
-  liveText: '',
+  liveContent: [],
   liveThinking: '',
   pending: null,
   loginPrompt: null,

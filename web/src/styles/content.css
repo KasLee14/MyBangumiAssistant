@@ -1100,3 +1100,39 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
       background: var(--bgm-surface-alt);
   }
 }
+
+/* ---------- 内容块骨架（`pending`：载荷还在传） ----------
+   只做一次性淡入：常驻循环必须"有语义且可关"且默认静止（AGENTS.md §外观层硬约定第 4 条），
+   骨架表达的是"还没到"，不需要无限扫光来强调。`min-height` 兜住骨架→真实数据替换时的
+   布局抖动（不追求与真实块等高：骨架期载荷未知，强求等高反而会引入抖动）。 */
+.contentSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 84px;
+  animation: contentSkeletonIn var(--app-dur-slow) var(--app-ease-out) both;
+}
+
+.contentSkeletonBar {
+  height: 12px;
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-border-soft);
+}
+
+.contentSkeletonTitle {
+  width: 38%;
+  height: 16px;
+}
+
+.contentSkeletonShort {
+  width: 62%;
+}
+
+@keyframes contentSkeletonIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contentSkeleton { animation: none; }
+}

@@ -57,6 +57,7 @@ document.querySelector('.appStage').dataset.phase === 'active'                //
 **预期**
 - 正文逐段出现（流式），伴随 `.running` 状态行与"已运行 N 秒"计时；
 - 生成中出现思考折叠块（若该模型返回思考内容）；
+- 若回答里含内容块（`StatsCard` / `DataTable` 这类），流式期与落成历史条目后**块的数量与顺序一致**；已渲染的内容块不因后续文本继续增长而重播入场动画（结构共享生效）；
 - 完成后流式区清空，同一条内容变为历史条目（`Turn` 里的 `.assistantRow`）；
 - 状态行消失，发送按钮恢复可用。
 
@@ -191,16 +192,22 @@ document.querySelector('#composer-input').value === '回滚测试'
 !!document.querySelector('.appToast')
 ```
 
-## S10 内容条目渲染与降级（需模型或含内容条目的历史会话）
+## S10 内容块渲染与降级（离线可跑，走调试页）
+
+内容块是助手消息 `content` 数组里的一项（见 [../components/content.md](../components/content.md)）。它不由模型产生，来源只有两条：**调试页手粘的 event / frame**，与**扩展注入的 custom 消息**（落盘为 `custom_message`，重建时投影成只含一个块的条目）。
 
 **步骤**
-1. 让模型产出一条富内容（例如"列出这部作品的标签"→ `tags`，或"对比 xx 与 yy"→ `compare`）；
-2. 或恢复一条历史会话，直接观察其中的内容条目。
+1. 打开调试页（主界面顶栏的「组件库」链接旁入口，或 URL 带 `#debug`）；
+2. event 输入框粘一条 `message_end`：`message.role` 为 `assistant`、`message.content` 里含一个内容块（例如 `{ "type":"stats", "props":{…} }`），点「预览」；
+3. 把该块的载荷改成非法形态（例如 `stats.entries` 给成字符串）再粘一次；
+4. 粘一个未登记的块 `type`（例如 `{ "type":"nope" }`）；
+5. 另粘一条 custom 消息（`{ "type":"message_end", "message":{ "role":"custom", "customType":"infobox", "display":true, "details":{ …裸载荷… } } }`）。
 
 **预期**
-- 内容条目按 `kind` 渲染成对应组件（标签云、对比表、进度网格…），样式正常（品牌配色、无溢出）；
-- 数组超限时被**截断**而不是撑爆布局；
-- 若某条目的载荷不合法，渲染**降级块**（问题清单 + 可折叠原始 JSON），而不是白屏或抛错。
+- 第 2 步：内容块按 `type` 渲染成对应组件（统计卡、表格、标签云…），样式正常（品牌配色、无溢出）；数组超限时被**截断**而不是撑爆布局；
+- 第 3 步：渲染**降级块**（问题清单 + 可折叠原始 JSON），而不是白屏或抛错；
+- 第 4 步：该块被丢弃，Console 出现一次 `[content] 未登记的内容块 type「nope」`，同一条里的其它块仍正常渲染；
+- 第 5 步：渲染成一个内容块（`origin: 'extension'` 的单块条目），与重构前的外观一致。
 
 **判定**
 ```js
@@ -225,3 +232,28 @@ document.querySelector('.contentFallback details')?.open
 2026-10-04 离线记录：统一构建后运行上述两个文件及 `web-sessions.test.mjs`，共 17 项通过、0 项跳过。
 Chromium 实测两版部分完成/未知/成功计数、换行与等待文案，并核对外观切换不重连 SSE；
 Pi 回调→Web/SSE 与历史重建通过本地 fixture 验证。未运行真实模型或 Bangumi 账户写入。
+
+## S12 内容块的骨架与落定（离线可跑，走调试页）
+
+这是「内容块」重构的核心行为：文本块流式增长 → 内容块以 `pending` 出现并渲染**骨架** → `pending` 消失后渲染真实数据 → 后续文本块继续流式 → `message_end` 后整批原样落成历史条目。
+
+**步骤**
+1. 打开调试页，**依次**点左侧样例的「7 内容块（骨架）」与「8 组件块（落定与续写）」，每次点完按「预览」；
+2. 先看 7 的结果（文本 + 骨架），再点 8（骨架被真实数据替换、续写文本、落成历史条目）。
+
+**为什么分两次**：调试页把 event **数组按 flush 语义合并成一帧**（那是宿主 40ms 窗口的真实行为），一次喂完整条链路就看不到「骨架 → 真实数据」那一跳。分两次喂时模拟器状态是累积的，合起来仍是完整链路。想逐帧看，也可以把单条 event 逐条粘进去。
+
+**预期**
+- 文本块逐字出现，末尾有流式光标；
+- 第二项出现时渲染**骨架**：不是降级块、不是空白、Console 无 error / warn（此时载荷故意不完整，**不得**走校验降级）；
+- `pending` 消失的那一帧，骨架被真实的统计卡替换；文本与光标保持不动；
+- 第三个文本块继续逐字出现；
+- `message_end` 后流式区清空，上述三块**原样**落成一个历史 assistant 条目：顺序、内容与流式期一致，无跳变。
+
+**判定**
+```js
+// 播放过程中（骨架阶段）
+!!document.querySelector('.contentSkeleton')
+// 落定后：历史条目里仍有内容块，且流式区已清空
+!!document.querySelector('.assistantRow [class*="content"]') && !document.querySelector('.appStreaming')
+```

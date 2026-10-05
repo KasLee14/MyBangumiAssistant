@@ -60,7 +60,7 @@ document.querySelector('.appFrame').dataset.sidebar        // 窗口宽 ≤1024 
 | 条件 | 期望 |
 |---|---|
 | 出现任何条目（通知/命令回显/助手回答） | 离开 hero |
-| 正在流式输出（`busy` 或 `liveText` 非空） | 离开 hero |
+| 正在流式输出（`busy` 或 `liveContent` 非空） | 离开 hero |
 | 有乐观回显气泡（`pendingEcho`） | 离开 hero |
 | 以上都没有 | 停在 hero |
 

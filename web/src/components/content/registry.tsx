@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { TranscriptItemView } from '../../../../bangumi/src/web/protocol';
+import type { MessageBlock } from '../../../../bangumi/src/web/protocol';
 import { Callout } from './Callout';
 import { CompareTable } from './CompareTable';
 import { DataTable } from './DataTable';
@@ -14,27 +14,43 @@ import { TagCloud } from './TagCloud';
 import { Timeline } from './Timeline';
 
 /* ============================================================
- * 内容条目注册表
+ * 内容块注册表
  * ------------------------------------------------------------
- * 把「kind → 渲染器」集中到一张表：新增一种内容展示只要在协议加成员、在这里
- * 加一项，分发逻辑不用改。
+ * 把「type → 渲染器」集中到一张表：新增一种定制组件只要在协议加成员、在这里加一项，
+ * 分发逻辑不用改。
  *
- * 与原先 `switch` + `never` 的穷尽性检查等价：
- * 1. `satisfies { [K in ContentKind]: ContentRenderer<K> }` 要求 12 个键齐全，
- *    且每个 renderer 的参数类型就是它自己的协议成员——载荷字段名拼错会编译失败；
- * 2. 文件末尾的 `ContentRegistryCoverage` 断言协议里不存在未登记的内容 kind，
- *    避免「协议加了第 13 个 kind，但 ContentKind 忘了扩」这种盲区。
+ * 与 `switch` + `never` 的穷尽性检查等价：
+ * 1. `satisfies { [K in ContentKind]: ContentRenderer<K> }` 要求 12 个键齐全，且每个
+ *    renderer 的参数类型就是它自己的协议成员；
+ * 2. 文件末尾的 `ContentRegistryCoverage` 断言协议里不存在未登记的块 type，避免
+ *    「协议加了第 13 个 type，但 ContentKind 忘了扩」这种盲区。
+ *
+ * **表里没有「载荷字段名」这一项**：定制组件的块形状统一为 `{ type, pending?, props }`，
+ * 载荷恒在 `props` 上。所以这张表只有两个字段：可选的数组规模上限、渲染函数。
  * ============================================================ */
 
-/** 12 个内容条目的 kind。 */
+/** 协议里的块类型与内容块类型从这里转出，调用点不必再深入 `protocol.ts`。 */
+export type { ContentBlockView, MessageBlock } from '../../../../bangumi/src/web/protocol';
+
+/**
+ * 12 个定制组件的 `type`。
+ *
+ * 取值就是**组件名**（与 `components/content/` 的文件名一致），因此不再需要「语义名 →
+ * 组件」的对照表：`type` 直接说明该用哪个组件渲染。
+ */
 export type ContentKind =
-  | 'subjects' | 'stats' | 'progress' | 'infobox' | 'table' | 'timeline'
-  | 'tags' | 'gallery' | 'compare' | 'quote' | 'callout' | 'links';
+  | 'SubjectCards' | 'StatsCard' | 'ProgressView' | 'InfoBox' | 'DataTable' | 'Timeline'
+  | 'TagCloud' | 'Gallery' | 'CompareTable' | 'QuoteBlock' | 'Callout' | 'LinkList';
 
-/** 从协议里「挑」出内容成员；不复制类型定义，协议改动会自动传导。 */
-export type ContentItemView = Extract<TranscriptItemView, { kind: ContentKind }>;
+/**
+ * 某个 kind 对应的协议块成员。
+ *
+ * 用 `Extract` 从协议里「挑」，不复制类型定义——协议改动会自动传导到这里的
+ * `render` 签名上。`K` 是 `ContentKind`，因此天然排除文本块。
+ */
+export type ContentBlockOf<K extends ContentKind> = Extract<MessageBlock, { type: K }>;
 
-/** base 条目：本轮不做注册表化，仍由 `Turn` 的分支渲染。 */
+/** base 条目：不做注册表化，仍由 `Turn` 的分支渲染（助手的正文是块数组，也属于这一类）。 */
 export type BaseTranscriptKind =
   | 'header' | 'user' | 'assistant' | 'notice' | 'error' | 'activity' | 'confirmation';
 
@@ -42,7 +58,7 @@ export type BaseTranscriptKind =
  * base 条目的 kind 清单。
  *
  * 定义在这里而不是 `validate.ts`：两处都要用它——接收侧校验靠它放行 base 条目，`Turn`
- * 靠它判断「既不是 base 条目、也不是登记的内容条目」（那是未知 kind 的开发期告警点）。
+ * 靠它判断「既不是 base 条目、也不是内容块」（那是未知形态的开发期告警点）。
  * 清单只此一份。
  */
 export const BASE_KINDS = [
@@ -56,11 +72,12 @@ export function isBaseTranscriptKind(value: unknown): value is BaseTranscriptKin
   return typeof value === 'string' && BASE_KIND_SET.has(value);
 }
 
-/** 某个 kind 的载荷字段名（去掉公共字段）。 */
-export type ContentPayloadKey<K extends ContentKind> =
-  Exclude<keyof Extract<ContentItemView, { kind: K }>, 'id' | 'version' | 'kind'>;
-
-/** 载荷内数组字段的规模上限：超限截断并告警，不判定为非法。 */
+/**
+ * 载荷内数组字段的规模上限：超限截断并告警，不判定为非法。
+ *
+ * `field` 是**载荷内部**的字段名（例如 `props.items` 的 `items`），与块上的字段无关——
+ * 块上的载荷字段恒为 `props`。
+ */
 export interface ArrayLimit {
   /** 载荷对象里的数组字段名，例如 `items`、`entries`、`rows`。 */
   readonly field: string;
@@ -68,18 +85,16 @@ export interface ArrayLimit {
 }
 
 export interface ContentRenderer<K extends ContentKind> {
-  /** 载荷字段名，供校验器与告警文案使用。 */
-  readonly field: ContentPayloadKey<K>;
   /** 建议的数组规模上限；载荷里没有数组时为 undefined。 */
   readonly limit?: ArrayLimit;
-  /** 渲染。传入的 item 已通过校验。 */
-  readonly render: (item: Extract<ContentItemView, { kind: K }>) => ReactNode;
+  /** 渲染。传入的块已通过校验（`pending` 期根本不会走到这里）。 */
+  readonly render: (block: ContentBlockOf<K>) => ReactNode;
 }
 
 /** 12 个 kind 的登记顺序：与 component-library.html 的章节顺序一致。 */
 export const CONTENT_KINDS = [
-  'subjects', 'stats', 'progress', 'infobox', 'table', 'timeline',
-  'tags', 'gallery', 'compare', 'quote', 'callout', 'links',
+  'SubjectCards', 'StatsCard', 'ProgressView', 'InfoBox', 'DataTable', 'Timeline',
+  'TagCloud', 'Gallery', 'CompareTable', 'QuoteBlock', 'Callout', 'LinkList',
 ] as const satisfies readonly ContentKind[];
 
 const KIND_SET: ReadonlySet<string> = new Set<string>(CONTENT_KINDS);
@@ -96,100 +111,75 @@ export function isContentKind(value: unknown): value is ContentKind {
  * 一次生成几百项既没有信息量，也会让流式帧的布局成本失控。
  */
 export const CONTENT_RENDERERS = {
-  subjects: {
-    field: 'subjects',
+  SubjectCards: {
     limit: { field: 'items', max: 50 },
-    render: item => <SubjectCards view={item.subjects} />,
+    render: block => <SubjectCards view={block.props} />,
   },
-  stats: {
-    field: 'stats',
+  StatsCard: {
     limit: { field: 'entries', max: 100 },
-    render: item => <StatsCard view={item.stats} />,
+    render: block => <StatsCard view={block.props} />,
   },
-  progress: {
-    field: 'progress',
+  ProgressView: {
     limit: { field: 'episodes', max: 100 },
-    render: item => <ProgressView view={item.progress} />,
+    render: block => <ProgressView view={block.props} />,
   },
-  infobox: {
-    field: 'info',
+  InfoBox: {
     limit: { field: 'rows', max: 100 },
-    render: item => <InfoBox view={item.info} />,
+    render: block => <InfoBox view={block.props} />,
   },
-  table: {
-    field: 'table',
+  DataTable: {
     limit: { field: 'rows', max: 200 },
-    render: item => <DataTable view={item.table} />,
+    render: block => <DataTable view={block.props} />,
   },
-  timeline: {
-    field: 'timeline',
+  Timeline: {
     limit: { field: 'entries', max: 100 },
-    render: item => <Timeline view={item.timeline} />,
+    render: block => <Timeline view={block.props} />,
   },
-  tags: {
-    field: 'tags',
-    // 这个 kind 的载荷就是数组本身（协议里 `tags` 成员是 `TagCloudItemView[]`），没有
-    // 「载荷内的数组字段」可取，因此不声明 limit。
-    render: item => <TagCloud view={item.tags} />,
+  TagCloud: {
+    // 这个 kind 的 `props` 就是数组本身（协议里 `tags` 成员是 `TagCloudItemView[]`），
+    // 没有「载荷内的数组字段」可取，因此不声明 limit。
+    render: block => <TagCloud view={block.props} />,
   },
-  gallery: {
-    field: 'gallery',
+  Gallery: {
     limit: { field: 'items', max: 50 },
-    render: item => <Gallery view={item.gallery} />,
+    render: block => <Gallery view={block.props} />,
   },
-  compare: {
-    field: 'compare',
+  CompareTable: {
     limit: { field: 'rows', max: 100 },
-    render: item => <CompareTable view={item.compare} />,
+    render: block => <CompareTable view={block.props} />,
   },
-  quote: {
-    field: 'quote',
-    render: item => <QuoteBlock view={item.quote} />,
+  QuoteBlock: {
+    render: block => <QuoteBlock view={block.props} />,
   },
-  callout: {
-    field: 'callout',
-    render: item => <Callout view={item.callout} />,
+  Callout: {
+    render: block => <Callout view={block.props} />,
   },
-  links: {
-    field: 'links',
+  LinkList: {
     limit: { field: 'links', max: 50 },
-    render: item => <LinkList view={item.links} />,
+    render: block => <LinkList view={block.props} />,
   },
 } satisfies { [K in ContentKind]: ContentRenderer<K> };
 
 /**
  * 判别式联合无法直接索引出「对应成员参数的函数」：TS 没有办法表达
- * 「按 `kind` 索引的函数表」，收窄只能在这里做一次。安全性由定义处的
+ * 「按 `type` 索引的函数表」，收窄只能在这里做一次。安全性由定义处的
  * `satisfies` 保证——每个 renderer 的参数类型精确到自己的协议成员。
  *
- * 注意取的是表项本身、再取它的 `render`：`CONTENT_RENDERERS[kind]` 是一个
- * `{ field, limit, render }` 对象，直接把它当函数调用会在运行时炸掉整棵 React
- * 树，而类型断言恰好不会报错——所以这一层必须显式写清楚。
+ * 注意取的是表项本身、再取它的 `render`：`CONTENT_RENDERERS[type]` 是一个
+ * `{ limit, render }` 对象，直接把它当函数调用会在运行时炸掉整棵 React 树，
+ * 而类型断言恰好不会报错——所以这一层必须显式写清楚。
  */
-function rendererOf(kind: ContentKind): ContentRenderer<ContentKind> {
-  return CONTENT_RENDERERS[kind] as ContentRenderer<ContentKind>;
+function rendererOf(type: ContentKind): ContentRenderer<ContentKind> {
+  return CONTENT_RENDERERS[type] as ContentRenderer<ContentKind>;
 }
 
-/** 取某个 kind 的渲染函数；kind 未知时返回 undefined。 */
-export function contentRenderer(kind: unknown): ((item: ContentItemView) => ReactNode) | undefined {
-  return isContentKind(kind) ? rendererOf(kind).render : undefined;
+/** 取某个 type 的渲染函数；type 未知时返回 undefined。 */
+export function contentRenderer(type: unknown): ((block: ContentBlockOf<ContentKind>) => ReactNode) | undefined {
+  return isContentKind(type) ? rendererOf(type).render : undefined;
 }
 
-/**
- * 分发入口。
- *
- * `kind` 不在注册表里时**丢弃**这条（返回 null），不做降级渲染：未知类型没有
- * 可依据的载荷语义，硬渲染一块占位比不渲染更容易误导。这条与 Adaptive Cards
- * 渲染器规范的「未知 type MUST BE DROPPED + SHOULD 告警」一致，告警由调用方
- * （`ContentItem`）负责，避免这里在渲染期产生副作用。
- */
-export function renderContentItem(item: TranscriptItemView): ReactNode {
-  const render = contentRenderer(item.kind);
-  return render === undefined ? null : render(item as ContentItemView);
-}
-
-/** 协议新增内容 kind 而未同步 `ContentKind` 时，这一行会编译失败。 */
+/** 协议新增内容 type 而未同步 `ContentKind` 时，这一行会编译失败。 */
 type AssertNever<T extends never> = T;
 export type ContentRegistryCoverage = AssertNever<
-  Exclude<TranscriptItemView['kind'], ContentKind | BaseTranscriptKind>
+  Exclude<MessageBlock['type'], ContentKind | 'text'>
 >;

@@ -88,7 +88,7 @@ export type AppDispatch = typeof store.dispatch;
 // 首屏：完全空且空闲时才显示引导
 export const selectHeroPhase = (state) =>
   state.stream.items.length === 0 && !state.stream.busy
-  && !state.stream.liveText && !state.stream.liveThinking
+  && state.stream.liveContent.length === 0 && !state.stream.liveThinking
   && state.stream.pendingEcho === null;
 
 // 设置行显示的提供方：没有显式选择时回落到目录里的当前提供方

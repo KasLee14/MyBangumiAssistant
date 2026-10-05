@@ -24,7 +24,12 @@ import {
   type ProxyController,
 } from "../support/proxy-controller.js";
 import { sessionDisplayName } from "../session-title.js";
-import { customContentDraft } from "./custom-content.js";
+import {
+  blocksFromContent,
+  blocksFromMessage,
+  customContentBlocks,
+  hasRenderableBlock,
+} from "./message-blocks.js";
 import { projectWriteActivity } from "./write-activity.js";
 import type { TaskQueue } from "../support/task-queue.js";
 import type {
@@ -35,6 +40,7 @@ import type {
   CommandOptionView,
   ConfirmationView,
   ContextUsageView,
+  MessageBlock,
   ModelOptionView,
   ProviderOptionView,
   SessionOptionView,
@@ -64,9 +70,9 @@ enum AgentSessionEventType {
   AgentStart = "agent_start",
   /** 新消息写入会话：本轮输入已回显时跳过 user 消息，避免出现重复条目。 */
   MessageStart = "message_start",
-  /** 助手消息的流式增量：只累加实时文本与思考预览，不产生会话条目。 */
+  /** 助手消息的流式增量：从 `partial.content` 投影出流式内容块，不产生会话条目。 */
   MessageUpdate = "message_update",
-  /** 一条消息结束：助手消息在此落成条目，并处理 error / aborted 两种停止原因。 */
+  /** 一条消息结束：助手消息在此把内容块落成条目，并处理 error / aborted 两种停止原因。 */
   MessageEnd = "message_end",
   /** 工具开始执行：新建一条「进行中」的活动条目，并按 toolCallId 登记。 */
   ToolExecutionStart = "tool_execution_start",
@@ -272,7 +278,7 @@ export class WebSession {
   private cancelling = false;
   private startedAt = 0;
   private status = "";
-  private liveText = "";
+  private liveBlocks: MessageBlock[] = [];
   private liveThinking = "";
   private loginText = "Bangumi 登录状态未知。";
   private loginState: "signed-in" | "signed-out" = "signed-out";
@@ -342,7 +348,7 @@ export class WebSession {
     this.unsubscribe?.();
     this.unsubscribe = this.runtime.session.subscribe(this.handleEvent);
     this.activities.clear();
-    this.liveText = "";
+    this.liveBlocks = [];
     this.liveThinking = "";
     this.echoPending = false;
     this.settlePending(false);
@@ -440,7 +446,7 @@ export class WebSession {
       proxyAddress: this.proxy.addresses,
       tokenUsage: this.tokenUsage,
       contextUsage: this.contextUsage,
-      liveText: this.liveText,
+      liveContent: this.liveBlocks,
       liveThinking: this.liveThinking,
       pending: this.pending?.view ?? null,
       loginPrompt: this.login ? { id: this.login.id } : null,
@@ -554,9 +560,17 @@ export class WebSession {
     for (const entry of this.runtime.session.sessionManager.buildContextEntries()) {
       // 扩展注入的结构化内容落盘为 `custom_message` 条目（而不是 `message` 条目），走同一份
       // 映射：会话切换或重启后这些卡片能从历史重建，而不是只在产生它的那一轮可见。
+      // 它现在投影成"只含一个块的助手条目"——旧的顶层内容条目已经退场，但这条通道仍然
+      // 必要，因为落盘格式由 Pi 决定，重建时必须认得出来。
       if (entry.type === "custom_message") {
-        const draft = customContentDraft(entry);
-        if (draft) this.push({ ...draft, id: this.nextItemId++ });
+        const blocks = customContentBlocks(entry);
+        if (blocks)
+          this.push({
+            id: this.nextItemId++,
+            kind: "assistant",
+            content: blocks,
+            origin: "extension",
+          });
         continue;
       }
       if (entry.type !== "message") continue;
@@ -566,9 +580,9 @@ export class WebSession {
         if (text.trim())
           this.push({ id: this.nextItemId++, kind: "user", text });
       } else if (message.role === "assistant") {
-        const text = messageText(message);
-        if (text.trim())
-          this.push({ id: this.nextItemId++, kind: "assistant", text });
+        const blocks = blocksFromMessage(message);
+        if (hasRenderableBlock(blocks))
+          this.push({ id: this.nextItemId++, kind: "assistant", content: blocks });
         if (message.stopReason === "error" && message.errorMessage) {
           // 这里拿到的是字符串而非 Error；safeError 会把它压成通用文案，模型错误
           // （401、模型不存在、余额不足）就看不到原因了，只做凭据脱敏即可。
@@ -596,7 +610,7 @@ export class WebSession {
   }
 
   private handleEvent = (event: AgentSessionEvent): void => {
-    console.log("event", event);
+    console.log("event", JSON.stringify(event));
 
     switch (event.type) {
       case AgentSessionEventType.AgentStart:
@@ -621,26 +635,40 @@ export class WebSession {
       }
       case AgentSessionEventType.MessageUpdate: {
         const update = event.assistantMessageEvent;
-        if (update.type === "text_delta") this.liveText += update.delta;
-        else if (update.type === "thinking_delta")
+        // 内容块：不判别 `update.type`（快照是唯一入口），只把 `partial.content` 重新投影。
+        // `text` 也不再靠 delta 累加——快照里的文本是全量，累加只会多出一个真相。
+        // `partial` 缺失或 `content` 不是数组时什么都不做：真实 Pi 事件一定有 partial，
+        // 这道判断只兜住手写样例与将来的形状漂移，**不做 delta 回退**。（联合里的
+        // `done` 成员没有 partial，所以按可选字段取。）
+        const partial = (update as { partial?: { content?: unknown } }).partial;
+        if (partial !== undefined && Array.isArray(partial.content))
+          this.liveBlocks = blocksFromContent(partial.content, this.liveBlocks);
+        // 思考不在块序列里（前端是独立的折叠区），仍按增量累加。
+        if (update.type === "thinking_delta")
           this.liveThinking += update.delta;
         break;
       }
       case AgentSessionEventType.MessageEnd: {
         const message = event.message;
-        // 扩展注入的结构化内容：`customType` 是条目 kind、`details` 是载荷，宿主原样透传，
-        // 由前端注册表决定渲染还是丢弃（见 custom-content.ts）。Pi 对 custom 消息是
+        // 扩展注入的结构化内容：`customType` 是块 type、`details` 是载荷，宿主原样透传，
+        // 由接收侧决定渲染还是丢弃（见 message-blocks.ts）。Pi 对 custom 消息是
         // `message_start` / `message_end` 连发，所以只在 end 处落条目，start 处不处理。
         if (message.role === "custom") {
-          const draft = customContentDraft(message);
-          if (draft) this.push({ ...draft, id: this.nextItemId++ });
+          const blocks = customContentBlocks(message);
+          if (blocks)
+            this.push({
+              id: this.nextItemId++,
+              kind: "assistant",
+              content: blocks,
+              origin: "extension",
+            });
           break;
         }
         if (message.role === "assistant") {
-          const text = messageText(message);
-          if (text.trim())
-            this.push({ id: this.nextItemId++, kind: "assistant", text });
-          this.liveText = "";
+          const blocks = blocksFromMessage(message);
+          if (hasRenderableBlock(blocks))
+            this.push({ id: this.nextItemId++, kind: "assistant", content: blocks });
+          this.liveBlocks = [];
           this.liveThinking = "";
           if (message.stopReason === "error") {
             this.push({

@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { Card, Col, Row, Tag, Typography } from 'antd';
-import { ContentItem } from '../../components/content';
-import { itemOf } from './items';
+import { ContentBlock } from '../../components/content';
+import { blockOf } from './items';
 import { componentHref, navigate } from './router';
 import type { LibrarySection } from './samples';
 import { LIBRARY_SECTIONS } from './samples';
@@ -10,10 +10,10 @@ import { LIBRARY_SECTIONS } from './samples';
  * 总览页：12 张卡片，对应 ant.design 文档站的「组件总览」。
  *
  * 每张卡是「kind 名 + 中文名 + 一句话 + 一张小预览」，点卡片进详情页。
- * 预览用的是**真实 `ContentItem`**，不是缩略图——所以总览页本身也是一次渲染核对。
+ * 预览用的是**真实 `ContentBlock`**，不是缩略图——所以总览页本身也是一次渲染核对。
  */
 function OverviewCard({ section }: { section: LibrarySection }): ReactNode {
-  const item = useMemo(() => itemOf(section.kind, section.payload, 1), [section]);
+  const block = useMemo(() => blockOf(section.kind, section.payload), [section]);
   return (
     <Card
       hoverable
@@ -26,7 +26,7 @@ function OverviewCard({ section }: { section: LibrarySection }): ReactNode {
         {section.summary}
       </Typography.Paragraph>
       <div className="libOverviewPreview" aria-hidden="true">
-        <ContentItem item={item} />
+        <ContentBlock block={block} />
       </div>
     </Card>
   );

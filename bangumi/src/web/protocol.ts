@@ -40,12 +40,11 @@ export interface ActivityItemView extends TranscriptItemBase {
 }
 
 /* ============================================================
- * 内容条目：多样化消息展示
+ * 内容块载荷：多样化消息展示
  * ------------------------------------------------------------
- * 下面这些类型是**协议预留的展示能力**。宿主当前只产生 header / user /
- * assistant / notice / error / activity / confirmation，因此浏览器不会自动
- * 出现这些条目；宿主侧一旦把工具结果或助手回答映射成对应形状，浏览器就能
- * 直接渲染，不需要再改前端。
+ * 下面这些类型描述 12 种内容块各自的载荷（块的信封见下方「消息内容块」）。
+ * 它们是**协议预留的展示能力**：宿主只有在收到上游下发的对应块时才会投影出
+ * 来，浏览器则按块渲染，不需要改前端。
  *
  * 字段命名尽量贴着 Bangumi 官方 API 的响应（subject 的 rating / images /
  * tags、collection 的 type / ep_status 等），减少宿主映射时的转换成本。
@@ -187,24 +186,77 @@ export interface LinkListView {
   links: { label: string; url: string; hint?: string }[];
 }
 
+/* ============================================================
+ * 消息内容块：助手消息的内部结构
+ * ------------------------------------------------------------
+ * 助手消息的 `content` 是一个**有序块数组**：文本块与内容块按数组顺序交替，
+ * 于是"在文本中间插入一个组件"就只是数组里多了一项。前端按块顺序流式渲染：
+ * 文本块实时增长，内容块先渲染骨架、`pending` 消失后渲染真实数据。
+ *
+ * 三个关键约定（由下发方遵守，宿主只做投影）：
+ * 1. 块只出现在 `message_update.assistantMessageEvent.partial.content` 与
+ *    `message_end.message.content` 里；
+ * 2. 同一个 `contentIndex` 被多次快照**整体替换**，`pending: true` 表示这一块的
+ *    载荷还在传（期间可以缺字段），该字段消失表示"传完了，且此后内容不再变"；
+ * 3. 数组顺序即渲染顺序。
+ *
+ * 为什么块用 `type` 而不是条目的 `kind`：文本块的形状与 Pi 的 `TextContent` 一致
+ * （`{ type: 'text', text }`），上游可以直接透传快照，不需要为显示层做一次改名。
+ * ============================================================ */
+
+/** 文本块：与 Pi 的 `TextContent` 同形。 */
+export interface TextBlock {
+  type: 'text';
+  text: string;
+}
+
+/**
+ * 12 种定制组件的载荷。
+ *
+ * 块的形状对 12 种组件**完全统一**：`{ type, pending?, props }`。`type` 的取值就是
+ * **组件库里的组件名**（`SubjectCards` / `TagCloud` / …，与 `components/content/` 的文件名
+ * 一致），组件需要的参数一律写在 `props` 里。
+ *
+ * 这样标识只有一个来源（组件名本身），不必再维护「语义名 → 组件」的对照：
+ * 读到 `type: 'DataTable'` 就知道渲染哪个组件。
+ *
+ * 只适用于**定制组件**：文本块保持 Pi 的原生形状 `{ type:'text', text }`（见 `TextBlock`），
+ * 因此上游下发的快照里文本块可以直接透传，不必为显示层多做一次映射。
+ */
+type ContentBlockPayload =
+  | { type: 'SubjectCards'; props: SubjectCollectionView }
+  | { type: 'StatsCard'; props: StatsView }
+  | { type: 'ProgressView'; props: ProgressView }
+  | { type: 'InfoBox'; props: InfoBoxView }
+  | { type: 'DataTable'; props: TableView }
+  | { type: 'Timeline'; props: TimelineView }
+  | { type: 'TagCloud'; props: TagCloudItemView[] }
+  | { type: 'Gallery'; props: GalleryView }
+  | { type: 'CompareTable'; props: CompareView }
+  | { type: 'QuoteBlock'; props: QuoteView }
+  | { type: 'Callout'; props: CalloutView }
+  | { type: 'LinkList'; props: LinkListView };
+
+/**
+ * 内容块。
+ *
+ * `pending` 只在流式期出现，含义是「这一块的载荷还在传」——前端据此渲染骨架，
+ * **不校验载荷**（骨架与降级卡是两件事：前者是"还没到"，后者是"到了但不对"）。
+ * 交叉而不是在 12 个分支里各写一遍，是为了让判别字段 `type` 与穷尽性检查保持原样。
+ */
+export type ContentBlockView = ContentBlockPayload & { pending?: boolean };
+
+/** 助手消息内容块的联合。 */
+export type MessageBlock = TextBlock | ContentBlockView;
+
 export type TranscriptItemView =
   | (TranscriptItemBase & { kind: 'header'; text: string })
-  | (TranscriptItemBase & { kind: 'user' | 'assistant' | 'notice' | 'error'; text: string })
+  | (TranscriptItemBase & { kind: 'user' | 'notice' | 'error'; text: string })
+  // 助手消息：内容块数组（见上方「消息内容块」）。扩展注入的结构化内容也投影成
+  // 这一形态（单块），`origin` 只用于排查与将来的样式区分，不参与渲染分支。
+  | (TranscriptItemBase & { kind: 'assistant'; content: MessageBlock[]; origin?: 'extension' })
   | ActivityItemView
-  | (TranscriptItemBase & { kind: 'confirmation'; confirmation: ConfirmationView })
-  // 内容条目（见上方说明：宿主当前不产生这些 kind）
-  | (TranscriptItemBase & { kind: 'subjects'; subjects: SubjectCollectionView })
-  | (TranscriptItemBase & { kind: 'stats'; stats: StatsView })
-  | (TranscriptItemBase & { kind: 'progress'; progress: ProgressView })
-  | (TranscriptItemBase & { kind: 'infobox'; info: InfoBoxView })
-  | (TranscriptItemBase & { kind: 'table'; table: TableView })
-  | (TranscriptItemBase & { kind: 'timeline'; timeline: TimelineView })
-  | (TranscriptItemBase & { kind: 'tags'; tags: TagCloudItemView[] })
-  | (TranscriptItemBase & { kind: 'gallery'; gallery: GalleryView })
-  | (TranscriptItemBase & { kind: 'compare'; compare: CompareView })
-  | (TranscriptItemBase & { kind: 'quote'; quote: QuoteView })
-  | (TranscriptItemBase & { kind: 'callout'; callout: CalloutView })
-  | (TranscriptItemBase & { kind: 'links'; links: LinkListView });
+  | (TranscriptItemBase & { kind: 'confirmation'; confirmation: ConfirmationView });
 
 /** Pi 的思考强度名称；`off` 表示关闭思考。 */
 export type ThinkingLevelName = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
@@ -308,8 +360,8 @@ export interface ChatScalarsView {
   proxyMode: 'auto' | 'direct' | 'manual';
   /** 当前生效的代理地址；直连或未发现代理时为空字符串。 */
   proxyAddress: string;
-  /** 正在流式输出的助手文本与思考文本。 */
-  liveText: string;
+  /** 正在流式输出的助手内容块与思考文本；思考不进块序列（见 Streaming 的折叠块）。 */
+  liveContent: MessageBlock[];
   liveThinking: string;
   /** 等待浏览器确认的写入预览。 */
   pending: ConfirmationView | null;
