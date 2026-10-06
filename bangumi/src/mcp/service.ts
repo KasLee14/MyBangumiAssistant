@@ -15,14 +15,30 @@ import { accountRead, normalizeSubject } from './account-read.js';
 import { collectionMatch, dateMatches, fullDate, type DateBounds } from './collection-query.js';
 import { batchScope, batchPreparation, type BatchPreparation, type McpBatchScope } from './batch-context.js';
 import { PersonCharactersQuery } from './person-characters.js';
+import { PersonCandidates, type PersonCandidatePage } from './person-candidates.js';
+import { resourceOutputSchema } from './resource-schemas.js';
 import { compileSubjectSearch, applySearchPlan, requireBrowseCoverage } from './search-capabilities.js';
 import { planRead } from './read-routing.js';
 import type { McpReadContext } from './read-context.js';
 import { executeReadRecovery, clearReadRecoveryScope } from './read-recovery.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { CandidateStore, candidateRow, candidateSourceRef, mergeCandidateFacts, mergeCandidateSources, type CandidateBinding } from './candidate-store.js';
+import { CandidateQuery, evaluateCandidateFacts } from './candidate-query.js';
+import { CandidateReaders, candidateSubjectForm } from './candidate-readers.js';
+import { durationFacts, normalizeCandidateDate } from './subject-facts.js';
+import { RelationQuery, type RelationReadPage } from './relation-query.js';
+import type { RelationQueryArgs, CandidateLineageResponse } from './relation-contract.js';
+import { prepareCandidateOutput } from './candidate-output.js';
+import type { CandidateOutputArgs } from './candidate-output-contract.js';
+import { CANDIDATE_FIELDS, PERSONAL_CANDIDATE_FIELDS, checkCandidateResponse, type CandidateSeed, type CandidateSource,
+  type CandidateQueryArgs, type CandidateRow, type CandidateField, type CandidateFactPatch, type CandidateSourceReadState } from './candidate-contract.js';
+import { CollectionReader, type CollectionReadBinding, type CollectionSourceRow, type CollectionSourceScope,
+  type CollectionIndexInfo, type CollectionLookup } from './collection-reader.js';
 
 export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline; batchPreparation?: BatchPreparation }
 type ObjectValue = Record<string, unknown>;
+type CandidateDetailCapture = { allowAccount: boolean; binding: CandidateBinding; context: AccessContext;
+  raw?: ObjectValue; source?: AccessContext['source']; accountId?: number | null };
 function obj(value: unknown, label = 'Bangumi响应'): ObjectValue {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new AppError('INVALID_RESPONSE', `${label}必须是对象。`);
   return value as ObjectValue;
@@ -32,6 +48,11 @@ function positive(value: unknown): number {
   return value;
 }
 function compact(input: ObjectValue): ObjectValue { return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)); }
+function stableCandidateKey(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableCandidateKey);
+  if (value !== null && typeof value === 'object') return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, stableCandidateKey(item)]));
+  return value;
+}
 /** 上界/下界由已验证的有类型参数编译；模型不能提交原始查询表达式。 */
 function searchFilter(args: ObjectValue): ObjectValue {
   const input = args.filter === undefined ? {} : obj(args.filter);
@@ -90,21 +111,74 @@ function canonicalRelated(value: unknown): ObjectValue {
 
 /** 公共读取独立于登录；本人/写入绑定账户，NSFW仅在需要时核实。 */
 export class BangumiMcpService {
+  private readonly candidates = new CandidateStore();
+  private readonly collections = new CollectionReader();
+  private readonly collectionCandidates = new Map<string, { turnId: string; ref: string; inputRef: string }>();
+  private readonly sourceCandidateStages = new Map<string, { turnId: string; ref: string; inputRef: string; sourceRef: string }>();
+  private readonly candidateDetailCapture = new AsyncLocalStorage<CandidateDetailCapture>();
+  private readonly nativeCandidateDetails = new Map<string, { turnId: string; bytes: number; raw: ObjectValue; context: AccessContext }>();
+  private nativeCandidateDetailBytes = 0;
+  private nativeCandidateDetailEpoch = 0;
   private readonly community: CommunityReader;
   private readonly personCharacters: PersonCharactersQuery;
+  private readonly personCandidates: PersonCandidates;
+  private readonly relations: RelationQuery;
+  private readonly relationRun = new AsyncLocalStorage<{ context: AccessContext; binding: CandidateBinding }>();
+  private readonly relationCapture = new AsyncLocalStorage<{ raw?: unknown[]; allowAccount: boolean }>();
+  private readonly relationSources = new Map<string, { turnId: string; raw: unknown[]; context: AccessContext }>();
   private readonly readTurns = new Set<string>();
   private readonly readContexts = new AsyncLocalStorage<McpReadContext>();
+  private readonly candidateWork = new AsyncLocalStorage<number>();
   private batchContext: { id: string; phase: McpBatchScope['phase']; context: AccessContext; usedNsfw: boolean } | undefined;
   constructor(private readonly transport: McpTransport) {
     this.community = new CommunityReader(transport);
     this.personCharacters = new PersonCharactersQuery(transport);
+    this.personCandidates = new PersonCandidates(this.candidates, {
+      shouldYield: () => this.candidateShouldYield(),
+      readPage: async (args, context, signal) => {
+        const raw = obj(await this.personCharacterPage(args, context, signal, true));
+        const normalized = resourceResult('get_person_characters', raw, args);
+        checkResourceResponse('get_person_characters', normalized, args, resourceOutputSchema('get_person_characters')!);
+        return raw as PersonCandidatePage;
+      },
+    });
+    this.relations = new RelationQuery(this.candidates, {
+      shouldYield: () => this.candidateShouldYield(),
+      readRelations: (parentId, offset, limit, signal) => this.readCandidateRelations(parentId, offset, limit, signal),
+      loadFacts: (row, fields, include, signal, args) => {
+        const run = this.relationRun.getStore();
+        if (!run) throw new AppError('INTERNAL_ERROR', '关联候选缺少宿主读取上下文。');
+        return this.loadCandidateFacts(row, fields, include, run.context, run.binding, signal, args ?? {});
+      },
+      lookupCollection: (ref, rows) => {
+        const run = this.relationRun.getStore();
+        if (!run) throw new AppError('INTERNAL_ERROR', '关联候选缺少宿主读取上下文。');
+        const lookups = this.collections.lookup(ref, rows.map(row => row.id), this.collectionBinding(run.context, ref));
+        return rows.map((row, index) => {
+          const lookup = lookups[index]!;
+          return row.facts.subjectType === lookup.scope.subject_type
+            ? { id: row.id, facts: lookup.personalFacts, fieldStates: lookup.fieldStates, excludesCollectionTypes: lookup.excludesCollectionTypes }
+            : { id: row.id, facts: {} };
+        });
+      },
+    });
   }
   close(): Promise<void> {
+    this.clearCandidateDetails();
+    this.candidates.close(); this.collections.clear(); this.collectionCandidates.clear(); this.sourceCandidateStages.clear();
+    this.relations.close(); this.relationSources.clear();
     this.community.clear(); this.personCharacters.clear();
     for (const turnId of this.readTurns) this.endReadContext(turnId);
     return this.transport.close();
   }
   endReadContext(turnId: string): void {
+    this.clearCandidateDetails(turnId);
+    this.candidates.endReadContext(turnId); this.collections.clearReadContext(turnId);
+    this.relations.endReadContext(turnId);
+    this.personCandidates.endReadContext(turnId);
+    for (const [key, value] of this.relationSources) if (value.turnId === turnId) this.relationSources.delete(key);
+    for (const [key, value] of this.collectionCandidates) if (value.turnId === turnId) this.collectionCandidates.delete(key);
+    for (const [key, value] of this.sourceCandidateStages) if (value.turnId === turnId) this.sourceCandidateStages.delete(key);
     clearReadRecoveryScope(turnId); this.transport.clearReadContext?.(turnId); this.readTurns.delete(turnId);
   }
   private async identity(signal?: AbortSignal): Promise<AccessContext> {
@@ -183,12 +257,12 @@ export class BangumiMcpService {
   private async readResource(path: string, options: import('./transport.js').McpRequestOptions, context: AccessContext, signal?: AbortSignal): Promise<unknown> {
     return context.account ? accountRead(this.transport, path, options, context, signal) : this.transport.public(path, options, signal);
   }
-  private async personCharacterPage(args: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<unknown> {
+  private async personCharacterPage(args: ObjectValue, context: AccessContext, signal?: AbortSignal, candidateMode = false): Promise<unknown> {
     if (context.account && this.transport.bindReadScope) {
       const scope = await this.transport.bindReadScope(context, signal);
       try {
         return await this.personCharacters.call(args, context, signal, {
-          scopeKey: scope.key, readAccount: scope.account, verifyScope: scope.verify,
+          scopeKey: scope.key, readAccount: scope.account, verifyScope: scope.verify, candidateMode,
           resolveNsfw: () => this.allowNsfw(context, signal),
         });
       } finally { await scope.close(); }
@@ -198,7 +272,7 @@ export class BangumiMcpService {
       if (context.account) await this.assertAccount(context.account.id, signal);
     };
     return this.personCharacters.call(args, context, signal, {
-      scopeKey: JSON.stringify([context.account, this.readContexts.getStore()?.turnId ?? 'embedded']), verifyScope,
+      scopeKey: JSON.stringify([context.account, this.readContexts.getStore()?.turnId ?? 'embedded']), verifyScope, candidateMode,
       resolveNsfw: () => this.allowNsfw(context, signal),
       readAccount: (path, options) => this.transport.account(path, { ...options,
         ...(context.account ? { expectedAccountId: context.account.id } : {}) }, signal),
@@ -316,8 +390,22 @@ export class BangumiMcpService {
   async call(name: string, argumentsValue: unknown, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope, readContext?: McpReadContext): Promise<unknown> {
     const args = validateToolArguments(name, argumentsValue);
     if (readContext) this.readTurns.add(readContext.turnId);
-    const operation = () => this.callScoped(name, args, signal, guard, batch);
-    const execute = () => executeReadRecovery(name, args, operation, {
+    const deadline = performance.now() + 45_000;
+    const operation = () => ['refine_subject_candidates', 'expand_subject_relations', 'continue_subject_query'].includes(name) || args.result_mode === 'candidates'
+      ? this.candidateWork.run(deadline, () => this.callScoped(name, args, signal, guard, batch)) : this.callScoped(name, args, signal, guard, batch);
+    const publicOperation = async (): Promise<unknown> => {
+      try { return await operation(); }
+      catch (error) {
+        // 内部读取失败以本次公开工具为边界返回，不能因sourceTool仍是子工具而被客户端改成契约错误。
+        if (findToolDefinition(name).effect === 'read' && error instanceof AppError && error.sourceTool && error.sourceTool !== name) {
+          const scoped = new AppError(error.code, error.message, error.accessContext);
+          Object.defineProperty(scoped, 'sourceTool', { value: name });
+          throw scoped;
+        }
+        throw error;
+      }
+    };
+    const execute = () => executeReadRecovery(name, args, publicOperation, {
       ...(readContext ? { turnId: readContext.turnId } : {}), ...(signal ? { signal } : {}),
       ...(batch ? { maxRetries: 0 } : {}),
     });
@@ -326,9 +414,10 @@ export class BangumiMcpService {
   private async callScoped(name: string, argumentsValue: unknown, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope): Promise<unknown> {
     const args = validateToolArguments(name, argumentsValue);
     const definition = findToolDefinition(name);
+    const detailEpoch = this.nativeCandidateDetailEpoch;
     if (definition.effect === 'write' && !guard) throw new AppError('AUTHORIZATION_REQUIRED', '写入需要宿主绑定账户及具体操作的授权。');
     // 私人状态只描述读取时的快照；任何已授权写入都会使本连接的关系快照失效。
-    if (definition.effect === 'write') this.personCharacters.clear();
+    if (definition.effect === 'write') { this.clearCandidateDetails(); this.personCharacters.clear(); this.candidates.close(); this.collections.clear(); this.collectionCandidates.clear(); this.sourceCandidateStages.clear(); this.relations.close(); this.relationSources.clear(); }
     let context = anonymousContext();
     let checked = false;
     let dispatched = false;
@@ -366,6 +455,17 @@ export class BangumiMcpService {
     else if (guard?.batchPreparation) throw new AppError('AUTHORIZATION_REQUIRED', '冻结快照只能在宿主批次上下文中提交。');
     else {
       const route = planRead(name, args);
+      if (['refine_subject_candidates', 'expand_subject_relations', 'get_candidate_coverage', 'get_candidate_lineage', 'continue_subject_query', 'prepare_candidate_output'].includes(name) || args.result_mode === 'candidates') {
+        const owner = this.candidateOwner();
+        const ref = args.candidate_ref ?? args.merge_ref;
+        if (typeof ref === 'string') {
+          const stored = this.candidates.peekBinding(ref, owner);
+          if (stored.binding.accountId !== null) route.requiresIdentity = true;
+          else if (stored.binding.scopeKey.startsWith('public:collections:')) route.requiresIdentity = false;
+        }
+        if (typeof args.collection_ref === 'string' && this.collections.peek(args.collection_ref, owner).binding.accountId !== null) route.requiresIdentity = true;
+        if (typeof args.coverage_ref === 'string' && this.candidates.peekCoverageBinding(args.coverage_ref, owner).binding.accountId !== null) route.requiresIdentity = true;
+      }
       if (route.requiresIdentity || route.requiresNsfw) {
         try {
           context = await this.identity(signal);
@@ -395,7 +495,7 @@ export class BangumiMcpService {
     try { value = await this.dispatch(name, args, context, signal, guard); }
     catch (error) {
       const route = planRead(name, args);
-      if (batch || guard || context.account || !route.canFallbackToAccount || !(error instanceof AppError) || error.code !== 'BGM_HTTP_404') throw error;
+      if (batch || guard || context.account || this.relationCapture.getStore()?.allowAccount === false || this.candidateDetailCapture.getStore()?.allowAccount === false || !route.canFallbackToAccount || !(error instanceof AppError) || error.code !== 'BGM_HTTP_404') throw error;
       const initial = error;
       try {
         const account = await this.identity(signal);
@@ -406,19 +506,26 @@ export class BangumiMcpService {
         value = await this.dispatch(name, args, context, signal);
       } catch (fallback) {
         if (signal?.aborted || fallback instanceof AppError && fallback.code === 'CANCELLED') throw fallback;
+        if (this.relationCapture.getStore()?.allowAccount && fallback instanceof AppError
+          && ['ACCOUNT_CHANGED', 'BGM_AUTH_EXPIRED', 'BGM_AUTH_REQUIRED', 'NSFW_SCOPE_CHANGED', 'NSFW_SCOPE_MISMATCH'].includes(fallback.code)) throw fallback;
         throw initial;
       }
     }
-    if (definition.effect === 'read' && !context.account && this.hasNsfw(value) && planRead(name, args).canFallbackToAccount) {
+    if (definition.effect === 'read' && !context.account && this.relationCapture.getStore()?.allowAccount !== false && this.candidateDetailCapture.getStore()?.allowAccount !== false && this.hasNsfw(value) && planRead(name, args).canFallbackToAccount) {
       try {
         const account = await this.identity(signal);
         if (account.account) {
           await this.nsfw(account, signal);
           if (account.nsfw.allowed === true && account.nsfw.preference !== false) {
-            context = account; value = await this.dispatch(name, args, context, signal);
+            const recovered = await this.dispatch(name, args, account, signal);
+            context = account; value = recovered;
           }
         }
-      } catch (error) { if (signal?.aborted || error instanceof AppError && error.code === 'CANCELLED') throw error; }
+      } catch (error) {
+        if (signal?.aborted || error instanceof AppError && error.code === 'CANCELLED') throw error;
+        if (this.relationCapture.getStore()?.allowAccount && error instanceof AppError
+          && ['ACCOUNT_CHANGED', 'BGM_AUTH_EXPIRED', 'BGM_AUTH_REQUIRED', 'NSFW_SCOPE_CHANGED', 'NSFW_SCOPE_MISMATCH'].includes(error.code)) throw error;
+      }
     }
     if (definition.effect === 'read' && value && typeof value === 'object' && !Array.isArray(value) && name !== 'query_user_collections') value = await this.gateNsfw(obj(value), context, signal);
     let result = value;
@@ -440,7 +547,10 @@ export class BangumiMcpService {
       result = { schemaVersion: 1, kind: 'weekly_schedule', data, complete: data.length === 7 && data.every(day => day.subjects.page.complete),
         visibility: 'public', readAt: new Date().toISOString() };
     }
-    if (definition.effect === 'read' && !['query_user_collections','get_subject_details','get_user_collections','get_index_subjects','search_subjects','browse_subjects','get_subject_relations','get_character_subjects','get_person_subjects','get_daily_broadcast'].includes(name)) {
+    if (args.result_mode === 'candidates' && ['search_subjects', 'browse_subjects', 'get_user_collections'].includes(name)) {
+      result = await this.recallCandidates(name, obj(result), args, context, signal);
+    }
+    if (definition.effect === 'read' && !(name === 'get_person_characters' && args.result_mode === 'candidates') && !['refine_subject_candidates','expand_subject_relations','get_candidate_coverage','get_candidate_lineage','continue_subject_query','prepare_candidate_output','query_user_collections','get_subject_details','get_user_collections','get_index_subjects','search_subjects','browse_subjects','get_subject_relations','get_character_subjects','get_person_subjects','get_daily_broadcast'].includes(name)) {
       result = resourceResult(name, value, args);
       checkResourceResponse(name, result, args, definition.outputSchema!);
     }
@@ -460,8 +570,21 @@ export class BangumiMcpService {
       catch (error) { if (definition.effect === 'write') throw new SubmissionError('MCP_INVALID_RESULT', '提交回执不符合固定输出契约；仍须独立核实。', result as import('../support/errors.js').SubmissionReceipt); throw error; }
     }
     if (definition.effect === 'write') checkSubmission(name, result, args, guard!.accountId, guard?.subjectId, guard?.prepared);
-    checkSubjectResponse(name, result, args);
+    checkSubjectResponse(name, result, args, definition.inputSchema);
     await readScope?.verify();
+    if (name === 'get_subject_details' && detailEpoch === this.nativeCandidateDetailEpoch) {
+      const capture = this.candidateDetailCapture.getStore();
+      // 候选内部读取在调用返回后的来源标记核对结束后提交缓存。
+      if (capture) Object.assign(capture, { raw: obj(value), source: context.source, accountId: context.account?.id ?? null });
+      else {
+        const binding = this.candidateBinding(context);
+        const seed = this.candidateSeed(obj(result));
+        this.candidates.cacheResourceFacts(binding, { ...seed, requiresNsfw: seed.requiresNsfw || context.nsfwApplied,
+          sources: [{ tool: name, source: context.source, scope: JSON.stringify({ subject_id: args.subject_id, include: args.include }),
+            complete: true, scannedCount: 1, total: 1, nextOffset: null, privateRecords: 'not_applicable' }] });
+        this.cacheCandidateDetails(obj(value), context, binding, Number(args.subject_id), context);
+      }
+    }
     return result;
     } catch (error) {
       if (!(error instanceof AppError)) error = new AppError(signal?.aborted ? 'CANCELLED' : 'INTERNAL_ERROR', signal?.aborted ? '操作已取消，未返回未核实的结果。' : '本地 MCP 操作异常，未将其解释为资源不存在或未收藏。');
@@ -498,8 +621,58 @@ export class BangumiMcpService {
     }
     const id = (key: string): number => Number(args[key]); const limit = Number(args.limit ?? 30); const offset = Number(args.offset ?? 0);
     const publicCall = (path: string, options: { method?: string; query?: ObjectValue; body?: unknown } = {}): Promise<unknown> => this.readResource(path, options, context, signal);
-    if (name === 'get_person_characters') return this.personCharacterPage(args, context, signal);
-    if (name === 'query_user_collections') return this.queryCollections(args, context, signal);
+    if (name === 'get_person_characters') return args.result_mode === 'candidates'
+      ? this.personCandidates.execute(args, this.candidateBinding(context, typeof args.merge_ref === 'string' ? args.merge_ref : undefined), context, signal)
+      : this.personCharacterPage(args, context, signal);
+    if (name === 'refine_subject_candidates') return this.refineCandidates(args, context, signal);
+    if (name === 'expand_subject_relations') return this.expandCandidates(args, context, signal);
+    if (name === 'continue_subject_query') {
+      const binding = this.candidateBinding(context, String(args.candidate_ref));
+      const display = { ...(args.response_view === undefined ? {} : { response_view: args.response_view as 'page' | 'reference' }),
+        ...(args.limit === undefined ? {} : { limit: Number(args.limit) }) };
+      const plan = String(args.cursor).startsWith('rc_')
+        ? this.relations.continuation(String(args.candidate_ref), String(args.cursor), binding, display)
+        : this.candidates.continuation(String(args.candidate_ref), String(args.cursor), binding, display);
+      const originalRoute = planRead(plan.tool, plan.request);
+      if (originalRoute.requiresIdentity && !context.account) throw new AppError('BGM_AUTH_REQUIRED', '原阶段的本人范围需要匹配账户，不能匿名继续。');
+      if (originalRoute.requiresNsfw) await this.nsfw(context, signal, true);
+      const result = await this.dispatch(plan.tool, plan.request, context, signal);
+      return { schemaVersion: 1, kind: 'candidate_continuation', ...plan, result: { ...obj(result), accessContext: context }, scope: { ...args } };
+    }
+    if (name === 'prepare_candidate_output') {
+      const binding = this.candidateBinding(context, String(args.candidate_ref));
+      const set = this.candidates.get(String(args.candidate_ref), binding);
+      if (set.requiresNsfw || set.rows.some(row => row.requiresNsfw || row.facts.nsfw === true)) {
+        await this.nsfw(context, signal, true);
+        if (!context.account || context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '展示快照的NSFW权限已改变。');
+      }
+      const lineage = (ref: string, ids: number[], owner: CandidateBinding) => {
+        const data: CandidateLineageResponse['data'] = [];
+        for (let index = 0; index < ids.length; index += 100) data.push(...this.relations.readLineage({
+          candidate_ref: ref, subject_ids: ids.slice(index, index + 100), limit: 100,
+        }, owner, context).data);
+        return data;
+      };
+      return prepareCandidateOutput(this.candidates, args as unknown as CandidateOutputArgs, binding, context, lineage);
+    }
+    if (name === 'get_candidate_lineage') {
+      const binding = this.candidateBinding(context, String(args.candidate_ref));
+      if (this.candidates.peekBinding(String(args.candidate_ref), binding.turnId).requiresNsfw) {
+        await this.nsfw(context, signal, true);
+        if (!context.account || context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '回溯快照的NSFW权限已改变。');
+      }
+      return this.relations.readLineage(args, binding, context);
+    }
+    if (name === 'get_candidate_coverage') {
+      const stored = this.candidates.peekCoverageBinding(String(args.coverage_ref), this.candidateOwner());
+      if (stored.requiresNsfw) {
+        await this.nsfw(context, signal, true);
+        if (!context.account || context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '覆盖快照的NSFW权限已改变。');
+      }
+      return new CandidateQuery(this.candidates, { loadFacts: async () => ({ facts: {} }) }).readCoverage(args, { ...stored.binding, accountId: context.account?.id ?? null }, context);
+    }
+    if (name === 'query_user_collections') return args.result_mode === 'candidates'
+      ? this.queryCollectionCandidates(args, context, signal) : this.queryCollections(args, context, signal);
     if (name === 'get_daily_broadcast') {
       const calendar = await publicCall('/calendar');
       if (!Array.isArray(calendar)) throw new AppError('INVALID_RESPONSE', '放送日历必须按星期组织。');
@@ -517,10 +690,20 @@ export class BangumiMcpService {
       requireBrowseCoverage(args.nsfw, context, !context.account || args.platform !== undefined);
       return browseSourceWindow(await publicCall('/v0/subjects', { query: compact({ type: args.subject_type, cat: args.cat, series: args.series, platform: args.platform, sort: args.sort, year: args.year, month: args.month, limit, offset }) }), args);
     }
-    if (name === 'get_subject_details') return canonicalSubject(await publicCall(`/v0/subjects/${id('subject_id')}`));
+    if (name === 'get_subject_details') {
+      const value = canonicalSubject(await publicCall(`/v0/subjects/${id('subject_id')}`));
+      return value;
+    }
     if (name === 'get_episode_details') return publicCall(`/v0/episodes/${id('episode_id')}`);
     if (name === 'get_episodes') return publicCall('/v0/episodes', { query: compact({ subject_id: args.subject_id, type: args.episode_type, limit, offset }) });
-    if (name === 'get_subject_relations') return this.relationPage(await publicCall(`/v0/subjects/${id('subject_id')}/subjects`), limit, offset);
+    if (name === 'get_subject_relations') {
+      const raw = await publicCall(`/v0/subjects/${id('subject_id')}/subjects`);
+      const capture = this.relationCapture.getStore();
+      if (capture && Array.isArray(raw)) capture.raw = raw;
+      const page = this.relationPage(raw, limit, offset);
+      // 展开用完整父来源固定可见范围；不能等后页才发现R18并改变已冻结总数。
+      return capture && this.hasNsfw(raw) ? { ...page, nsfw: true } : page;
+    }
     for (const entity of ['subject', 'character', 'person'] as const) {
       const plural = entity === 'person' ? 'persons' : `${entity}s`; const target = id(`${entity}_id`);
       if (name === `get_${entity}_details`) return publicCall(`/v0/${plural}/${target}`);
@@ -614,6 +797,415 @@ export class BangumiMcpService {
       }
     }
     throw new AppError('UNKNOWN_TOOL', '工具没有固定 API 映射。');
+  }
+  private candidateOwner(): string { return this.readContexts.getStore()?.turnId ?? 'embedded'; }
+  private candidateShouldYield(): boolean { const deadline = this.candidateWork.getStore(); return deadline !== undefined && performance.now() >= deadline; }
+  private candidateBinding(context: AccessContext, ref?: string): CandidateBinding {
+    const turnId = this.candidateOwner();
+    return { turnId, accountId: context.account?.id ?? null,
+      scopeKey: ref ? this.candidates.peekBinding(ref, turnId).binding.scopeKey : context.account ? `account:${context.account.id}` : 'public:sfw' };
+  }
+  private collectionBinding(context: AccessContext, ref?: string): CollectionReadBinding {
+    const readContextId = this.candidateOwner();
+    return ref ? { ...this.collections.peek(ref, readContextId).binding, accountId: context.account?.id ?? null }
+      : { readContextId, accountId: context.account?.id ?? null, source: context.account ? 'p1' : 'v0' };
+  }
+  private candidateSeed(value: ObjectValue, personal?: ObjectValue): CandidateSeed {
+    const facts = Object.fromEntries(CANDIDATE_FIELDS.filter(field => Object.hasOwn(value, field)).map(field => [field, value[field]]));
+    if (Object.hasOwn(value, 'date')) facts.date = normalizeCandidateDate(value.date);
+    facts.subjectForm = candidateSubjectForm(value);
+    if (Object.hasOwn(value, 'infobox')) Object.assign(facts, durationFacts(value));
+    if (personal) {
+      facts.collectionState = 'collected';
+      for (const field of ['collectionStatus', 'personalRating', 'personalTags', 'personalComment']) facts[field] = personal[field] ?? null;
+    }
+    return { id: positive(value.id), facts };
+  }
+  private clearCandidateDetails(turnId?: string): void {
+    this.nativeCandidateDetailEpoch++;
+    for (const [key, entry] of this.nativeCandidateDetails) if (turnId === undefined || entry.turnId === turnId) {
+      this.nativeCandidateDetails.delete(key); this.nativeCandidateDetailBytes -= entry.bytes;
+    }
+  }
+  private candidateDetailKey(context: AccessContext, binding: CandidateBinding, id: number): string | undefined {
+    return binding.turnId === 'embedded' ? undefined
+      : JSON.stringify([binding.turnId, binding.accountId, binding.scopeKey, context.nsfw.preference, context.nsfw.allowed, id]);
+  }
+  /** 保存固定详情资源的完整body；模型可见投影不影响后续字段复用。 */
+  private cacheCandidateDetails(value: ObjectValue, context: AccessContext, binding: CandidateBinding, id: number, scopeContext: AccessContext): void {
+    if (binding.turnId !== this.candidateOwner() || binding.accountId !== (scopeContext.account?.id ?? null)
+      || context.account !== null && context.account.id !== binding.accountId) return;
+    const key = this.candidateDetailKey(scopeContext, binding, id);
+    if (!key) return;
+    try {
+      const raw = structuredClone(value), cachedContext = structuredClone(context);
+      const bytes = Buffer.byteLength(JSON.stringify([raw, cachedContext])) + Buffer.byteLength(key), maxBytes = 32 * 1024 * 1024;
+      if (bytes > maxBytes) return;
+      const previous = this.nativeCandidateDetails.get(key);
+      if (previous) { this.nativeCandidateDetails.delete(key); this.nativeCandidateDetailBytes -= previous.bytes; }
+      while (this.nativeCandidateDetailBytes + bytes > maxBytes && this.nativeCandidateDetails.size) {
+        const oldest = this.nativeCandidateDetails.keys().next().value!;
+        this.nativeCandidateDetailBytes -= this.nativeCandidateDetails.get(oldest)!.bytes; this.nativeCandidateDetails.delete(oldest);
+      }
+      this.nativeCandidateDetails.set(key, { turnId: binding.turnId, bytes, raw, context: cachedContext }); this.nativeCandidateDetailBytes += bytes;
+    } catch { /* 无法缓存时，已验证的读取仍然有效。 */ }
+  }
+  private candidateReads(context: AccessContext, binding: CandidateBinding, username = '-'): CandidateReaders {
+    return new CandidateReaders({
+      details: async (id, include, signal) => {
+        signal?.throwIfAborted();
+        const request = validateToolArguments('get_subject_details', { subject_id: id, include });
+        if (binding.turnId !== this.candidateOwner()) throw new AppError('CANDIDATE_SCOPE_MISMATCH', '候选详情缓存不属于当前读取轮次。');
+        if (binding.accountId !== (context.account?.id ?? null)) throw new AppError('ACCOUNT_CHANGED', '候选详情读取账户与本阶段账户不一致。');
+        const key = this.candidateDetailKey(context, binding, id);
+        const cached = key ? this.nativeCandidateDetails.get(key) : undefined;
+        const capture: CandidateDetailCapture = { allowAccount: context.account !== null, binding, context };
+        const epoch = this.nativeCandidateDetailEpoch;
+        const cachedRestricted = cached && (cached.raw.nsfw === true || cached.context.nsfwApplied);
+        if (cachedRestricted && (!context.account || context.nsfw.allowed !== true || context.nsfw.preference === false))
+          throw new AppError('NSFW_SCOPE_MISMATCH', '已缓存候选详情超出本阶段可见范围。');
+        const value: ObjectValue = cached
+          ? { ...subjectDetails(cached.raw, request.include as SubjectInclude[], id), accessContext: structuredClone(cached.context) }
+          : obj(await this.candidateDetailCapture.run(capture, () => this.callScoped('get_subject_details', request, signal)));
+        const nativeContext = value.accessContext as AccessContext;
+        if (nativeContext.account && nativeContext.account.id !== binding.accountId) throw new AppError('ACCOUNT_CHANGED', '候选详情原生账户与本阶段账户不一致。');
+        const restricted = value.nsfw === true || (value.accessContext as AccessContext).nsfwApplied;
+        if (restricted && (!context.account || context.nsfw.allowed !== true || context.nsfw.preference === false))
+          throw new AppError('NSFW_SCOPE_MISMATCH', '候选补字段超出本阶段明确的可见范围。');
+        const definition = findToolDefinition('get_subject_details');
+        checkOutput(definition.outputSchema!, { value }); checkSubjectResponse('get_subject_details', value, request, definition.inputSchema);
+        if (cached && key) { this.nativeCandidateDetails.delete(key); this.nativeCandidateDetails.set(key, cached); }
+        else if (epoch === this.nativeCandidateDetailEpoch && capture.raw && capture.source === nativeContext.source
+          && capture.accountId === (nativeContext.account?.id ?? null)) {
+          this.cacheCandidateDetails(capture.raw, nativeContext, binding, id, context);
+        }
+        if (cached) value.candidateCacheSupplementOnly = true;
+        value.candidateRequiresNsfw = restricted;
+        return value;
+      },
+      collection: async (id, signal) => {
+        const value = obj(await this.callScoped('get_user_subject_collection', { username, subject_id: id }, signal));
+        const nativeContext = value.accessContext as AccessContext;
+        if (username === '-' && nativeContext.account?.id !== context.account?.id) throw new AppError('ACCOUNT_CHANGED', '候选个人记录账户与本阶段账户不一致。');
+        if (nativeContext.nsfwApplied) {
+          await this.nsfw(context, signal, true);
+          if (context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '个人记录的NSFW可见范围已改变。');
+          value.candidateRequiresNsfw = true;
+        }
+        return value;
+      },
+      relations: async (id, signal) => {
+        const result = obj(await this.callScoped('get_subject_relations', { subject_id: id, limit: 100 }, signal));
+        const restricted = (result.data as ObjectValue[]).some(row => row.nsfw === true) || (result.accessContext as AccessContext).nsfwApplied;
+        if (restricted && (!context.account || context.nsfw.allowed !== true || context.nsfw.preference === false))
+          throw new AppError('NSFW_SCOPE_MISMATCH', '候选关系证据超出本阶段明确的可见范围。');
+        result.candidateRequiresNsfw = restricted;
+        result.data = (result.data as ObjectValue[]).map(row => ({ id: row.id, relation: row.relation ?? null,
+          name: row.name ?? null, nameCn: row.nameCn ?? null, subjectType: row.subjectType ?? null, url: row.url }));
+        return result;
+      },
+    });
+  }
+  private async executeCandidates(args: ObjectValue, context: AccessContext, signal?: AbortSignal, options?: { processIds?: number[]; preserveInput?: boolean; filterAlreadyApplied?: boolean; hydrateProjection?: boolean; freshSource?: boolean; stageRef?: string }): Promise<ObjectValue> {
+    const binding = this.candidateBinding(context, typeof args.candidate_ref === 'string' ? args.candidate_ref : undefined);
+    if (typeof args.candidate_ref === 'string') {
+      const origin = this.candidates.get(args.candidate_ref, binding);
+      const completeOrigin = origin.continuation ? this.candidates.get(origin.continuation.originRef, binding) : origin;
+      if (origin.requiresNsfw || completeOrigin.requiresNsfw || [...origin.rows, ...completeOrigin.rows].some(row => row.facts.nsfw === true || row.requiresNsfw)) {
+        if (!context.account) throw new AppError('NSFW_SCOPE_CHANGED', '候选快照含账户可见资料，当前读取缺少匹配权限。');
+        if (!options?.freshSource || context.nsfw.allowed !== true) await this.nsfw(context, signal, true);
+        if (context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '候选快照的NSFW可见范围已改变，请重新读取适用范围。');
+      }
+    }
+    const query = new CandidateQuery(this.candidates, { shouldYield: () => this.candidateShouldYield(),
+      loadFacts: (row, fields, include, activeSignal) => this.loadCandidateFacts(row, fields, include, context, binding, activeSignal, args) });
+    return await query.execute(args as CandidateQueryArgs, binding, context, signal, options) as unknown as ObjectValue;
+  }
+  private collectionIndexSource(index: CollectionIndexInfo, binding: CollectionReadBinding): CandidateSource {
+    return { tool: 'query_user_collections', source: binding.source, scope: JSON.stringify(index.scope), complete: index.sourceComplete,
+      scannedCount: index.scannedCount, total: index.total, nextOffset: index.nextOffset, privateRecords: 'included' };
+  }
+  private collectionLookupPatch(row: CandidateRow, fields: readonly CandidateField[], lookup: CollectionLookup): CandidateFactPatch {
+    const sameMedia = row.fieldStates.subjectType === 'known' && row.facts.subjectType === lookup.scope.subject_type;
+    const patch: CandidateFactPatch = { facts: {}, fieldStates: {}, excludesCollectionTypes: sameMedia ? lookup.excludesCollectionTypes : [] };
+    if (!sameMedia) return patch;
+    const personal = fields.filter(field => PERSONAL_CANDIDATE_FIELDS.includes(field));
+    for (const field of personal) if (lookup.fieldStates[field as keyof typeof lookup.fieldStates] === 'known') {
+      patch.facts[field] = lookup.personalFacts[field as keyof typeof lookup.personalFacts]; patch.fieldStates![field] = 'known';
+    }
+    if (lookup.membership === 'not_collected') {
+      patch.facts.collectionState = 'not_collected'; patch.fieldStates!.collectionState = 'known';
+      for (const field of personal) if (!Object.hasOwn(patch.facts, field)) { patch.facts[field] = null; patch.fieldStates![field] = 'unknown'; }
+      patch.resolvedFields = personal;
+    }
+    return patch;
+  }
+  private async loadCandidateFacts(row: CandidateRow, fields: CandidateField[], include: string[], context: AccessContext,
+    binding: CandidateBinding, activeSignal: AbortSignal | undefined, args: CandidateQueryArgs): Promise<CandidateFactPatch> {
+      const reads = this.candidateReads(context, binding, binding.scopeKey.startsWith('public:collections:') ? binding.scopeKey.slice('public:collections:'.length) : '-');
+      let patch: CandidateFactPatch = { facts: {} };
+      let missing = fields;
+      const collectionRef = typeof args.collection_ref === 'string' ? args.collection_ref : undefined;
+      if (collectionRef) {
+        const collectionBinding = this.collectionBinding(context, collectionRef);
+        const lookup = this.collections.lookup(collectionRef, [row.id], collectionBinding)[0]!;
+        patch = this.collectionLookupPatch(row, fields, lookup);
+        const index = this.collections.indexInfo(collectionRef, collectionBinding);
+        if (index.requiresNsfw) {
+          await this.nsfw(context, activeSignal, true);
+          if (context.nsfw.allowed !== true || context.nsfw.preference === false)
+            throw new AppError('NSFW_SCOPE_CHANGED', '收藏引用所需NSFW权限已改变。');
+        }
+        patch.sources = [this.collectionIndexSource(index, collectionBinding)]; patch.requiresNsfw = index.requiresNsfw;
+        missing = fields.filter(field => !Object.hasOwn(patch.facts, field));
+        if (lookup.scope.collection_type !== undefined && missing.some(field => PERSONAL_CANDIDATE_FIELDS.includes(field))) {
+          const state = evaluateCandidateFacts(mergeCandidateFacts(row, patch), args.filter ?? {});
+          if (state.result === 'unknown' && state.missingFields.some(field => missing.includes(field) && PERSONAL_CANDIDATE_FIELDS.includes(field)))
+            throw new AppError('CREF_COVERAGE_INSUFFICIENT', '当前收藏引用只有单一状态，不能核实本次个人条件缺口；旧窄引用保持。请另起query_user_collections，省略collection_type和collection_ref建立全状态来源，再用原母candidate_ref及原条件重新筛选，不带旧cursor。');
+        }
+      }
+      if (missing.length) {
+        const fetched = await reads.load(mergeCandidateFacts(row, patch), missing, include, activeSignal);
+        patch = { ...patch, facts: { ...patch.facts, ...fetched.facts }, fieldStates: { ...patch.fieldStates, ...fetched.fieldStates },
+          failureCodes: { ...patch.failureCodes, ...fetched.failureCodes },
+          resolvedFields: [...new Set([...(patch.resolvedFields ?? []), ...(fetched.resolvedFields ?? [])])],
+          requiresNsfw: patch.requiresNsfw === true || fetched.requiresNsfw === true,
+          sources: [...(patch.sources ?? []), ...(fetched.sources ?? [])] };
+      }
+      return patch;
+  }
+  private async expandCandidates(args: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<unknown> {
+    const binding = this.candidateBinding(context, String(args.candidate_ref));
+    const origin = this.candidates.get(String(args.candidate_ref), binding);
+    if (binding.scopeKey.startsWith('public:collections:')) {
+      const filters = [obj(args.filter ?? {}), ...((obj(args.filter ?? {}).any_of as ObjectValue[] | undefined) ?? [])];
+      const personal = (args.fields as string[] | undefined)?.some(field => PERSONAL_CANDIDATE_FIELDS.includes(field as CandidateField))
+        || filters.some(filter => ['personal_rating', 'personal_tags', 'collection_types', 'exclude_collection_types'].some(key => filter[key] !== undefined));
+      const sameOwner = typeof args.collection_ref === 'string'
+        && binding.scopeKey === `public:collections:${this.collections.peek(args.collection_ref, binding.turnId).scope.username}`;
+      if ((args.include as string[] | undefined)?.includes('own_collection') || personal && !sameOwner)
+        throw new AppError('CANDIDATE_SCOPE_MISMATCH', '第三方父范围与本人子收藏不能共用事实命名空间；请以明确子作品ID另建本人候选集合，并保留原关系引用回溯。');
+    }
+    if (origin.requiresNsfw || origin.rows.some(row => row.facts.nsfw === true || row.requiresNsfw)) {
+      await this.nsfw(context, signal, true);
+      if (!context.account || context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '关联父快照的可见范围已改变。');
+    }
+    return this.relationRun.run({ context, binding }, () => this.relations.execute(args as RelationQueryArgs, binding, context, signal));
+  }
+  /** 每父完整原始来源只读一次；内部切页仍走规范化和可见范围校验，不受公开offset上限截断。 */
+  private async readCandidateRelations(parentId: number, offset: number, limit: number, signal?: AbortSignal): Promise<RelationReadPage> {
+    const run = this.relationRun.getStore();
+    if (!run) throw new AppError('INTERNAL_ERROR', '关联读取缺少宿主上下文。');
+    const key = JSON.stringify([run.binding, parentId]);
+    let cached = this.relationSources.get(key), result: ObjectValue;
+    if (!cached) {
+      const capture: { raw?: unknown[]; allowAccount: boolean } = { allowAccount: run.context.account !== null };
+      result = obj(await this.relationCapture.run(capture, () => this.callScoped('get_subject_relations', { subject_id: parentId, limit, offset: 0 }, signal)));
+      if (!capture.raw) throw new AppError('INVALID_RESPONSE', '关联来源缺少完整已核实数组。');
+      cached = { turnId: run.binding.turnId, raw: capture.raw, context: structuredClone(result.accessContext as AccessContext) };
+      this.relationSources.set(key, cached);
+    } else result = {};
+    const nativeContext = structuredClone(cached.context);
+    if (nativeContext.account && nativeContext.account.id !== run.context.account?.id) throw new AppError('ACCOUNT_CHANGED', '关联资料来源账户与当前阶段不一致。');
+    if (nativeContext.nsfwApplied) {
+      await this.nsfw(run.context, signal, true);
+      if (run.context.nsfw.allowed !== true || run.context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '关联来源的NSFW权限已改变。');
+      nativeContext.nsfw = structuredClone(run.context.nsfw);
+    }
+    {
+      const rawPage = this.relationPage(cached.raw, limit, offset);
+      const page = await this.gateNsfw(this.hasNsfw(cached.raw) ? { ...rawPage, nsfw: true } : rawPage, nativeContext, signal);
+      result = { ...subjectPage(page, { subject_id: parentId, limit, offset }, true), accessContext: nativeContext };
+      checkSubjectResponse('get_subject_relations', result, { subject_id: parentId, limit, offset });
+    }
+    const restricted = nativeContext.nsfwApplied || (result.data as ObjectValue[]).some(row => row.nsfw === true);
+    if (restricted && (!run.context.account || run.context.nsfw.allowed !== true || run.context.nsfw.preference === false))
+      throw new AppError('NSFW_SCOPE_MISMATCH', '关联目标资料超出当前阶段可见范围。');
+    return { ...result, candidateRequiresNsfw: restricted } as unknown as RelationReadPage;
+  }
+  private async refineCandidates(args: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<ObjectValue> {
+    if (Array.isArray(args.subject_ids) && typeof args.collection_ref !== 'string') {
+      const initial = this.candidates.create({ binding: this.candidateBinding(context), rows: (args.subject_ids as number[]).map(id => ({ id, facts: {} })),
+        ...(context.account ? { visibility: 'self' as const, account: context.account } : { visibility: 'public' as const }) });
+      const rewritten: ObjectValue = { ...args, candidate_ref: initial.ref }; delete rewritten.subject_ids;
+      const response = await this.refineCandidates(rewritten, context, signal); response.scope = { ...args }; return response;
+    }
+    if (typeof args.candidate_ref === 'string') {
+      const stored = this.candidates.peekBinding(args.candidate_ref, this.candidateOwner());
+      if (stored.binding.scopeKey.startsWith('public:collections:') && (args.include as string[] | undefined)?.includes('own_collection')) throw new AppError('CANDIDATE_SCOPE_MISMATCH', '公开第三方收藏不能作为本人收藏，需以作品ID重建本人范围。');
+    }
+    if (typeof args.collection_ref === 'string' && Array.isArray(args.subject_ids)) {
+      const scope = this.collections.peek(args.collection_ref, this.candidateOwner()).scope;
+      const actual = { ...this.candidateBinding(context), ...(scope.username === '-' ? {} : { scopeKey: `public:collections:${scope.username}` }) };
+      const snapshot = this.collections.snapshot(args.collection_ref, this.collectionBinding(context, args.collection_ref));
+      if (snapshot.rows.some(row => row.subject.nsfw === true)) {
+        await this.nsfw(context, signal, true);
+        if (context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '收藏快照的NSFW可见范围已改变，请重新读取。');
+      }
+      const source: CandidateSource = { tool: 'query_user_collections', source: snapshot.coverage.source, scope: JSON.stringify(snapshot.scope),
+        complete: snapshot.coverage.sourceComplete, scannedCount: snapshot.coverage.scannedCount, total: snapshot.coverage.collectionTotal,
+        nextOffset: snapshot.coverage.sourceNextOffset, privateRecords: snapshot.coverage.privateRecords };
+      const initial = this.candidates.create({ binding: actual, rows: (args.subject_ids as number[]).map(id => ({ id, facts: {} })), sources: [source],
+        visibility: scope.username === '-' ? 'self' : 'public', ...(scope.username === '-' && context.account ? { account: context.account } : {}) });
+      const rewritten: ObjectValue = { ...args, candidate_ref: initial.ref }; delete rewritten.subject_ids;
+      const response = await this.refineCandidates(rewritten, context, signal); response.scope = { ...args }; return response;
+    }
+    if (typeof args.collection_ref === 'string' && typeof args.candidate_ref === 'string') {
+      const binding = this.candidateBinding(context, args.candidate_ref);
+      const set = this.candidates.get(args.candidate_ref, binding);
+      if (set.requiresNsfw) {
+        await this.nsfw(context, signal, true);
+        if (!context.account || context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '候选祖先来源的可见权限已改变，请重新读取。');
+      }
+      const lookups = this.collections.lookup(args.collection_ref, set.rows.map(row => row.id), this.collectionBinding(context, args.collection_ref));
+      const updated = new Map(set.rows.map(row => [row.id, row]));
+      for (const lookup of lookups) {
+        if (set.rows.find(row => row.id === lookup.subjectId)?.facts.subjectType !== lookup.scope.subject_type) continue;
+        const facts = Object.fromEntries(PERSONAL_CANDIDATE_FIELDS.filter(field => lookup.fieldStates[field as keyof typeof lookup.fieldStates] === 'known')
+          .map(field => [field, lookup.personalFacts[field as keyof typeof lookup.personalFacts]]));
+        updated.set(lookup.subjectId, mergeCandidateFacts(updated.get(lookup.subjectId)!, { facts, excludesCollectionTypes: lookup.excludesCollectionTypes }));
+      }
+      const snapshot = this.collections.snapshot(args.collection_ref, this.collectionBinding(context, args.collection_ref));
+      if (set.binding.scopeKey.startsWith('public:collections:') && set.binding.scopeKey !== `public:collections:${snapshot.scope.username}`)
+        throw new AppError('CANDIDATE_SCOPE_MISMATCH', '不能将不同用户的个人字段合并到同一候选事实范围。');
+      if (snapshot.rows.some(row => row.subject.nsfw === true)) {
+        await this.nsfw(context, signal, true);
+        if (context.nsfw.allowed !== true || context.nsfw.preference === false) throw new AppError('NSFW_SCOPE_CHANGED', '收藏快照的NSFW可见范围已改变，请重新读取。');
+      }
+      const source: CandidateSource = { tool: 'query_user_collections', source: snapshot.coverage.source, scope: JSON.stringify(snapshot.scope),
+        complete: snapshot.coverage.sourceComplete, scannedCount: snapshot.coverage.scannedCount, total: snapshot.coverage.collectionTotal,
+        nextOffset: snapshot.coverage.sourceNextOffset, privateRecords: snapshot.coverage.privateRecords };
+      const privateJoin = snapshot.scope.username === '-';
+      const joined = this.candidates.create({ binding: privateJoin ? binding : { ...binding, scopeKey: `public:collections:${snapshot.scope.username}` }, rows: [...updated.values()], sources: [...set.sources, source], parentRef: set.ref,
+        // 续查仍属于原资格阶段，旧游标的未处理量由该阶段继续消化；真正祖先的缺口仍由store继承。
+        inheritParentQualification: args.cursor === undefined,
+        ...(set.reportedSources ? { reportedSources: set.reportedSources } : {}),
+        requiresNsfw: set.requiresNsfw || snapshot.rows.some(row => row.subject.nsfw === true),
+        visibility: privateJoin ? 'self' : set.visibility, ...(privateJoin && context.account ? { account: context.account } : set.account ? { account: set.account } : {}),
+        ...(set.continuation ? { continuation: set.continuation } : {}) });
+      const response = await this.executeCandidates({ ...args, candidate_ref: joined.ref }, context, signal);
+      response.scope = { ...args };
+      const currentIndex = this.collections.indexInfo(args.collection_ref, this.collectionBinding(context, args.collection_ref));
+      const collectionScope = { ...currentIndex.scope, sourceComplete: currentIndex.sourceComplete };
+      response.collectionScope = collectionScope;
+      checkCandidateResponse(response, args, findToolDefinition('refine_subject_candidates').inputSchema, collectionScope);
+      return response;
+    }
+    return this.executeCandidates(args, context, signal);
+  }
+  /** 续读同一来源只更新原生输入，来源工作/结果句柄由CandidateQuery沿原阶段推进。 */
+  private updateSourceInput(ref: string, binding: CandidateBinding, seeds: CandidateSeed[], sources: CandidateSource[], sort?: unknown) {
+    const prior = this.candidates.get(ref, binding), rows = new Map(prior.rows.map(row => [row.id, row]));
+    let duplicates = 0;
+    for (const seed of seeds) {
+      const previous = rows.get(seed.id); if (previous) duplicates++;
+      rows.set(seed.id, previous ? mergeCandidateFacts(previous, seed) : candidateRow(seed));
+    }
+    const orderedRows = [...rows.values()];
+    if (sort === 'date_asc' || sort === 'date_desc') orderedRows.sort((a, b) => (sort === 'date_asc' ? 1 : -1)
+      * String(a.facts.date ?? '').localeCompare(String(b.facts.date ?? '')) || a.id - b.id);
+    return this.candidates.create({ ...prior, binding, replaceRef: ref, refRole: 'input', rows: orderedRows,
+      sources: mergeCandidateSources(prior.sources, sources), changedIds: [...new Set(seeds.map(seed => seed.id))],
+      duplicateCount: prior.duplicateCount + duplicates });
+  }
+  private async recallCandidates(name: string, result: ObjectValue, args: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<ObjectValue> {
+    // 投影前保留原生身份、分页和日期精度校验，读取进度只继承同绑定的显式merge链。
+    checkSubjectResponse(name, { ...result, accessContext: context }, args, findToolDefinition(name).inputSchema);
+    const page = obj(result.page);
+    const rows = (result.data as ObjectValue[]).map(row => name === 'get_user_collections' ? this.candidateSeed(obj(row.subject), row) : this.candidateSeed(row));
+    const workFields = new Set(['offset', 'limit', 'merge_ref', 'result_mode', 'response_view', 'fields', 'include',
+      'hydrate_fields', 'coverage_mode', 'cursor', 'collection_ref', 'source_limit']);
+    const nativeScope = Object.fromEntries(Object.entries(obj(result.scope)).filter(([key]) => !workFields.has(key)));
+    const binding = this.candidateBinding(context, typeof args.merge_ref === 'string' ? args.merge_ref : undefined);
+    if (name === 'get_user_collections' && args.username !== '-') binding.scopeKey = `public:collections:${String(args.username)}`;
+    const source: CandidateSource = { tool: name, source: context.source,
+      scope: JSON.stringify(stableCandidateKey(nativeScope)), complete: false, scannedCount: 0, total: typeof page.total === 'number' ? page.total : null,
+      nextOffset: page.nextOffset as number | null, privateRecords: result.visibility === 'self' ? 'included' : name === 'get_user_collections' ? 'public_only' : 'not_applicable' };
+    const previous = typeof args.merge_ref === 'string' ? this.candidates.get(args.merge_ref, binding).sources
+      .find(value => candidateSourceRef(value) === candidateSourceRef(source)) : undefined;
+    const prior = previous?.readState, offset = Number(page.offset), dateWindow = name === 'browse_subjects' ? obj(result.filterCoverage) : undefined;
+    const excluded = Number(page.excludedNsfwCount ?? 0), unknown = Number(page.unknownNsfwCount ?? 0);
+    const visibleUnknown = rows.filter(row => row.facts.nsfw === null || row.facts.nsfw === undefined).length;
+    const currentKind = (page.totalKind ?? (source.total === null ? 'unknown' : name === 'search_subjects' ? 'estimated' : 'exact')) as CandidateSourceReadState['totalKind'];
+    const stableTotal = !prior || currentKind !== 'exact' || prior.totalKind !== 'exact' || previous!.total === source.total;
+    const readState: CandidateSourceReadState = { revision: performance.now(), firstOffset: prior?.firstOffset ?? offset,
+      pagesRead: (prior?.pagesRead ?? 0) + 1, continuous: prior ? prior.continuous && previous!.nextOffset === offset && stableTotal : offset === 0,
+      totalKind: prior && (prior.totalKind !== currentKind || !stableTotal) ? 'unknown' : currentKind,
+      excludedNsfwCount: (prior?.excludedNsfwCount ?? 0) + excluded,
+      unknownNsfwCount: (prior?.unknownNsfwCount ?? 0) + unknown + visibleUnknown };
+    if (dateWindow) {
+      const old = prior?.filterCoverage, unknownIds = [...new Set([...(old?.unknownDateSubjectIds ?? []), ...(dateWindow.unknownDateSubjectIds as number[])])];
+      readState.filterCoverage = { scope: 'source_sequence', scannedCount: (old?.scannedCount ?? 0) + Number(dateWindow.scannedCount),
+        matchedCount: (old?.matchedCount ?? 0) + Number(dateWindow.matchedCount), unknownDateCount: unknownIds.length,
+        unknownDateSubjectIds: unknownIds, complete: unknownIds.length === 0 };
+    }
+    source.scannedCount = (previous?.scannedCount ?? 0) + Number(dateWindow?.scannedCount ?? page.returnedCount) + excluded + unknown;
+    source.readState = readState;
+    source.complete = name !== 'search_subjects' && readState.totalKind === 'exact' && readState.continuous && readState.firstOffset === 0
+      && source.nextOffset === null && source.total !== null && source.scannedCount === source.total && readState.excludedNsfwCount === 0
+      && readState.unknownNsfwCount === 0 && readState.filterCoverage?.complete !== false;
+    const previousStage = typeof args.merge_ref === 'string' ? this.sourceCandidateStages.get(args.merge_ref) : undefined;
+    const reusableStage = previousStage?.sourceRef === candidateSourceRef(source) ? previousStage : undefined;
+    const set = reusableStage ? this.updateSourceInput(reusableStage.inputRef, binding, rows, [source])
+      : typeof args.merge_ref === 'string' ? this.candidates.merge(args.merge_ref, binding, rows, [source])
+      : this.candidates.create({ binding, rows, sources: [source], visibility: result.visibility as 'public' | 'self', ...(result.account ? { account: result.account as { id: number; username: string } } : {}) });
+    const executeArgs = { ...args, candidate_ref: set.ref };
+    const projected = await this.executeCandidates(executeArgs, context, signal, { processIds: set.changedIds, preserveInput: true, filterAlreadyApplied: true, hydrateProjection: false, freshSource: true, ...(reusableStage ? { stageRef: reusableStage.ref } : {}) });
+    const sourceStage = { turnId: binding.turnId, ref: String(projected.candidateRef), inputRef: set.ref, sourceRef: candidateSourceRef(source) };
+    this.sourceCandidateStages.set(String(projected.candidateRef), sourceStage); this.sourceCandidateStages.set(String(projected.resultRef), sourceStage);
+    projected.scope = { ...args }; projected.sourcePage = structuredClone(page); return projected;
+  }
+  private async readCollectionWindow(scope: CollectionSourceScope, context: AccessContext, offset: number, limit: number, signal?: AbortSignal): Promise<unknown> {
+    const pageArgs = validateToolArguments('get_user_collections', { ...scope, offset, limit });
+    const raw = obj(await this.dispatch('get_user_collections', pageArgs, context, signal));
+    const visible: ObjectValue[] = []; let excludedNsfwCount = 0, unknownNsfwCount = 0;
+    for (const row of raw.data as ObjectValue[]) {
+      const subject = subjectSummary(obj(row.subject));
+      if (subject.nsfw === null) { unknownNsfwCount++; continue; }
+      if (subject.nsfw && (!context.account || !await this.allowNsfw(context, signal))) { excludedNsfwCount++; continue; }
+      visible.push(row);
+    }
+    const nextOffset = offset + (raw.data as ObjectValue[]).length < Number(raw.total) ? offset + limit : null;
+    const gated = { ...raw, data: visible, excludedNsfwCount, unknownNsfwCount,
+      sourceNextOffset: nextOffset, sourceHasMore: nextOffset !== null };
+    const page = collectionPage(gated, pageArgs);
+    const comments = new Map((gated.data as ObjectValue[]).map(row => [Number(row.subject_id ?? obj(row.subject).id), typeof row.comment === 'string' ? row.comment : null]));
+    page.data = page.data.map(row => ({ ...row, personalComment: comments.get(Number(row.subjectId)) ?? null,
+      ...(scope.username === '-' ? {} : { private: false }) }));
+    return page;
+  }
+  private async queryCollectionCandidates(args: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<ObjectValue> {
+    const binding = this.collectionBinding(context, typeof args.collection_ref === 'string' ? args.collection_ref : undefined);
+    const filter: ObjectValue = { ...obj(args.filter ?? {}), ...(args.air_date ? { air_date: args.air_date } : {}) };
+    const snapshotScope = typeof args.collection_ref === 'string'
+      ? this.collections.peek(args.collection_ref, this.candidateOwner()).scope : undefined;
+    // 只按显式来源参数或原引用scope读取；filter不改变后续可复用的证据范围。
+    const sourceCollectionType = args.collection_type === undefined ? snapshotScope?.collection_type : Number(args.collection_type);
+    const sourceScope: CollectionSourceScope = { username: String(args.username), subject_type: Number(args.subject_type),
+      ...(sourceCollectionType === undefined ? {} : { collection_type: sourceCollectionType }) };
+    const read = await this.collections.read({ ...sourceScope, filter,
+      ...(args.source_limit === undefined ? {} : { source_limit: Number(args.source_limit) }), ...(args.collection_ref ? { collection_ref: String(args.collection_ref) } : {}) }, binding,
+      (offset, limit) => this.readCollectionWindow(sourceScope, context, offset, limit, signal), signal, () => this.candidateShouldYield());
+    const source: CandidateSource = { tool: 'query_user_collections', source: read.coverage.source, scope: JSON.stringify(read.scope),
+      complete: read.coverage.sourceComplete, scannedCount: read.coverage.scannedCount, total: read.coverage.collectionTotal,
+      nextOffset: read.coverage.sourceNextOffset, privateRecords: read.coverage.privateRecords };
+    const candidateBinding = { ...this.candidateBinding(context), ...(args.username === '-' ? {} : { scopeKey: `public:collections:${String(args.username)}` }) };
+    const sourceRows = [...read.rows, ...read.unknownRows];
+    if (args.sort === 'date_asc' || args.sort === 'date_desc') sourceRows.sort((a, b) => (args.sort === 'date_asc' ? 1 : -1) * String(a.subject.date ?? '').localeCompare(String(b.subject.date ?? '')) || a.subjectId - b.subjectId);
+    const seeds = sourceRows.map(row => this.candidateSeed(row.subject as unknown as ObjectValue, row as unknown as ObjectValue));
+    const stageKey = JSON.stringify(stableCandidateKey([candidateBinding, read.collectionRef, filter, args.fields ?? ['id', 'name', 'nameCn', 'subjectType'], args.include ?? [], args.sort]));
+    const previous = this.collectionCandidates.get(stageKey);
+    const set = previous ? this.updateSourceInput(previous.inputRef, candidateBinding, seeds, [source], args.sort) : this.candidates.create({ binding: candidateBinding, rows: seeds,
+      sources: [source], visibility: args.username === '-' ? 'self' : 'public', ...(args.username === '-' && context.account ? { account: context.account } : {}) });
+    const projected = await this.executeCandidates({ ...args, filter, candidate_ref: set.ref, collection_ref: read.collectionRef }, context, signal,
+      // 来源续读新增记录后重新核对完整已缓存snapshot，resultRef包含前窗已通过成员。
+      { preserveInput: true, hydrateProjection: false, freshSource: true, ...(previous ? { stageRef: previous.ref } : {}) });
+    this.collectionCandidates.set(stageKey, { turnId: candidateBinding.turnId, ref: String(projected.candidateRef), inputRef: set.ref });
+    projected.scope = { ...args }; projected.filter = args.filter ?? {}; projected.collectionRef = read.collectionRef;
+    const collectionScope = { ...read.scope, sourceComplete: read.coverage.sourceComplete };
+    projected.collectionScope = collectionScope;
+    checkCandidateResponse(projected, args, findToolDefinition('query_user_collections').inputSchema, collectionScope);
+    return projected;
   }
   private async queryCollections(args: ObjectValue, context: AccessContext, signal?: AbortSignal): Promise<ObjectValue> {
     const bounds = args.air_date as DateBounds; const extras = args.extra_subject_ids as number[];

@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import type { AssistantMessage } from '@earendil-works/pi-ai';
+import { isErrorDiagnostic } from '../support/error-diagnostic.js';
 import type {
   AgentMessage,
   ThinkingLevel,
@@ -24,6 +26,7 @@ import {
   type ProxyController,
 } from "../support/proxy-controller.js";
 import { sessionDisplayName } from "../session-title.js";
+import { assistantErrorView, exceptionErrorView } from './error-view.js';
 import {
   blocksFromContent,
   blocksFromMessage,
@@ -269,12 +272,14 @@ export class WebSession {
 
   private items: TranscriptItemView[] = [];
   private nextItemId = 1;
+  private readonly recoveryReplies = new Map<string, { replyId?: number; errorId?: number }>();
   /** 进行中的工具活动条目：结束时原地更新同一个对象并递增版本。 */
   private readonly activities = new Map<string, TranscriptItemView>();
   private readonly listeners = new Set<() => void>();
   private unsubscribe: (() => void) | undefined;
 
   private busy = false;
+  private recoveryPending = false;
   private cancelling = false;
   private startedAt = 0;
   private status = "";
@@ -557,12 +562,22 @@ export class WebSession {
    */
   private rebuild(): void {
     this.items = [];
+    this.recoveryReplies.clear();
     for (const entry of this.runtime.session.sessionManager.buildContextEntries()) {
       // 扩展注入的结构化内容落盘为 `custom_message` 条目（而不是 `message` 条目），走同一份
       // 映射：会话切换或重启后这些卡片能从历史重建，而不是只在产生它的那一轮可见。
       // 它现在投影成"只含一个块的助手条目"——旧的顶层内容条目已经退场，但这条通道仍然
       // 必要，因为落盘格式由 Pi 决定，重建时必须认得出来。
       if (entry.type === "custom_message") {
+        if (entry.customType === 'bangumi/recovery-result' && typeof entry.content === 'string') {
+          try {
+            const summary = JSON.parse(entry.content) as { completedContent?: unknown; error?: unknown };
+            const blocks = blocksFromContent(summary.completedContent);
+            if (hasRenderableBlock(blocks)) this.push({ id: this.nextItemId++, kind: 'assistant', content: blocks, origin: 'extension' });
+            if (isErrorDiagnostic(summary.error)) this.push({ id: this.nextItemId++, kind: 'error', text: `${summary.error.code}：恢复已停止，已完成部分保留。`, diagnostic: summary.error });
+          } catch { /* 不将损坏的历史数据冒充完整恢复结果。 */ }
+          continue;
+        }
         const blocks = customContentBlocks(entry);
         if (blocks)
           this.push({
@@ -589,7 +604,7 @@ export class WebSession {
           this.push({
             id: this.nextItemId++,
             kind: "error",
-            text: redact(message.errorMessage, credentialValues()),
+            ...assistantErrorView(message),
           });
         }
       } else if (
@@ -613,6 +628,15 @@ export class WebSession {
     console.log("event", JSON.stringify(event));
 
     switch (event.type) {
+      case 'entry_appended': {
+        if (event.entry.type === 'custom' && event.entry.customType === 'bangumi/recovery') {
+          const data = event.entry.data as { stage?: string; attempt?: number; maxAttempts?: number } | undefined;
+          if (data && ['scheduled', 'running'].includes(data.stage ?? '')) {
+            this.recoveryPending = true; this.busy = true; this.status = `正在定向恢复（${data.attempt}/${data.maxAttempts}）`;
+          } else if (data && ['stopped', 'cancelled', 'recovered', 'reported', 'checkpoint_conflict', 'tool_recovery_stopped'].includes(data.stage ?? '')) this.recoveryPending = false;
+        }
+        break;
+      }
       case AgentSessionEventType.AgentStart:
         this.busy = true;
         this.cancelling = false;
@@ -641,8 +665,11 @@ export class WebSession {
         // 这道判断只兜住手写样例与将来的形状漂移，**不做 delta 回退**。（联合里的
         // `done` 成员没有 partial，所以按可选字段取。）
         const partial = (update as { partial?: { content?: unknown } }).partial;
-        if (partial !== undefined && Array.isArray(partial.content))
-          this.liveBlocks = blocksFromContent(partial.content, this.liveBlocks);
+        if (partial !== undefined && Array.isArray(partial.content)) {
+          const blocks = blocksFromContent(partial.content, this.liveBlocks);
+          if (event.message.role === 'assistant' && this.updateRecoveryReply(event.message, blocks)) this.liveBlocks = [];
+          else this.liveBlocks = blocks;
+        }
         // 思考不在块序列里（前端是独立的折叠区），仍按增量累加。
         if (update.type === "thinking_delta")
           this.liveThinking += update.delta;
@@ -666,19 +693,16 @@ export class WebSession {
         }
         if (message.role === "assistant") {
           const blocks = blocksFromMessage(message);
-          if (hasRenderableBlock(blocks))
+          const recovered = this.updateRecoveryReply(message, blocks, true);
+          if (!recovered && hasRenderableBlock(blocks))
             this.push({ id: this.nextItemId++, kind: "assistant", content: blocks });
           this.liveBlocks = [];
           this.liveThinking = "";
           if (message.stopReason === "error") {
-            this.push({
-              id: this.nextItemId++,
-              kind: "error",
-              text: redact(
-                message.errorMessage ?? "模型请求失败。",
-                credentialValues(),
-              ),
-            });
+            const chain = this.recoveryChain(message), state = chain ? this.recoveryReplies.get(chain) : undefined;
+            const index = state?.errorId === undefined ? -1 : this.items.findIndex(item => item.id === state.errorId);
+            if (index >= 0) this.items[index] = { id: this.items[index]!.id, version: this.items[index]!.version + 1, kind: 'error', ...assistantErrorView(message) };
+            else { const item = this.push({ id: this.nextItemId++, kind: 'error', ...assistantErrorView(message) }); if (state) state.errorId = item.id; }
           } else if (message.stopReason === "aborted") {
             this.push({
               id: this.nextItemId++,
@@ -754,12 +778,13 @@ export class WebSession {
         break;
       }
       case AgentSessionEventType.AgentEnd:
-        this.busy = false;
-        this.status = "";
+        this.busy = this.recoveryPending;
+        if (!this.recoveryPending) this.status = "";
         // 本轮的 token 用量此时已经写入会话条目，重算一次让顶栏跟着增长。
         this.recomputeTokenUsage();
         break;
       case AgentSessionEventType.AgentSettled:
+        this.recoveryPending = false;
         this.busy = false;
         this.cancelling = false;
         this.startedAt = 0;
@@ -803,6 +828,24 @@ export class WebSession {
     }
     this.emit();
   };
+
+  private recoveryChain(message: AssistantMessage): string | undefined {
+    const value = message.diagnostics?.findLast(item => item.type === 'application_recovery')?.details?.chainId;
+    return typeof value === 'string' ? value : undefined;
+  }
+  /** 宿主用既有条目ID/version更新同一回答，SSE消费者无需新增前端逻辑。 */
+  private updateRecoveryReply(message: AssistantMessage, blocks: MessageBlock[], final = false): boolean {
+    const chain = this.recoveryChain(message); if (!chain) return false;
+    const state = this.recoveryReplies.get(chain) ?? {}; this.recoveryReplies.set(chain, state);
+    const reply = state.replyId === undefined ? undefined : this.items.find(item => item.id === state.replyId);
+    if (reply?.kind === 'assistant') { if (JSON.stringify(reply.content) !== JSON.stringify(blocks)) { reply.content = blocks; reply.version++; } }
+    else if (hasRenderableBlock(blocks)) state.replyId = this.push({ id: this.nextItemId++, kind: 'assistant', content: blocks }).id;
+    if (final && message.stopReason === 'stop' && state.errorId !== undefined) {
+      const index = this.items.findIndex(item => item.id === state.errorId);
+      if (index >= 0) this.items[index] = { id: state.errorId, version: this.items[index]!.version + 1, kind: 'notice', text: '此前输出已按错误反馈恢复。' };
+    }
+    return true;
+  }
 
   /** 一次完整的写入预览确认；返回 false 表示用户拒绝、取消或没有可用确认方。 */
   requestConfirmation(
@@ -1038,7 +1081,8 @@ export class WebSession {
     void session
       .prompt(text, options)
       .catch((error) => {
-        this.pushNotice(`请求失败：${safeError(error).message}`, "error");
+        this.push({ id: this.nextItemId++, kind: 'error', ...exceptionErrorView(error) });
+        this.emit();
       })
       // 本轮结束后复位：user 消息一定在本轮内出现，残留标记会影响下一轮。
       .finally(() => {

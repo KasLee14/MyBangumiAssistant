@@ -4,8 +4,10 @@ import {
   type StreamOptions, type ThinkingContent, type ToolCall, type TranscriptContext,
 } from '@earendil-works/pi-ai';
 import { ContentDecoder, type ContentDelta } from './content-decoder.js';
-import { validateMixedContent, type MixedContent } from './content-schema.js';
+import { ContentOutputError, MAX_CONTENT_BYTES, MAX_CONTENT_PARTS, validateMixedContent, type MixedContent } from './content-schema.js';
 import { shouldUseMixedContent } from './provider-options.js';
+import { attachOutputCheckpoint } from './recovery-checkpoint.js';
+import { createErrorDiagnostic, rememberErrorDebug, withAssistantDiagnostic, type ErrorDiagnostic } from '../support/error-diagnostic.js';
 
 type TextSlot = {
   kind: 'mixed'; sourceIndex: number; decoder: ContentDecoder; final?: MixedContent;
@@ -17,11 +19,17 @@ type Slot = TextSlot | NativeSlot;
 /** 原生 content 直接存放文本和组件，provider 的 JSON 文字仅作为线路数据解码。 */
 export function decodeProviderOutput(
   model: Model<Api>, context: TranscriptContext, options: StreamOptions | undefined,
-  start: () => AssistantMessageEventStream,
+  start: (observePayload: (payload: unknown) => void) => AssistantMessageEventStream,
 ): AssistantMessageEventStream {
   return lazyStream(model, async () => {
     const enabled = shouldUseMixedContent(model, context);
-    const source = start();
+    let requestMaxTokens: number | null = null;
+    const source = start(payload => {
+      if (payload === null || typeof payload !== 'object') return;
+      const record = payload as Record<string, unknown>;
+      const limit = record.max_tokens ?? record.max_completion_tokens ?? record.max_output_tokens;
+      if (typeof limit === 'number' && Number.isSafeInteger(limit) && limit > 0) requestMaxTokens = limit;
+    });
     if (!enabled) return source;
     return {
       async *[Symbol.asyncIterator](): AsyncGenerator<AssistantMessageEvent> {
@@ -29,6 +37,58 @@ export function decodeProviderOutput(
         const active = new Map<number, Slot>();
         let lastSource: AssistantMessage | undefined;
         let parseError: unknown;
+        const failedOutput = (message: AssistantMessage, reason: string, cause?: unknown): AssistantMessage => {
+          const content = visible(message).content;
+          const state = slots.filter((slot): slot is TextSlot => slot.kind === 'mixed').map(slot => slot.decoder.diagnosticState());
+          const error = cause instanceof ContentOutputError ? cause : parseError instanceof ContentOutputError ? parseError : undefined;
+          let code = error?.code === 'syntax' ? 'CONTENT_JSON_SYNTAX' : error?.code === 'truncated' ? 'CONTENT_JSON_INCOMPLETE'
+            : error?.code === 'size' ? 'CONTENT_LIMIT_EXCEEDED' : 'CONTENT_SCHEMA_INVALID';
+          let detail = error?.reason ?? 'schema_invalid', certainty: ErrorDiagnostic['certainty'] = 'confirmed';
+          if (reason === 'length') { code = 'LLM_OUTPUT_TRUNCATED'; detail = requestMaxTokens !== null && message.usage.output >= requestMaxTokens ? 'output_budget_exhausted' : 'provider_length_stop'; certainty = detail === 'output_budget_exhausted' ? 'inferred' : 'confirmed'; }
+          else if (reason === 'incomplete') { code = 'LLM_STREAM_INTERRUPTED'; detail = 'stream_terminal_missing'; }
+          const evidence: ErrorDiagnostic['evidence'] = { provider: model.provider, model: model.id, api: model.api,
+            rawStopReason: message.rawStopReason ?? reason, configuredMaxTokens: model.maxTokens, requestMaxTokens,
+            outputTokens: message.usage.output, inputTokens: message.usage.input, contextWindow: model.contextWindow,
+            bytes: state.reduce((sum, item) => sum + item.bytes, 0), byteLimit: MAX_CONTENT_BYTES,
+            partCount: content.filter(part => part.type !== 'thinking' && part.type !== 'toolCall').length, partLimit: MAX_CONTENT_PARTS,
+            completedParts: state.reduce((sum, item) => sum + item.completedParts, 0),
+            completedComponents: content.filter(part => 'pending' in part && part.pending === false).length,
+            pendingComponents: content.filter(part => 'pending' in part && part.pending === true).length,
+            subjectCount: new Set(content.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : [])).size,
+            jsonComplete: state.length > 0 && state.every(item => item.jsonComplete),
+          };
+          if (message.usage.reasoning !== undefined) evidence.reasoningTokens = message.usage.reasoning;
+          if (message.responseId) evidence.responseId = message.responseId.slice(0, 300);
+          // 额度更低不等于上下文裁剪，也可能是显式maxTokens或payload回调；不猜原因。
+          if (requestMaxTokens !== null) evidence.requestBelowConfigured = requestMaxTokens < model.maxTokens;
+          evidence.contextClamped = null;
+          if (error?.location) Object.assign(evidence, error.location);
+          const diagnostic = createErrorDiagnostic({ code, reason: detail, origin: code.startsWith('LLM_') ? 'llm' : 'content',
+            stage: code.startsWith('LLM_') ? 'stream' : code === 'CONTENT_SCHEMA_INVALID' || code === 'CONTENT_LIMIT_EXCEEDED' ? 'validate' : 'decode',
+            certainty, recovery: code === 'CONTENT_SCHEMA_INVALID' || code === 'CONTENT_JSON_SYNTAX' ? 'repair_component'
+              : code === 'CONTENT_LIMIT_EXCEEDED' ? 'correct_parameters' : 'continue_output', evidence,
+            issues: error ? [...error.issueDetails].slice(0, 8) : [],
+            causes: error ? [{ name: error.name, code: error.code }] : [] });
+          rememberErrorDebug(diagnostic, error ?? cause, message.content.filter(part => part.type === 'text').map(part => part.text).join(''));
+          const summaries: Record<string, string> = { LLM_OUTPUT_TRUNCATED: '模型输出被长度限制截断，已完成组件保留。',
+            LLM_STREAM_INTERRUPTED: '模型流未正常结束，已完成内容保留。', CONTENT_JSON_SYNTAX: '模型输出不是合法 JSON。',
+            CONTENT_JSON_INCOMPLETE: '模型输出的 JSON 未完整闭合。', CONTENT_SCHEMA_INVALID: '模型输出字段不符合组件契约。', CONTENT_LIMIT_EXCEEDED: '模型输出超过本地内容容量。' };
+          // 解码器只记录错误；会话宿主根据结构化诊断决定恢复，独立流保留错误标记。
+          const legacy = reason === 'incomplete' ? 'CONTENT_OUTPUT_INCOMPLETE' : 'CONTENT_OUTPUT_INVALID';
+          const failed = withAssistantDiagnostic({ ...visible(message), stopReason: 'error', rawStopReason: message.rawStopReason ?? reason,
+            errorMessage: `${legacy}：${summaries[code]}${error ? ` ${error.message}` : ''}` }, diagnostic);
+          return checkpoint(failed);
+        };
+        const checkpoint = (message: AssistantMessage): AssistantMessage => {
+          const states = slots.filter((slot): slot is TextSlot => slot.kind === 'mixed').map(slot => slot.decoder.recoveryCheckpoint());
+          const badIndex = parseError instanceof ContentOutputError ? Number(parseError.issueDetails[0]?.path.match(/^\/content\/(\d+)/)?.[1]) : NaN;
+          const prefix = states.flatMap(item => item.prefix);
+          // 已闭合text的nextType也可能是错误位置；把该块交给模型修复。
+          const kept = Number.isInteger(badIndex) && badIndex < prefix.length ? prefix.slice(0, badIndex) : prefix;
+          return attachOutputCheckpoint(message, { prefix: kept, jsonComplete: states.length > 0 && states.every(item => item.jsonComplete),
+            ...(kept.length < prefix.length ? { draft: prefix[kept.length] } : states.find(item => item.draft !== undefined)?.draft === undefined ? {}
+              : { draft: states.find(item => item.draft !== undefined)!.draft }) });
+        };
         const beginText = (index: number): TextSlot => {
           const previous = slots.at(-1);
           if (previous?.kind === 'mixed' && !previous.final && !parseError) {
@@ -125,25 +185,26 @@ export function decodeProviderOutput(
             }
             if (event.reason === 'deferred') { yield { ...event, message: visible(event.message) }; return; }
             try {
-              if (event.reason !== 'stop' || parseError) throw new Error('组件输出未完整结束。');
+              if (parseError) throw parseError;
               const content = slots.flatMap(slot => slot.kind === 'mixed' ? (slot.final ?? slot.decoder.finish()).content : []);
               validateMixedContent({ content });
-              yield { ...event, message: visible(event.message) };
-            } catch {
-              yield { type: 'error', reason: 'error', error: { ...visible(event.message), stopReason: 'error',
-                rawStopReason: event.message.rawStopReason ?? event.reason, errorMessage: 'CONTENT_OUTPUT_INVALID：模型输出未通过组件内容契约校验。' } };
+              if (event.reason !== 'stop' && event.reason !== 'length') throw new ContentOutputError('模型输出未正常结束。', 'truncated');
+              yield { type: 'done', reason: 'stop', message: { ...visible(event.message), stopReason: 'stop',
+                ...(event.reason === 'length' ? { rawStopReason: event.message.rawStopReason ?? 'length', diagnostics: [...(event.message.diagnostics ?? []),
+                  { type: 'bangumi_output_finalized', timestamp: Date.now(), details: { reason: 'complete_json_at_length_boundary' } }] } : {}) } };
+            } catch (error) {
+              yield { type: 'error', reason: 'error', error: failedOutput(event.message, event.reason, error) };
             }
             return;
           } else if (event.type === 'error') {
-            yield { ...event, error: visible(event.error) };
+            yield { ...event, error: checkpoint(visible(event.error)) };
             return;
           } else {
             const slot = observeNative(event.contentIndex, event.partial);
             yield { ...event, contentIndex: slot ? offset(slot) : event.contentIndex, partial: visible(event.partial) };
           }
         }
-        if (lastSource) yield { type: 'error', reason: 'error', error: { ...visible(lastSource), stopReason: 'error',
-          errorMessage: 'CONTENT_OUTPUT_INCOMPLETE：模型响应未正常结束。' } };
+        if (lastSource) yield { type: 'error', reason: 'error', error: failedOutput(lastSource, 'incomplete') };
         else throw new Error('CONTENT_OUTPUT_INCOMPLETE：模型响应未正常结束。');
       },
     };

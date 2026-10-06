@@ -3,7 +3,8 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { isAbsolute } from 'node:path';
-import { AppError, SubmissionError, isSubmissionRejection, isContractIssue, contractIssueMessage, type SubmissionReceipt } from '../support/errors.js';
+import { AppError, SubmissionError, isSubmissionRejection, isContractIssue, contractIssueMessage, diagnosedError, type SubmissionReceipt } from '../support/errors.js';
+import { createErrorDiagnostic, errorCauses, isErrorDiagnostic } from '../support/error-diagnostic.js';
 import { object, positiveId } from '../support/bangumi.js';
 import { policyFor, type ProxyOptions } from '../support/proxy.js';
 import { TOOL_DEFINITIONS, validateToolArguments, remoteInputError } from './catalog.js';
@@ -145,7 +146,10 @@ export class LocalMcpClient implements McpCallClient {
     } catch (error) {
       this.broken = true; await this.transport.close();
       if (error instanceof AppError) throw error;
-      throw new AppError('MCP_START_FAILED', '本地 MCP 初始化失败，请核对安装和构建；未回显子进程原始错误。');
+      throw diagnosedError(new AppError('MCP_START_FAILED', '本地 MCP 初始化失败；返回的诊断包含具体原因。'),
+        createErrorDiagnostic({ code: 'MCP_START_FAILED', reason: errorCauses(error).some(cause => cause.code === '-32001') ? 'initialization_deadline_exhausted' : 'initialization_failed',
+          origin: 'mcp', stage: 'connect', causes: errorCauses(error),
+          ...(errorCauses(error).some(cause => cause.code === '-32001') ? { evidence: { rpcCode: -32001 } } : {}) }), error);
     }
   }
   async listTools(signal?: AbortSignal) {
@@ -185,15 +189,22 @@ export class LocalMcpClient implements McpCallClient {
     } catch (error) {
       if (signal?.aborted) throw new AppError('CANCELLED', '操作已取消；已提交写入须独立核实结果。');
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === -32001) {
-        const timeout = new AppError('BGM_TIMEOUT', 'MCP 请求超时；已提交写入须独立核实结果。');
+        const timeout = diagnosedError(new AppError('BGM_TIMEOUT', 'MCP 请求总期限耗尽；已提交写入须独立核实结果。'),
+          createErrorDiagnostic({ code: 'BGM_TIMEOUT', reason: 'mcp_deadline_exhausted', origin: 'mcp', stage: 'request', operation: name,
+            recovery: definition.effect === 'write' ? 'verify_write' : 'none', evidence: { rpcCode: -32001 }, causes: errorCauses(error) }), error);
         if (definition.effect === 'read') {
           diagnoseReadError(name, parameters, timeout);
           Object.defineProperty(timeout, 'diagnosis', { value: { ...timeout.diagnosis!, retryable: false }, configurable: true });
         }
         throw timeout;
       }
-      if (typeof error === 'object' && error !== null && 'code' in error && [-32600, -32602].includes(Number(error.code))) throw new AppError('MCP_INVALID_RESULT', 'MCP返回缺失或不符合固定输出契约。');
-      throw new AppError(this.broken ? 'MCP_TRANSPORT_ERROR' : 'MCP_PROTOCOL_ERROR', '本地 MCP 请求失败；未自动重连或重发，已提交写入须独立核实结果。');
+      if (typeof error === 'object' && error !== null && 'code' in error && [-32600, -32602].includes(Number(error.code))) throw diagnosedError(
+        new AppError('MCP_INVALID_RESULT', 'MCP 请求被协议参数校验拒绝。'), createErrorDiagnostic({ code: 'MCP_INVALID_RESULT', reason: 'rpc_parameters_rejected', origin: 'mcp', stage: 'request', operation: name,
+          evidence: { rpcCode: Number(error.code) }, causes: errorCauses(error) }), error);
+      const code = this.broken ? 'MCP_TRANSPORT_ERROR' : 'MCP_PROTOCOL_ERROR';
+      throw diagnosedError(new AppError(code, '本地 MCP 请求失败；已提交写入须独立核实结果。'),
+        createErrorDiagnostic({ code, reason: this.broken ? 'transport_closed' : 'rpc_failed', origin: 'mcp', stage: 'request', operation: name,
+          recovery: definition.effect === 'write' ? 'verify_write' : 'none', causes: errorCauses(error) }), error);
     }
     const result = object(raw);
     if (!result.structuredContent || typeof result.structuredContent !== 'object' || Array.isArray(result.structuredContent)) throw new AppError('MCP_INVALID_RESULT', 'MCP 未返回结构化结果，不能解析展示文本。');
@@ -204,6 +215,8 @@ export class LocalMcpClient implements McpCallClient {
     if (result.isError === true) {
       const remote = object(structured.error, 'MCP错误');
       const code = typeof remote.code === 'string' && /^[A-Z][A-Z_0-9]{0,79}$/.test(remote.code) ? remote.code : 'MCP_TOOL_ERROR';
+      if (remote.diagnostic !== undefined && (!isErrorDiagnostic(remote.diagnostic) || remote.diagnostic.code !== code
+        || remote.diagnostic.operation !== undefined && remote.diagnostic.operation !== name)) throw new AppError('MCP_INVALID_RESULT', 'MCP诊断与错误码或工具来源不一致。');
       if (remote.contractIssue !== undefined && (name !== 'browse_subjects' || code !== 'MCP_INVALID_RESULT' || !isContractIssue(remote.contractIssue)))
         throw new AppError('MCP_INVALID_RESULT', 'MCP契约诊断与工具、错误码或字段不一致。');
       if (remote.sourceTool !== undefined && remote.sourceTool !== name || remote.recovery !== undefined && code !== 'MCP_INVALID_RESULT') throw new AppError('MCP_INVALID_RESULT', 'MCP错误来源或恢复分类与本次工具不一致。');
@@ -221,6 +234,7 @@ export class LocalMcpClient implements McpCallClient {
       if (definition.effect === 'write' && remote.submission !== undefined) {
         checkSubmission(name, remote.submission, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
         const error = new SubmissionError(code, message, remote.submission as SubmissionReceipt);
+        if (isErrorDiagnostic(remote.diagnostic)) diagnosedError(error, remote.diagnostic);
         if (error.rejection !== undefined && (code !== 'BGM_RATE_LIMIT_REJECTED' || remote.networkAttempted === false)
           || remote.rejection !== undefined && !isDeepStrictEqual(remote.rejection, error.rejection)) throw new AppError('MCP_INVALID_RESULT', 'MCP拒绝证据与逐项回执不一致。');
         if (remote.accessContext) Object.defineProperty(error, 'accessContext', { value: structuredClone(remote.accessContext) });
@@ -229,6 +243,7 @@ export class LocalMcpClient implements McpCallClient {
         throw error;
       }
       const error = new AppError(code, message, remote.accessContext === undefined ? undefined : structuredClone(remote.accessContext) as AccessContext);
+      if (isErrorDiagnostic(remote.diagnostic)) diagnosedError(error, remote.diagnostic);
       if (remote.contractIssue !== undefined) Object.defineProperty(error, 'contractIssue', { value: structuredClone(remote.contractIssue) });
       if (remote.diagnosis !== undefined) checkReadDiagnosis(name, parameters, error, remote.diagnosis);
       if (remote.networkAttempted === false) Object.defineProperty(error, 'networkAttempted', { value: false });
@@ -238,7 +253,7 @@ export class LocalMcpClient implements McpCallClient {
     }
     if (!Object.hasOwn(structured, 'value')) throw new AppError('MCP_INVALID_RESULT', 'MCP 返回缺少结构化 value，不能将展示文本作为业务结果。');
     checkAccessResponse(name, structured.value);
-    checkSubjectResponse(name, structured.value, parameters);
+    checkSubjectResponse(name, structured.value, parameters, definition.inputSchema);
     if (isCommunityTool(name)) checkCommunityResponse(name, structured.value, parameters);
     if (definition.effect === 'write') checkSubmission(name, structured.value, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
     else if (resourceOutputSchema(name)) checkResourceResponse(name, structured.value, parameters, definition.outputSchema!);

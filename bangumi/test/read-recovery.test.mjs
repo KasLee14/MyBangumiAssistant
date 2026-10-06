@@ -6,6 +6,50 @@ import { createReadTools } from '../dist/src/mcp/pi-tools.js';
 import { validateToolArguments } from '../dist/src/mcp/catalog.js';
 import { createBangumiExtension } from '../dist/src/extension.js';
 
+test('候选扫描未结束与展示容量不足的恢复指引保留原检索范围', async () => {
+  const stage = diagnoseReadError('prepare_candidate_output', { candidate_ref: 'cr_old', format: 'table' },
+    new AppError('CANDIDATE_STAGE_INCOMPLETE', 'unfinished'));
+  assert.equal(stage.diagnosis.category, 'incomplete');
+  assert.deepEqual(stage.diagnosis.blockedFields, ['/candidate_ref']);
+  assert.ok(stage.diagnosis.capabilitySuggestions.includes('correct_parameters'));
+  assert.ok(!stage.diagnosis.capabilitySuggestions.includes('narrow_scope'));
+  const presentation = diagnoseReadError('prepare_candidate_output', { candidate_ref: 'cr_result', max_bytes: 1024 },
+    new AppError('CANDIDATE_PRESENTATION_LIMIT', 'row too large'));
+  assert.equal(presentation.diagnosis.category, 'input');
+  assert.deepEqual(presentation.diagnosis.blockedFields, ['/max_bytes', '/fields', '/lineage']);
+  assert.ok(!presentation.diagnosis.capabilitySuggestions.includes('narrow_scope'));
+  const turnId = 'unfinished-range-resume';
+  await assert.rejects(executeReadRecovery('prepare_candidate_output', { candidate_ref: 'cr_old', format: 'table' },
+    async () => { throw new AppError('CANDIDATE_STAGE_INCOMPLETE', 'unfinished'); }, { turnId }));
+  const completed = await executeReadRecovery('prepare_candidate_output', { candidate_ref: 'cr_completed', format: 'table' },
+    async () => ({ memberCount: 200, canFinalize: false }), { turnId });
+  assert.equal(completed.memberCount, 200); clearReadRecoveryScope(turnId);
+});
+
+test('返回容量或来源未完不授权缩小原本完整的检索范围', () => {
+  const args = { candidate_ref: 'cr_all', fields: ['id', 'name'], response_view: 'reference' };
+  for (const code of ['INCOMPLETE_DATA', 'INCOMPLETE_COLLECTION', 'FIELD_LIMIT', 'CONTEXT_LIMIT', 'BGM_OUTPUT_LIMIT', 'MCP_OUTPUT_LIMIT']) {
+    const error = diagnoseReadError('refine_subject_candidates', args, new AppError(code, 'limited'));
+    assert.equal(error.diagnosis.category, 'incomplete');
+    assert.ok(!error.diagnosis.capabilitySuggestions.includes('narrow_scope'));
+    assert.ok(error.diagnosis.capabilitySuggestions.includes('correct_parameters'));
+    assert.equal(error.diagnosis.replanAllowed, true);
+    assert.equal(error.diagnosis.retryable, false);
+    checkReadDiagnosis('refine_subject_candidates', args, new AppError(code, 'limited'), error.diagnosis);
+  }
+});
+
+test('候选个人字段认证失败不建议匿名替代，也不阻断独立公共搜索', async () => {
+  const turnId = 'candidate-auth-scope';
+  const args = { subject_ids: [1], fields: ['id', 'personalRating'] };
+  const diagnosed = diagnoseReadError('refine_subject_candidates', args, new AppError('BGM_AUTH_EXPIRED', 'expired'));
+  assert.ok(!diagnosed.diagnosis.capabilitySuggestions.includes('use_public_sfw'));
+  await assert.rejects(executeReadRecovery('refine_subject_candidates', args, async () => { throw new AppError('BGM_AUTH_EXPIRED', 'expired'); }, { turnId }));
+  let called = false;
+  await executeReadRecovery('search_subjects', { keyword: '公开作品' }, async () => { called = true; return []; }, { turnId });
+  assert.equal(called, true); clearReadRecoveryScope(turnId);
+});
+
 test('固定只读暂时失败仅重试一次，成功后保留自由继续取数', async () => {
   let count = 0;
   const result = await executeReadRecovery('get_subject_details', { subject_id: 1 }, async () => {

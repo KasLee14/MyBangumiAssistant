@@ -16,6 +16,37 @@ const azurePeakLoadError =
 	"The system is currently experiencing high demand and cannot process your request. Your request exceeds the maximum usage size allowed during peak load. For improved capacity reliability, consider switching to Provisioned Throughput.";
 
 describe("provider retry classification", () => {
+	it("leaves host-owned recovery to the application without a second retry loop", () => {
+		const message = fauxAssistantMessage("", { stopReason: "error", errorMessage: "CONTENT_OUTPUT_INVALID: 503" });
+		message.diagnostics = [{ type: "application_recovery", timestamp: 1, details: { autoRetry: "host" } }];
+		expect(isRetryableAssistantError(message)).toBe(false);
+		delete message.diagnostics;
+		expect(isRetryableAssistantError(message)).toBe(true);
+	});
+	it.each([
+		"CONTENT_OUTPUT_INVALID：模型输出未通过组件内容契约校验。",
+		"CONTENT_OUTPUT_INVALID: content[0].pending must be false",
+		"CONTENT_OUTPUT_INCOMPLETE：模型响应未正常结束。",
+		"CONTENT_OUTPUT_INVALID",
+	])("retries generated content failures: %s", (errorMessage) => {
+		expect(isRetryableAssistantError(fauxAssistantMessage("", { stopReason: "error", errorMessage }))).toBe(true);
+	});
+
+	it.each([
+		"CONTENT_OUTPUT_UNSUPPORTED: unsupported API",
+		"CONTENT_OUTPUT_INVALID_CONFIGURATION",
+		"Validation example contains CONTENT_OUTPUT_INVALID",
+	])("does not treat other content error text as a retry code: %s", (errorMessage) => {
+		expect(isRetryableAssistantError(fauxAssistantMessage("", { stopReason: "error", errorMessage }))).toBe(false);
+	});
+
+	it("does not retry aborted or successful content messages", () => {
+		for (const stopReason of ["stop", "aborted"] as const) {
+			expect(
+				isRetryableAssistantError(fauxAssistantMessage("", { stopReason, errorMessage: "CONTENT_OUTPUT_INVALID" })),
+			).toBe(false);
+		}
+	});
 	it("matches explicit provider retry guidance", () => {
 		expect(
 			isRetryableAssistantError(

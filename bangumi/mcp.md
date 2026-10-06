@@ -1,6 +1,6 @@
 # Bangumi MCP 字段声明
 
-64 个底层工具及宿主工具 execute_write_batch。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。
+70 个底层工具及宿主工具 execute_write_batch。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。
 
 ## `get_daily_broadcast`
 
@@ -52,6 +52,11 @@
 | sort | string | 否 | match | 允许 match、heat、rank、score | match匹配、heat收藏人数、rank排名、score评分；不按基准分差排序。 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes |  |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。 |
 
 成功输出字段
 
@@ -64,6 +69,30 @@
 | value.page | search_subjects_page | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
 | value.visibility | string | 是 | — | 允许 public |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_page |  |
+| value.entity | string | 是 | — | 固定 subject_candidate |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| value.responseView | string | 是 | — | 允许 page、reference |  |
+| value.collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| value.page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| value.sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| value.collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
@@ -83,6 +112,11 @@
 | nsfw | string | 否 | — | 允许 account、exclude | 省略或exclude优先公共v0/SFW；account明确补充账户可见NSFW。缺少权限时可继续公共SFW并说明覆盖缺口，不能将有限结果称为全站完整。 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes |  |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。 |
 | subject_type | integer | 是 | — | 固定 1 | oneOf 1 |
 | cat | integer | 否 | — | 允许 0、1001、1002、1003 | 书籍：0其他、1001漫画、1002小说、1003画集。；oneOf 1 |
 | sort | string | 否 | — | 允许 date、rank | oneOf 1 |
@@ -92,6 +126,11 @@
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 | oneOf 1 |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 | oneOf 1 |
 | series | boolean | 否 | — | — | oneOf 1 |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 1 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 1 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 1 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 1 |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 1 |
 | subject_type | integer | 是 | — | 固定 2 | oneOf 2 |
 | cat | integer | 否 | — | 允许 0、1、2、3、5 | 动画形式：0其他、1TV、2OVA、3Movie、5WEB；恋爱/百合等题材使用search_subjects的filter。；oneOf 2 |
 | sort | string | 否 | — | 允许 date、rank | oneOf 2 |
@@ -100,6 +139,11 @@
 | nsfw | string | 否 | — | 允许 account、exclude | 省略或exclude优先公共v0/SFW；account明确补充账户可见NSFW。缺少权限时可继续公共SFW并说明覆盖缺口，不能将有限结果称为全站完整。；oneOf 2 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 | oneOf 2 |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 | oneOf 2 |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 2 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 2 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 2 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 2 |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 2 |
 | subject_type | integer | 是 | — | 固定 3 | oneOf 3 |
 | cat | integer | 否 | — | 允许 0 | 音乐仅0其他。；oneOf 3 |
 | sort | string | 否 | — | 允许 date、rank | oneOf 3 |
@@ -108,6 +152,11 @@
 | nsfw | string | 否 | — | 允许 account、exclude | 省略或exclude优先公共v0/SFW；account明确补充账户可见NSFW。缺少权限时可继续公共SFW并说明覆盖缺口，不能将有限结果称为全站完整。；oneOf 3 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 | oneOf 3 |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 | oneOf 3 |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 3 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 3 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 3 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 3 |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 3 |
 | subject_type | integer | 是 | — | 固定 4 | oneOf 4 |
 | cat | integer | 否 | — | 允许 0、4001、4002、4003、4005 | 游戏：0其他、4001游戏、4002软件、4003扩展包、4005桌游。；oneOf 4 |
 | sort | string | 否 | — | 允许 date、rank | oneOf 4 |
@@ -117,6 +166,11 @@
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 | oneOf 4 |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 | oneOf 4 |
 | platform | string | 否 | — | 最短字符数 1；最长字符数 100 | oneOf 4 |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 4 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 4 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 4 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 4 |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 4 |
 | subject_type | integer | 是 | — | 固定 6 | oneOf 5 |
 | cat | integer | 否 | — | 允许 0、1、2、3、6001、6002、6003、6004 | 三次元：0其他、1日剧、2欧美剧、3华语剧、6001电视剧、6002电影、6003演出、6004综艺。；oneOf 5 |
 | sort | string | 否 | — | 允许 date、rank | oneOf 5 |
@@ -125,6 +179,11 @@
 | nsfw | string | 否 | — | 允许 account、exclude | 省略或exclude优先公共v0/SFW；account明确补充账户可见NSFW。缺少权限时可继续公共SFW并说明覆盖缺口，不能将有限结果称为全站完整。；oneOf 5 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 | oneOf 5 |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 | oneOf 5 |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 5 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 5 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 5 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 5 |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 5 |
 
 成功输出字段
 
@@ -139,6 +198,30 @@
 | value.visibility | string | 是 | — | 允许 public |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.filterCoverage | browse_subjects_filterCoverage | 是 | — | 拒绝额外字段 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_page |  |
+| value.entity | string | 是 | — | 固定 subject_candidate |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| value.responseView | string | 是 | — | 允许 page、reference |  |
+| value.collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| value.page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| value.sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| value.collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
 ## `get_subject_details`
@@ -566,9 +649,9 @@
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
 | value.visibility | string | 是 | — | 允许 public、self |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
-| value.account | Account | 否 | — | 拒绝额外字段 |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
-| value.account | Account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
 
 ## `get_user_character_collection`
@@ -592,7 +675,7 @@
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.visibility | string | 是 | — | 固定 self | oneOf 1 |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 1 |
-| value.account | Account | 是 | — | 拒绝额外字段 | oneOf 1 |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
 | value.collection | characterCollectionItem | 否 | — | 拒绝额外字段 | then: 提供 state；state=collected |
 | value.collection | null | 否 | — | — | else: 提供 state；state=collected |
@@ -695,6 +778,11 @@
 | include | array<string> | 否 | — | 最多项 2；元素不重复；元素：允许 subject_facts、own_collection | 按需附带紧凑作品事实或本人收藏状态；own_collection必须登录，subject_form筛选也会返回subjectFacts作为核对证据。 |
 | include[] | string | 是 | — | 允许 subject_facts、own_collection |  |
 | snapshot_ref | string | 否 | — | 最短字符数 32；最长字符数 32；正则 ^[a-f0-9]{32}$ | 增强查询续页使用首个响应page.snapshotRef，并保持所有筛选和include相同；不重新读取完整关联源。 |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 候选模式同轮上一阶段引用，配合snapshot_ref和准确offset续读；按作品ID合并，不重取来源。 |
 | subject_type | integer | 是 | — | 固定 2 | then: 提供 subject_form；subject_form∈tv、ova、movie、web、other |
 
 成功输出字段
@@ -710,10 +798,35 @@
 | value.visibility | string | 是 | — | 允许 public、self |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.coverage | AppearanceCoverage | 否 | — | 拒绝额外字段 |  |
-| value.account | Account | 否 | — | 拒绝额外字段 |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
-| value.account | Account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_page |  |
+| value.entity | string | 是 | — | 固定 subject_candidate |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| value.responseView | string | 是 | — | 允许 page、reference |  |
+| value.collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| value.page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| value.sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| value.collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.appearanceStage | get_person_characters_appearanceStage | 是 | — | 拒绝额外字段 |  |
 
 ## `collect_person`
 
@@ -799,9 +912,9 @@
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
 | value.visibility | string | 是 | — | 允许 public、self |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
-| value.account | Account | 否 | — | 拒绝额外字段 |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
-| value.account | Account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
 
 ## `get_user_person_collection`
@@ -825,7 +938,7 @@
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.visibility | string | 是 | — | 固定 self | oneOf 1 |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 1 |
-| value.account | Account | 是 | — | 拒绝额外字段 | oneOf 1 |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
 | value.collection | personCollectionItem | 否 | — | 拒绝额外字段 | then: 提供 state；state=collected |
 | value.collection | null | 否 | — | — | else: 提供 state；state=collected |
@@ -916,7 +1029,12 @@
 | subject_type | integer | 否 | — | 允许 1、2、3、4、6 | 媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。 |
 | collection_type | integer | 否 | — | 允许 1、2、3、4、5 | 1想看、2看过/已完成、3在看、4搁置、5抛弃；明确看过必须用2，不以章节进度替代整部状态。 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
-| offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| offset | integer | 否 | 0 | ≥ 0；≤ 9007199254740991 |  |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。 |
 
 成功输出字段
 
@@ -930,10 +1048,34 @@
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
 | value.visibility | string | 是 | — | 允许 public、self |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
-| value.account | Account | 否 | — | 拒绝额外字段 |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
-| value.account | Account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_page |  |
+| value.entity | string | 是 | — | 固定 subject_candidate |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| value.responseView | string | 是 | — | 允许 page、reference |  |
+| value.collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| value.page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| value.sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| value.collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
 ## `query_user_collections`
 
@@ -944,12 +1086,93 @@
 | username | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^(?:-&#124;[A-Za-z0-9_]+)$ | 本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。 |
 | subject_type | integer | 是 | — | 允许 1、2、3、4、6 | 媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。 |
 | collection_type | integer | 否 | — | 允许 1、2、3、4、5 | 1想看、2看过/已完成、3在看、4搁置、5抛弃；明确看过必须用2，不以章节进度替代整部状态。 |
-| air_date | object | 是 | — | 最少字段 1；拒绝额外字段 | 实际YYYY-MM-DD日期，含上下界；min不能晚于max。 |
+| air_date | object | 否 | — | 最少字段 1；拒绝额外字段 | 实际YYYY-MM-DD日期，含上下界；min不能晚于max。 |
 | air_date.min | string | 否 | — | 最短字符数 10；最长字符数 10；正则 ^\d{4}-\d{2}-\d{2}$ |  |
 | air_date.max | string | 否 | — | 最短字符数 10；最长字符数 10；正则 ^\d{4}-\d{2}-\d{2}$ |  |
-| sort | string | 否 | date_desc | 允许 date_desc、date_asc |  |
+| sort | string | 否 | — | 允许 source、date_desc、date_asc | 候选模式省略保持来源顺序；日期排序仅针对当前已读来源范围。旧日期模式默认date_desc。 |
 | extra_subject_ids | array<integer> | 否 | 空数组 | 最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 |  |
 | extra_subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
+| response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
+| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| filter | object | 否 | — | 拒绝额外字段 |  |
+| filter.subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| filter.subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| filter.subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| filter.subject_form[] | string | 是 | — | 允许 tv、ova、movie、web、other |  |
+| filter.air_date | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.air_date.min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.air_date.max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rating.min | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.rating.max | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.rating_count | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rating_count.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.rating_count.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.rank | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.nsfw | string | 否 | — | 允许 exclude、account |  |
+| filter.tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| filter.tag[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| filter.meta_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.personal_rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.personal_rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.personal_rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.personal_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.exclude_collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.duration.min | number | 否 | — | ≥ 0 |  |
+| filter.duration.max | number | 否 | — | ≥ 0 |  |
+| filter.any_of | array<object> | 否 | — | 最少项 1；最多项 10 | 事实支路的OR，外层条件仍为AND，不嵌套。 |
+| filter.any_of[] | object | 是 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| filter.any_of[].subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| filter.any_of[].subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| filter.any_of[].subject_form[] | string | 是 | — | 允许 tv、ova、movie、web、other |  |
+| filter.any_of[].air_date | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].air_date.min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.any_of[].air_date.max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.any_of[].rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rating.min | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].rating.max | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].rating_count | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rating_count.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.any_of[].rating_count.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.any_of[].rank | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].nsfw | string | 否 | — | 允许 exclude、account |  |
+| filter.any_of[].tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| filter.any_of[].tag[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| filter.any_of[].meta_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].personal_rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].personal_rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].personal_rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].personal_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.any_of[].collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.any_of[].exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.any_of[].exclude_collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.any_of[].duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].duration.min | number | 否 | — | ≥ 0 |  |
+| filter.any_of[].duration.max | number | 否 | — | ≥ 0 |  |
+| source_limit | integer | 否 | — | ≥ 1；≤ 10000 | 候选模式省略100；本次宿主扫描的来源条数预算，按100条整页读取，可续读累计超过一万条；不是匹配数或候选总量限制。 |
+| collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 续读已取得的同账户同范围收藏快照。 |
+| limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
+| air_date | object | 是 | — | 最少字段 1；拒绝额外字段 | 实际YYYY-MM-DD日期，含上下界；min不能晚于max。；else: 提供 result_mode；result_mode=candidates |
+| air_date.min | string | 否 | — | 最短字符数 10；最长字符数 10；正则 ^\d{4}-\d{2}-\d{2}$ | else: 提供 result_mode；result_mode=candidates |
+| air_date.max | string | 否 | — | 最短字符数 10；最长字符数 10；正则 ^\d{4}-\d{2}-\d{2}$ | else: 提供 result_mode；result_mode=candidates |
 
 成功输出字段
 
@@ -963,6 +1186,30 @@
 | value.coverage | query_user_collections_coverage | 是 | — | 拒绝额外字段 |  |
 | value.missingExtraSubjectIds | array<integer> | 是 | — | 最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 |  |
 | value.visibility | string | 是 | — | 允许 self、public |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_page |  |
+| value.entity | string | 是 | — | 固定 subject_candidate |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| value.responseView | string | 是 | — | 允许 page、reference |  |
+| value.collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| value.page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| value.sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| value.collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
@@ -987,7 +1234,7 @@
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.visibility | string | 是 | — | 固定 self | oneOf 1 |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 1 |
-| value.account | Account | 是 | — | 拒绝额外字段 | oneOf 1 |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
 | value.collection | SelfSubjectSnapshot | 否 | — | 拒绝额外字段 | then: 提供 state；state=collected |
 | value.collection | null | 否 | — | — | else: 提供 state；state=collected |
@@ -1064,7 +1311,7 @@
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
 | value.visibility | string | 是 | — | 固定 self |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
-| value.account | Account | 是 | — | 拒绝额外字段 |  |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
 ## `update_episode_collection`
@@ -1120,7 +1367,7 @@
 | value.complete | boolean | 是 | — | 固定 true |  |
 | value.visibility | string | 是 | — | 固定 self |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
-| value.account | Account | 是 | — | 拒绝额外字段 |  |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
 ## `update_single_episode_collection`
@@ -1492,7 +1739,7 @@
 | value.complete | boolean | 是 | — | 固定 true | oneOf 2 |
 | value.visibility | string | 是 | — | 固定 self | oneOf 2 |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 2 |
-| value.account | Account | 是 | — | 拒绝额外字段 | oneOf 2 |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | oneOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 2 |
 
 ## `update_index`
@@ -1553,9 +1800,9 @@
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
 | value.visibility | string | 是 | — | 允许 public、self |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
-| value.account | Account | 否 | — | 拒绝额外字段 |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
-| value.account | Account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
+| value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
 
 ## `add_subject_to_index`
@@ -1725,6 +1972,490 @@
 | value.target | create_index_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<collect_index_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+
+## `refine_subject_candidates`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| candidate_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 当前读取轮次的候选引用；与subject_ids互斥，两者必选一。 |
+| subject_ids | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 | 明确作品ID；与candidate_ref互斥，两者必选一。 |
+| subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter | object | 否 | 对象 | 拒绝额外字段 |  |
+| filter.subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| filter.subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| filter.subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| filter.subject_form[] | string | 是 | — | 允许 tv、ova、movie、web、other |  |
+| filter.air_date | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.air_date.min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.air_date.max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rating.min | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.rating.max | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.rating_count | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rating_count.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.rating_count.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.rank | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.nsfw | string | 否 | — | 允许 exclude、account |  |
+| filter.tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| filter.tag[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| filter.meta_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.personal_rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.personal_rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.personal_rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.personal_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.exclude_collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.duration.min | number | 否 | — | ≥ 0 |  |
+| filter.duration.max | number | 否 | — | ≥ 0 |  |
+| filter.any_of | array<object> | 否 | — | 最少项 1；最多项 10 | 事实支路的OR，外层条件仍为AND，不嵌套。 |
+| filter.any_of[] | object | 是 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| filter.any_of[].subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| filter.any_of[].subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| filter.any_of[].subject_form[] | string | 是 | — | 允许 tv、ova、movie、web、other |  |
+| filter.any_of[].air_date | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].air_date.min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.any_of[].air_date.max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.any_of[].rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rating.min | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].rating.max | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].rating_count | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rating_count.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.any_of[].rating_count.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.any_of[].rank | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].nsfw | string | 否 | — | 允许 exclude、account |  |
+| filter.any_of[].tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| filter.any_of[].tag[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| filter.any_of[].meta_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].personal_rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].personal_rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].personal_rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].personal_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.any_of[].collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.any_of[].exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.any_of[].exclude_collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.any_of[].duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].duration.min | number | 否 | — | ≥ 0 |  |
+| filter.any_of[].duration.max | number | 否 | — | ≥ 0 |  |
+| fields | array<string> | 否 | id、name、nameCn、subjectType | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| response_view | string | 否 | page | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
+| collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 当前账户和媒体的收藏证据引用；多状态完整核对须全状态来源，单状态快照只能证明该状态缺席。 |
+| cursor | string | 否 | — | 最短字符数 1；最长字符数 150 |  |
+| limit | integer | 否 | 50 | ≥ 1；≤ 100 |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_page |  |
+| value.entity | string | 是 | — | 固定 subject_candidate |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| value.responseView | string | 是 | — | 允许 page、reference |  |
+| value.collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| value.page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| value.sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| value.collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+
+## `expand_subject_relations`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 父作品宿主候选引用。优先使用上阶段resultRef；工作集会沿用其父筛选资格。 |
+| parent_filter | object | 否 | — | 拒绝额外字段 | 父作品筛选；仅资格确证的父作品展开。省略时沿用输入候选阶段的筛选。 |
+| parent_filter.subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| parent_filter.subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| parent_filter.subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| parent_filter.subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| parent_filter.subject_form[] | string | 是 | — | 允许 tv、ova、movie、web、other |  |
+| parent_filter.air_date | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.air_date.min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| parent_filter.air_date.max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| parent_filter.rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.rating.min | number | 否 | — | ≥ 0；≤ 10 |  |
+| parent_filter.rating.max | number | 否 | — | ≥ 0；≤ 10 |  |
+| parent_filter.rating_count | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.rating_count.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| parent_filter.rating_count.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| parent_filter.rank | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| parent_filter.rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| parent_filter.nsfw | string | 否 | — | 允许 exclude、account |  |
+| parent_filter.tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| parent_filter.tag[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| parent_filter.meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| parent_filter.meta_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| parent_filter.personal_rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.personal_rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| parent_filter.personal_rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| parent_filter.personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| parent_filter.personal_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| parent_filter.collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| parent_filter.collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| parent_filter.exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| parent_filter.exclude_collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| parent_filter.duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.duration.min | number | 否 | — | ≥ 0 |  |
+| parent_filter.duration.max | number | 否 | — | ≥ 0 |  |
+| parent_filter.any_of | array<object> | 否 | — | 最少项 1；最多项 10 | 事实支路的OR，外层条件仍为AND，不嵌套。 |
+| parent_filter.any_of[] | object | 是 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.any_of[].subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| parent_filter.any_of[].subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| parent_filter.any_of[].subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| parent_filter.any_of[].subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| parent_filter.any_of[].subject_form[] | string | 是 | — | 允许 tv、ova、movie、web、other |  |
+| parent_filter.any_of[].air_date | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.any_of[].air_date.min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| parent_filter.any_of[].air_date.max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| parent_filter.any_of[].rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.any_of[].rating.min | number | 否 | — | ≥ 0；≤ 10 |  |
+| parent_filter.any_of[].rating.max | number | 否 | — | ≥ 0；≤ 10 |  |
+| parent_filter.any_of[].rating_count | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.any_of[].rating_count.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| parent_filter.any_of[].rating_count.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| parent_filter.any_of[].rank | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.any_of[].rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| parent_filter.any_of[].rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| parent_filter.any_of[].nsfw | string | 否 | — | 允许 exclude、account |  |
+| parent_filter.any_of[].tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| parent_filter.any_of[].tag[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| parent_filter.any_of[].meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| parent_filter.any_of[].meta_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| parent_filter.any_of[].personal_rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.any_of[].personal_rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| parent_filter.any_of[].personal_rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| parent_filter.any_of[].personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| parent_filter.any_of[].personal_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| parent_filter.any_of[].collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| parent_filter.any_of[].collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| parent_filter.any_of[].exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| parent_filter.any_of[].exclude_collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| parent_filter.any_of[].duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| parent_filter.any_of[].duration.min | number | 否 | — | ≥ 0 |  |
+| parent_filter.any_of[].duration.max | number | 否 | — | ≥ 0 |  |
+| relations | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 300 | 父到子关系标签白名单，按上游已登记标签精确匹配；未知标签保留待核实。 |
+| relations[] | string | 是 | — | 最短字符数 1；最长字符数 300 |  |
+| exclude_relations | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 300 | 父到子关系标签排除名单；不能把未知关系标签当作未命中。 |
+| exclude_relations[] | string | 是 | — | 最短字符数 1；最长字符数 300 |  |
+| filter | object | 否 | 对象 | 拒绝额外字段 | 子作品条件；与parent_filter分开。 |
+| filter.subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| filter.subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| filter.subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| filter.subject_form[] | string | 是 | — | 允许 tv、ova、movie、web、other |  |
+| filter.air_date | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.air_date.min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.air_date.max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rating.min | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.rating.max | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.rating_count | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rating_count.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.rating_count.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.rank | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.nsfw | string | 否 | — | 允许 exclude、account |  |
+| filter.tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| filter.tag[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| filter.meta_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.personal_rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.personal_rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.personal_rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.personal_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.exclude_collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.duration.min | number | 否 | — | ≥ 0 |  |
+| filter.duration.max | number | 否 | — | ≥ 0 |  |
+| filter.any_of | array<object> | 否 | — | 最少项 1；最多项 10 | 事实支路的OR，外层条件仍为AND，不嵌套。 |
+| filter.any_of[] | object | 是 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| filter.any_of[].subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| filter.any_of[].subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| filter.any_of[].subject_form[] | string | 是 | — | 允许 tv、ova、movie、web、other |  |
+| filter.any_of[].air_date | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].air_date.min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.any_of[].air_date.max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| filter.any_of[].rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rating.min | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].rating.max | number | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].rating_count | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rating_count.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.any_of[].rating_count.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.any_of[].rank | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| filter.any_of[].nsfw | string | 否 | — | 允许 exclude、account |  |
+| filter.any_of[].tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| filter.any_of[].tag[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| filter.any_of[].meta_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].personal_rating | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].personal_rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].personal_rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.any_of[].personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].personal_tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.any_of[].collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.any_of[].collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.any_of[].exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| filter.any_of[].exclude_collection_types[] | number | 是 | — | 允许 1、2、3、4、5 |  |
+| filter.any_of[].duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| filter.any_of[].duration.min | number | 否 | — | ≥ 0 |  |
+| filter.any_of[].duration.max | number | 否 | — | ≥ 0 |  |
+| fields | array<string> | 否 | id、name、nameCn、subjectType | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| response_view | string | 否 | page | 允许 page、reference | reference只返回引用、累计计数和覆盖，不输出中间候选与回溯数组。 |
+| collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| cursor | string | 否 | — | 最短字符数 1；最长字符数 150 |  |
+| source_limit | integer | 否 | 10000 | ≥ 1；≤ 10000 | 本次关系来源扫描窗口，可用返回游标续读；不限制父作品、关系或子作品总数。 |
+| limit | integer | 否 | 50 | ≥ 1；≤ 100 |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_page |  |
+| value.entity | string | 是 | — | 固定 subject_candidate |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| value.responseView | string | 是 | — | 允许 page、reference |  |
+| value.collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| value.page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| value.sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| value.collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.relationStage | expand_subject_relations_relationStage | 是 | — | 拒绝额外字段 |  |
+| value.lineage | array<expand_subject_relations_lineageItem> | 是 | — | 最多项 100 |  |
+
+## `get_candidate_coverage`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| coverage_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 候选响应中的覆盖引用，仅同一读取任务和可见范围可用。 |
+| offset | integer | 否 | 0 | ≥ 0；≤ 9007199254740991 |  |
+| limit | integer | 否 | 50 | ≥ 1；≤ 100 |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_coverage |  |
+| value.coverageRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| value.sources | array<get_candidate_coverage_sourcesItem> | 是 | — | 最多项 100 |  |
+| value.dependencies | array<get_candidate_coverage_dependenciesItem> | 是 | — | — |  |
+| value.page | get_candidate_coverage_page | 是 | — | 拒绝额外字段 |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+
+## `get_candidate_lineage`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 关联展开返回的candidateRef/resultRef，或其进一步筛选后派生的候选引用。 |
+| subject_ids | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 | 只查看指定成员的回溯；须全部属于当前候选集合。省略时按集合成员分页。 |
+| subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| offset | integer | 否 | 0 | ≥ 0；≤ 9007199254740991 |  |
+| limit | integer | 否 | 50 | ≥ 1；≤ 100 |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 candidate_lineage |  |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| value.data | array<get_candidate_lineage_dataItem> | 是 | — | 最多项 100 |  |
+| value.page | get_candidate_coverage_page | 是 | — | 拒绝额外字段 |  |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| value.visibility | string | 是 | — | 允许 public、self |  |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| value.readAt | string | 是 | — | 最长字符数 50 |  |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+
+## `continue_subject_query`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 阶段返回的candidateRef或resultRef；宿主校正为对应工作引用，恢复原执行计划。 |
+| cursor | string | 是 | — | 最短字符数 1；最长字符数 150 | 原阶段page.nextCursor；须与该引用匹配，原条件和字段由宿主恢复。 |
+| response_view | string | 否 | — | 允许 page、reference | 仅本次展示方式；不改变范围、筛选、证据字段和收藏引用。 |
+| limit | integer | 否 | — | ≥ 1；≤ 100 | 仅本次窗口展示大小；不改变原筛选或来源范围。 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| value.schemaVersion | number | 是 | — | 固定 1 | oneOf 1 |
+| value.kind | string | 是 | — | 固定 candidate_continuation | oneOf 1 |
+| value.tool | string | 是 | — | 固定 refine_subject_candidates | oneOf 1 |
+| value.request | continue_subject_query_request | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：oneOf 2 个分支 | oneOf 1 |
+| value.result | continue_subject_query_result | 是 | — | 拒绝额外字段 | oneOf 1 |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 | oneOf 1 |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
+| value.schemaVersion | number | 是 | — | 固定 1 | oneOf 2 |
+| value.kind | string | 是 | — | 固定 candidate_continuation | oneOf 2 |
+| value.tool | string | 是 | — | 固定 expand_subject_relations | oneOf 2 |
+| value.request | continue_subject_query_request_2 | 是 | — | 拒绝额外字段 | oneOf 2 |
+| value.result | continue_subject_query_result_2 | 是 | — | 拒绝额外字段 | oneOf 2 |
+| value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 | oneOf 2 |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 2 |
+
+## `prepare_candidate_output`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| candidate_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；仅展示已选成员，无网络、不判断类别，权限与当前必要条件仍须有效。 |
+| offset | integer | 否 | — | ≥ 0；≤ 9007199254740991 | 同一结果引用的交付起点；指定offset或limit启用分页，不改变集合及覆盖。 |
+| limit | integer | 否 | — | ≥ 1；≤ 100 | 单次交付最多成员数；实际数量也受内容容量约束，按page.nextOffset继续。 |
+| title | string | 否 | — | 最长字符数 300 |  |
+| introduction | string | 否 | — | 最长字符数 4000 |  |
+| conclusion | string | 否 | — | 最长字符数 4000 |  |
+| format | string | 否 | — | 允许 table、subject_cards |  |
+| fields | array<string> | 否 | — | 最少项 1；最多项 11；元素不重复；元素：允许 displayName、id、name、nameCn、date、subjectForm、score、rank、ratingCount、url、collectionStatus |  |
+| fields[] | string | 是 | — | 允许 displayName、id、name、nameCn、date、subjectForm、score、rank、ratingCount、url、collectionStatus |  |
+| completion_scope | string | 否 | — | 允许 selected、exhaustive | 少量推荐selected不要求未选母池扫描耗尽，但已选集合必须完成本层处理、资格与权限核实；全量请求使用exhaustive。 |
+| lineage | string | 否 | — | 允许 none、witness、all |  |
+| lineage_format | string | 否 | — | 允许 names、ids、full |  |
+| max_bytes | integer | 否 | — | ≥ 1024；≤ 65536 | 内部表格单块预算；每次交付仍受40000字节内容根限制。 |
+| card_fields | array<string> | 否 | — | 最多项 7；元素不重复；元素：允许 nameCn、score、scoreCount、rank、date、summary、tags |  |
+| card_fields[] | string | 是 | — | 允许 nameCn、score、scoreCount、rank、date、summary、tags |  |
+| layout | string | 否 | — | 允许 list、grid |  |
+| reasons | array<object> | 否 | — | — | 当前resultRef内每个已选作品至多一条模型理由；宿主仅按ID关联为Text并转义，不改事实summary。 |
+| reasons[] | object | 是 | — | 拒绝额外字段 |  |
+| reasons[].subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| reasons[].reason | string | 是 | — | 最短字符数 1；最长字符数 4000 |  |
+| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；仅展示已选成员，无网络、不判断类别，权限与当前必要条件仍须有效。；oneOf 1 |
+| offset | integer | 否 | — | ≥ 0；≤ 9007199254740991 | 同一结果引用的交付起点；指定offset或limit启用分页，不改变集合及覆盖。；oneOf 1 |
+| limit | integer | 否 | — | ≥ 1；≤ 100 | 单次交付最多成员数；实际数量也受内容容量约束，按page.nextOffset继续。；oneOf 1 |
+| title | string | 否 | — | 最长字符数 300 | oneOf 1 |
+| introduction | string | 否 | — | 最长字符数 4000 | oneOf 1 |
+| conclusion | string | 否 | — | 最长字符数 4000 | oneOf 1 |
+| format | string | 否 | table | 固定 table | oneOf 1 |
+| fields | array<string> | 否 | displayName、url | 最少项 1；最多项 11；元素不重复；元素：允许 displayName、id、name、nameCn、date、subjectForm、score、rank、ratingCount、url、collectionStatus | oneOf 1 |
+| fields[] | string | 是 | — | 允许 displayName、id、name、nameCn、date、subjectForm、score、rank、ratingCount、url、collectionStatus | oneOf 1 |
+| completion_scope | string | 否 | exhaustive | 允许 selected、exhaustive | exhaustive还须来源与上游扫描耗尽；selected仅交付已处理完成的选集并保留母池覆盖缺口，不放宽选中作品条件。；oneOf 1 |
+| lineage | string | 否 | none | 允许 none、witness、all | oneOf 1 |
+| lineage_format | string | 否 | names | 允许 names、ids、full | oneOf 1 |
+| max_bytes | integer | 否 | 16000 | ≥ 1024；≤ 65536 | 内部表格单块预算；每次交付仍受40000字节内容根限制。；oneOf 1 |
+| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；仅展示已选成员，无网络、不判断类别，权限与当前必要条件仍须有效。；oneOf 2 |
+| offset | integer | 否 | — | ≥ 0；≤ 9007199254740991 | 同一结果引用的交付起点；指定offset或limit启用分页，不改变集合及覆盖。；oneOf 2 |
+| limit | integer | 否 | — | ≥ 1；≤ 100 | 单次交付最多成员数；实际数量也受内容容量约束，按page.nextOffset继续。；oneOf 2 |
+| title | string | 否 | — | 最长字符数 300 | oneOf 2 |
+| introduction | string | 否 | — | 最长字符数 4000 | oneOf 2 |
+| conclusion | string | 否 | — | 最长字符数 4000 | oneOf 2 |
+| format | string | 是 | — | 固定 subject_cards | oneOf 2 |
+| card_fields | array<string> | 否 | nameCn | 最多项 7；元素不重复；元素：允许 nameCn、score、scoreCount、rank、date、summary、tags | oneOf 2 |
+| card_fields[] | string | 是 | — | 允许 nameCn、score、scoreCount、rank、date、summary、tags | oneOf 2 |
+| completion_scope | string | 否 | selected | 允许 selected、exhaustive | 少量推荐selected不要求未选母池扫描耗尽，但已选集合必须完成本层处理、资格与权限核实；全量请求使用exhaustive。；oneOf 2 |
+| layout | string | 否 | list | 允许 list、grid | oneOf 2 |
+| reasons | array<object> | 否 | 空数组 | — | 当前resultRef内每个已选作品至多一条模型理由；宿主仅按ID关联为Text并转义，不改事实summary。；oneOf 2 |
+| reasons[] | object | 是 | — | 拒绝额外字段 | oneOf 2 |
+| reasons[].subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 | oneOf 2 |
+| reasons[].reason | string | 是 | — | 最短字符数 1；最长字符数 4000 | oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| value.schemaVersion | number | 是 | — | 固定 1 | oneOf 1 |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 | oneOf 1 |
+| value.format | string | 是 | — | 允许 table、subject_cards | oneOf 1 |
+| value.scope | object（本工具输入字段） | 是 | — | oneOf 2 个分支 | oneOf 1 |
+| value.counts | prepare_candidate_output_counts | 是 | — | 拒绝额外字段 | oneOf 1 |
+| value.wholePlan | prepare_candidate_output_wholePlan | 是 | — | 拒绝额外字段 | oneOf 1 |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full | oneOf 1 |
+| value.visibility | string | 是 | — | 允许 public、self | oneOf 1 |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 | oneOf 1 |
+| value.readAt | string | 是 | — | 最长字符数 50 | oneOf 1 |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
+| value.kind | string | 是 | — | 固定 candidate_output | oneOf 1 |
+| value.presentation | prepare_candidate_output_presentation | 是 | — | 拒绝额外字段 | oneOf 1 |
+| value.bytes | integer | 是 | — | ≥ 0；≤ 9007199254740991 | oneOf 1 |
+| value.page | get_candidate_coverage_page | 否 | — | 拒绝额外字段 | oneOf 1 |
+| value.schemaVersion | number | 是 | — | 固定 1 | oneOf 2 |
+| value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
+| value.format | string | 是 | — | 允许 table、subject_cards | oneOf 2 |
+| value.scope | object（本工具输入字段） | 是 | — | oneOf 2 个分支 | oneOf 2 |
+| value.counts | prepare_candidate_output_counts | 是 | — | 拒绝额外字段 | oneOf 2 |
+| value.wholePlan | prepare_candidate_output_wholePlan | 是 | — | 拒绝额外字段 | oneOf 2 |
+| value.coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full | oneOf 2 |
+| value.visibility | string | 是 | — | 允许 public、self | oneOf 2 |
+| value.account | search_subjects_account | 否 | — | 拒绝额外字段 | oneOf 2 |
+| value.readAt | string | 是 | — | 最长字符数 50 | oneOf 2 |
+| value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 2 |
+| value.kind | string | 是 | — | 固定 candidate_output_plan | oneOf 2 |
+| value.status | string | 是 | — | 固定 projection_required | oneOf 2 |
+| value.guidance | prepare_candidate_output_guidance | 是 | — | 拒绝额外字段 | oneOf 2 |
 
 ## `get_subject_comments`
 
@@ -2209,6 +2940,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2255,6 +2987,149 @@
 | sourceHasMore | boolean | 否 | — | — |  |
 | excludedNsfwCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
 | unknownNsfwCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+
+### `search_subjects_dataItem_2`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| name | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| nameCn | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| subjectType | number / null | 否 | — | anyOf 2 个分支；分支：允许 1、2、3、4、6 |  |
+| date | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 50 |  |
+| platform | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| subjectForm | string / null | 否 | — | anyOf 2 个分支；分支：允许 tv、ova、movie、web、other |  |
+| nsfw | boolean / null | 否 | — | anyOf 2 个分支 |  |
+| score | number / null | 否 | — | anyOf 2 个分支；number：≥ 0；≤ 10 |  |
+| rank | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 1；≤ 9007199254740991 |  |
+| ratingCount | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| tags | array<string> / null | 否 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| metaTags | array<string> / null | 否 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| url | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 100；正则 ^https://bgm\.tv/subject/[1-9]\d*$ |  |
+| personalRating | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 0；≤ 10 |  |
+| personalTags | array<string> / null | 否 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| personalComment | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 20000 |  |
+| collectionStatus | number / null | 否 | — | anyOf 2 个分支；分支：允许 1、2、3、4、5 |  |
+| collectionState | string / null | 否 | — | anyOf 2 个分支；分支：允许 collected、not_collected、unknown |  |
+| summary | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 50000 |  |
+| infobox | array<get_subject_details_infoboxItem> / null | 否 | — | anyOf 2 个分支；array：最多项 300 |  |
+| relations | array<search_subjects_dataItem_2_relationsItem> / null | 否 | — | anyOf 2 个分支；array：最多项 100 |  |
+| durationMinutes | number / null | 否 | — | anyOf 2 个分支；number：≥ 0 |  |
+| fieldStates | search_subjects_dataItem_2_fieldStates | 否 | — | 拒绝额外字段 |  |
+
+### `search_subjects_pendingItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| missingFields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| failedFields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+
+### `search_subjects_set`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| workingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| resultCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+
+### `search_subjects_filter`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| air_date | search_subjects_filter_air_date | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rating | search_subjects_filter_rating | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rating_count | search_subjects_filter_rating_count | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rank | search_subjects_filter_rank | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| nsfw | string | 否 | — | 允许 exclude、account |  |
+| tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| personal_rating | search_subjects_filter_personal_rating | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| duration | search_subjects_filter_duration | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| any_of | array<search_subjects_filter_any_ofItem> | 否 | — | 最少项 1；最多项 10 | 事实支路的OR，外层条件仍为AND，不嵌套。 |
+
+### `search_subjects_stage`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| inputCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| processedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| matchedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| excludedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| pendingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| remainingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+
+### `search_subjects_page_2`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| cursor | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 150 |  |
+| nextCursor | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 150 |  |
+| limit | integer | 是 | — | ≥ 1；≤ 100 |  |
+| returnedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| complete | boolean | 是 | — | — |  |
+
+### `search_subjects_sourcePage`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| total | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| limit | integer | 是 | — | ≥ 1；≤ 100 |  |
+| offset | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| returnedCount | integer | 是 | — | ≥ 0；≤ 100 |  |
+| nextOffset | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| complete | boolean | 是 | — | — |  |
+| totalKind | string | 否 | — | 允许 exact、estimated、unknown |  |
+| sourceNextOffset | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| sourceHasMore | boolean | 否 | — | — |  |
+| excludedNsfwCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownNsfwCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+
+### `search_subjects_collectionScope`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| username | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| subject_type | number | 是 | — | 允许 1、2、3、4、6 |  |
+| collection_type | number | 否 | — | 允许 1、2、3、4、5 |  |
+| sourceComplete | boolean | 是 | — | — |  |
+
+### `search_subjects_coverage`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| scope | object（本工具输入字段） | 是 | — | 固定 candidate_set |  |
+| complete | boolean | 是 | — | — |  |
+| coverageRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| mode | string | 是 | — | 允许 summary、full |  |
+| sourceCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| completeSourceCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| incompleteSourceCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownTotalSourceCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| pendingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| remainingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownFieldCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| failedFieldCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| sourceChanges | array<search_subjects_coverage_sourceChangesItem> | 是 | — | — |  |
+| dependencyIncompleteCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| dependencyPendingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| dependencyRemainingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| dependencyUnknownCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| dependencyFailedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| sources | array<search_subjects_coverage_sourcesItem> | 否 | — | — |  |
+| sources | 组合字段 | 是 | — | — | then: 提供 mode；mode=full |
+
+### `search_subjects_account`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| username | string | 是 | — | 最短字符数 1；最长字符数 200 |  |
 
 ### `browse_subjects_dataItem`
 
@@ -2352,6 +3227,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2497,6 +3373,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2515,6 +3392,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2527,13 +3405,6 @@
 | target | CharacterSummary | 是 | — | 拒绝额外字段 |  |
 | createdAt | string / null | 是 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 100 |  |
 | collected | boolean | 是 | — | 固定 true |  |
-
-### `Account`
-
-| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
-| --- | --- | --- | --- | --- | --- |
-| id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
-| username | string | 是 | — | 最短字符数 1；最长字符数 200 |  |
 
 ### `get_person_image_target`
 
@@ -2587,6 +3458,27 @@
 | unavailableSubjectIds | array<integer> | 是 | — | 最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 |  |
 | unavailableCollectionSubjectIds | array<integer> | 是 | — | 最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 |  |
 
+### `get_person_characters_appearanceStage`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| snapshotRef | string | 是 | — | 正则 ^[a-f0-9]{32}$ |  |
+| sourceUnit | string | 是 | — | 允许 character、appearance |  |
+| sourceTotal | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| sourceReturnedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| relationTotal | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| matchedRelationTotal | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| matchedSubjectTotal | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| relationRowsConsumed | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| subjectCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownRoleCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownFormCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unavailableSubjectCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unavailableCollectionCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| qualificationGapCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| nativeSourceComplete | boolean | 是 | — | — |  |
+| sourcePaginationComplete | boolean | 是 | — | — |  |
+
 ### `collect_person_itemsItem`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
@@ -2619,6 +3511,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2637,6 +3530,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2708,6 +3602,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2774,6 +3669,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2820,6 +3716,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2846,6 +3743,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -2993,6 +3891,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -3030,6 +3929,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -3094,6 +3994,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -3131,6 +4032,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -3168,6 +4070,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -3205,6 +4108,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -3223,10 +4127,253 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
 | sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
+
+### `SafeError_17`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| code | string | 是 | — | 最长字符数 100 |  |
+| message | string | 是 | — | 最长字符数 20000 |  |
+| accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| networkAttempted | boolean | 否 | — | 固定 false |  |
+| rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
+| sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
+| recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
+
+### `expand_subject_relations_relationStage`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| phase | string | 是 | — | 允许 parents、relations、children、complete |  |
+| depth | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| parentInputCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| parentProcessedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| parentMatchedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| parentExcludedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| parentPendingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| parentRemainingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| relationParentsProcessedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| relationParentsRemainingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| relationScannedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| childCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| duplicateChildCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| failedParentCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownRelationChildCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| parentSourceComplete | boolean | 是 | — | — |  |
+| parentQualificationComplete | boolean | 是 | — | — |  |
+| relationSourceComplete | boolean | 是 | — | — |  |
+| childFilterComplete | boolean | 是 | — | — |  |
+
+### `expand_subject_relations_lineageItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| subjectId | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| parentCount | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| parents | array<expand_subject_relations_lineageItem_parentsItem> | 是 | — | — |  |
+
+### `SafeError_18`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| code | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| message | string | 是 | — | 最长字符数 20000 |  |
+| accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| networkAttempted | boolean | 否 | — | 固定 false |  |
+| rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
+| sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
+| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
+| recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
+| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
+| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
+
+### `get_candidate_coverage_sourcesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| tool | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| source | string | 是 | — | 允许 v0、p1、web |  |
+| scope | object（本工具输入字段） | 是 | — | 最长字符数 4000 |  |
+| complete | boolean | 是 | — | — |  |
+| scannedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| total | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| nextOffset | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| privateRecords | string | 是 | — | 允许 included、public_only、not_applicable |  |
+| readState | get_candidate_coverage_sourcesItem_readState | 否 | — | 拒绝额外字段 |  |
+| sourceRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+
+### `get_candidate_coverage_dependenciesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| complete | boolean | 是 | — | 固定 false |  |
+| pendingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| remainingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| failedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| coverageRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| kind | string | 是 | — | 允许 qualification、source |  |
+
+### `get_candidate_coverage_page`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| offset | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| nextOffset | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| limit | integer | 是 | — | ≥ 1；≤ 100 |  |
+| returnedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| totalCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| complete | boolean | 是 | — | — |  |
+
+### `get_candidate_lineage_dataItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| subjectId | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| parentCount | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| parents | array<get_candidate_lineage_dataItem_parentsItem> | 是 | — | — |  |
+
+### `continue_subject_query_request`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| candidate_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 当前读取轮次的候选引用；与subject_ids互斥，两者必选一。 |
+| subject_ids | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 | 明确作品ID；与candidate_ref互斥，两者必选一。 |
+| filter | continue_subject_query_request_filter | 否 | 对象 | 拒绝额外字段 |  |
+| fields | array<string> | 否 | id、name、nameCn、subjectType | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
+| response_view | string | 否 | page | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
+| collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 当前账户和媒体的收藏证据引用；多状态完整核对须全状态来源，单状态快照只能证明该状态缺席。 |
+| cursor | string | 否 | — | 最短字符数 1；最长字符数 150 |  |
+| limit | integer | 否 | 50 | ≥ 1；≤ 100 |  |
+| candidate_ref | 组合字段 | 是 | — | — | oneOf 1 |
+| subject_ids | 组合字段 | 是 | — | — | oneOf 2 |
+
+### `continue_subject_query_result`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| schemaVersion | number | 是 | — | 固定 1 |  |
+| kind | string | 是 | — | 固定 candidate_page |  |
+| entity | string | 是 | — | 固定 subject_candidate |  |
+| candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| responseView | string | 是 | — | 允许 page、reference |  |
+| collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| visibility | string | 是 | — | 允许 public、self |  |
+| account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| readAt | string | 是 | — | 最长字符数 50 |  |
+| accessContext | AccessContext | 否 | — | 见公共结构 |  |
+
+### `continue_subject_query_request_2`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 父作品宿主候选引用。优先使用上阶段resultRef；工作集会沿用其父筛选资格。 |
+| parent_filter | search_subjects_filter | 否 | — | 拒绝额外字段 | 父作品筛选；仅资格确证的父作品展开。省略时沿用输入候选阶段的筛选。 |
+| relations | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 300 | 父到子关系标签白名单，按上游已登记标签精确匹配；未知标签保留待核实。 |
+| exclude_relations | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 300 | 父到子关系标签排除名单；不能把未知关系标签当作未命中。 |
+| filter | continue_subject_query_request_filter | 否 | 对象 | 拒绝额外字段 | 子作品条件；与parent_filter分开。 |
+| fields | array<string> | 否 | id、name、nameCn、subjectType | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
+| response_view | string | 否 | page | 允许 page、reference | reference只返回引用、累计计数和覆盖，不输出中间候选与回溯数组。 |
+| collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| cursor | string | 否 | — | 最短字符数 1；最长字符数 150 |  |
+| source_limit | integer | 否 | 10000 | ≥ 1；≤ 10000 | 本次关系来源扫描窗口，可用返回游标续读；不限制父作品、关系或子作品总数。 |
+| limit | integer | 否 | 50 | ≥ 1；≤ 100 |  |
+
+### `continue_subject_query_result_2`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| schemaVersion | number | 是 | — | 固定 1 |  |
+| kind | string | 是 | — | 固定 candidate_page |  |
+| entity | string | 是 | — | 固定 subject_candidate |  |
+| candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| resultRef | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| parentRef | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 100 |  |
+| responseView | string | 是 | — | 允许 page、reference |  |
+| collectionRef | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
+| data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
+| pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
+| set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
+| fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
+| filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
+| scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
+| stage | search_subjects_stage | 是 | — | 拒绝额外字段 |  |
+| page | search_subjects_page_2 | 是 | — | 拒绝额外字段 |  |
+| sourcePage | search_subjects_sourcePage | 否 | — | 拒绝额外字段 |  |
+| collectionScope | search_subjects_collectionScope | 否 | — | 拒绝额外字段 |  |
+| coverage | search_subjects_coverage | 是 | — | 拒绝额外字段；allOf 1 个分支；分支：条件：提供 mode；mode=full |  |
+| visibility | string | 是 | — | 允许 public、self |  |
+| account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
+| readAt | string | 是 | — | 最长字符数 50 |  |
+| accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| relationStage | expand_subject_relations_relationStage | 是 | — | 拒绝额外字段 |  |
+| lineage | array<expand_subject_relations_lineageItem> | 是 | — | 最多项 100 |  |
+
+### `prepare_candidate_output_counts`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| memberCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| preparedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| remainingCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownFieldCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+
+### `prepare_candidate_output_wholePlan`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| memberCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| contentPartsCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| wholeWireBytes | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| maxWholeWireBytes | number | 是 | — | 固定 40000 |  |
+| maxContentParts | number | 是 | — | 固定 16 |  |
+| fit | boolean | 是 | — | — |  |
+| reasons | array<string> | 是 | — | 最多项 4；元素不重复；元素：允许 whole_bytes、content_parts、table_parts、row_bytes |  |
+
+### `prepare_candidate_output_presentation`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| content | array<prepare_candidate_output_presentation_contentItem / prepare_candidate_output_presentation_contentItem_2 / prepare_candidate_output_presentation_contentItem_3> | 是 | — | 最少项 1；最多项 16；元素：anyOf 3 个分支 |  |
+
+### `prepare_candidate_output_guidance`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| keepCandidateRef | boolean | 是 | — | 固定 true |  |
+| preserveRequiredFields | boolean | 是 | — | 固定 true |  |
+| preserveReasons | boolean | 是 | — | 固定 true |  |
+| change | string | 是 | — | 固定 display_projection_only |  |
+| message | string | 是 | — | 最短字符数 1；最长字符数 1000 |  |
+| projectionOptions | array<prepare_candidate_output_guidance_projectionOptionsItem> | 是 | — | 最多项 4 |  |
 
 ### `get_subject_comments_dataItem`
 
@@ -3278,7 +4425,7 @@
 | --- | --- | --- | --- | --- | --- |
 | content | 禁止 | 否 | — | 禁止 |  |
 
-### `SafeError_17`
+### `SafeError_19`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -3290,6 +4437,7 @@
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
+| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
 | contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
 | recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
@@ -3551,6 +4699,24 @@
 | replanAllowed | boolean | 是 | — | — |  |
 | retryable | boolean | 是 | — | — |  |
 
+### `SafeError_diagnostic`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| schemaVersion | number | 是 | — | 固定 1 |  |
+| errorId | string | 是 | — | 正则 ^[a-f0-9-]{36}$ |  |
+| code | string | 是 | — | 正则 ^[A-Z][A-Z_0-9]{0,79}$ |  |
+| reason | string | 是 | — | 正则 ^[a-z][a-z_0-9]{0,79}$ |  |
+| origin | string | 是 | — | 允许 llm、content、http、mcp、domain、host |  |
+| stage | string | 是 | — | 允许 input、access、request、connect、stream、decode、validate、fetch、submit、verify、execution |  |
+| certainty | string | 是 | — | 允许 confirmed、inferred、unknown |  |
+| recovery | string | 是 | — | 允许 retry_request、continue_output、repair_component、correct_parameters、relogin、inspect_permissions、replan_read、verify_write、none |  |
+| operation | string | 否 | — | 最长字符数 100；正则 ^[a-zA-Z0-9_.-]+$ |  |
+| issues | array<SafeError_diagnostic_issuesItem> | 是 | — | 最多项 8 |  |
+| evidence | SafeError_diagnostic_evidence | 是 | — | 拒绝额外字段 |  |
+| causes | array<SafeError_diagnostic_causesItem> | 是 | — | 最多项 4 |  |
+| links | SafeError_diagnostic_links | 否 | — | 拒绝额外字段 |  |
+
 ### `SafeError_contractIssue`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
@@ -3565,6 +4731,135 @@
 | --- | --- | --- | --- | --- | --- |
 | stage | string | 是 | — | 固定 response_contract |  |
 | retryable | boolean | 是 | — | 固定 false |  |
+
+### `search_subjects_dataItem_2_relationsItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| relation | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| name | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| nameCn | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| subjectType | number / null | 否 | — | anyOf 2 个分支；分支：允许 1、2、3、4、6 |  |
+| url | string | 否 | — | 最长字符数 100；正则 ^https://bgm\.tv/subject/[1-9]\d*$ |  |
+
+### `search_subjects_dataItem_2_fieldStates`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| name | string | 否 | — | 允许 unknown、failed |  |
+| nameCn | string | 否 | — | 允许 unknown、failed |  |
+| subjectType | string | 否 | — | 允许 unknown、failed |  |
+| date | string | 否 | — | 允许 unknown、failed |  |
+| platform | string | 否 | — | 允许 unknown、failed |  |
+| subjectForm | string | 否 | — | 允许 unknown、failed |  |
+| nsfw | string | 否 | — | 允许 unknown、failed |  |
+| score | string | 否 | — | 允许 unknown、failed |  |
+| rank | string | 否 | — | 允许 unknown、failed |  |
+| ratingCount | string | 否 | — | 允许 unknown、failed |  |
+| tags | string | 否 | — | 允许 unknown、failed |  |
+| metaTags | string | 否 | — | 允许 unknown、failed |  |
+| url | string | 否 | — | 允许 unknown、failed |  |
+| personalRating | string | 否 | — | 允许 unknown、failed |  |
+| personalTags | string | 否 | — | 允许 unknown、failed |  |
+| personalComment | string | 否 | — | 允许 unknown、failed |  |
+| collectionStatus | string | 否 | — | 允许 unknown、failed |  |
+| collectionState | string | 否 | — | 允许 unknown、failed |  |
+| summary | string | 否 | — | 允许 unknown、failed |  |
+| infobox | string | 否 | — | 允许 unknown、failed |  |
+| relations | string | 否 | — | 允许 unknown、failed |  |
+| durationMinutes | string | 否 | — | 允许 unknown、failed |  |
+
+### `search_subjects_filter_air_date`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| min | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+| max | string | 否 | — | 正则 ^\d{4}-\d{2}-\d{2}$ |  |
+
+### `search_subjects_filter_rating`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| min | number | 否 | — | ≥ 0；≤ 10 |  |
+| max | number | 否 | — | ≥ 0；≤ 10 |  |
+
+### `search_subjects_filter_rating_count`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+
+### `search_subjects_filter_rank`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+| max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
+
+### `search_subjects_filter_personal_rating`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| max | integer | 否 | — | ≥ 0；≤ 10 |  |
+
+### `search_subjects_filter_duration`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| min | number | 否 | — | ≥ 0 |  |
+| max | number | 否 | — | ≥ 0 |  |
+
+### `search_subjects_filter_any_ofItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| air_date | search_subjects_filter_air_date | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rating | search_subjects_filter_rating | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rating_count | search_subjects_filter_rating_count | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rank | search_subjects_filter_rank | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| nsfw | string | 否 | — | 允许 exclude、account |  |
+| tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| personal_rating | search_subjects_filter_personal_rating | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| duration | search_subjects_filter_duration | 否 | — | 最少字段 1；拒绝额外字段 |  |
+
+### `search_subjects_coverage_sourceChangesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| tool | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| source | string | 是 | — | 允许 v0、p1、web |  |
+| privateRecords | string | 是 | — | 允许 included、public_only、not_applicable |  |
+| sourceCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| addedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| updatedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| completeSourceCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| incompleteSourceCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownTotalSourceCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| scannedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+
+### `search_subjects_coverage_sourcesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| tool | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| source | string | 是 | — | 允许 v0、p1、web |  |
+| scope | object（本工具输入字段） | 是 | — | 最长字符数 4000 |  |
+| complete | boolean | 是 | — | — |  |
+| scannedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| total | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| nextOffset | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| privateRecords | string | 是 | — | 允许 included、public_only、not_applicable |  |
+| readState | get_candidate_coverage_sourcesItem_readState | 否 | — | 拒绝额外字段 |  |
 
 ### `browse_subjects_dataItem_dateEvidence`
 
@@ -3964,6 +5259,93 @@
 | requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
+### `expand_subject_relations_lineageItem_parentsItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| parentId | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| relation | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+
+### `get_candidate_coverage_sourcesItem_readState`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| revision | number | 是 | — | ≥ 0 | 同服务的宿主单调进度版本；不表示上游内容修改时间。 |
+| firstOffset | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| pagesRead | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| continuous | boolean | 是 | — | — |  |
+| totalKind | string | 是 | — | 允许 exact、estimated、unknown |  |
+| excludedNsfwCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownNsfwCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| filterCoverage | get_candidate_coverage_sourcesItem_readState_filterCoverage | 否 | — | 拒绝额外字段 |  |
+
+### `get_candidate_lineage_dataItem_parentsItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| parentId | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| relation | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| name | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| nameCn | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 300 |  |
+| subjectType | number / null | 是 | — | anyOf 2 个分支；分支：允许 1、2、3、4、6 |  |
+| url | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^https://bgm\.tv/subject/[1-9]\d*$ |  |
+
+### `continue_subject_query_request_filter`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
+| subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
+| subject_form | array<string> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 tv、ova、movie、web、other | 动画形式：tv、ova、movie、web、other；媒体须为动画。 |
+| air_date | search_subjects_filter_air_date | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rating | search_subjects_filter_rating | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rating_count | search_subjects_filter_rating_count | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| rank | search_subjects_filter_rank | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| nsfw | string | 否 | — | 允许 exclude、account |  |
+| tag | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确公共标签，多值为AND；语义题材可请求tags或summary后判断。 |
+| meta_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 | 精确元标签条件；仅用户明确要求该元标签值时作硬筛。不能用标签近似删除尚未完成语义判断的成员。 |
+| personal_rating | search_subjects_filter_personal_rating | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| personal_tags | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| exclude_collection_types | array<number> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：允许 1、2、3、4、5 |  |
+| duration | search_subjects_filter_duration | 否 | — | 最少字段 1；拒绝额外字段 |  |
+| any_of | array<search_subjects_filter_any_ofItem> | 否 | — | 最少项 1；最多项 10 | 事实支路的OR，外层条件仍为AND，不嵌套。 |
+
+### `prepare_candidate_output_presentation_contentItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| type | string | 是 | — | 允许 text |  |
+| nextType | string / null | 是 | — | anyOf 2 个分支；string：允许 text、SubjectCards、StatsCard、ProgressView、InfoBox、DataTable、Timeline、TagCloud、Gallery、CompareTable、QuoteBlock、Callout、LinkList |  |
+| text | string | 是 | — | — |  |
+
+### `prepare_candidate_output_presentation_contentItem_2`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| type | string | 是 | — | 允许 SubjectCards |  |
+| pending | boolean | 是 | — | 允许 false |  |
+| props | prepare_candidate_output_presentation_contentItem_2_props | 是 | — | 拒绝额外字段 |  |
+
+### `prepare_candidate_output_presentation_contentItem_3`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| type | string | 是 | — | 允许 DataTable |  |
+| pending | boolean | 是 | — | 允许 false |  |
+| props | prepare_candidate_output_presentation_contentItem_3_props | 是 | — | 拒绝额外字段 |  |
+
+### `prepare_candidate_output_guidance_projectionOptionsItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| fields | array<string> | 是 | displayName、url | 最少项 1；最多项 11；元素不重复；元素：允许 displayName、id、name、nameCn、date、subjectForm、score、rank、ratingCount、url、collectionStatus |  |
+| lineage | string | 是 | — | 允许 none、witness、all |  |
+| lineage_format | string | 是 | — | 允许 names、ids |  |
+| wholeWireBytes | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| tablePartsCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| fit | boolean | 是 | — | — |  |
+
 ### `get_subject_comments_dataItem_content`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
@@ -3999,9 +5381,124 @@
 | field | string | 是 | — | 最长字符数 200 |  |
 | values | array<string / number / boolean / null> | 是 | — | 最多项 100；元素：anyOf 4 个分支 |  |
 
+### `SafeError_diagnostic_issuesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| path | string | 是 | — | 最长字符数 300 |  |
+| rule | string | 是 | — | 最长字符数 80 |  |
+| message | string | 是 | — | 最长字符数 300 |  |
+| expected | string | 否 | — | 最长字符数 300 |  |
+| actualType | string | 否 | — | 最长字符数 300 |  |
+
+### `SafeError_diagnostic_evidence`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| provider | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| model | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| api | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| providerCode | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| responseId | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| rawStopReason | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| requestMaxTokens | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| configuredMaxTokens | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| outputTokens | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| reasoningTokens | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| inputTokens | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| contextWindow | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| contextClamped | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| requestBelowConfigured | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| bytes | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| byteLimit | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| partCount | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| partLimit | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| completedParts | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| completedComponents | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| pendingComponents | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| subjectCount | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| jsonComplete | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| httpStatus | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| rpcCode | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| networkAttempted | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| submissionState | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| offset | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| line | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+| column | string / number / boolean / null | 否 | — | anyOf 4 个分支；string：最长字符数 300 |  |
+
+### `SafeError_diagnostic_causesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| name | string | 是 | — | 最长字符数 100 |  |
+| code | string | 否 | — | 最长字符数 100 |  |
+
+### `SafeError_diagnostic_links`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| traceId | string | 是 | — | 正则 ^[a-f0-9]{32}$ |  |
+| spanId | string | 是 | — | 正则 ^[a-f0-9]{16}$ |  |
+| sessionId | string | 是 | — | 最长字符数 100 |  |
+
 ### `get_person_revision_versionsItem_content_professionItem`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | career | string | 是 | — | 允许 producer、mangaka、artist、seiyu、writer、illustrator、actor |  |
 | value | string / null | 是 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 1000 |  |
+
+### `get_candidate_coverage_sourcesItem_readState_filterCoverage`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| scope | object（本工具输入字段） | 是 | — | 固定 source_sequence |  |
+| scannedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| matchedCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownDateCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
+| unknownDateSubjectIds | array<integer> | 是 | — | 元素不重复；元素：≥ 1；≤ 9007199254740991 | 累计未核实日期作品ID，去重；不限于单页100项。 |
+| complete | boolean | 是 | — | — |  |
+
+### `prepare_candidate_output_presentation_contentItem_2_props`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| title | string | 否 | — | — |  |
+| layout | string | 是 | — | 允许 grid、list |  |
+| total | number | 否 | — | — |  |
+| hint | string | 否 | — | — |  |
+| items | array<prepare_candidate_output_presentation_contentItem_2_props_itemsItem> | 是 | — | 最多项 50 |  |
+
+### `prepare_candidate_output_presentation_contentItem_3_props`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| title | string | 否 | — | — |  |
+| columns | array<prepare_candidate_output_presentation_contentItem_3_props_columnsItem> | 是 | — | — |  |
+| rows | array<object> | 是 | — | 最多项 200 |  |
+| note | string | 否 | — | — |  |
+
+### `prepare_candidate_output_presentation_contentItem_2_props_itemsItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| id | number | 是 | — | — |  |
+| name | string | 是 | — | — |  |
+| kind | string | 是 | — | 允许 book、anime、music、game、real |  |
+| nameCn | string | 否 | — | — |  |
+| image | string | 否 | — | 正则 ^[Hh][Tt][Tt][Pp][Ss]?:// |  |
+| score | number | 否 | — | — |  |
+| scoreCount | number | 否 | — | — |  |
+| rank | number | 否 | — | — |  |
+| date | string | 否 | — | — |  |
+| summary | string | 否 | — | — |  |
+| tags | array<string> | 否 | — | — |  |
+| url | string | 否 | — | 正则 ^[Hh][Tt][Tt][Pp][Ss]?:// |  |
+
+### `prepare_candidate_output_presentation_contentItem_3_props_columnsItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| key | string | 是 | — | — |  |
+| label | string | 是 | — | — |  |
+| align | string | 否 | — | 允许 left、right |  |

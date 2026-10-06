@@ -354,6 +354,9 @@ export function resourceResult(name: string, value: unknown, args: Data): unknow
 
 /** 输入绑定在schema之外核对；字段组、对象、账户、范围均不能由服务返回自行改绑。 */
 export function checkResourceResponse(name: string, value: unknown, args: Data, schema: JsonSchema): void {
+  if (name === 'get_person_characters' && record(value).kind === 'candidate_page') {
+    checkOutput(schema, { value }); return;
+  }
   const validator = compileSchema(schema);
   if (!validator({ value }) && validator.errors?.some(error => ['maxLength','maxItems'].includes(error.keyword))) throw new AppError('FIELD_LIMIT', '资料字段或嵌套清单超过固定上限；请缩小详情范围，未静默截断内容。');
   checkOutput(schema, { value }); const raw = record(value);

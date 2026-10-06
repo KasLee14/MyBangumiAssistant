@@ -5,6 +5,14 @@ import { RESOURCE_INPUT_SCHEMAS, resourceOutputSchema } from './resource-schemas
 import { collectionQuerySchema } from './collection-query.js';
 import { withAccessContext } from './access-context.js';
 import { COMMUNITY_TOOL_DEFINITIONS, communityOutputSchema } from './community-schemas.js';
+import { candidateFieldsSchema, candidateFilterSchema, candidateValueSchema,
+  candidateOutputSchema, refineCandidateInputSchema, validateCandidateFilter, PERSONAL_CANDIDATE_FIELDS, type CandidateFilter,
+  candidateCoverageInputSchema, candidateCoverageOutputSchema, candidateResponseViewSchema } from './candidate-contract.js';
+import { relationInputSchema, relationOutputSchema, validateRelationArguments, type RelationQueryArgs,
+  candidateLineageInputSchema, candidateLineageOutputSchema } from './relation-contract.js';
+import { continueSubjectQueryInputSchema, continueSubjectQueryOutputSchema } from './continuation-contract.js';
+import { candidateOutputInputSchema, candidateOutputOutputSchema } from './candidate-output-contract.js';
+import { personCandidateValueSchema } from './person-candidates.js';
 
 /** 保留原55项固定工具，另登记收藏范围查询及社区只读能力；输入输出由双端锁定。 */
 export interface McpToolDefinition {
@@ -84,7 +92,7 @@ tool('get_user_info', '获取用户公开资料，- 为本应用当前账户。'
 tool('get_user_avatar', '取得用户头像地址。', { username, avatar_type: enumeration(['large', 'medium', 'small'], 'string', { default: 'large' }) }, ['username']);
 tool('get_current_user', '在线核实当前账户；check_nsfw默认false，仅用户明确要求检查NSFW状态时设true核实显示偏好和实际权限。accessContext.nsfw.state为enabled/disabled/unknown/not_checked，preference与allowed分别报告，不能由条目标签或404猜测开关。', { check_nsfw: { ...boolean, default: false } }, [], 'read', 'account');
 tool('get_user_collections', '分页读取用户作品收藏；本人支持私密记录，其他账户仅公开记录。明确看过传collection_type=2；开播日期范围或完整整理优先query_user_collections，不能把收藏更新时间当开播日期。', { username, subject_type: subjectType, collection_type: collectionType, ...page }, ['username']);
-tool('query_user_collections', '宿主完整查询指定开播日期范围的收藏，仅返回匹配项和覆盖事实，避免模型遍历原始收藏。看过传collection_type=2、在看/在追传3；日期含上下界，4月用04-01至04-30。extra_subject_ids只保留用户明确补入的跨月作品，仍须满足媒体和收藏状态。本人走账户API覆盖私密记录；第三方公开v0完整分页，不能按收藏更新日期提前停止。coverage.complete只针对本次可见范围，NSFW关闭/未知/未检查时须说明R18覆盖限制。', {
+tool('query_user_collections', '按账户和媒体采集连续收藏快照。后续需要多状态核对或排除时，省略collection_type取得全状态来源，再用filter.collection_types筛选当前层；仅需单状态最终列表时可用collection_type。候选模式用reference和必要fields，collectionRef复用完整收藏证据，resultRef为本层匹配集合。collection_ref冻结原来源状态范围，不能扩为其他状态，窄范围缺席不证明未收藏。日期筛选用开播日期，extra_subject_ids只保留用户明确补入的作品。本人覆盖私密记录，第三方仅公开；coverage.complete针对实际可见范围。', {
   username, subject_type: subjectType, collection_type: collectionType, air_date: dateRange,
   sort: enumeration(['date_desc', 'date_asc'], 'string', { default: 'date_desc' }),
   extra_subject_ids: { type: 'array', maxItems: 100, uniqueItems: true, items: id, default: [] },
@@ -114,19 +122,83 @@ tool('remove_subject_from_index', '从本账户拥有的目录移除指定作品
 tool('collect_index', '收藏目录。', { index_id: id }, ['index_id'], 'write', 'account');
 tool('uncollect_index', '取消目录收藏。', { index_id: id }, ['index_id'], 'write', 'account');
 if (definitions.length !== 56) throw new Error('Bangumi MCP 基础能力目录数量错误。');
+const candidateMode: Schema = { type: 'string', enum: ['legacy', 'candidates'], description: 'candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。' };
+for (const definition of definitions.filter(item => ['search_subjects', 'browse_subjects', 'get_user_collections', 'query_user_collections'].includes(item.name))) {
+  if (RESOURCE_INPUT_SCHEMAS[definition.name]) definition.inputSchema = structuredClone(RESOURCE_INPUT_SCHEMAS[definition.name]!);
+  const properties = definition.inputSchema.properties as Record<string, Schema>;
+  properties.result_mode = candidateMode;
+  const { default: _fieldsDefault, ...projectionFields } = candidateFieldsSchema;
+  const { default: _responseDefault, ...responseView } = candidateResponseViewSchema;
+  properties.response_view = responseView;
+    properties.fields = projectionFields;
+    properties.fields.description = '仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。';
+    if (['search_subjects', 'browse_subjects'].includes(definition.name)) {
+      properties.fields.items = { ...(properties.fields.items as Schema), enum: ((properties.fields.items as Schema).enum as string[]).filter(field => !PERSONAL_CANDIDATE_FIELDS.includes(field as never)) };
+    }
+    if (definition.name === 'get_user_collections') properties.offset = int(0, Number.MAX_SAFE_INTEGER, { default: 0 });
+  if (['search_subjects', 'browse_subjects', 'get_user_collections'].includes(definition.name)) properties.merge_ref = text(100, 1, { description: '同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。' });
+  if (definition.name === 'query_user_collections') {
+    properties.filter = candidateFilterSchema;
+    properties.source_limit = int(1, 10000, { description: '候选模式省略100；本次宿主扫描的来源条数预算，按100条整页读取，可续读累计超过一万条；不是匹配数或候选总量限制。' });
+    properties.collection_ref = text(100, 1, { description: '续读已取得的同账户同范围收藏快照。' });
+    properties.sort = enumeration(['source', 'date_desc', 'date_asc'], 'string', { description: '候选模式省略保持来源顺序；日期排序仅针对当前已读来源范围。旧日期模式默认date_desc。' });
+    properties.limit = int(1, 100, { default: 30 });
+    definition.inputSchema.required = ['username', 'subject_type'];
+    definition.inputSchema.allOf = [{ if: { properties: { result_mode: { const: 'candidates' } }, required: ['result_mode'] },
+      then: {}, else: { properties: { air_date: dateRange }, required: ['air_date'] } }];
+  }
+  // 浏览按媒体采用闭合oneOf分支；投影能力须加到每个分支，媒体本身约束仍由原分支执行。
+  if (definition.name === 'browse_subjects') for (const branch of definition.inputSchema.oneOf as Schema[] ?? []) {
+    branch.properties = { ...(branch.properties as Record<string, Schema>),
+      ...Object.fromEntries(['result_mode', 'response_view', 'fields', 'merge_ref'].map(key => [key, properties[key]])) };
+  }
+  definition.description += '。推荐与组合检索使用result_mode=candidates，fields只返回必要字段，后续用refine_subject_candidates按已有ID筛选并补缺，不把原始列表搬入模型。';
+}
+definitions.push({ name: 'refine_subject_candidates', description: '筛选已有作品候选或读取更多字段。filter执行事实条件，fields从缓存或固定资源补取并只返回所需资料；未知条件保留pending。collection_ref可复用收藏证据，filter.subject_ids可选择本集合成员。分页用continue_subject_query。', inputSchema: refineCandidateInputSchema, access: 'public', effect: 'read' });
+definitions.push({ name: 'expand_subject_relations', description: '从父候选批量展开关联作品；parent_filter筛父，filter筛目标，按作品ID去重并保留父边。fields读取目标的必要资料，分页用continue_subject_query。', inputSchema: relationInputSchema, access: 'public', effect: 'read' });
+definitions.push({ name: 'get_candidate_coverage', description: '按coverage_ref分页读取候选来源覆盖明细；常规续查使用工具默认紧凑摘要，只有追查具体缺口时取明细。引用仅当前读取任务有效。', inputSchema: candidateCoverageInputSchema, access: 'public', effect: 'read' });
+definitions.push({ name: 'get_candidate_lineage', description: '按候选引用分页读取关联作品的已核实直接父边及缓存名称；subject_ids可限定需要回溯的本集合成员。多跳每次只回溯当前一跳，原始关系图留在宿主。', inputSchema: candidateLineageInputSchema, access: 'public', effect: 'read' });
+definitions.push({ name: 'continue_subject_query', description: '以候选引用和page.nextCursor继续原查询；宿主恢复条件与字段，可调整视图和窗口大小。实际候选结果在result内。', inputSchema: continueSubjectQueryInputSchema, access: 'public', effect: 'read' });
+definitions.push({ name: 'prepare_candidate_output', description: '可选的缓存结果展示工具，生成合法表格或作品卡片presentation；不取网络资料。超过单次容量时返回分页位置，可继续交付同一结果集合。', inputSchema: candidateOutputInputSchema, access: 'public', effect: 'read' });
 definitions.push(...COMMUNITY_TOOL_DEFINITIONS);
 for (const definition of definitions) {
-  if (RESOURCE_INPUT_SCHEMAS[definition.name]) definition.inputSchema = structuredClone(RESOURCE_INPUT_SCHEMAS[definition.name]!);
+  if (RESOURCE_INPUT_SCHEMAS[definition.name] && definition.name !== 'browse_subjects') definition.inputSchema = structuredClone(RESOURCE_INPUT_SCHEMAS[definition.name]!);
+  if (definition.name === 'get_person_characters') {
+    const properties = definition.inputSchema.properties as Record<string, Schema>;
+    properties.result_mode = candidateMode;
+    const { default: _personFieldDefault, ...personFields } = candidateFieldsSchema;
+    const { default: _personViewDefault, ...personView } = candidateResponseViewSchema;
+    properties.fields = personFields; properties.response_view = personView;
+    properties.merge_ref = text(100, 1, { description: '候选模式同轮上一阶段引用，配合snapshot_ref和准确offset续读；按作品ID合并，不重取来源。' });
+    definition.inputSchema.allOf = [...(definition.inputSchema.allOf as Schema[] ?? []), {
+      if: { properties: { result_mode: { const: 'candidates' } }, required: ['result_mode'] },
+      then: { not: { type: 'object', properties: { include: {} }, required: ['include'] } },
+    }];
+  }
   if (definition.name === 'get_person_characters') definition.description = '分页查询人物的角色及出演作品。可按subject_type、appearance_role及动画subject_form筛选，宿主完成关联读取和筛选；include按需附带subjectFacts或本人ownCollection。subject_form须subject_type=2，并自动附带subjectFacts作为形式证据。增强查询续页保持相同参数并传page.snapshotRef，coverage.complete报告全源覆盖和资料缺口，page.complete仅指本页覆盖所有匹配关系；同一作品可能对应多个角色，按subject.id汇总。sourceTypeCode因源而异，主角/配角只看appearanceRole.meaning；制作职务查询使用get_person_subjects。';
+  if (definition.name === 'get_person_characters') definition.description += '。候选模式只用fields选择资料，不提供include；宿主按作品去重，sourcePage.nextOffset与appearanceStage.snapshotRef用于续来源，resultRef可继续筛选或读取字段。';
   if (definition.name === 'get_character_persons') definition.description = '分页查询角色的声优及作品关系。角色/人物实体type与出演关系独立；主角/配角只看appearanceRole.meaning，不能使用sourceTypeCode判断。';
   if ((definition.inputSchema.properties as Record<string, Schema> | undefined)?.username) (definition.inputSchema.properties as Record<string, Schema>).username!.description = username.description;
   const subjectOutput = subjectOutputSchema(definition.name, definition.inputSchema);
-  const output = definition.name === 'query_user_collections' ? withAccessContext(collectionQuerySchema(definition.inputSchema)) : communityOutputSchema(definition.name) ?? subjectOutput ?? resourceOutputSchema(definition.name);
+  let output = definition.name === 'refine_subject_candidates' ? candidateOutputSchema(definition.inputSchema)
+    : definition.name === 'expand_subject_relations' ? relationOutputSchema()
+    : definition.name === 'get_candidate_coverage' ? candidateCoverageOutputSchema
+    : definition.name === 'get_candidate_lineage' ? candidateLineageOutputSchema
+    : definition.name === 'continue_subject_query' ? continueSubjectQueryOutputSchema
+    : definition.name === 'prepare_candidate_output' ? candidateOutputOutputSchema
+    : definition.name === 'query_user_collections' ? withAccessContext(collectionQuerySchema(definition.inputSchema)) : communityOutputSchema(definition.name) ?? subjectOutput ?? resourceOutputSchema(definition.name);
+  if (output && ['search_subjects', 'browse_subjects', 'get_user_collections', 'query_user_collections', 'get_person_characters'].includes(definition.name)) {
+    output = structuredClone(output);
+    (output.oneOf as Schema[]).splice(1, 0, { type: 'object', properties: { value: definition.name === 'get_person_characters'
+      ? personCandidateValueSchema(definition.inputSchema) : candidateValueSchema(definition.inputSchema) }, required: ['value'], additionalProperties: false });
+  }
   if (output) {
     definition.outputSchema = output;
     compileSchema(output);
     if (subjectOutput && definition.name !== 'get_subject_details') definition.description += '。返回统一作品摘要和真实分页，不附简介/infobox/图片；名称、日期、评分及实际标签名可直接使用，介绍需调用作品详情。';
-    if (!subjectOutput && definition.effect === 'read' && !communityOutputSchema(definition.name)) definition.description += '。返回固定白名单资料，列表不附简介或全部图片；详情通过include固定字段组按需读取。个人现状保持完整，公开不可见不表示未收藏。';
+    if (!subjectOutput && definition.effect === 'read' && !communityOutputSchema(definition.name)
+      && !['refine_subject_candidates', 'expand_subject_relations', 'get_candidate_coverage', 'get_candidate_lineage', 'continue_subject_query', 'prepare_candidate_output'].includes(definition.name))
+      definition.description += '。返回固定白名单资料，列表不附简介或全部图片；详情通过include固定字段组按需读取。个人现状保持完整，公开不可见不表示未收藏。';
     if (definition.effect === 'write') definition.description += '。返回逐目标/阶段提交回执，verification=pending不表示持久化成功；最终结果仍由宿主独立回读核实，不自动重发。';
   }
   if (definition.effect === 'read' && !communityOutputSchema(definition.name)) definition.description += '。按本次来源需求核实账户或NSFW，公共SFW读取不要求登录；accessContext报告实际权限核实范围与数据来源。';
@@ -163,7 +235,26 @@ export function validateToolArguments(name: string, value: unknown): Record<stri
         || (typeof bounds.min === 'string' && typeof bounds.max === 'string' && bounds.min > bounds.max)) issues.push(inputIssue(active, `/filter/${key}`, 'rangeOrder')!);
     }
   }
+  if (name === 'refine_subject_candidates' || name === 'query_user_collections' && output.result_mode === 'candidates') validateCandidateFilter((output.filter ?? {}) as CandidateFilter);
+  if (name === 'expand_subject_relations') {
+    validateRelationArguments(output as RelationQueryArgs);
+    validateCandidateFilter((output.parent_filter ?? {}) as CandidateFilter);
+    validateCandidateFilter((output.filter ?? {}) as CandidateFilter);
+  }
   if (name === 'query_user_collections') {
+    if (output.result_mode === 'candidates' && Array.isArray(output.extra_subject_ids) && output.extra_subject_ids.length) throw new AppError('INVALID_INPUT', 'extra_subject_ids仅旧日期查询可用，候选模式请以subject_ids建立明确集合。');
+    if (output.result_mode !== 'candidates' && output.sort === 'source') throw new AppError('INVALID_INPUT', '来源排序仅候选模式可用。');
+    if (output.result_mode !== 'candidates') output.sort ??= 'date_desc';
+    else if (output.air_date) {
+      if ((output.filter as CandidateFilter | undefined)?.air_date) throw new AppError('INVALID_INPUT', '日期条件只能提供一处。');
+      output.filter = { ...(output.filter as CandidateFilter ?? {}), air_date: output.air_date };
+      delete output.air_date;
+      validateCandidateFilter(output.filter as CandidateFilter);
+    }
+  }
+  if (['search_subjects', 'browse_subjects', 'get_user_collections', 'query_user_collections'].includes(name) && output.result_mode !== 'candidates'
+    && ['fields', 'include', 'merge_ref', 'collection_ref', 'source_limit', 'cursor', 'filter', 'coverage_mode', 'response_view'].some(field => Object.hasOwn(value as object, field) && (name !== 'search_subjects' || field !== 'filter'))) throw new AppError('INVALID_INPUT', '字段投影、集合引用与分阶段筛选须使用result_mode=candidates。');
+  if (name === 'query_user_collections' && output.air_date) {
     const bounds = output.air_date as Record<string, string>;
     for (const side of ['min', 'max']) if (bounds[side] !== undefined) {
       const parsed = new Date(`${bounds[side]}T00:00:00.000Z`);
@@ -177,7 +268,10 @@ export function validateToolArguments(name: string, value: unknown): Record<stri
   if (name === 'update_index_subject' && !['comment', 'order'].some(key => Object.hasOwn(output, key))) throw new AppError('INVALID_INPUT', '至少指定短评或顺序。');
   if (name === 'get_index' && output.own !== true && output.include === undefined) output.include = ['description'];
   if (name === 'get_person_characters' && Number(output.offset) > 0 && output.snapshot_ref === undefined
-    && ['subject_type', 'appearance_role', 'subject_form', 'include'].some(key => Object.hasOwn(output, key))) throw new SchemaInputError([inputIssue(active, '/snapshot_ref', 'required')!]);
+    && (output.result_mode === 'candidates' || ['subject_type', 'appearance_role', 'subject_form', 'include'].some(key => Object.hasOwn(output, key)))) throw new SchemaInputError([inputIssue(active, '/snapshot_ref', 'required')!]);
+  if (name === 'get_person_characters' && output.result_mode !== 'candidates'
+    && ['fields','response_view','coverage_mode','merge_ref'].some(key => Object.hasOwn(value as object, key)))
+    throw new AppError('INVALID_INPUT', '出演字段投影与作品候选引用须使用result_mode=candidates。');
   return output;
 }
 /** 远端只可提供已登记的字段路径和规则；消息、hint及allowed均重新从本地schema生成。 */

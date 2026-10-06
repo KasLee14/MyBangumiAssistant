@@ -10,6 +10,7 @@ import { isCommunityTool } from './community-schemas.js';
 import { checkCommunityResponse } from './community-output.js';
 import { checkAccessResponse } from './access-context.js';
 import { diagnoseReadError } from './read-recovery.js';
+import { projectModelResult } from './model-projection.js';
 
 /** 写入接入由应用宿主实现，不向模型开放账户guard或授权标记。 */
 export type McpWriteHandler = (
@@ -18,10 +19,12 @@ export type McpWriteHandler = (
 ) => Promise<AgentToolResult<unknown>>;
 
 function jsonResult(value: Record<string, unknown>, isError = false): AgentToolResult<unknown> {
-  // 固定MCP契约仅包含JSON字段；文字和结构化结果来自同一份白名单数据。
+  // 完整结果保留固定MCP契约；模型content仅携带本次读取投影。
   const serialized = JSON.stringify(value);
-  if (Buffer.byteLength(serialized) > 1_900_000) throw new AppError('MCP_OUTPUT_LIMIT', '结果过大，请缩小查询范围。');
-  return { content: [{ type: 'text', text: serialized }], details: value,
+  if (Buffer.byteLength(serialized) > 1_900_000) throw new AppError('MCP_OUTPUT_LIMIT', '结果超出单次返回容量。保持检索范围，使用候选引用、精简展示字段或按原范围分页续读；不能把缩小全集当作完整结果。');
+  const modelValue = value.value && typeof value.value === 'object' && !Array.isArray(value.value)
+    ? { value: projectModelResult(value.value as Record<string, unknown>) } : value;
+  return { content: [{ type: 'text', text: JSON.stringify(modelValue) }], details: value,
     structuredContent: JSON.parse(serialized), ...(isError ? { isError: true } : {}) };
 }
 
@@ -53,7 +56,7 @@ export function createMcpTools(client: McpCallClient, writeHandler?: McpWriteHan
         // 即使测试/嵌入宿主注入另一客户端，也不得绕过完整输出及对象/范围验证。
         if (definition.outputSchema) {
           checkOutput(definition.outputSchema, { value });
-          checkSubjectResponse(definition.name, value, args);
+          checkSubjectResponse(definition.name, value, args, definition.inputSchema);
           if (isCommunityTool(definition.name)) checkCommunityResponse(definition.name, value, args);
           if (resourceOutputSchema(definition.name)) checkResourceResponse(definition.name, value, args, definition.outputSchema);
         }

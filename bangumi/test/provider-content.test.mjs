@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { lazyStream, getCurrentSystemMessage, getSystemMessageText } from '@earendil-works/pi-ai';
@@ -10,12 +10,13 @@ import { createBangumiRuntime, withProviderFetch } from '../dist/src/pi-host.js'
 import { createBangumiExtension } from '../dist/src/extension.js';
 import { parseLauncherArgs } from '../dist/src/launcher.js';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
+import { AppError } from '../dist/src/support/errors.js';
 import { CONTENT_OUTPUT_SYSTEM_MARKER, PROVIDER_CONTENT_SCHEMA, normalizeProviderContent } from '../dist/src/output/content-schema.js';
 
 const textPart = (text, nextType = null) => ({ type: 'text', nextType, text });
 const normalized = { content: [
-  textPart('文本 A', 'callout'),
-  { type: 'callout', pending: false, props: { tone: 'success', text: '有效组件' } },
+  textPart('文本 A', 'Callout'),
+  { type: 'Callout', pending: false, props: { tone: 'success', text: '有效组件' } },
   textPart('文本 B'),
 ] };
 const context = { messages: [{ role: 'system', content: '应用规则', sections: { bangumi_content_output: CONTENT_OUTPUT_SYSTEM_MARKER }, timestamp: 1 }] };
@@ -23,27 +24,126 @@ const makeFaux = (api = 'openai-responses', provider = 'content-offline') => fau
 const nativeMessage = (content, options) => ({ ...fauxAssistantMessage(content, options),
   usage: { input: 4, output: 8, cacheRead: 0, cacheWrite: 0, totalTokens: 12, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
 
-function nullableFields(value, schema) {
-  if (schema.anyOf) {
-    const branch = schema.anyOf.find(item => item.properties?.type?.enum?.includes(value?.type))
-      ?? schema.anyOf.find(item => item.type === (value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value));
-    assert.ok(branch, '测试线路必须匹配 provider schema');
-    return nullableFields(value, branch);
-  }
-  if (schema.items) return value.map(item => nullableFields(item, schema.items));
-  if (!schema.properties) return value;
-  return Object.fromEntries(Object.entries(schema.properties).map(([key, child]) =>
-    [key, value[key] === undefined ? null : nullableFields(value[key], child)]));
-}
 function wireFor(answer) {
-  const source = { content: answer.content.map(part => {
-    const value = structuredClone(part); delete value.pending; return value;
-  }) };
-  const wire = nullableFields(source, PROVIDER_CONTENT_SCHEMA);
-  assert.deepEqual(normalizeProviderContent(wire), answer);
-  return JSON.stringify(wire);
+  assert.deepEqual(normalizeProviderContent(answer), answer);
+  return JSON.stringify(answer);
 }
 const mixedWire = wireFor(normalized);
+function recoveryFeedback(context) {
+  const text = context.messages.filter(message => message.role === 'user').map(message => typeof message.content === 'string' ? message.content
+    : message.content.filter(part => part.type === 'text').map(part => part.text).join('')).findLast(text => text.includes('host_recovery_feedback'));
+  return text ? JSON.parse(text) : undefined;
+}
+const recoveryRecords = f => f.manager.getBranch().filter(entry => entry.type === 'custom' && entry.customType === 'bangumi/recovery').map(entry => entry.data);
+const rawLastAssistant = f => f.manager.getBranch().findLast(entry => entry.type === 'message' && entry.message.role === 'assistant').message;
+
+test('长度截断保留50张卡片，模型收到断点后只补71张且完整结果无重复', async t => {
+  const cards = (first, count) => ({ type: 'SubjectCards', pending: false, props: { layout: 'list', items: Array.from({ length: count }, (_, index) => ({ id: first + index, name: `模拟作品${first + index}`, kind: 'anime' })) } });
+  const first = cards(1, 50), rest = [cards(51, 50), cards(101, 21)];
+  const cut = '{"content":[' + JSON.stringify(first) + ',';
+  const f = await fixture(t, [nativeMessage(cut, { stopReason: 'length', rawStopReason: 'length' }), context => {
+    const feedback = recoveryFeedback(context);
+    assert.equal(feedback.error.code, 'LLM_OUTPUT_TRUNCATED'); assert.equal(feedback.goal.strategy, 'continue_output');
+    assert.ok(getSystemMessageText(getCurrentSystemMessage(context.messages)).includes('当前处于宿主定向恢复'));
+    assert.deepEqual(feedback.checkpoint.completedSubjectIds, Array.from({ length: 50 }, (_, index) => index + 1));
+    assert.equal(feedback.checkpoint.resumeAt, 1);
+    return nativeMessage(wireFor({ content: rest }));
+  }]);
+  await f.runtime.session.prompt('完整整理121部模拟作品'); await f.runtime.session.waitForIdle();
+  const last = rawLastAssistant(f);
+  assert.equal(last.stopReason, 'stop'); assert.deepEqual(last.content, [first, ...rest]);
+  assert.equal(new Set(last.content.flatMap(part => part.props.items.map(item => item.id))).size, 121);
+  assert.equal(f.faux.state.callCount, 2); assert.deepEqual(f.calls, []);
+});
+
+test('坏字段只修复后缀，已完成组件不重新生成；恢复阶段拒绝工具调用', async t => {
+  const first = { type: 'Callout', pending: false, props: { tone: 'success', text: '保留已有事实' } };
+  const bad = { type: 'StatsCard', pending: false, props: { mode: 'wrong', entries: [] } };
+  const fixed = { ...bad, props: { mode: 'list', entries: [] } };
+  const f = await fixture(t, [nativeMessage(JSON.stringify({ content: [first, bad] })), context => {
+    const feedback = recoveryFeedback(context); assert.equal(feedback.goal.strategy, 'repair_component');
+    assert.ok(feedback.error.issues.some(issue => issue.path === '/content/1/props/mode'));
+    return nativeMessage([fauxToolCall('get_current_user', {}, { id: 'forbidden-repair' })], { stopReason: 'toolUse' });
+  }, nativeMessage(wireFor({ content: [fixed] }))]);
+  await f.runtime.session.prompt('展示两个模拟组件'); await f.runtime.session.waitForIdle();
+  assert.deepEqual(f.calls, []); assert.equal(f.faux.state.callCount, 3);
+  assert.deepEqual(f.runtime.session.messages.findLast(message => message.role === 'assistant').content, [first, fixed]);
+});
+
+test('网络恢复经过成功工具回合也不能重置原用户任务的恢复预算', async t => {
+  const invalid = nativeMessage('{"content":[{"type":"unknown","props":{}}]}');
+  const f = await fixture(t, [nativeMessage('', { stopReason: 'error', errorMessage: 'fetch failed' }),
+    nativeMessage([fauxToolCall('get_current_user', {}, { id: 'budget-read' })], { stopReason: 'toolUse' }), invalid, invalid, nativeMessage(mixedWire)]);
+  await f.runtime.session.prompt('验证跨工具恢复预算'); await f.runtime.session.waitForIdle();
+  assert.equal(f.faux.state.callCount, 4); assert.deepEqual(f.calls, ['get_current_user']);
+  assert.deepEqual(recoveryRecords(f).filter(row => row.stage === 'scheduled').map(row => row.attempt), [1, 2]);
+  assert.ok(recoveryRecords(f).some(row => row.stage === 'stopped' && row.attempt === 2));
+});
+
+test('恢复不能重复交付既有卡片，收到相同错误且无进展时有界停止', async t => {
+  const card = { type: 'SubjectCards', pending: false, props: { layout: 'list', items: [{ id: 1, name: '模拟作品', kind: 'anime' }] } };
+  const f = await fixture(t, [nativeMessage('{"content":[' + JSON.stringify(card) + ',', { stopReason: 'length' }),
+    nativeMessage(wireFor({ content: [card] })), nativeMessage(wireFor({ content: [card] }))]);
+  await f.runtime.session.prompt('不能重复作品'); await f.runtime.session.waitForIdle();
+  assert.equal(f.faux.state.callCount, 3); assert.deepEqual(f.calls, []);
+  const last = rawLastAssistant(f);
+  assert.equal(last.stopReason, 'error'); assert.deepEqual(last.content, [card]);
+});
+
+test('MCP参数诊断反馈到模型，认证失败只允许说明结果；新用户任务清除旧反馈', async t => {
+  const f = await fixture(t, [nativeMessage([fauxToolCall('get_current_user', { unexpected: true }, { id: 'bad-params' })], { stopReason: 'toolUse' }), context => {
+    const feedback = recoveryFeedback(context); assert.equal(feedback.error.code, 'INVALID_INPUT'); assert.equal(feedback.goal.strategy, 'replan_read');
+    return nativeMessage(wireFor({ content: [textPart('本轮参数问题已说明。')] }));
+  }, context => { assert.equal(recoveryFeedback(context), undefined); return nativeMessage(wireFor({ content: [textPart('新任务独立回答。')] })); }]);
+  await f.runtime.session.prompt('模拟错误参数'); await f.runtime.session.waitForIdle();
+  await f.runtime.session.prompt('一个全新的任务'); await f.runtime.session.waitForIdle();
+  assert.deepEqual(f.calls, []); assert.equal(f.faux.state.callCount, 3);
+});
+
+test('卡片均已完成但尾部文字未闭合时只补收尾，不重新生成卡片', async t => {
+  const card = { type: 'SubjectCards', pending: false, props: { layout: 'list', items: [{ id: 1, name: '模拟作品', kind: 'anime' }] } };
+  const cut = '{"content":[' + JSON.stringify(card) + ',{"type":"text","nextType":null,"text":"覆盖说明未完';
+  const f = await fixture(t, [nativeMessage(cut, { stopReason: 'length' }), context => {
+    const feedback = recoveryFeedback(context); assert.equal(feedback.checkpoint.draft.type, 'text');
+    assert.equal(feedback.checkpoint.draft.text, '覆盖说明未完');
+    return nativeMessage(wireFor({ content: [textPart('覆盖说明完整。')] }));
+  }]);
+  await f.runtime.session.prompt('展示作品和覆盖说明'); await f.runtime.session.waitForIdle();
+  assert.deepEqual(f.runtime.session.messages.findLast(message => message.role === 'assistant').content, [card, textPart('覆盖说明完整。')]);
+  assert.equal(f.faux.state.callCount, 2);
+});
+
+test('认证失败只允许报告缺口，恢复期间不再调用工具', async t => {
+  const f = await fixture(t, [nativeMessage([fauxToolCall('get_current_user', {}, { id: 'auth-failure' })], { stopReason: 'toolUse' }), context => {
+    const feedback = recoveryFeedback(context); assert.equal(feedback.error.code, 'BGM_AUTH_REQUIRED'); assert.equal(feedback.goal.strategy, 'report_failure');
+    return nativeMessage(wireFor({ content: [textPart('需要重新登录，本轮已停止。')] }));
+  }]);
+  let calls = 0; f.config.client.call = async () => { calls++; throw new AppError('BGM_AUTH_REQUIRED', '需要登录'); };
+  await f.runtime.session.prompt('只读账户诊断'); await f.runtime.session.waitForIdle();
+  assert.equal(calls, 1); assert.equal(f.faux.state.callCount, 2);
+  assert.equal(f.runtime.session.messages.findLast(message => message.role === 'assistant').stopReason, 'stop');
+});
+
+test('未知批次写入回执只进入报告流程，不重新提交或追加写入', async t => {
+  const args = { operations: [{ tool: 'collect_person', args: { person_id: 1 } }] };
+  const f = await fixture(t, [nativeMessage([fauxToolCall('execute_write_batch', args, { id: 'unknown-write' })], { stopReason: 'toolUse' }), context => {
+    const feedback = recoveryFeedback(context); assert.equal(feedback.error.code, 'WRITE_OUTCOME_UNKNOWN'); assert.equal(feedback.goal.strategy, 'report_failure');
+    return nativeMessage(wireFor({ content: [textPart('模拟回执为未知，未重发写入。')] }));
+  }]);
+  let writes = 0; const definition = f.runtime.session.getToolDefinition('execute_write_batch');
+  definition.execute = async () => { writes++; const value = { state: 'unknown', summary: { unknown: 1 }, items: [] };
+    return { content: [{ type: 'text', text: JSON.stringify({ value }) }], details: { value }, structuredContent: { value } }; };
+  await f.runtime.session.prompt('只验证模拟回执'); await f.runtime.session.waitForIdle();
+  assert.equal(writes, 1); assert.deepEqual(f.calls, []); assert.equal(f.faux.state.callCount, 2);
+  assert.ok(recoveryRecords(f).some(row => row.stage === 'write_unknown'));
+});
+
+test('提供方拒绝生成额度时明确停止，不用相同额度抽卡重试', async t => {
+  const f = await fixture(t, [nativeMessage('', { stopReason: 'error', errorMessage: 'max_tokens exceeds maximum' }), nativeMessage(mixedWire)]);
+  await f.runtime.session.prompt('模拟额度配置被拒绝'); await f.runtime.session.waitForIdle();
+  assert.equal(f.faux.state.callCount, 1); assert.deepEqual(f.calls, []);
+  assert.ok(recoveryRecords(f).some(row => row.stage === 'stopped'));
+});
 
 async function collected(stream) {
   const events = [];
@@ -70,8 +170,9 @@ function assertEarlyPlaceholder(events, componentType) {
   assert.deepEqual(states, [true, false]);
 }
 
-async function fixture(t, responses, { api = 'openai-responses', provider: providerName = 'content-offline' } = {}) {
+async function fixture(t, responses, { api = 'openai-responses', provider: providerName = 'content-offline', retryDelayMs = 1 } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'bangumi-content-'));
+  writeFileSync(join(root, 'settings.json'), JSON.stringify({ retry: { enabled: false, maxRetries: 2, baseDelayMs: retryDelayMs } }));
   const faux = makeFaux(api, providerName);
   faux.setResponses(responses);
   const captures = [], calls = [], nativeResults = [], events = [];
@@ -100,7 +201,7 @@ async function fixture(t, responses, { api = 'openai-responses', provider: provi
   const runtime = await createBangumiRuntime({ cwd: root, agentDir: root, modelRuntime, sessionManager: manager,
     provider: providerName, model: 'faux-1', extension: createBangumiExtension(config) });
   const unsubscribe = runtime.session.subscribe(event => {
-    if (['message_start', 'message_update', 'message_end'].includes(event.type)) events.push(structuredClone(event));
+    if (['message_start', 'message_update', 'message_end', 'auto_retry_start', 'auto_retry_end'].includes(event.type)) events.push(structuredClone(event));
   });
   t.after(async () => {
     unsubscribe(); await runtime.dispose();
@@ -128,7 +229,7 @@ test('wrapper decodes native content and text deltas, preserving thinking, usage
   assert.equal(textEvents.map(event => event.delta).join(''), '文本 A文本 B');
   assert.deepEqual([...new Set(textEvents.map(event => event.contentIndex))], [1, 3]);
   assert.equal(events.filter(event => event.type === 'thinking_delta').map(event => event.delta).join(''), '原生思考');
-  assertEarlyPlaceholder(events, 'callout');
+  assertEarlyPlaceholder(events, 'Callout');
   const done = events.at(-1);
   assert.equal(done.type, 'done');
   assert.equal(done.reason, 'stop');
@@ -137,7 +238,7 @@ test('wrapper decodes native content and text deltas, preserving thinking, usage
   assertNoSidecar(events);
 });
 
-test('real Pi loop defaults to schema, performs exactly two model requests and one fake MCP read', async t => {
+test('real Pi loop uses JSON object contract, performs exactly two model requests and one fake MCP read', async t => {
   const beforeRead = wireFor({ content: [textPart('先查询当前账户。')] });
   const f = await fixture(t, [nativeMessage([fauxThinking('工具回合'), fauxText(beforeRead),
     fauxToolCall('get_current_user', {}, { id: 'read-1' })], { stopReason: 'toolUse' }), nativeMessage(mixedWire)]);
@@ -150,21 +251,20 @@ test('real Pi loop defaults to schema, performs exactly two model requests and o
     assert.equal(capture.payload.stream, true);
     assert.deepEqual(capture.payload.tools, ['native-tools']);
     assert.deepEqual(capture.payload.reasoning, { effort: 'low' });
-    assert.deepEqual(capture.payload.text.format.schema, PROVIDER_CONTENT_SCHEMA);
-    assert.equal(capture.payload.text.format.strict, true);
+    assert.deepEqual(capture.payload.text.format, { type: 'json_object' });
     assert.equal(capture.maxRetries, 0);
     const systemText = getSystemMessageText(getCurrentSystemMessage(capture.context.messages));
     assert.ok(systemText.includes(CONTENT_OUTPUT_SYSTEM_MARKER));
-    assert.ok(systemText.includes('默认用 subjects'));
+    assert.ok(systemText.includes('默认用 SubjectCards'));
   }
   const assistant = f.runtime.session.messages.findLast(message => message.role === 'assistant');
   assert.deepEqual(assistant.content, normalized.content);
   assert.equal(assistant.stopReason, 'stop');
   assert.deepEqual(assistant.usage, f.nativeResults.at(-1).usage);
   const updates = f.events.filter(event => event.type === 'message_update');
-  assert.ok(updates.some(event => event.message.content.some(part => part.type === 'callout' && part.pending === true)));
-  assert.ok(updates.some(event => event.message.content.some(part => part.type === 'callout' && part.pending === false)));
-  assertEarlyPlaceholder(updates.map(event => event.assistantMessageEvent), 'callout');
+  assert.ok(updates.some(event => event.message.content.some(part => part.type === 'Callout' && part.pending === true)));
+  assert.ok(updates.some(event => event.message.content.some(part => part.type === 'Callout' && part.pending === false)));
+  assertEarlyPlaceholder(updates.map(event => event.assistantMessageEvent), 'Callout');
   const finalEnd = f.events.findLast(event => event.type === 'message_end' && event.message.role === 'assistant');
   assert.deepEqual(finalEnd.message.content, normalized.content);
   assertNoSidecar(f.events);
@@ -172,7 +272,7 @@ test('real Pi loop defaults to schema, performs exactly two model requests and o
 });
 
 test('subjects content is native and its facts survive the next real Pi request and saved history', async t => {
-  const answer = { content: [textPart('相关条目：', 'subjects'), { type: 'subjects', pending: false, props: {
+  const answer = { content: [textPart('相关条目：', 'SubjectCards'), { type: 'SubjectCards', pending: false, props: {
     title: '相关条目', layout: 'grid', items: [{ id: 123, name: '事实条目', kind: 'anime', score: 8.2 }],
   } }, textPart('理由说明。')] };
   const f = await fixture(t, [nativeMessage(wireFor(answer)), nativeMessage(wireFor({ content: [textPart('刚才条目评分为 8.2。')] }))]);
@@ -187,9 +287,9 @@ test('subjects content is native and its facts survive the next real Pi request 
   assert.ok(replayed.includes('事实条目'));
   assert.ok(replayed.includes('8.2'));
   assert.ok(replayed.includes('"props"'));
-  assert.ok(replayed.includes('"type":"subjects"'));
+  assert.ok(replayed.includes('"type":"SubjectCards"'));
   const persisted = f.manager.getBranch().find(entry => entry.type === 'message'
-    && entry.message.role === 'assistant' && entry.message.content.some(part => part.type === 'subjects'));
+    && entry.message.role === 'assistant' && entry.message.content.some(part => part.type === 'SubjectCards'));
   assert.ok(persisted);
   assert.deepEqual(persisted.message.content, answer.content);
   assertNoSidecar(f.events);
@@ -205,12 +305,7 @@ test('Completions agent requests default to the declared provider constraint and
       assert.deepEqual(f.calls, []);
       const capture = f.captures[0];
       assert.equal(capture.payload.text, undefined);
-      if (provider === 'deepseek') assert.deepEqual(capture.payload.response_format, { type: 'json_object' });
-      else {
-        assert.equal(capture.payload.response_format.type, 'json_schema');
-        assert.equal(capture.payload.response_format.json_schema.strict, true);
-        assert.deepEqual(capture.payload.response_format.json_schema.schema, PROVIDER_CONTENT_SCHEMA);
-      }
+      assert.deepEqual(capture.payload.response_format, { type: 'json_object' });
       assert.equal(capture.maxRetries, 0);
       assert.deepEqual(capture.payload.tools, ['native-tools']);
       assert.deepEqual(capture.payload.reasoning, { effort: 'low' });
@@ -218,10 +313,37 @@ test('Completions agent requests default to the declared provider constraint and
       assert.equal(last.stopReason, 'stop');
       assert.deepEqual(last.content, normalized.content);
       const updates = f.events.filter(event => event.type === 'message_update').map(event => event.assistantMessageEvent);
-      assertEarlyPlaceholder(updates, 'callout');
+      assertEarlyPlaceholder(updates, 'Callout');
       assertNoSidecar(f.events);
     });
   }
+});
+
+test('DataTable from convertToLlm can be edited and generated again with pending and object rows unchanged', async t => {
+  const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+  const table = { type: 'DataTable', pending: false, props: {
+    columns: ['weekday', 'count', 'subjects', 'date', 'url'].map(key => ({ key, label: key })),
+    rows: weekdays.map((weekday, index) => ({ weekday, count: '1', subjects: `示例动画${index + 1}`,
+      date: '2026-10-01', url: `https://bgm.tv/subject/${index + 1}` })),
+  } };
+  const edited = { ...table, props: { columns: table.props.columns.slice(0, 3),
+    rows: table.props.rows.map(({ weekday, count, subjects }) => ({ weekday, count, subjects })) } };
+  const f = await fixture(t, [nativeMessage(wireFor({ content: [table] })), transcript => {
+    const previous = transcript.messages.findLast(message => message.role === 'assistant');
+    const replayed = previous.content.find(part => part.type === 'text' && part.text.startsWith('{"type":"DataTable"'));
+    assert.deepEqual(JSON.parse(replayed.text), table);
+    assert.deepEqual(normalizeProviderContent({ content: [JSON.parse(replayed.text)] }), { content: [table] });
+    return nativeMessage(wireFor({ content: [edited] }));
+  }], { api: 'openai-completions', provider: 'deepseek' });
+  await f.runtime.session.prompt('整理周一到周日每天更新的动画');
+  await f.runtime.session.waitForIdle();
+  await f.runtime.session.prompt('去掉开播日期和URL，只留星期、部数和作品名');
+  await f.runtime.session.waitForIdle();
+  assert.equal(f.faux.state.callCount, 2);
+  assert.deepEqual(f.calls, []);
+  assert.deepEqual(f.runtime.session.messages.findLast(message => message.role === 'assistant').content, [edited]);
+  assert.ok(f.events.some(event => event.type === 'message_update'
+    && event.message.content.some(part => part.type === 'DataTable' && part.pending === true)));
 });
 
 test('title and compaction requests without application marker preserve ordinary native output', async () => {
@@ -250,17 +372,61 @@ test('parallel stream and streamSimple requests isolate native content and text 
   }
 });
 
-test('invalid component response fails once without extra model requests, repair or tools', async t => {
-  const f = await fixture(t, [nativeMessage('{"content":[{"type":"unknown","props":{}}]}')]);
+test('invalid component response automatically retries in Pi without repeating completed tools', async t => {
+  const beforeRead = wireFor({ content: [textPart('先查询当前账户。')] });
+  const f = await fixture(t, [nativeMessage([fauxText(beforeRead), fauxToolCall('get_current_user', {}, { id: 'read-retry' })],
+    { stopReason: 'toolUse' }), nativeMessage('{"content":[{"type":"unknown","props":{}}]}'), nativeMessage(mixedWire)]);
+  assert.deepEqual(f.runtime.session.settingsManager.getRetrySettings(), { enabled: true, maxRetries: 2, baseDelayMs: 1, maxAgentDelayMs: 60000 });
   await f.runtime.session.prompt('非法展示输出');
   await f.runtime.session.waitForIdle();
-  assert.equal(f.faux.state.callCount, 1);
-  assert.deepEqual(f.calls, []);
+  assert.equal(f.faux.state.callCount, 3);
+  assert.deepEqual(f.calls, ['get_current_user']);
   const last = f.runtime.session.messages.findLast(message => message.role === 'assistant');
-  assert.equal(last.stopReason, 'error');
-  assert.match(last.errorMessage, /CONTENT_OUTPUT_INVALID/);
+  assert.equal(last.stopReason, 'stop');
+  assert.deepEqual(last.content, normalized.content);
+  const recoveries = f.manager.getBranch().filter(entry => entry.type === 'custom' && entry.customType === 'bangumi/recovery').map(entry => entry.data);
+  assert.deepEqual(recoveries.filter(record => record.stage === 'scheduled').map(record => record.attempt), [1]);
+  assert.ok(recoveries.some(record => record.stage === 'recovered'));
+  const feedback = f.captures[2].context.messages.filter(message => message.role === 'user').map(message => typeof message.content === 'string' ? message.content : message.content.filter(part => part.type === 'text').map(part => part.text).join('')).find(text => text.includes('host_recovery_feedback'));
+  assert.equal(JSON.parse(feedback).error.code, 'CONTENT_SCHEMA_INVALID');
+  assert.ok(f.manager.getBranch().some(entry => entry.type === 'message' && entry.message.errorMessage?.startsWith('CONTENT_OUTPUT_INVALID')));
+  assert.equal(f.captures[2].context.messages.some(message => message.errorMessage?.startsWith('CONTENT_OUTPUT_INVALID')), false);
+  assert.equal(f.captures[2].context.messages.filter(message => message.role === 'toolResult').length, 1);
   assert.deepEqual(last.usage, f.nativeResults.at(-1).usage);
   assertNoSidecar(f.events);
+});
+
+test('invalid output stops after the configured Pi retry budget', async t => {
+  const f = await fixture(t, Array.from({ length: 3 }, () => nativeMessage('{"content":[{"type":"unknown","props":{}}]}')));
+  await f.runtime.session.prompt('持续非法展示输出');
+  await f.runtime.session.waitForIdle();
+  assert.equal(f.faux.state.callCount, 3);
+  assert.deepEqual(f.calls, []);
+  const records = f.manager.getBranch().filter(entry => entry.type === 'custom' && entry.customType === 'bangumi/recovery').map(entry => entry.data);
+  assert.deepEqual(records.filter(record => record.stage === 'scheduled').map(record => record.attempt), [1, 2]);
+  assert.ok(records.some(record => record.stage === 'stopped' && record.attempt === 2));
+  assert.match(rawLastAssistant(f).errorMessage, /^CONTENT_OUTPUT_INVALID/);
+});
+
+test('Pi content-output retry backoff can be cancelled without another model request', async t => {
+  const f = await fixture(t, [nativeMessage('', { stopReason: 'error', errorMessage: 'fetch failed' }), nativeMessage(mixedWire)], { retryDelayMs: 10000 });
+  const unsubscribe = f.runtime.session.subscribe(event => {
+    if (event.type === 'entry_appended' && event.entry.type === 'custom' && event.entry.customType === 'bangumi/recovery' && event.entry.data.stage === 'scheduled') setTimeout(() => { void f.runtime.session.abort(); }, 25);
+  });
+  t.after(unsubscribe);
+  await f.runtime.session.prompt('取消展示重试');
+  await f.runtime.session.waitForIdle();
+  assert.equal(f.faux.state.callCount, 1);
+  assert.ok(f.manager.getBranch().some(entry => entry.type === 'custom' && entry.customType === 'bangumi/recovery' && entry.data.stage === 'cancelled'));
+});
+
+test('Pi automatically retries transient network errors as well as content errors', async t => {
+  const f = await fixture(t, [nativeMessage('', { stopReason: 'error', errorMessage: 'fetch failed' }), nativeMessage(mixedWire)]);
+  await f.runtime.session.prompt('模拟临时网络失败');
+  await f.runtime.session.waitForIdle();
+  assert.equal(f.faux.state.callCount, 2);
+  assert.ok(f.manager.getBranch().some(entry => entry.type === 'custom' && entry.customType === 'bangumi/recovery' && entry.data.stage === 'recovered'));
+  assert.equal(f.runtime.session.messages.findLast(message => message.role === 'assistant').stopReason, 'stop');
 });
 
 function scripted(faux, makeEvents) {
@@ -311,13 +477,13 @@ test('terminal-only valid response is decoded into native content with no raw JS
   assertNoSidecar(events);
 });
 
-test('native network error is terminal and retains usage, without automatic retries', async t => {
+test('unclassified native error is terminal and retains usage', async t => {
   const f = await fixture(t, [nativeMessage('', { stopReason: 'error', errorMessage: '原生网络失败' })]);
   await f.runtime.session.prompt('模拟网络失败');
   await f.runtime.session.waitForIdle();
   assert.equal(f.faux.state.callCount, 1);
   assert.deepEqual(f.calls, []);
-  const last = f.runtime.session.messages.findLast(message => message.role === 'assistant');
+  const last = rawLastAssistant(f);
   assert.equal(last.stopReason, 'error');
   assert.equal(last.errorMessage, '原生网络失败');
   assert.deepEqual(last.usage, f.nativeResults[0].usage);
@@ -330,7 +496,7 @@ test('cancellation retains text and incomplete placeholder but never marks a par
   const visible = new Promise(resolve => { release = resolve; });
   const wrapped = scripted(faux, async function* () {
     yield { type: 'start', partial: message };
-    yield { type: 'text_delta', contentIndex: 0, delta: '{"content":[{"type":"text","nextType":"callout","text":"可见草稿', partial: message };
+    yield { type: 'text_delta', contentIndex: 0, delta: '{"content":[{"type":"text","nextType":"Callout","text":"可见草稿', partial: message };
     // 等到消费侧确实看到解码文字，避免同步脚本被预取后过早取消。
     await visible;
     yield { type: 'done', reason: 'stop', message };
@@ -344,13 +510,13 @@ test('cancellation retains text and incomplete placeholder but never marks a par
   assert.equal(last.type, 'error');
   assert.equal(last.reason, 'aborted');
   assert.equal(last.error.stopReason, 'aborted');
-  assert.deepEqual(last.error.content, [textPart('可见草稿', 'callout'), { type: 'callout', pending: true, props: {} }]);
+  assert.deepEqual(last.error.content, [textPart('可见草稿', 'Callout'), { type: 'Callout', pending: true, props: {} }]);
   assertNoSidecar(events);
 });
 
 test('truncation retains visible draft and partial props, never completing invalid JSON', async () => {
   const faux = makeFaux();
-  const raw = '{"content":[{"type":"text","nextType":"subjects","text":"候选"},{"type":"subjects","props":{"title":"相关条目","layout":"grid","items":[';
+  const raw = '{"content":[{"type":"text","nextType":"SubjectCards","text":"候选"},{"type":"SubjectCards","pending":false,"props":{"title":"相关条目","layout":"grid","items":[';
   const message = nativeMessage(raw);
   const wrapped = scripted(faux, () => [
     { type: 'start', partial: message },
@@ -362,7 +528,7 @@ test('truncation retains visible draft and partial props, never completing inval
   assert.equal(last.type, 'error');
   assert.equal(last.error.stopReason, 'error');
   assert.match(last.error.errorMessage, /CONTENT_OUTPUT_INVALID/);
-  assert.deepEqual(last.error.content, [textPart('候选', 'subjects'), { type: 'subjects', pending: true, props: { title: '相关条目', layout: 'grid' } }]);
+  assert.deepEqual(last.error.content, [textPart('候选', 'SubjectCards'), { type: 'SubjectCards', pending: true, props: { title: '相关条目', layout: 'grid' } }]);
   assertNoSidecar(events);
 });
 
@@ -376,4 +542,3 @@ test('launcher has no opt-in, ignores obsolete environment switch and rejects ob
     assert.throws(() => parseLauncherArgs(args, env), /未支持的参数/);
   }
 });
-

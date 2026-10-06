@@ -1,11 +1,17 @@
-import { AppError, ContractError } from '../support/errors.js';
-import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
+import { AppError, ContractError, diagnosedError } from '../support/errors.js';
+import { createErrorDiagnostic, rememberErrorDebug } from '../support/error-diagnostic.js';
+import { compileSchema, outputIssues, type JsonSchema } from '../support/tool-schema.js';
 import { object } from '../support/bangumi.js';
 import { withAccessContext, type AccessContext } from './access-context.js';
 import { checkCollectionQuery, dateMatches, fullDate, type DateBounds } from './collection-query.js';
 import { normalizeInfobox, type InfoboxItem } from './infobox-output.js';
 import { checkSubjectQueryCoverage } from './search-capabilities.js';
 import { browseDateEvidenceSchema, resolveBrowseDate, matchesBrowseDate, checkBrowseDateEvidence } from './browse-date.js';
+import { checkCandidateResponse, checkCandidateCoverageResponse } from './candidate-contract.js';
+import { checkRelationResponse, checkCandidateLineageResponse } from './relation-contract.js';
+import { checkCandidateContinuationResponse } from './continuation-contract.js';
+import { checkCandidateOutputResponse } from './candidate-output-contract.js';
+import { checkPersonCandidateResponse } from './person-candidates.js';
 
 export const SUBJECT_INCLUDES = ['summary', 'infobox', 'tagStats', 'ratingDistribution'] as const;
 export type SubjectInclude = typeof SUBJECT_INCLUDES[number];
@@ -133,10 +139,21 @@ export function subjectOutputSchema(name: string, inputSchema: JsonSchema): Json
   return withAccessContext({ type: 'object', oneOf: [closed({ value }), closed({ error: safeErrorSchema })] });
 }
 export function checkOutput(schema: JsonSchema, value: unknown): void {
-  if (!compileSchema(schema)(value)) throw new AppError('MCP_INVALID_RESULT', 'MCP返回不符合固定输出契约。');
+  if (!compileSchema(schema)(value)) {
+    const diagnostic = createErrorDiagnostic({ code: 'MCP_INVALID_RESULT', origin: 'mcp', stage: 'validate', reason: 'response_schema_invalid', issues: outputIssues(schema, value) });
+    rememberErrorDebug(diagnostic, undefined, JSON.stringify(value));
+    throw diagnosedError(new AppError('MCP_INVALID_RESULT', 'MCP返回不符合固定输出契约。'), diagnostic);
+  }
 }
 /** DTO验证之外，输出还必须与本次固定参数匹配；不采信异对象/异范围结果。 */
-export function checkSubjectResponse(name: string, value: unknown, args: Record<string, unknown>): void {
+export function checkSubjectResponse(name: string, value: unknown, args: Record<string, unknown>, inputSchema?: JsonSchema): void {
+  if (name === 'get_person_characters' && object(value).kind === 'candidate_page') { checkPersonCandidateResponse(value, args, inputSchema); return; }
+  if (name === 'expand_subject_relations') { checkRelationResponse(value, args); return; }
+  if (name === 'get_candidate_coverage') { checkCandidateCoverageResponse(value, args); return; }
+  if (name === 'get_candidate_lineage') { checkCandidateLineageResponse(value, args); return; }
+  if (name === 'continue_subject_query') { checkCandidateContinuationResponse(value, args); return; }
+  if (name === 'prepare_candidate_output') { checkCandidateOutputResponse(value, args); return; }
+  if (object(value).kind === 'candidate_page') { checkCandidateResponse(value, args, inputSchema); return; }
   if (name === 'query_user_collections') { checkCollectionQuery(value, args); return; }
   if (!SUBJECT_OUTPUT_TOOLS.has(name)) return;
   const raw = object(value);
@@ -342,6 +359,7 @@ export function collectionPage(value: unknown, args: Record<string, unknown>) {
     if (id !== summary.id || ![1, 2, 3, 4, 5].includes(row.type as number)
       || args.subject_type !== undefined && summary.subjectType !== args.subject_type
       || args.collection_type !== undefined && row.type !== args.collection_type) throw new AppError('INVALID_RESPONSE', '收藏归属、状态或筛选范围不符。');
+    if (row.rate !== undefined && row.rate !== null && (typeof row.rate !== 'number' || !Number.isInteger(row.rate) || row.rate < 0 || row.rate > 10)) throw new AppError('INVALID_RESPONSE', '已提供的个人评分类型或范围无效，不能转为未知。');
     const rating = count(row.rate); const timestamp = row.updated_at;
     if (rating !== null && rating > 10 || row.private !== undefined && row.private !== null && typeof row.private !== 'boolean') throw new AppError('INVALID_RESPONSE', '个人评分或私密字段类型/范围无效。');
     return { subject: summary, subjectId: id, collectionStatus: row.type,

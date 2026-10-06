@@ -1,7 +1,8 @@
 import { fetch } from 'undici';
 import { ProxyDispatchers } from '../support/proxy-dispatcher.js';
 import type { ProxyOptions } from '../support/proxy.js';
-import { AppError, registerCredentials, type SubmissionRejection } from '../support/errors.js';
+import { AppError, registerCredentials, diagnosedError, type SubmissionRejection } from '../support/errors.js';
+import { createErrorDiagnostic, errorCauses } from '../support/error-diagnostic.js';
 import { object, positiveId } from '../support/bangumi.js';
 import type { AccountSession } from './account-session.js';
 
@@ -10,7 +11,9 @@ export const VERIFICATION_ORIGIN = 'https://oauth-backend-jet.vercel.app';
 /** 所有读取共用同一超时边界；不把底层异常或服务端正文带到模型。 */
 function interrupted(active: AbortSignal, signal?: AbortSignal): AppError {
   if (active.reason instanceof AppError && active.reason.code === 'MCP_CLOSED') return new AppError('MCP_CLOSED', '账户连接已关闭。');
-  return new AppError(signal?.aborted ? 'CANCELLED' : 'BGM_TIMEOUT', '请求已取消或超时；未自动重试。');
+  const code = signal?.aborted ? 'CANCELLED' : 'BGM_TIMEOUT';
+  return diagnosedError(new AppError(code, code === 'CANCELLED' ? '请求已取消。' : 'HTTP 请求总期限耗尽。'),
+    createErrorDiagnostic({ code, origin: 'http', stage: 'fetch', reason: code === 'CANCELLED' ? 'user_cancelled' : 'http_deadline_exhausted' }));
 }
 export function discardResponse(response: Response): void { void response.body?.cancel().catch(() => {}); }
 export async function awaitResponse(pending: Promise<Response>, active: AbortSignal, signal?: AbortSignal): Promise<Response> {
@@ -28,12 +31,14 @@ export async function awaitResponse(pending: Promise<Response>, active: AbortSig
   } catch (error) {
     if (active.aborted) throw interrupted(active, signal);
     if (error instanceof AppError) throw error;
-    throw new AppError('BGM_NETWORK', '请求未完成；未自动重试。');
+    throw diagnosedError(new AppError('BGM_NETWORK', 'HTTP 请求未完成；未自动重试。'),
+      createErrorDiagnostic({ code: 'BGM_NETWORK', origin: 'http', stage: 'connect', reason: 'http_connect_failed', causes: errorCauses(error) }), error);
   }
 }
 export async function readResponseText(response: Response, active: AbortSignal, signal?: AbortSignal, maximum = 2_000_000): Promise<string> {
   const reader = response.body?.getReader();
-  if (!reader) throw new AppError('INVALID_RESPONSE', '服务响应为空。');
+  if (!reader) throw diagnosedError(new AppError('INVALID_RESPONSE', '服务响应为空。'),
+    createErrorDiagnostic({ code: 'INVALID_RESPONSE', origin: 'http', stage: 'stream', reason: 'response_body_missing', evidence: { httpStatus: response.status } }));
   const abort = () => { void reader.cancel().catch(() => {}); };
   active.addEventListener('abort', abort, { once: true });
   let bytes = 0; const chunks: Uint8Array[] = [];
@@ -44,22 +49,26 @@ export async function readResponseText(response: Response, active: AbortSignal, 
       if (active.aborted) throw interrupted(active, signal);
       if (part.done) break;
       bytes += part.value.byteLength;
-      if (bytes > maximum) { void reader.cancel().catch(() => {}); throw new AppError('BGM_OUTPUT_LIMIT', '服务响应超过读取上限，请缩小范围。'); }
+      if (bytes > maximum) { void reader.cancel().catch(() => {}); throw diagnosedError(new AppError('BGM_OUTPUT_LIMIT', '服务响应超过读取上限，请缩小范围。'),
+        createErrorDiagnostic({ code: 'BGM_OUTPUT_LIMIT', origin: 'http', stage: 'stream', reason: 'response_bytes_limit', recovery: 'correct_parameters', evidence: { bytes, byteLimit: maximum, httpStatus: response.status } })); }
       chunks.push(part.value);
     }
     try { return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)); }
-    catch { throw new AppError('INVALID_RESPONSE', '服务响应不是有效 UTF-8。'); }
+    catch (error) { throw diagnosedError(new AppError('INVALID_RESPONSE', '服务响应不是有效 UTF-8。'),
+      createErrorDiagnostic({ code: 'INVALID_RESPONSE', origin: 'http', stage: 'decode', reason: 'utf8_invalid', evidence: { bytes, httpStatus: response.status }, causes: errorCauses(error) }), error); }
   } catch (error) {
     if (active.aborted) throw interrupted(active, signal);
     if (error instanceof AppError) throw error;
-    throw new AppError('BGM_NETWORK', '响应读取未完成；未自动重试。');
+    throw diagnosedError(new AppError('BGM_NETWORK', 'HTTP 响应流读取未完成；未自动重试。'),
+      createErrorDiagnostic({ code: 'BGM_NETWORK', origin: 'http', stage: 'stream', reason: 'response_stream_failed', evidence: { bytes, httpStatus: response.status }, causes: errorCauses(error) }), error);
   } finally { active.removeEventListener('abort', abort); reader.releaseLock(); }
 }
 export function isJsonResponse(response: Response): boolean {
   return /^application\/(?:[a-z0-9!#$&^_.+-]+\+)?json(?:\s*;|$)/i.test(response.headers.get('content-type') ?? '');
 }
 function parseJson(text: string): unknown {
-  try { return JSON.parse(text); } catch { throw new AppError('INVALID_RESPONSE', '服务返回无效 JSON。'); }
+  try { return JSON.parse(text); } catch (error) { throw diagnosedError(new AppError('INVALID_RESPONSE', '服务返回无效 JSON。'),
+    createErrorDiagnostic({ code: 'INVALID_RESPONSE', origin: 'http', stage: 'decode', reason: 'json_syntax_invalid', causes: errorCauses(error) }), error); }
 }
 /** 只保留有界等待时长，不把任意服务端头或正文带入错误输出。 */
 function retryAfterMs(response: Response): number | null {
@@ -119,7 +128,8 @@ export class AccountTransport {
       throw new AppError(`BGM_HTTP_${response.status}`, '认证、权限或请求失败，请核对登录与网络状态。');
     }
     if (response.status === 204) { discardResponse(response); return { response, value: null }; }
-    if (!isJsonResponse(response)) { discardResponse(response); throw new AppError('INVALID_RESPONSE', '服务未返回 JSON。'); }
+    if (!isJsonResponse(response)) { discardResponse(response); throw diagnosedError(new AppError('INVALID_RESPONSE', '服务未返回 JSON。'),
+      createErrorDiagnostic({ code: 'INVALID_RESPONSE', origin: 'http', stage: 'decode', reason: 'content_type_not_json', evidence: { httpStatus: response.status } })); }
     return { response, value: parseJson(await readResponseText(response, active, signal)) };
     } catch (error) { throw dispatched ? error : withoutNetworkAttempt(error); }
   }

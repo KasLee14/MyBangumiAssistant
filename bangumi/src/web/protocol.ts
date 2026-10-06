@@ -1,3 +1,5 @@
+import type { ErrorDiagnostic } from '../support/error-diagnostic-types.js';
+
 /**
  * Web 终端与宿主之间的共享协议。
  *
@@ -251,7 +253,8 @@ export type MessageBlock = TextBlock | ContentBlockView;
 
 export type TranscriptItemView =
   | (TranscriptItemBase & { kind: 'header'; text: string })
-  | (TranscriptItemBase & { kind: 'user' | 'notice' | 'error'; text: string })
+  | (TranscriptItemBase & { kind: 'user' | 'notice'; text: string })
+  | (TranscriptItemBase & { kind: 'error'; text: string; diagnostic?: ErrorDiagnostic })
   // 助手消息：内容块数组（见上方「消息内容块」）。扩展注入的结构化内容也投影成
   // 这一形态（单块），`origin` 只用于排查与将来的样式区分，不参与渲染分支。
   | (TranscriptItemBase & { kind: 'assistant'; content: MessageBlock[]; origin?: 'extension' })
@@ -429,7 +432,7 @@ export interface CatalogView {
   canPersistCredentials: boolean;
 }
 
-export interface ApiErrorView { code: string; message: string }
+export interface ApiErrorView { code: string; message: string; diagnostic?: ErrorDiagnostic }
 
 /** SSE 帧：`state` 增量携带条目，`full` 表示客户端应整体替换已有条目。 */
 export type ServerEvent =

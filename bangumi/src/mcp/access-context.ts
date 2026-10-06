@@ -1,5 +1,6 @@
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
 import { AppError, READ_DIAGNOSIS_SCHEMA, CONTRACT_ISSUE_SCHEMA } from '../support/errors.js';
+import { ERROR_DIAGNOSTIC_SCHEMA } from '../support/error-diagnostic.js';
 import { isDeepStrictEqual } from 'node:util';
 import { SEARCH_LIMITATIONS, type QueryCoverage } from './search-capabilities.js';
 
@@ -87,11 +88,11 @@ export function checkAccessResponse(name: string, value: unknown, requireContext
     || raw.id !== context.account.id || raw.username !== context.account.username)) invalid('当前账户结果与权限上下文不一致。');
   if (raw.visibility === 'self') {
     if (context.mode !== 'account' || !context.account) invalid('本人成功结果缺少已核实账户。');
-    if (name !== 'query_user_collections' && !isDeepStrictEqual(raw.account, context.account)) invalid('本人快照账户与权限上下文不一致。');
+    if ((name !== 'query_user_collections' || raw.kind === 'candidate_page') && !isDeepStrictEqual(raw.account, context.account)) invalid('本人快照账户与权限上下文不一致。');
   }
   if (raw.kind === 'submission' && (context.mode !== 'account' || !context.account
     || raw.expectedAccountId !== context.account.id)) invalid('提交回执账户与权限上下文不一致。');
-  if (name === 'query_user_collections' && record(raw.coverage) && (raw.coverage.source !== context.source
+  if (name === 'query_user_collections' && raw.kind !== 'candidate_page' && record(raw.coverage) && (raw.coverage.source !== context.source
     || raw.coverage.privateRecords !== (raw.visibility === 'self' ? 'included' : 'public_only'))) invalid('收藏覆盖来源或隐私范围与权限上下文不一致。');
 }
 /** 只扩展最外层业务值与安全错误，嵌套个人快照的原有闭合契约不变。 */
@@ -108,6 +109,7 @@ export function withAccessContext(schema: JsonSchema): JsonSchema {
         properties.rejection = submissionRejectionSchema;
         properties.sourceTool = { type: 'string', minLength: 1, maxLength: 100 };
         properties.diagnosis = READ_DIAGNOSIS_SCHEMA;
+        properties.diagnostic = ERROR_DIAGNOSTIC_SCHEMA;
         properties.contractIssue = CONTRACT_ISSUE_SCHEMA;
         node.allOf = [...(node.allOf as JsonSchema[] ?? []), {
           if: { properties: { contractIssue: CONTRACT_ISSUE_SCHEMA }, required: ['contractIssue'] },

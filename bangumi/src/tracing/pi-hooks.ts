@@ -114,7 +114,7 @@ export function registerTraceHooks(
         recorder.current?.toolResult(
           event.message.toolCallId,
           event.message.toolName,
-          { content: event.message.content },
+          { content: event.message.content, ...(event.message.details === undefined ? {} : { details: event.message.details }) },
           event.message.isError,
         );
       if (event.message.role === "user")
@@ -143,19 +143,23 @@ export function registerTraceHooks(
     ),
   );
   pi.on("turn_end", (event) =>
-    observe(() =>
+    observe(() => {
+      for (const entry of event.entries) if (entry.type === 'custom' && entry.customType === 'bangumi/recovery') recorder.record('recovery.state', entry.data);
       recorder.current?.turnEnd({
         turn_index: event.turnIndex,
         message_entry_id: event.messageEntryId,
         tool_result_entry_ids: event.toolResultEntryIds,
         outcome: event.outcome,
         continued: event.continue,
-      }),
-    ),
+      });
+    }),
   );
   pi.on("agent_end", () => observe(() => recorder.current?.emit("agent.end")));
   pi.on("agent_before_settle", (event) =>
-    observe(() => recorder.current?.boundary(event.outcome)),
+    observe(() => {
+      for (const entry of event.entries) if (entry.type === 'custom' && entry.customType === 'bangumi/recovery') recorder.record('recovery.state', entry.data);
+      recorder.current?.boundary(event.outcome);
+    }),
   );
   pi.on("session_compact", (event) =>
     recorder.record("session.compact", event),

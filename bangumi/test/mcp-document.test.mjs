@@ -6,13 +6,13 @@ import { TOOL_DEFINITIONS } from '../dist/src/mcp/catalog.js';
 import { BATCH_INPUT_SCHEMA } from '../dist/src/mcp/batch-write.js';
 import { renderMcpDocument, inputRows } from '../scripts/sync-mcp-doc.mjs';
 
-test('MCP文档只包含字段表，64底层工具和宿主工具各出现一次', () => {
+test('MCP文档只包含字段表，各底层工具和宿主工具各出现一次', () => {
   const rendered = renderMcpDocument(TOOL_DEFINITIONS, BATCH_INPUT_SCHEMA);
   assert.equal(rendered.includes('```'), false);
   assert.equal(rendered.endsWith('\n'), true); assert.equal(rendered.endsWith('\n\n'), false);
   assert.equal(rendered.includes('JSON Schema'), false);
   const names = [...rendered.matchAll(/^## `([a-z0-9_]+)`$/gm)].map(match => match[1]);
-  assert.equal(names.length, 65); assert.equal(new Set(names).size, 65);
+  assert.equal(names.length, TOOL_DEFINITIONS.length + 1); assert.equal(new Set(names).size, TOOL_DEFINITIONS.length + 1);
   assert.deepEqual(names, [...TOOL_DEFINITIONS.map(tool => tool.name), 'execute_write_batch']);
   assert.ok(rendered.includes('## 公共输出结构'));
   assert.ok(Buffer.byteLength(rendered) < 500_000, '引用结构应去重，不能重新生成巨量全文');

@@ -8,16 +8,14 @@ import { createBangumiExtension } from '../dist/src/extension.js';
 const model = { api: 'openai-responses', provider: 'openai', id: 'test-model' };
 const system = (content, sections) => ({ role: 'system', content, timestamp: 1, ...(sections ? { sections } : {}) });
 const context = { messages: [system('应用规则', { application: CONTENT_OUTPUT_SYSTEM_MARKER })] };
-const format = () => ({ type: 'json_schema', name: 'bangumi_content_v1', strict: true, schema: PROVIDER_CONTENT_SCHEMA });
+const format = () => ({ type: 'json_object' });
 
-test('Completions 按服务能力选择 schema 或 DeepSeek JSON 对象，均保留 tools/reasoning 且不重试', async () => {
+test('Completions 统一使用 JSON 对象约束，保留 tools/reasoning 且不叠加 Provider 重试', async () => {
   const initial = { stream: true, tools: [{ type: 'function', function: { name: 'read_fact' } }], reasoning_effort: 'low' };
   const schemaModel = { ...model, api: 'openai-completions' };
   const deepseekModel = { ...schemaModel, provider: 'deepseek', id: 'deepseek-flash' };
   const schemaPayload = await withContentConstraint(schemaModel, context, {}).onPayload(initial, schemaModel);
-  assert.equal(schemaPayload.response_format.type, 'json_schema');
-  assert.equal(schemaPayload.response_format.json_schema.strict, true);
-  assert.deepEqual(schemaPayload.response_format.json_schema.schema, PROVIDER_CONTENT_SCHEMA);
+  assert.deepEqual(schemaPayload.response_format, { type: 'json_object' });
   const jsonPayload = await withContentConstraint(deepseekModel, context, {}).onPayload(initial, deepseekModel);
   assert.deepEqual(jsonPayload.response_format, { type: 'json_object' });
   assert.deepEqual(jsonPayload.tools, initial.tools);
@@ -53,7 +51,6 @@ test('existing callback sees constraint and can return undefined without mutatin
       assert.equal(receivedModel, model);
       assert.deepEqual(value.text.format, format());
       value.tools[0].name = 'callback-read';
-      value.text.format.schema.properties = {};
       delete value.text.format;
     },
   });
@@ -65,7 +62,7 @@ test('existing callback sees constraint and can return undefined without mutatin
   assert.notDeepEqual(PROVIDER_CONTENT_SCHEMA.properties, {});
 });
 
-test('async replacement preserves callback changes but restores strict output constraint', async () => {
+test('async replacement preserves callback changes but restores JSON object constraint', async () => {
   const replacement = { stream: true, tools: [], text: { verbosity: 'high', format: { type: 'text' } } };
   const result = withContentConstraint(model, context, { onPayload: async () => replacement });
   const captured = await result.onPayload({ stream: true }, model);
@@ -109,9 +106,9 @@ test('concurrent callbacks and repeated requests isolate payload/schema state', 
   });
   const [left, right] = await Promise.all([result.onPayload(source, model), result.onPayload(source, model)]);
   assert.notEqual(left, right);
-  assert.notEqual(left.text.format.schema, right.text.format.schema);
-  left.text.format.schema.properties = {};
-  assert.deepEqual(right.text.format.schema, PROVIDER_CONTENT_SCHEMA);
+  assert.notEqual(left.text.format, right.text.format);
+  left.text.format.type = 'text';
+  assert.deepEqual(right.text.format, format());
   assert.deepEqual(source, { stream: true, text: { verbosity: 'low' } });
 });
 
@@ -137,7 +134,7 @@ test('normal extension start replaces stale output rules with the default contra
   const section = event.systemPromptOptions.sections.bangumi_content_output;
   assert.ok(section.includes(CONTENT_OUTPUT_SYSTEM_MARKER));
   assert.ok(section.includes(COMPONENT_SELECTION_INSTRUCTION));
-  assert.ok(section.includes('默认用 subjects'));
+  assert.ok(section.includes('默认用 SubjectCards'));
   assert.ok(section.includes('用户明确要求纯文本'));
   assert.equal(section.includes('stale output rules'), false);
   for (const handler of hooks.get('before_agent_start') ?? []) handler(event, {});
@@ -146,17 +143,17 @@ test('normal extension start replaces stale output rules with the default contra
 
 test('required component validation accepts only completed types and never invents component data', () => {
   const answer = { content: [
-    { type: 'text', text: '说明', nextType: 'subjects' },
-    { type: 'subjects', pending: false, props: { layout: 'grid', items: [] } },
-    { type: 'table', pending: false, props: { columns: [], rows: [] } },
+    { type: 'text', text: '说明', nextType: 'SubjectCards' },
+    { type: 'SubjectCards', pending: false, props: { layout: 'grid', items: [] } },
+    { type: 'DataTable', pending: false, props: { columns: [], rows: [] } },
   ] };
   const original = structuredClone(answer);
   assert.equal(validateRequiredComponents(answer, []), answer);
-  assert.equal(validateRequiredComponents(answer, ['subjects', 'table', 'subjects']), answer);
+  assert.equal(validateRequiredComponents(answer, ['SubjectCards', 'DataTable', 'SubjectCards']), answer);
   assert.deepEqual(answer, original);
-  assert.throws(() => validateRequiredComponents(answer, ['stats']), /缺少已完成.*stats/);
-  assert.throws(() => validateRequiredComponents({ content: [{ type: 'subjects', pending: true, props: {} }] }, ['subjects']), /缺少已完成.*subjects/);
-  assert.throws(() => validateRequiredComponents({ content: [{ type: 'subjects', props: {} }] }, ['subjects']), /缺少已完成.*subjects/);
+  assert.throws(() => validateRequiredComponents(answer, ['StatsCard']), /缺少已完成.*StatsCard/);
+  assert.throws(() => validateRequiredComponents({ content: [{ type: 'SubjectCards', pending: true, props: {} }] }, ['SubjectCards']), /缺少已完成.*SubjectCards/);
+  assert.throws(() => validateRequiredComponents({ content: [{ type: 'SubjectCards', props: {} }] }, ['SubjectCards']), /缺少已完成.*SubjectCards/);
   assert.throws(() => validateRequiredComponents(answer, ['unknown']), /未知.*unknown/);
-  assert.throws(() => validateRequiredComponents({ content: [{ type: 'text', text: '普通 Markdown 列表' }] }, ['subjects']), /subjects/);
+  assert.throws(() => validateRequiredComponents({ content: [{ type: 'text', text: '普通 Markdown 列表' }] }, ['SubjectCards']), /SubjectCards/);
 });

@@ -69,7 +69,7 @@ export function inputRows(root) {
 }
 /** 输出嵌套结构按实际形状去重，每个公共结构只声明一次。 */
 export function renderMcpDocument(tools, batchInput) {
-  if (tools.length !== 64 || new Set(tools.map(tool => tool.name)).size !== 64) throw Error('当前目录须包含64个不重复底层工具。');
+  if (!tools.length || new Set(tools.map(tool => tool.name)).size !== tools.length) throw Error('工具目录必须非空且名称不能重复。');
   const models = [], modelKeys = new Map(), modelNames = new Set();
   function shape(raw, root, refs = new Set()) {
     if (raw === null || typeof raw !== 'object') return raw;
@@ -126,7 +126,7 @@ export function renderMcpDocument(tools, batchInput) {
     if (models.length > 500) throw Error('公共输出结构展开过多，检查循环引用。');
   }
   return ['# Bangumi MCP 字段声明',
-    '64 个底层工具及宿主工具 execute_write_batch。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。',
+    `${tools.length} 个底层工具及宿主工具 execute_write_batch。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。`,
     ...sections, '## 公共输出结构', ...common].join('\n\n').trimEnd() + '\n';
 }
 const BATCH_OUTPUT_FIELDS = [
@@ -207,5 +207,6 @@ export async function syncMcpDocument(checking = false) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv.slice(2).some(value => value !== '--check')) throw Error('只接受可选参数 --check。');
   await syncMcpDocument(process.argv.includes('--check'));
-  console.log(`${process.argv.includes('--check') ? '字段一致性校验通过' : '字段文档同步完成'}：64底层工具及execute_write_batch。`);
+  const { TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/mcp/catalog.js')).href);
+  console.log(`${process.argv.includes('--check') ? '字段一致性校验通过' : '字段文档同步完成'}：${TOOL_DEFINITIONS.length}底层工具及execute_write_batch。`);
 }

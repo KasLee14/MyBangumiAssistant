@@ -17,6 +17,7 @@ import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { AppError, registerCredentials } from '../dist/src/support/errors.js';
 import { TraceRecorder } from '../dist/src/tracing/recorder.js';
 import { traceRedact } from '../dist/src/tracing/redact.js';
+import { assistantErrorDiagnostic } from '../dist/src/support/error-diagnostic.js';
 import { analyzeTrace } from '../dist/src/tracing/analyze.js';
 import { TraceWriter } from '../dist/src/tracing/writer.js';
 
@@ -39,6 +40,25 @@ function summaries(root) {
 }
 function events(directory) { return readFileSync(join(directory, 'events.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line)); }
 function payload(directory, ref) { assert.ok(ref.path); return JSON.parse(readFileSync(join(directory, ref.path), 'utf8')); }
+
+test('模型失败诊断关联trace/span，原始输出仅在脱敏的本地debug载荷保留', async t => {
+  const secret = 'diagnostic-trace-private-20261006'; registerCredentials([secret]);
+  const raw = JSON.stringify({ content: [{ type: 'Callout', pending: false, props: { tone: 'success', text: '可见事实', extra: secret } }] });
+  const f = await fixture(t, { responses: [message(raw, { stopReason: 'stop' })] });
+  // fixture的正常回答会包为text；改为上游直接返回组件线路，单次失败即可验收日志。
+  f.faux.setResponses([fauxAssistantMessage(raw)]);
+  f.runtime.session.setAutoRetryEnabled(false);
+  await f.runtime.session.prompt('只验证错误诊断'); await f.runtime.session.waitForIdle();
+  const failed = f.runtime.session.sessionManager.getBranch().findLast(entry => entry.type === 'message' && entry.message.role === 'assistant').message;
+  const diagnostic = assistantErrorDiagnostic(failed); assert.ok(diagnostic);
+  const run = summaries(f.traceDir).find(item => item.value.purpose === 'agent');
+  const records = events(run.directory), event = records.find(item => item.event === 'error.diagnostic');
+  assert.equal(event.data.diagnostic.errorId, diagnostic.errorId);
+  assert.equal(event.data.diagnostic.links.traceId, run.value.trace_id); assert.equal(event.data.diagnostic.links.spanId, event.span_id);
+  const debug = payload(run.directory, event.data.debug_ref);
+  assert.equal(typeof debug.responseText, 'string'); assert.equal(debug.responseText.includes(secret), false);
+  assert.equal(JSON.stringify(event.data.diagnostic).includes('responseText'), false);
+});
 
 async function fixture(t, { responses = [message('离线回答')], client, named = true, trace = true, title, modelOptions = {} } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'bangumi-tracing-'));
@@ -134,15 +154,18 @@ test('非法参数和未知工具保留模型意图与错误，但不发出 MCP 
 
 test('并发会话共享 ModelRuntime 时，prompt、最终输出及 MCP 父调用互不串线', async t => {
   const a = gate(); const b = gate();
+  const serviceA = new BangumiMcpService({ currentUser: async () => ({ id: 42, username: 'user_a' }), close: async () => {} });
+  const serviceB = new BangumiMcpService({ currentUser: async () => ({ id: 43, username: 'user_b' }), close: async () => {} });
+  t.after(async () => { await serviceA.close(); await serviceB.close(); });
   const dynamic = async context => {
     const key = text(context.messages.findLast(row => row.role === 'user').content);
     return context.messages.at(-1)?.role === 'toolResult' ? message(`完成 ${key}`)
       : message(fauxToolCall('get_current_user', {}, { id: `tool-${key}` }), { stopReason: 'toolUse' });
   };
   const f = await fixture(t, { responses: Array.from({ length: 20 }, () => dynamic), client: {
-    call: async () => { a.release(); await b.promise; return { id: 42, username: 'user_a' }; }, close: async () => {},
+    call: async (...args) => { a.release(); await b.promise; return serviceA.call(...args); }, close: async () => {},
   } });
-  const other = await f.create(undefined, { call: async () => { await a.promise; b.release(); return { id: 43, username: 'user_b' }; }, close: async () => {} });
+  const other = await f.create(undefined, { call: async (...args) => { await a.promise; b.release(); return serviceB.call(...args); }, close: async () => {} });
   await Promise.all([f.runtime.session.prompt('会话A'), other.session.prompt('会话B')]);
   const saved = summaries(f.traceDir);
   assert.equal(saved.length, 2);
@@ -310,7 +333,8 @@ test('本地 stdio MCP 记录真正的 dispatch，参数拒绝与初始化不混
     getSessionId: () => 'stdio', getSessionFile: () => undefined, getLeafId: () => null,
   } };
   recorder.start(ctx, { prompt: '离线 MCP 验证' });
-  const client = new LocalMcpClient({ authDir: f.root, proxy: null, timeoutMs: 5000, entry: script, onTrace: event => recorder.mcpDiagnostic(event) });
+  // 集成用例包含进程冷启动和完整Schema加载，为并行回归保留启动预算。
+  const client = new LocalMcpClient({ authDir: f.root, proxy: null, timeoutMs: 15000, entry: script, onTrace: event => recorder.mcpDiagnostic(event) });
   try {
     await recorder.mcp('get_current_user', {}, () => client.call('get_current_user', {}), undefined, true);
     await assert.rejects(() => recorder.mcp('get_current_user', { extra: 1 }, () => client.call('get_current_user', { extra: 1 }), undefined, true));

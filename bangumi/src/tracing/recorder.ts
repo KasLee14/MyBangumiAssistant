@@ -3,10 +3,11 @@ import { randomBytes } from 'node:crypto';
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
 import type { AssistantMessage, TSchema } from '@earendil-works/pi-ai';
 import type { ExtensionContext, ToolDefinition } from '@earendil-works/pi-coding-agent';
-import { safeError } from '../support/errors.js';
+import { safeError, sanitizeErrorDiagnostic } from '../support/errors.js';
+import { assistantErrorDiagnostic, correlateDiagnostic, takeErrorDebug, isErrorDiagnostic, type ErrorDiagnostic } from '../support/error-diagnostic.js';
 import { TOOL_DEFINITIONS } from '../mcp/catalog.js';
 import { analyzeEvents } from './analyze.js';
-import { traceHash, traceJson, traceRedact } from './redact.js';
+import { traceHash, traceJson, traceRedact, traceDiagnosticReference } from './redact.js';
 import { TRACE_SCHEMA_VERSION, traceRecord, type PayloadRef, type TraceData, type TraceEvent, type TraceHost,
   type TraceLink, type TraceOptions, type TraceOutcome, type TracePhase, type TraceSession } from './schema.js';
 import { TraceWriter } from './writer.js';
@@ -50,6 +51,7 @@ export class TraceRun {
   private stateEpoch = 0;
   private accountScope = 'unknown';
   private readonly inputs: TraceData[] = [];
+  private readonly recordedErrors = new Set<string>();
 
   constructor(options: TraceOptions, readonly session: TraceSession, readonly purpose: 'agent' | 'session_title',
     environment: TraceData, readonly parent: TraceLink | null = null) {
@@ -115,6 +117,15 @@ export class TraceRun {
   providerPayload(value: unknown): void {
     this.emit('llm.provider_request', { payload_ref: this.payload(value), projection: 'redacted' }, this.llm ?? this.root);
   }
+  private recordError(diagnostic: ErrorDiagnostic, span: TraceSpan): void {
+    if (this.recordedErrors.has(diagnostic.errorId)) return;
+    this.recordedErrors.add(diagnostic.errorId);
+    const safe = traceDiagnosticReference(sanitizeErrorDiagnostic(correlateDiagnostic(diagnostic, {
+      traceId: this.id, spanId: span.id, sessionId: this.session.session_id,
+    })));
+    const debug = takeErrorDebug(diagnostic.errorId);
+    this.emit('error.diagnostic', { diagnostic: safe, ...(debug === undefined ? {} : { debug_ref: this.payload(debug, true) }) }, span);
+  }
 
   llmPartial(message: AgentMessage): void {
     this.lastPartial = message;
@@ -126,6 +137,8 @@ export class TraceRun {
   llmEnd(message: AssistantMessage): void {
     if (!this.llm) return;
     const span = this.llm;
+    const diagnostic = assistantErrorDiagnostic(message);
+    if (diagnostic) this.recordError(diagnostic, span);
     const safe = traceRecord(traceRedact(message));
     const ref = this.payload(safe);
     const thoughts = message.content.filter(part => part.type === 'thinking');
@@ -181,6 +194,13 @@ export class TraceRun {
     const existing = this.tools.get(key);
     const span = existing ?? this.requestedTools.get(key) ?? this.span({ tool_call_id: id, tool_name: name });
     const content = traceRecord(result).content;
+    const structured = traceRecord(traceRecord(result).structuredContent ?? traceRecord(result).details);
+    const toolError = traceRecord(structured.error);
+    if (isErrorDiagnostic(toolError.diagnostic)) {
+      // 固定 MCP 输出已校验；记录同一 errorId，不把原始正文塞进模型反馈。
+      const diagnostic = toolError.diagnostic;
+      this.recordError(diagnostic, span);
+    }
     const bytes = Buffer.byteLength(messageText(traceRedact(content)));
     this.emit('tool.result', { ...span.data, executed: Boolean(existing), is_error: isError, result_ref: this.payload(result),
       model_visible_bytes: bytes, duration_ms: existing ? performance.now() - existing.started : null }, span);
@@ -200,6 +220,7 @@ export class TraceRun {
 
   mcpEnd(span: TraceSpan, value: unknown, error?: unknown): void {
     const data = traceRecord(value);
+    if (error !== undefined) { const diagnostic = safeError(error).diagnostic; if (diagnostic) this.recordError(diagnostic, span); }
     if (span.data.tool_name === 'get_current_user' && Number.isSafeInteger(data.id)) this.accountScope = `account:${data.id}`;
     let subjectIds: number[] | undefined;
     if (['search_subjects', 'browse_subjects'].includes(String(span.data.tool_name)) && Array.isArray(data.data)) {
