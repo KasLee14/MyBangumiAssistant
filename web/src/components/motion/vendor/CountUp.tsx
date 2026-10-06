@@ -19,6 +19,8 @@ export function CountUp({
   from = 0,
   direction = 'up',
   delay = 0,
+  // 刻意比其它过渡慢一个量级：数字滚动要让人看清位数在变，
+  // 套上 `--app-dur-*` 会快到读不出「从多少变到多少」。
   duration = 2,
   className = '',
   startWhen = true,

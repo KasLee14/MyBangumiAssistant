@@ -73,7 +73,7 @@ function formatExactTokens(value: number): string {
 /** 数据堆图标：用量读数的固定前缀符号。 */
 function DatabaseIcon(): ReactNode {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.2">
+    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4">
       <ellipse cx="8" cy="4" rx="5" ry="2.1" />
       <path d="M3 4v8c0 1.16 2.24 2.1 5 2.1s5-.94 5-2.1V4" />
       <path d="M3 8c0 1.16 2.24 2.1 5 2.1s5-.94 5-2.1" />
@@ -174,12 +174,11 @@ function PopupSurface({ panelRef, position, label, className, children }: {
   return createPortal(
     <div
       ref={panelRef}
-      className={`statsPanel${className === undefined ? '' : ` ${className}`}`}
+      className={`appGlass statsPanel${className === undefined ? '' : ` ${className}`}`}
       role="dialog"
       aria-label={label}
       style={position === null ? { left: 0, top: 0, visibility: 'hidden' } : position}
     >
-      <div className="statsPanelMaterial" aria-hidden />
       <div className="statsPanelBody">{children}</div>
     </div>,
     document.body,

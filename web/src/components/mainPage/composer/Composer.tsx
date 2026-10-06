@@ -6,7 +6,8 @@ import { matchCommands } from '../../../utils/commands';
 import { StatsDock } from './StatsDock';
 import { ThinkingPicker } from './ThinkingPicker';
 import { BorderGlow } from '../../motion/vendor/BorderGlow';
-import { Magnet } from '../../motion/vendor/Magnet';
+/* Magnet 已移除：用户在 style-demo-interaction.html 里选的是「A · 只精修状态反馈」，
+   明确排除了磁吸。详见发送键处的注释。 */
 
 function SendIcon(): ReactNode {
   return (
@@ -29,7 +30,8 @@ function StopIcon(): ReactNode {
  *
  * 三个外观层的取舍：
  * 1. 卡片由 `BorderGlow` 提供底色、描边与聚焦时的边缘光，内层不再画边框与阴影；
- * 2. 发送按钮外包一层 `Magnet`，指针靠近时轻微跟随（位移上限约 6px，幅度刻意压小）；
+ * 2. 发送按钮**不做磁吸**：用户在 `style-demo-interaction.html` 选的是「A · 只精修状态反馈」，
+ *    排除了指针跟随类效果，反馈只保留 hover 加深与 active 压缩；
  * 3. 思考强度菜单与统计底栏是共享组件，外观见 `styles/composer.css`。
  *
  * 草稿在 store 中按会话保存（`ui.drafts[sessionId]`）：切换会话、切换输入卡与进入授权
@@ -117,13 +119,13 @@ export function Composer(): ReactNode {
     <div className="appComposerStack">
       <BorderGlow
         className="appGlow"
-        // 浅色表面：BorderGlow 据此选 light 分支。对话区是白底，卡片改用比白面
-        // 略沉的一档（`--bgm-surface-alt`），否则整张卡只剩一圈描边可辨。
-        backgroundColor="#fafafa"
-        // 主色 #f09199 的 HSL（355 76% 76%），BorderGlow 要的是「H S L」裸数字。
-        glowColor="355 76 76"
-        colors={['#f09199', '#f7b1b7', '#f6c9a8']}
-        borderRadius={15}
+        // 底色、光色与边缘光三色**全部走 BorderGlow 的令牌默认值**，这里不再抄色值：
+        // 玻璃填充由 `.appGlow` 通过 `--card-bg-css` 注入（见 styles/composer.css），
+        // 默认三色就是主色的深浅三档。改主色只需要改 bgm.css 一处。
+        // 注：这个值与 `composer.css` 的 `.appGlow { border-radius: var(--app-radius-float) }`
+        // 特异度相同，胜负取决于 CSS 加载顺序——dev 下拿到令牌的 18px，生产构建（两者分属不同
+        // chunk）下是这个 20px。2026-10-06 用户裁示维持现状、仅登记；排查输入卡圆角时先看这里。
+        borderRadius={20}
         glowRadius={26}
         glowIntensity={.7}
         edgeSensitivity={30}
@@ -134,7 +136,7 @@ export function Composer(): ReactNode {
       >
         <div className={`appComposerCard${hero ? ' appComposerHero' : ''}`}>
           {suggestions.length ? (
-            <div className="appComposerPopup" role="listbox" aria-label="命令候选">
+            <div className="appGlass appComposerPopup" role="listbox" aria-label="命令候选">
               <div className="appPopupSection">命令</div>
               {suggestions.map((command, position) => (
                 <button
@@ -179,27 +181,30 @@ export function Composer(): ReactNode {
               </span>
             </div>
             <div className="appComposerTrailing">
-              {/* 思考强度：常驻标签显示当前级别，点开就地切换（会写成本机默认）。 */}
-              <ThinkingPicker />
               {busy ? (
                 <button type="button" className="appSendButton" disabled={unavailable} onClick={actions.stopRound} aria-label="停止本轮" title="停止本轮">
                   <StopIcon />
                 </button>
               ) : (
-                // 磁吸幅度刻意压小：这是「按钮注意到你了」的微反馈，不是让按钮躲指针。
-                <Magnet padding={16} magnetStrength={8} disabled={!draft.trim() || unavailable || sending} wrapperClassName="appSendMagnet">
-                  <button type="button" className="appSendButton" disabled={!draft.trim() || unavailable || sending} onClick={() => submit(draft)} aria-label="发送" title="发送">
-                    <SendIcon />
-                  </button>
-                </Magnet>
+                /* 这里原有 ReactBits 的 Magnet（发送键磁吸跟随指针）。已移除：
+                   用户在 `style-demo-interaction.html` 里选的是「A · 只精修状态反馈」，
+                   明确排除了磁吸——发送键的反馈只保留 hover 加深与 active 压缩。 */
+                <button type="button" className="appSendButton" disabled={!draft.trim() || unavailable || sending} onClick={() => submit(draft)} aria-label="发送" title="发送">
+                  <SendIcon />
+                </button>
               )}
             </div>
           </div>
         </div>
       </BorderGlow>
-      {/* 底栏读数（累计 token 与上下文占用）：卡外、紧贴卡片下方，浮层向上展开。
-          精确读数用滚动数字呈现（`StatsDock` 的 `countUp`）。 */}
-      <StatsDock tokenUsage={tokenUsage} contextUsage={contextUsage} countUp />
+      {/* 卡外一行：思考强度 + 读数（累计 token 与上下文占用）。
+          L-B 之后输入卡只留「输入 + 发送」，于是这两样移到卡外同一行；
+          读数浮层仍向上展开，精确读数用滚动数字呈现（`StatsDock` 的 `countUp`）。 */}
+      <div className="appComposerDock">
+        {/* 思考强度：常驻标签显示当前级别，点开就地切换（会写成本机默认）。 */}
+        <ThinkingPicker />
+        <StatsDock tokenUsage={tokenUsage} contextUsage={contextUsage} countUp />
+      </div>
     </div>
   );
 }

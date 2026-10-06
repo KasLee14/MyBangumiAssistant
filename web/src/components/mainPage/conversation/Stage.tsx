@@ -53,7 +53,8 @@ export function Stage({
   // 投影只在条目真正变化时重算：流式帧只改标量，items 引用不变，于是 turns 引用稳定，
   // 配合 Turn 的 memo 让历史轮次整体跳过重渲染。
   const turns = useMemo(() => projectTurns(items), [items]);
-  // 轮次导航只标记真实对话轮次，前导内容（会话头）不算一轮。
+  // 轮次导航只标记真实对话轮次；没有用户消息的前导项不算一轮。
+  // （C34 决策删掉了会话头，所以这里不再有「会话头占据内容流前导」这件事。）
   const railTurns = useMemo(() => turns.filter(turn => turn.user !== null), [turns]);
 
   // 槽位是每次渲染都会重建的元素对象，直接进依赖数组会让贴底副作用每帧都跑一次

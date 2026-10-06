@@ -6,7 +6,7 @@
 
 **不覆盖**：内容条目渲染（见 [content.md](content.md)）、弹窗自身的表单与关闭语义（见 [dialog.md](dialog.md)）。
 
-上层：[readme.md](readme.md)。侧栏、顶栏、座位与浮层**直接消费 store**（规则 B）；会话正文（`Stage` / `Turn` / `Streaming` / `MessageParts` / `ConfirmationCard`）是 props 驱动的展示组件（规则 A）。
+上层：[readme.md](readme.md)。主界面**没有顶栏**（[C01](../../design/decisions/C01-app-top-bar.md) 删除，功能全部迁入侧栏）：外壳只有两列「**侧栏 \| 对话区**」，侧栏是唯一外壳，自上而下是品牌行（品牌 + 8px 连接状态点 + 折叠钮）→ 实心主色整行「开启新对话」→ 分组列表 → 底部用户行（头像 + 用户名 + 齿轮设置入口），收起态的两个胶囊（`CollapseBubbles`）绝对定位在 `.appFrame` 上、不参与 grid。`components/common/AppTopBar` 仍保留，但**只服务调试页与组件库文档页**。侧栏、座位与浮层**直接消费 store**（规则 B）；会话正文（`Stage` / `Turn` / `Streaming` / `MessageParts` / `ConfirmationCard`）是 props 驱动的展示组件（规则 A）。
 
 ### `ComposerSeat` 是「用表代替分支」的范例
 
@@ -65,8 +65,8 @@ const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 它的边界是刻意的，改动前必须理解：
 
 - **根节点是 `.appStage`**：`container-type: inline-size` 写在这里，`.appStageColumn` 的宽度由 `100cqw` 算出（`styles/frame.css`），少了这个祖先，列宽与换行都会不同。
-- **包含** `.appStageBody` / `.appStageScroll[data-phase]` / `.appStageFlow` / `.appStageColumn`：屏外优化选择器依赖完整祖先链 `.appStageScroll[data-phase='active'] > .appStageFlow > .appStageColumn > .appTurn`。
-- **不含** `.appFrame` 与 `.appConversation`：它们还要容纳侧栏与会话头，由 `Shell` 提供。
+- **包含** `.appStageBody` / `.appStageScroll[data-phase]` / `.appStageFlow` / `.appStageColumn`：屏外优化选择器依赖完整祖先链 `.appStageScroll[data-phase='active'] > .appStageFlow > .appStageColumn > .appTurn`。会话头已在 C34 决策中删除（组件、槽位与样式一并删除），对话区顶部留白由 `.appStageFlow` 的 20px 上内边距承担。
+- **不含** `.appFrame` 与 `.appConversation`：`.appFrame` 是两列网格（`grid-template-areas: 'side main'`，只有 `side` / `main` 两格），`.appConversation` 只是 `main` 那一格，两者都由 `Shell` 提供。
 - **不含**弹窗与 toast：那些是外壳职责，挂在 `Shell` 的同级；输入区通过 `composer` 槽位注入，谁放进槽位由 `Shell` 决定。
 
 **违反后果**：容器查询与屏外优化同时失效。
@@ -83,7 +83,9 @@ const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 
 **违反后果**：每帧重渲染整棵会话树。
 
-### 会话行右侧的时间文案走 [`../utils/relativeTime.ts`](../utils/relativeTime.md)
+### 会话行的相对时间、四档分组与置顶走 [`../utils/relativeTime.ts`](../utils/relativeTime.md)
+
+两处消费同一份实现：侧栏行右侧的时间（`relativeTimeLabel`）与 `/sessions` 弹窗的同一句话。分组标签（`sessionDayGroup`，现在是**今天 / 昨天 / 7 天内 / 更早**四档，只在侧栏用）也在这里，分组标题的固定顺序取自导出的 `SESSION_GROUP_ORDER`（`['置顶', '今天', '昨天', '7 天内', '更早']`）。「置顶」不是时间档：侧栏先按 `ui.pinned` 把置顶会话挑出去、放在最前，其余再按日历日归档；置顶组的行不显示时间（排序由用户决定）。
 
 **违反后果**：侧栏与 `/sessions` 弹窗各算一份，两处措辞漂移（`now` 由组件注入一次，不让每行自己取时钟）。
 
@@ -113,31 +115,37 @@ const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 | §规则「`busy` 既不参与接管判定，也不当确认按钮的禁用条件」 | 确认按钮点不动时 |
 | §规则「会话容器必须含 `.appStageBody` 与 `.appStageScroll`，不含 `.appFrame` / `.appConversation`」 | **改 `Stage` 的结构或槽位前必读**（边界与样式强耦合） |
 | §规则「流式显示块独立成组件并 `memo`」 | 加流式显示块、怀疑流式卡顿时 |
-| §规则「会话行右侧的时间文案走 `../utils/relativeTime.ts`」 | 改会话列表时间显示时 |
+| §规则「会话行的相对时间、四档分组与置顶走 `../utils/relativeTime.ts`」 | 改会话列表时间显示、分组或置顶时 |
 | §规则「待授权卡只在输入区呈现一次」 | 正文和输入区重复显示同一个请求时 |
 | §规则「新增一种输入区接管形态的步骤」 | 新增接管形态时逐步照做 |
 | §索引「一览」 | 找某个外壳组件的位置，以及它读写哪些 store 字段 |
+| §索引「`Stage` 的三个槽位」 | 给 `Stage` 增删槽位、或想确认对话区顶部留白由谁给时 |
 
 ### 一览
 
 | 子目录 | 文件 | 职责 | 读 store | 写 store |
 |---|---|---|---|---|
-| `shell/` | `Sidebar.tsx` | 折叠按钮、新建会话、历史会话列表（右侧为后台状态或最后对话时间）；品牌行交给 `SidebarBrand` | `ui.collapsed`、`catalog.sessions`、`stream.sessionId` | `toggleSidebar`、`newSession`、`resumeSession` |
-| | `SidebarBrand.tsx` | 品牌行（`.appLogoRow` 里的 `.appBrand` + 右侧控件）；双击品牌区切换页面——主界面传 `enterDebug`、调试页传 `exitDebug` | —（props） | —（props） |
-| | `Header.tsx` | 标题行、当前栏、连接状态 chip、设置入口 | `stream.connected` | `openSettings(null)` |
+| `shell/` | `Sidebar.tsx` | **唯一外壳**，自上而下：品牌行（品牌 `data-debug-toggle`，双击或回车/空格进调试页 + 8px 连接状态点 `.appSidebarStatus` + 折叠钮）+ 实心主色整行「开启新对话」（`.appSidebarNew`，侧栏唯一的主色实心操作）+ 分组列表（置顶 / 今天 / 昨天 / 7 天内 / 更早）+ 底部用户行（头像 + 用户名 + 齿轮设置入口 `.appIconButton`，**单击直达设置**——原「···」浮层菜单已按 [C45](../../design/decisions/C45-settings-entry.md) 定稿 B 删除）。行用共享基类 `.appNavRow`、逐项入场交给 `<Stagger>`；行 hover 时行尾的时间**换成**「···」按钮（`.appNavAction`）→ 置顶 / 取消置顶 | `catalog.sessions`、`stream.sessionId`、`stream.connected`、`stream.loginUsername`、`ui.collapsed`、`ui.switching`、`ui.pinned` | `toggleSidebar`、`newSession`、`resumeSession`、`togglePinned`、`openSettings(null)` |
+| | `CollapseBubbles.tsx` | 收起态左上角的两个带文字胶囊（展开 / 新对话），绝对定位在 `.appFrame` 上（不参与 grid），只在收起态可见 | —（只取动作） | `toggleSidebar`、`newSession` |
+| | `icons.tsx` | 外壳图标（`PanelIcon` / `EditIcon` / `GearIcon`），统一 16×16 显示 / 视觉线宽 1.4px / `currentColor`（`GearIcon` 画在 24 网格上，线宽写 2.1 折算） | — | — |
 | `conversation/` | `Stage.tsx` | 滚动容器、轮次列表、流式区、轮次导轨、贴底跟随 | —（props） | —（props） |
 | | `Turn.tsx` | 一个轮次：用户气泡 + 过程折叠块 + 主体条目 | — | — |
 | | `Streaming.tsx` | 流式正文、思考块与运行状态行 | — | — |
-| | `MessageParts.tsx` | 原子行（用户气泡/提示/错误/会话头） | — | — |
+| | `MessageParts.tsx` | 原子行（用户气泡/提示/错误/会话横幅 `SessionBanner`） | — | — |
 | | `ConfirmationCard.tsx` | 写入预览卡；历史条目只显示结果、`answering` 恒为 `false` | — | — |
-| | `Hero.tsx` | 首屏引导块（无 props 的纯展示） | — | — |
+| | `Hero.tsx` | 首屏引导块（标题 + 说明 + 1 枚设置入口 `.appHeroSettings` + 3 枚玻璃示例 chip `.appGlass.appHeroSample`；**2026-10-10 起设置入口在说明与示例之间**、实心主色深档、与侧栏「开启新对话」同色）；点示例经 `onPick` 把文案交给 `Shell` 写进草稿，点设置经 `onOpenSettings` 开设置弹窗 | —（props） | —（props） |
 | `composer/` | `ComposerSeat.tsx` | 输入区**座位**：决定此刻放输入卡还是接管卡 | `stream.pending`、`stream.answering`、`stream.sessionId` | `confirm`、`reject` |
-| | `Composer.tsx` | 输入卡 + 命令弹窗；草稿按会话保存在 store | 流字段、`catalog.commands`、`ui.problem`、`ui.switching`、`ui.drafts`、`selectHeroPhase` | `optimisticSend`、`localCommand`、`stopRound`、`notice`、`dismissProblem`、草稿动作 |
-| | `ThinkingPicker.tsx` | 思考强度菜单 | `stream.thinking` | `pickThinkingLevel` |
-| | `StatsDock.tsx` | token 胶囊与上下文占用环 | —（props） | — |
-| `overlays/` | `DialogStage.tsx` | 用 `AnimatePresence` 按 store 开合状态挂载弹窗（进出都有过渡） | `stream.loginPrompt`、`selectSettingsOpen`、`selectSessionsOpen` | — |
-| | `Toast.tsx` | 一次性提示，4 秒后自动清空 | `selectNotice` | `dismissNotice` |
+| | `Composer.tsx` | 输入卡（卡内只留输入框与发送/停止）+ 命令弹窗；思考强度与读数在**卡外同一行** `.appComposerDock`；草稿按会话保存在 store | 流字段、`catalog.commands`、`ui.problem`、`ui.switching`、`ui.drafts`、`selectHeroPhase` | `optimisticSend`、`localCommand`、`stopRound`、`notice`、`dismissProblem`、草稿动作 |
+| | `ThinkingPicker.tsx` | 思考强度菜单；由 `Composer` 渲染在 `.appComposerDock` 行里 | `stream.thinking` | `pickThinkingLevel` |
+| | `StatsDock.tsx` | token 胶囊与上下文占用环；同样在 `.appComposerDock` 行里 | —（props） | — |
+| `overlays/` | `DialogStage.tsx` | 按 store 开合状态挂载弹窗，并**自己管 presence**（关闭后先留场播退场动画，`Modal` 报 `onExited` 才卸载；不用 `AnimatePresence`） | `stream.loginPrompt`、`selectSettingsOpen`、`selectSessionsOpen` | — |
+| | `Toast.tsx` | 一次性提示，4 秒后自动清空；进出过渡对称（`y 16` + `scale .98`，240ms，C42） | `selectNotice` | `dismissNotice` |
+| `../common/`（跨三个入口共享的原语，样式在 `styles/common.css`） | `AppTopBar.tsx` | 顶栏骨架（`leading` / `brand` / `tabs` / `actions` 四个槽）；**只服务调试页与组件库文档页**（主界面没有顶栏） | —（props） | —（props） |
+| | `Stagger.tsx` | 逐项错峰入场容器（55ms + spring，只给短列表） | —（props） | —（props） |
+| | `Pill.tsx` | 胶囊表面原语；玻璃（`.appGlass`）与微标签（`.appMicroLabel`）只是 `styles/common.css` 里的共享类，不再各占一个组件文件 | —（props） | —（props） |
+
+列表入场另有两条共享路径：滚动容器内的行走 `content.css` 的 `contentRowIn` keyframes；「滚进视口才浮现」走 `utils/revealOnScroll.ts` 的共享 `IntersectionObserver`（按滚动容器缓存、进入即 `unobserve`，全站只有这一个模块建观察器）。三条路径的时长 / 曲线 / 位移 / 错峰都取自同一批令牌，不要在每个列表里各写一份。
 
 ### `Stage` 的三个槽位
 
-三个槽位：`composer`（输入区）、`hero`（首屏引导，不传即始终 active）、`pendingEcho`（乐观回显气泡）。`Stage` 只把它们当作"有没有"来用（`heroPhase` / `hasPendingEcho` 两个稳定布尔），元素对象本身不进贴底副作用的依赖数组。
+三个槽位：`composer`（输入区）、`hero`（首屏引导，不传即始终 active）、`pendingEcho`（乐观回显气泡）。`Stage` 只在贴底副作用里把 `hero` 与 `pendingEcho` 折成"有没有"（`heroPhase` / `hasPendingEcho` 两个稳定布尔），元素对象本身不进依赖数组；`composer` 直接渲染。

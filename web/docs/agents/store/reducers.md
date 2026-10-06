@@ -98,6 +98,29 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 
 **违反后果**：放进 selector 会导致每次调用返回新数组，`useSelector` 每帧都判定"变了"，整棵树重渲染（见本层 [readme.md](readme.md) §规则「selector 不得新建引用」）。
 
+### `ui/pinnedToggled` 只改数组，落盘交给订阅
+
+置顶是**纯前端状态**（宿主协议里没有这一项），`ui/pinned: string[]` 只装会话 id：
+
+```ts
+case 'ui/pinnedToggled': {
+  // 新数组（而不是原地 splice）：订阅处用引用比较判断「值真的变了」，原地改会漏掉落盘。
+  const pinned = state.pinned.includes(action.sessionId)
+    ? state.pinned.filter(id => id !== action.sessionId)
+    : [action.sessionId, ...state.pinned];
+  return { ...state, pinned };
+}
+```
+
+两条要点：
+
+1. **必须返回新数组**（置顶项放到最前，取消置顶按 id 过滤）——落盘订阅靠**引用比较**过滤掉其它 action 引起的通知，原地 `push` / `splice` 会让「引用没变 = 值没变」的判据失效，置顶就写不进 `localStorage`；
+2. **不要在这里碰 `localStorage`**：reducer 保持纯净（只改 state），落盘只在 `store/index.ts` 的一处 `store.subscribe` 里发生，读写封装在 `utils/pinnedStorage.ts`（见 [selectors-and-instance.md](selectors-and-instance.md) §规则）。
+
+宿主会话列表里已经没有这条会话时，**不清理** `ui.pinned` 里的记录——那是侧栏的惰性忽略（`sessions.find(...)` 找不到就不渲染），不是 reducer 的职责。
+
+**违反后果**：置顶刷新后丢失（引用没变，订阅跳过），或 reducer 产生副作用、时序与可测性同时变差。
+
 ### 新增一个 action 的步骤
 
 1. **类型**：在所属切片的 `XxxAction` 联合里加成员（`type` 用 `切片/动作` 命名，如 `ui/settingsClosed`）；
@@ -120,6 +143,7 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 | §`ui/draft` 与 `ui/draftRestore` 必须分成两个 action | 改输入草稿、发送失败回滚时 |
 | §`settingsPane` 住在 store，不放组件的 `useState` | 改设置弹窗的打开路径（如 `/model` 直达）时 |
 | §命令合并放在 `catalog` reducer，不放 selector | 动目录数据、改命令合并时机时 |
+| §`ui/pinnedToggled` 只改数组，落盘交给订阅 | 改置顶行为、或置顶刷新后丢失时 |
 | §新增一个 action 的步骤 | 加 action 时逐步照做 |
 | §`stream` 切片的字段与 action、§`catalog` 切片、§`ui` 切片 | 查某个字段或某个 action 的确切行为时 |
 
@@ -148,7 +172,8 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 
 ### `ui` 切片（`reducers/ui.ts`）
 
-字段：`switching`、`drafts`（`Record<string, string>`，键为会话 id）、`settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`reveal`、`notice`、`problem`、`credentialProvider`。
+字段：`switching`、`drafts`（`Record<string, string>`，键为会话 id）、`settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`pinned`（`string[]`，置顶会话 id，按置顶顺序）、`reveal`、`notice`、`problem`、`credentialProvider`。
+初始值：`INITIAL_UI_STATE` 里 `pinned: []`；真实初值在 `store/index.ts` 里从 `localStorage` 读入（`loadPinned()`）。
 
 | action | 行为 |
 |---|---|
@@ -158,6 +183,7 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 | `ui/sessionsOpened` | 打开会话弹窗，**同时关闭设置弹窗** |
 | `ui/sessionsClosed` | 关闭会话弹窗 |
 | `ui/collapsedSet` / `ui/collapsedToggled` | 侧栏形态（`collapsedSet` 值未变时返回原 state） |
+| `ui/pinnedToggled` | 置顶 / 取消置顶指定会话（**每次都返回新数组**，落盘由 store 订阅负责，见 §规则） |
 | `ui/revealIncremented` | `/details`：递增展开计数 |
 | `ui/credentialProviderSet` | 设置行当前显示的提供方 |
 | `ui/switching` | 会话选择请求在途标记 |

@@ -9,7 +9,9 @@
  * - `ComponentPage.tsx` 详情页（严格四块：UI 预览 / 参数 / event / frame）
  * - `items.ts`     载荷 → 条目 / event / frame 文本
  * - `samples.ts`   12 个 kind 的示例数据与参数表（数据源，改协议要同步改它）
- * - `theme.ts`     antd 主题（配色映射到 `--bgm-*` 的当前色值）
+ *
+ * 骨架是**自绘**的（早期版本用过 antd，那份 `theme.ts` 色值抄本已随框架一起删除），
+ * 与主界面、调试页共用 `components/common/` 与同一套令牌。
  *
  * 这一页**不连宿主**：只渲染静态示例，不发任何请求。
  */

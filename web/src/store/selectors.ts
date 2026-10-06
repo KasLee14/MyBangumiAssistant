@@ -22,6 +22,8 @@ export const selectCanPersistCredentials = (state: RootState) => state.catalog.c
 
 export const selectSettingsOpen = (state: RootState) => state.ui.settingsOpen;
 export const selectSettingsPane = (state: RootState) => state.ui.settingsPane;
+/** 设置弹窗此刻该渲染哪一屏——退场动画期间仍指向最后显示过的那一屏（见 `reducers/ui.ts`）。 */
+export const selectLastSettingsPane = (state: RootState) => state.ui.lastSettingsPane;
 export const selectSessionsOpen = (state: RootState) => state.ui.sessionsOpen;
 export const selectCollapsed = (state: RootState) => state.ui.collapsed;
 export const selectReveal = (state: RootState) => state.ui.reveal;

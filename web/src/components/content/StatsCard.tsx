@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { StatEntryView, StatsView } from '../../../../bangumi/src/web/protocol';
 import { Counter } from '../motion/vendor/Counter';
 
@@ -31,8 +31,10 @@ function Bars({ entries }: { entries: StatEntryView[] }): ReactNode {
         <li key={`${entry.label}-${index}`} className="contentStatBarRow" data-tone={toneOf(entry)}>
           <span className="contentStatLabel">{entry.label}</span>
           <span className="contentStatTrack">
-            {/* 长度用 scaleX 而不是 width：只动 transform，数据刷新时不触发布局重排 */}
-            <span className="contentStatBar" style={{ transform: `scaleX(${ratioOf(entry).toFixed(4)})` }} />
+            {/* 长度用 **CSS 变量**交给样式层（不写内联 `transform`）：
+                keyframes 的 `to` 帧会盖掉内联值，动画一结束横条就被拉到满格。
+                几何与入场动画都在 `content.css` 的 `.contentStatBar` 上。 */}
+            <span className="contentStatBar" style={{ '--content-bar': ratioOf(entry).toFixed(4) } as CSSProperties} />
           </span>
           <EntryValue entry={entry} />
         </li>
@@ -103,10 +105,12 @@ export function StatsCard({ view }: { view: StatsView }): ReactNode {
           <span className="contentStatHeadlineValue">
             {headlineNumber === null ? headline.value : (
               // ReactBits Counter（参考 https://www.reactbits.dev/components/counter）：数字首次出现时滚到位。
-              // 关掉官方那两层上下渐隐（gradientHeight=0）——它服务的是整屏大字，这里是 30px 的行内读数。
+              // 关掉官方那两层上下渐隐（gradientHeight=0）——它服务的是整屏大字，这里是 28px 的行内读数。
+              // fontSize 必须与 `content.css` 的 `.contentStatHeadlineValue` 一致（[C06](../../docs/design/decisions/C06-stats-card.md)
+              // 定稿 28px）：它以**内联样式**下发，会盖掉 CSS 里那一档——写 30 就等于 CSS 的 28px 从未生效。
               <Counter
                 value={headlineNumber}
-                fontSize={30}
+                fontSize={28}
                 gap={2}
                 horizontalPadding={0}
                 gradientHeight={0}

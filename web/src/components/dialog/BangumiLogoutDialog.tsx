@@ -16,6 +16,10 @@ export function BangumiLogoutDialog(): ReactNode {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 影响范围与「不影响 Bangumi 网站」写在标题下方：确认型弹窗没有字段，
+  // 这句话决定用户敢不敢点，所以它是副标题而不是底部的一行小字。
+  const scope = `将清除本应用保存的 Bangumi 登录会话${username ? `（${username}）` : ''}，不影响 Bangumi 网站上的登录状态。`;
+
   const submit = async (): Promise<void> => {
     if (busy) return;
     setBusy(true);
@@ -32,22 +36,18 @@ export function BangumiLogoutDialog(): ReactNode {
 
   return (
     <Modal
-      eyebrow="设置"
+      eyebrow={scope}
       title="退出登录"
       onClose={actions.closePane}
       footer={(
         <>
-          <span className="note">只清除本应用保存的会话。</span>
-          <button type="button" className="button ghost" disabled={busy} onClick={actions.closePane}>取消</button>
-          <button type="button" className="button primary" disabled={busy} onClick={() => void submit()}>
+          <button type="button" className="dlgBtn dlgBtnGhost" disabled={busy} onClick={actions.closePane}>取消</button>
+          <button type="button" className="dlgBtn dlgBtnPrimary" disabled={busy} onClick={() => void submit()}>
             退出登录
           </button>
         </>
       )}
     >
-      <p className="modalHint">
-        将清除本应用保存的 Bangumi 登录会话{username ? `（${username}）` : ''}，不影响 Bangumi 网站上的登录状态。
-      </p>
       {error ? <p className="modalError">{error}</p> : null}
     </Modal>
   );

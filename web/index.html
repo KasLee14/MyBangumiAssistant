@@ -3,12 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f5f5f5" />
+    <meta name="theme-color" content="#fdf1f2" />
     <title>Bangumi 助手 Web 终端</title>
     <style>
-      /* 浅色是唯一外观：固定 color-scheme，并在样式表加载前预涂同值底色，避免白闪。 */
+      /* 浅色是唯一外观：固定 color-scheme，并在样式表加载前预涂同值底色，避免白闪。
+         底色必须是 --bgm-bg 的实际色值（primary **9%** + 白，见 styles/bgm.css）。
+         2026-10-06 第七轮同步：G02 把表面阶梯从 13/20/6 收到 9/15/4，这里是那一档的抄本。 */
       :root { color-scheme: light; }
-      body { margin: 0; background: #f5f5f5; }
+      /* 预涂底色 = `--bgm-bg`（主色 #ec6570 9% + 白）= #fdf1f2。这里必须写实色：
+         `color-mix()` 要等 CSS 变量就位才算得出来，而这行要在样式表之前生效以消除首帧闪白。
+         改主色或改混白比例时按同一公式重算（这是全项目仅剩的实色抄本之一）。 */
+      body { margin: 0; background: #fdf1f2; }
     </style>
   </head>
   <body>

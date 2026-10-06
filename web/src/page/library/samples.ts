@@ -100,11 +100,9 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
       { field: 'hint', type: 'string', required: '可选', note: '排序口径一类的补充说明' },
       ...SUBJECT_ITEM,
     ],
-    reference: {
-      name: 'Spotlight Card',
-      url: `${REACTBITS}/components/spotlight-card`,
-      usage: '封面卡片的指针跟随光斑；list 布局的行交错入场同样是 Animated List 的节奏（CSS 实现，未引入源码）',
-    },
+    // 这一条原先指向 Spotlight Card；该组件已按用户选择（interaction 样张的「A · 只精修状态反馈」）移除。
+    // 网格卡现在没有 vendor 落点，只保留 hover 抬升与封面缓推（纯 CSS）。
+    reference: null,
   },
   {
     kind: 'StatsCard',
@@ -210,6 +208,9 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
         { ep: '2', title: '乐器！', air: '2009-04-10' },
         { ep: '10', title: '合宿！' },
       ],
+      // V3 点睛的两处可选强调：关键列（话数走主色深字）+ 当前行（整行浅粉底、首格左侧实心条、「当前」徽章）
+      keyColumn: 'ep',
+      currentRow: '2',
       note: '共 13 话，展示前 3 话',
     },
     empty: { columns: [{ key: 'ep', label: '话' }], rows: [] },
@@ -218,6 +219,8 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
       { field: 'columns[].key / label', type: 'string', required: '必填', note: '取值键与表头文字' },
       { field: 'columns[].align', type: 'string', required: '可选', values: 'left / right', note: '数字列建议右对齐' },
       { field: 'rows', type: 'Record<string, string>[]', required: '必填', note: '每行按列 key 取值；缺键留空，不显示 undefined' },
+      { field: 'keyColumn', type: 'string', required: '可选', note: '关键列：该列的值走主色深字 + 600' },
+      { field: 'currentRow', type: 'string', required: '可选', note: '当前行：按关键列（缺省首列）的值匹配；命中则整行浅粉底 + 首格左侧 3px 实心条 + 「当前」徽章' },
       { field: 'title / note', type: 'string', required: '可选', note: '标题与脚注' },
     ],
     reference: {
@@ -337,11 +340,9 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
       { field: 'mono', type: 'boolean', required: '必填', note: '是否等宽呈现（JSON、日志为 true）' },
       { field: 'title', type: 'string', required: '可选', note: '区块标题' },
     ],
-    reference: {
-      name: 'Shiny Text',
-      url: `${REACTBITS}/text-animations/shiny-text`,
-      usage: '标题的金属光泽（仅标题，不动正文）',
-    },
+    // 这一条原先指向 Shiny Text；该组件已移除——content-v2 的 V3 把引用块标题退成等宽小字弱色，
+    // 与「常驻闪光」冲突（常驻循环也因此少一处）。
+    reference: null,
   },
   {
     kind: 'Callout',
@@ -358,7 +359,12 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
       { field: 'text', type: 'string', required: '必填', note: '主文案' },
       { field: 'detail', type: 'string', required: '可选', note: '补充说明' },
     ],
-    reference: null,
+    // progress 态是本条唯一的 vendor 落点：StarBorder 的细光（色带 34%、透明度 12%、单程 2.2s）
+    reference: {
+      name: 'Star Border',
+      url: `${REACTBITS}/animations/star-border`,
+      usage: '仅 progress 态的流光细边；其余三态是终态，不加常驻动画',
+    },
   },
   {
     kind: 'LinkList',

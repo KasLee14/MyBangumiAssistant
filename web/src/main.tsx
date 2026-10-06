@@ -6,6 +6,8 @@ import { MainPage } from './page/mainPage';
 import { store } from './store';
 import { isDebugHash } from './utils/debugMode';
 import './styles/tokens.css';
+// 跨页面共享的表面原语（顶栏骨架、玻璃浮起层、可选中行、空态、微标签、错峰入场）。
+import './styles/common.css';
 import './styles/frame.css';
 import './styles/composer.css';
 import './styles/cards.css';
@@ -39,7 +41,8 @@ function Root(): ReactNode {
   }, []);
 
   useEffect(() => {
-    // 样式作用域：调试页要更宽的侧栏，靠 html 上的属性选择器生效（见 styles/debug.css）。
+    // `data-debug` 现在只是一个状态标记：调试页的样式作用域改为它自己在 `.appFrame` 上声明的
+    // `data-mode="debug"`（见 styles/debug.css），不再需要靠 html 属性选择器提升特异性。
     document.documentElement.dataset['debug'] = debug ? 'on' : 'off';
   }, [debug]);
 

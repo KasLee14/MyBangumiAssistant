@@ -10,7 +10,7 @@ selector 清单与新增规则、store 实例与 `preloadedState`、类型导出
 
 ## 使用说明
 
-- **写 selector 之前先读完 §规则**：「selector 不得新建引用（稳定引用要求）」的三条反例、「`selectHeroPhase` 的条件不得只看 `items.length`」与「`preloadedState` 只覆盖 `collapsed`」都在那里；违反会表现为整棵树每帧重渲染、首屏遮住宿主提示，或在 reducer 里读浏览器环境。
+- **写 selector 之前先读完 §规则**：「selector 不得新建引用（稳定引用要求）」的三条反例、「`selectHeroPhase` 的条件不得只看 `items.length`」与「`preloadedState` 覆盖 `collapsed` 与 `pinned`、落盘只在一处订阅」都在那里；违反会表现为整棵树每帧重渲染、首屏遮住宿主提示、置顶刷新后丢失，或在 reducer 里读浏览器环境。
 - **只想查现成的 selector、或某个类型从哪转出**：直接查 §索引 的「选择器清单（`selectors.ts`）」与「转出的类型与值」，不必通读 §规则。
 - **加 selector 之前**：先照 §规则「新增一个 selector」的四步做，最后在本文件的表格里登记。
 - 本层通用规则见 [readme.md](readme.md) 的 §规则；本篇只写专属规则。
@@ -33,14 +33,25 @@ selector 清单与新增规则、store 实例与 `preloadedState`、类型导出
 
 `selectHeroPhase` 的条件不能只看 `items.length`：只要有通知、命令回显或正在流式输出，就必须进入会话视图，否则首屏会把宿主提示挡住（这是历史 bug 的修复点）。判定式见 §索引「两个派生 selector」。
 
-### store 实例（`index.ts`）：`preloadedState` 只覆盖 `collapsed`
+### store 实例（`index.ts`）：`preloadedState` 覆盖 `collapsed` 与 `pinned`，落盘只在一处订阅
 
-**违反后果**：把浏览器环境读取散进 reducer，破坏纯函数。
+**违反后果**：把浏览器环境读取散进 reducer，破坏纯函数；或在多处写 `localStorage`，出现第二个真相。
 
 ```ts
 export const store = createStore(rootReducer, {
   ...INITIAL_ROOT_STATE,
-  ui: { ...INITIAL_UI_STATE, collapsed: initialCollapsed() },
+  // 侧栏形态在首屏定死：先渲染再纠正会看到一次闪动。
+  // 置顶同样在首屏一次读入（它是纯前端本地状态），避免先渲染成未置顶再跳一次。
+  ui: { ...INITIAL_UI_STATE, collapsed: initialCollapsed(), pinned: loadPinned() },
+});
+
+// 置顶落盘：reducer 保持纯净，持久化只在这一处订阅里发生。
+let persistedPinned = store.getState().ui.pinned;
+store.subscribe(() => {
+  const pinned = store.getState().ui.pinned;
+  if (pinned === persistedPinned) return;
+  persistedPinned = pinned;
+  savePinned(pinned);
 });
 
 export type AppStore = typeof store;
@@ -48,7 +59,8 @@ export type AppDispatch = typeof store.dispatch;
 ```
 
 - **裸 `createStore`**（redux 5）：不引入 RTK，也不挂中间件；
-- **`preloadedState` 只覆盖 `collapsed`**：初值按窗口宽度算（`innerWidth <= 1024`），首帧就是正确形态，避免"先展开再收起"的闪动。这是唯一一处"在创建 store 时读浏览器环境"的地方；
+- **`preloadedState` 覆盖两处**：`collapsed` 按窗口宽度算（`innerWidth <= 1024`）、`pinned` 从 `localStorage` 读入（`utils/pinnedStorage.ts` 的 `loadPinned`）。首帧就是正确形态，避免"先展开再收起"与"先渲染成未置顶再跳一次"的闪动。这是仅有的"在创建 store 时读浏览器环境"的两处；
+- **落盘用订阅而不是 reducer**：`store.subscribe` 里用**引用比较**过滤掉其它 action 引起的通知——`ui/pinnedToggled` 每次都返回新数组，所以"引用变了"就等于"值变了"（见 [reducers.md](reducers.md) §规则）。写入失败（配额、隐私模式）由 `savePinned` 自己吞掉，不影响界面；
 - 类型从实例反推（`typeof store`），保证 `AppDispatch` 与 `AppAction` 精确对应——若手写 `Store<RootState>`，`dispatch` 的参数类型会退化成任意 action。
 
 ### 新增一个 selector
@@ -68,7 +80,7 @@ export type AppDispatch = typeof store.dispatch;
 | §两个派生 selector | 改首屏判定（`selectHeroPhase`）或设置行提供方回落逻辑时 |
 | §selector 不得新建引用（稳定引用要求） | **写 selector 前必读**（三条反例与对应做法） |
 | §`selectHeroPhase` 的条件不得只看 `items.length` | 排查"有通知或流式输出时首屏把提示挡住"时 |
-| §store 实例（`index.ts`）：`preloadedState` 只覆盖 `collapsed` | 改初值、`preloadedState`、类型导出时 |
+| §store 实例（`index.ts`）：`preloadedState` 覆盖 `collapsed` 与 `pinned`，落盘只在一处订阅 | 改初值、`preloadedState`、置顶落盘或类型导出时 |
 | §新增一个 selector | 加 selector 时逐步照做 |
 
 ### 选择器清单（`selectors.ts`）

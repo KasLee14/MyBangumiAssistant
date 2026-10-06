@@ -139,19 +139,19 @@ document.querySelector('.appCardSeat .planCard')?.dataset.state      // 'pending
 ## S7 会话切换（新建与恢复，不需模型）
 
 **步骤**
-1. 在侧栏点「新建会话」；
-2. 再点侧栏里另一条历史会话。
+1. 在**侧栏**点「开启新对话」（`.appSidebarNew`，实心主色整行、侧栏唯一的主色实心操作）；
+2. 再点侧栏里另一条历史会话行（`.appNavRow`）。
 
 **预期**
 - 新建后：会话区清空、回到首屏 hero 阶段（若空闲）、条目列表整体替换；
 - 恢复后：历史条目出现，滚动位置在底部；轮次高亮复位；
-- 顶栏连接状态保持「已连接」（切换不重建 SSE）。
+- 侧栏品牌行的连接状态点保持 `data-state="on"`（切换不重建 SSE；主界面已无顶栏）。
 - 切换不取消旧会话任务；后台会话状态仍在历史列表更新。切回后恢复该会话的草稿、工具活动与待确认卡；旧会话迟到帧不能把当前视图切回去。
 
 **判定**
 ```js
 document.querySelectorAll('.appTurn').length       // 新建后为 0；恢复后 > 0
-document.querySelector('.appHeader .appChip')?.textContent.trim()   // '已连接'
+document.querySelector('.appSidebarStatus')?.dataset.state   // 'on'
 document.querySelector('.appStage').dataset.phase  // 新建且空闲时为 'hero'
 ```
 
@@ -197,7 +197,7 @@ document.querySelector('#composer-input').value === '回滚测试'
 内容块是助手消息 `content` 数组里的一项（见 [../components/content.md](../components/content.md)）。它不由模型产生，来源只有两条：**调试页手粘的 event / frame**，与**扩展注入的 custom 消息**（落盘为 `custom_message`，重建时投影成只含一个块的条目）。
 
 **步骤**
-1. 打开调试页（主界面顶栏的「组件库」链接旁入口，或 URL 带 `#debug`）；
+1. 打开调试页（**双击主界面侧栏顶部的品牌行** `.appBrandAction.appSidebarBrand`，或 URL 带 `#debug`；调试页顶栏的「组件库」链接通向文档页 `library.html`，不是进调试页的入口）；
 2. event 输入框粘一条 `message_end`：`message.role` 为 `assistant`、`message.content` 里含一个内容块（例如 `{ "type":"stats", "props":{…} }`），点「预览」；
 3. 把该块的载荷改成非法形态（例如 `stats.entries` 给成字符串）再粘一次；
 4. 粘一个未登记的块 `type`（例如 `{ "type":"nope" }`）；
@@ -205,7 +205,7 @@ document.querySelector('#composer-input').value === '回滚测试'
 
 **预期**
 - 第 2 步：内容块按 `type` 渲染成对应组件（统计卡、表格、标签云…），样式正常（品牌配色、无溢出）；数组超限时被**截断**而不是撑爆布局；
-- 第 3 步：渲染**降级块**（问题清单 + 可折叠原始 JSON），而不是白屏或抛错；
+- 第 3 步：渲染**降级块**（素面 + 左侧 2px 短条；问题清单 + 可折叠原始 JSON），而不是白屏或抛错；
 - 第 4 步：该块被丢弃，Console 出现一次 `[content] 未登记的内容块 type「nope」`，同一条里的其它块仍正常渲染；
 - 第 5 步：渲染成一个内容块（`origin: 'extension'` 的单块条目），与重构前的外观一致。
 
@@ -219,19 +219,21 @@ document.querySelector('.contentFallback details')?.open
 
 ## S11 批次部分完成与额度等待（离线展示，不证明真实账户）
 
-运行 `node --test test/web-write-activity.test.mjs test/web-ui-variants.test.mjs`（先统一构建）。
-前者以离线工具通过真实 Pi 事件/Web SSE 验证进度和历史投影，后者以本地 HTTP/SSE 数据验证两版 DOM。
+运行 `node --test test/web-write-activity.test.mjs`（先统一构建）：它以离线工具通过真实 Pi 事件 /
+Web SSE 验证进度与历史投影。
+（**曾经的第二个文件 `test/web-ui-variants.test.mjs` 已随 v2 外观版本一起删除**——现在只有一套外壳，
+没有「两版 DOM」可验。）
 
 预期：原步骤编号与跳过对象保留，`blockedBy` 显示前序依赖；成功、跳过、依赖阻塞分别计数；
 `partial` 行为“未全部完成”，`unknown` 行为“结果待核实”，不把全部行画成失败或完成；
 成功批次也显示已核实数量，缺口换行可读。额度等待展示类别、恢复时间与 Esc 停止提示，
-`submitted` 始终是已提交待核实。切换两版不重连 SSE，恢复历史保留最终批次反馈。
+`submitted` 始终是已提交待核实。恢复历史保留最终批次反馈。
 
 真实账户验收仍须另外执行已授权的混合批次，并核对网站最终状态；离线用例不能替代该证据。
 
-2026-10-04 离线记录：统一构建后运行上述两个文件及 `web-sessions.test.mjs`，共 17 项通过、0 项跳过。
-Chromium 实测两版部分完成/未知/成功计数、换行与等待文案，并核对外观切换不重连 SSE；
-Pi 回调→Web/SSE 与历史重建通过本地 fixture 验证。未运行真实模型或 Bangumi 账户写入。
+2026-10-04 离线记录：统一构建后运行当时的那两个文件及 `web-sessions.test.mjs`，共 17 项通过、0 项跳过。
+Chromium 实测部分完成/未知/成功计数、换行与等待文案；Pi 回调→Web/SSE 与历史重建通过本地 fixture 验证。
+未运行真实模型或 Bangumi 账户写入。**（当轮记录的「两版 DOM」与「外观切换不重连 SSE」两项随 v2 作废。）**
 
 ## S12 内容块的骨架与落定（离线可跑，走调试页）
 

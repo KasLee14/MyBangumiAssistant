@@ -138,6 +138,14 @@ export interface TableView {
   columns: { key: string; label: string; align?: 'left' | 'right' }[];
   /** 每行按 `columns[].key` 取值；缺失的单元格留空。 */
   rows: Record<string, string>[];
+  /**
+   * V3 点睛的两处可选强调（宿主不填就没有那一层，前端不会去猜哪一行是「当前」）：
+   * - `keyColumn`：哪一列是**关键列**——该列的值走主色深字 + 加粗；
+   * - `currentRow`：哪一行是**当前行**——整行浅粉底 + 首格左侧 3px 实心条 + 「当前」徽章。
+   *   `currentRow` 按 `keyColumn`（缺省用首列）的值匹配 `rows` 里的某一行。
+   */
+  keyColumn?: string;
+  currentRow?: string;
   note?: string;
 }
 

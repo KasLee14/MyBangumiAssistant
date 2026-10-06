@@ -30,6 +30,7 @@ import {
   credentialProviderSet,
   noticeSet,
   pendingEchoSet,
+  pinnedToggled,
   problemSet,
   revealIncremented,
   sessionsClosed,
@@ -72,6 +73,8 @@ export interface Actions {
   closeSettings(): void;
   closeSessions(): void;
   toggleSidebar(): void;
+  /** 置顶 / 取消置顶某条会话（纯前端本地状态，落盘由 store 的订阅负责）。 */
+  togglePinned(sessionId: string): void;
 
   /* 会话内的本地命令与确认 */
   localCommand(command: CommandHint): void;
@@ -224,10 +227,14 @@ export function createActions(store: AppStore): Actions {
       dispatch(settingsOpened('credential'));
     },
     switchPane: pane => { dispatch(settingsOpened(pane)); },
+    /* 关掉设置**子弹窗**＝回设置主屏（换屏，不是关弹窗）：清 `settingsPane` 就够，
+       `settingsOpen` 保持 true。`lastSettingsPane` 由 reducer 里那条按条件更新的分支接手，
+       于是「退场动画播到一半时它还在渲染原来那一屏」。 */
     closePane: () => { dispatch(settingsOpened(null)); },
     closeSettings: () => { dispatch(settingsClosed()); },
     closeSessions: () => { dispatch(sessionsClosed()); },
     toggleSidebar: () => { dispatch(collapsedToggled()); },
+    togglePinned: sessionId => { dispatch(pinnedToggled(sessionId)); },
 
     localCommand,
     confirm: id => { answer(id, true); },

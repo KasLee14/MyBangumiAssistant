@@ -9,8 +9,9 @@ import type { ReactNode } from 'react';
  * 三处刻意设计：
  * 1. **与 kind 无关**：骨架期载荷可能一个字段都没有，按 12 种 kind 各画一套既没有依据、
  *    也没有收益（将来某个 kind 需要专属骨架，再加可选 props 即可）；
- * 2. **不做无限扫光**：常驻循环必须"有语义且可关"且默认静止（`web/AGENTS.md` §外观层硬约定
- *    第 4 条），这里只有一次性淡入，动画写在 `content.css` 的 `.contentSkeleton` 上；
+ * 2. **扫光由 `aria-busy` 开关**（[C17](../../docs/design/decisions/C17-content-skeleton.md) 定稿 B）：
+ *    这里无条件带 `aria-busy="true"`，扫光挂在 `[aria-busy='true']` 上——语义本身就是开关，
+ *    容器还有 `prefers-reduced-motion` 的兜底。此前写的是「不做无限扫光」，那是被推翻的 A 方案；
  * 3. **不要求与真实块等高**：强求等高会在替换那一帧引入 layout 抖动，只用 `min-height` 兜底。
  */
 export function ContentSkeleton(): ReactNode {

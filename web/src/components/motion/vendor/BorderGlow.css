@@ -3,6 +3,12 @@
   --cursor-angle: 45deg;
   --edge-sensitivity: 30;
   --color-sensitivity: calc(var(--edge-sensitivity) + 20);
+  /* 厂商默认 28px（不在四档内）。产品侧 `Composer.tsx` 的 `borderRadius` prop 把它覆盖成 20px，
+     而 `composer.css` 的 `.appGlow { border-radius: var(--app-radius-float) }` 想压回浮层档 18px。
+     **两者特异度相同、胜负由 CSS 加载顺序决定**：
+       · dev：组件 CSS 先、`styles/*.css` 后 → `.appGlow` 胜 → **18px**；
+       · build：产物把两个类分进不同 chunk（`content.css` → `index.css`）→ 本文件后加载 → **20px**。
+     即「同一份代码在两个环境下渲染不同」。2026-10-06 用户裁示**维持现状、仅登记**（见 G03 例外清单）。 */
   --border-radius: 28px;
   --glow-padding: 40px;
   --cone-spread: 25;
@@ -12,23 +18,17 @@
   isolation: isolate;
   transform: translate3d(0, 0, 0.01px);
   display: grid;
-  border: 1px solid rgb(255 255 255 / 15%);
-  background: var(--card-bg, #120F17);
+  border: 1px solid var(--app-hairline);
+  /* 底色走变量层：`--card-bg-css` 由消费方（composer.css 的 .appGlow）注入为玻璃填充。 */
+  background: var(--card-bg-css, var(--card-bg, var(--app-surface)));
   overflow: visible;
-  box-shadow:
-    rgba(0, 0, 0, 0.1) 0px 1px 2px,
-    rgba(0, 0, 0, 0.1) 0px 2px 4px,
-    rgba(0, 0, 0, 0.1) 0px 4px 8px,
-    rgba(0, 0, 0, 0.1) 0px 8px 16px,
-    rgba(0, 0, 0, 0.1) 0px 16px 32px,
-    rgba(0, 0, 0, 0.1) 0px 32px 64px;
+  box-shadow: var(--app-shadow-card);
 }
 
 .border-glow-card--light {
-  border-color: rgb(24 24 27 / 12%);
-  box-shadow:
-    rgb(24 24 27 / 4%) 0 1px 2px,
-    rgb(24 24 27 / 5%) 0 8px 24px;
+  /* 浅色分支只剩这一件事：官方的七色 mesh 在浅色底上必须正常混合，
+     否则边缘光会被 blend 成灰。描边与阴影不再分叉——基础分支已是同一批令牌。 */
+  mix-blend-mode: normal;
 }
 
 .border-glow-card--light::after,
@@ -43,7 +43,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  transition: opacity 0.25s ease-out;
+  transition: opacity var(--app-dur-base) var(--app-ease-out);
   z-index: -1;
 }
 
@@ -51,23 +51,25 @@
 .border-glow-card:not(:hover):not(.sweep-active)::after,
 .border-glow-card:not(:hover):not(.sweep-active) > .edge-light {
   opacity: 0;
-  transition: opacity 0.75s ease-in-out;
+  transition: opacity var(--app-dur-slower) var(--app-ease-in-out);
 }
 
 /* colored mesh-gradient border */
 .border-glow-card::before {
   border: 1px solid transparent;
   background:
-    linear-gradient(var(--card-bg, #120F17) 0 100%) padding-box,
-    linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
-    var(--gradient-one, radial-gradient(at 80% 55%, hsla(268, 100%, 76%, 1) 0px, transparent 50%)) border-box,
-    var(--gradient-two, radial-gradient(at 69% 34%, hsla(349, 100%, 74%, 1) 0px, transparent 50%)) border-box,
-    var(--gradient-three, radial-gradient(at 8% 6%, hsla(136, 100%, 78%, 1) 0px, transparent 50%)) border-box,
-    var(--gradient-four, radial-gradient(at 41% 38%, hsla(192, 100%, 64%, 1) 0px, transparent 50%)) border-box,
-    var(--gradient-five, radial-gradient(at 86% 85%, hsla(186, 100%, 74%, 1) 0px, transparent 50%)) border-box,
-    var(--gradient-six, radial-gradient(at 82% 18%, hsla(52, 100%, 65%, 1) 0px, transparent 50%)) border-box,
-    var(--gradient-seven, radial-gradient(at 51% 4%, hsla(12, 100%, 72%, 1) 0px, transparent 50%)) border-box,
-    var(--gradient-base, linear-gradient(#c299ff 0 100%)) border-box;
+    linear-gradient(var(--card-bg, var(--app-surface)) 0 100%) padding-box,
+    linear-gradient(transparent 0% 100%) border-box,
+    /* 以下八条的回退值只在 JS 没写入 `--gradient-*` 时生效（正常路径由 buildGradientVars 注入）。
+       官方那七色（紫/粉/青/黄/橙）在浅色令牌体系下过于跳，回退一律指向主色。 */
+    var(--gradient-one, radial-gradient(at 80% 55%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) border-box,
+    var(--gradient-two, radial-gradient(at 69% 34%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) border-box,
+    var(--gradient-three, radial-gradient(at 8% 6%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) border-box,
+    var(--gradient-four, radial-gradient(at 41% 38%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) border-box,
+    var(--gradient-five, radial-gradient(at 86% 85%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) border-box,
+    var(--gradient-six, radial-gradient(at 82% 18%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) border-box,
+    var(--gradient-seven, radial-gradient(at 51% 4%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) border-box,
+    var(--gradient-base, linear-gradient(var(--bgm-primary) 0 100%)) border-box;
 
   opacity: calc((var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
 
@@ -85,14 +87,14 @@
 .border-glow-card::after {
   border: 1px solid transparent;
   background:
-    var(--gradient-one, radial-gradient(at 80% 55%, hsla(268, 100%, 76%, 1) 0px, transparent 50%)) padding-box,
-    var(--gradient-two, radial-gradient(at 69% 34%, hsla(349, 100%, 74%, 1) 0px, transparent 50%)) padding-box,
-    var(--gradient-three, radial-gradient(at 8% 6%, hsla(136, 100%, 78%, 1) 0px, transparent 50%)) padding-box,
-    var(--gradient-four, radial-gradient(at 41% 38%, hsla(192, 100%, 64%, 1) 0px, transparent 50%)) padding-box,
-    var(--gradient-five, radial-gradient(at 86% 85%, hsla(186, 100%, 74%, 1) 0px, transparent 50%)) padding-box,
-    var(--gradient-six, radial-gradient(at 82% 18%, hsla(52, 100%, 65%, 1) 0px, transparent 50%)) padding-box,
-    var(--gradient-seven, radial-gradient(at 51% 4%, hsla(12, 100%, 72%, 1) 0px, transparent 50%)) padding-box,
-    var(--gradient-base, linear-gradient(#c299ff 0 100%)) padding-box;
+    var(--gradient-one, radial-gradient(at 80% 55%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) padding-box,
+    var(--gradient-two, radial-gradient(at 69% 34%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) padding-box,
+    var(--gradient-three, radial-gradient(at 8% 6%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) padding-box,
+    var(--gradient-four, radial-gradient(at 41% 38%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) padding-box,
+    var(--gradient-five, radial-gradient(at 86% 85%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) padding-box,
+    var(--gradient-six, radial-gradient(at 82% 18%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) padding-box,
+    var(--gradient-seven, radial-gradient(at 51% 4%, var(--glow-color, var(--bgm-primary)) 0px, transparent 50%)) padding-box,
+    var(--gradient-base, linear-gradient(var(--bgm-primary) 0 100%)) padding-box;
 
   mask-image:
     linear-gradient(to bottom, black, black),
@@ -129,19 +131,19 @@
   inset: var(--glow-padding);
   border-radius: inherit;
   box-shadow:
-    inset 0 0 0 1px var(--glow-color, hsl(40deg 80% 80% / 100%)),
-    inset 0 0 1px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
-    inset 0 0 3px 0 var(--glow-color-50, hsl(40deg 80% 80% / 50%)),
-    inset 0 0 6px 0 var(--glow-color-40, hsl(40deg 80% 80% / 40%)),
-    inset 0 0 15px 0 var(--glow-color-30, hsl(40deg 80% 80% / 30%)),
-    inset 0 0 25px 2px var(--glow-color-20, hsl(40deg 80% 80% / 20%)),
-    inset 0 0 50px 2px var(--glow-color-10, hsl(40deg 80% 80% / 10%)),
-    0 0 1px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
-    0 0 3px 0 var(--glow-color-50, hsl(40deg 80% 80% / 50%)),
-    0 0 6px 0 var(--glow-color-40, hsl(40deg 80% 80% / 40%)),
-    0 0 15px 0 var(--glow-color-30, hsl(40deg 80% 80% / 30%)),
-    0 0 25px 2px var(--glow-color-20, hsl(40deg 80% 80% / 20%)),
-    0 0 50px 2px var(--glow-color-10, hsl(40deg 80% 80% / 10%));
+    inset 0 0 0 1px var(--glow-color, var(--bgm-primary)),
+    inset 0 0 1px 0 var(--glow-color-60, color-mix(in srgb, var(--bgm-primary) 60%, transparent)),
+    inset 0 0 3px 0 var(--glow-color-50, color-mix(in srgb, var(--bgm-primary) 50%, transparent)),
+    inset 0 0 6px 0 var(--glow-color-40, color-mix(in srgb, var(--bgm-primary) 40%, transparent)),
+    inset 0 0 15px 0 var(--glow-color-30, color-mix(in srgb, var(--bgm-primary) 30%, transparent)),
+    inset 0 0 25px 2px var(--glow-color-20, color-mix(in srgb, var(--bgm-primary) 20%, transparent)),
+    inset 0 0 50px 2px var(--glow-color-10, color-mix(in srgb, var(--bgm-primary) 10%, transparent)),
+    0 0 1px 0 var(--glow-color-60, color-mix(in srgb, var(--bgm-primary) 60%, transparent)),
+    0 0 3px 0 var(--glow-color-50, color-mix(in srgb, var(--bgm-primary) 50%, transparent)),
+    0 0 6px 0 var(--glow-color-40, color-mix(in srgb, var(--bgm-primary) 40%, transparent)),
+    0 0 15px 0 var(--glow-color-30, color-mix(in srgb, var(--bgm-primary) 30%, transparent)),
+    0 0 25px 2px var(--glow-color-20, color-mix(in srgb, var(--bgm-primary) 20%, transparent)),
+    0 0 50px 2px var(--glow-color-10, color-mix(in srgb, var(--bgm-primary) 10%, transparent));
 }
 
 .border-glow-inner {

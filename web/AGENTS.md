@@ -8,16 +8,26 @@
 
 ## 使用说明
 
-- **动手之前先读 §规则 的前两条**（「首要规则」）：它们决定这套知识库能不能被信任——开发后同步文档、以及「知识库不是事实源，必须与源码交叉验证」。这两条的违反后果最重，所以放在 §规则 最前面。
+- **动手之前先读 §规则 的最前面几条**（「首要规则」）：第 0 条是当前正在进行的 UI 重构（必读设计决策记录，它是唯一验收依据）；第 1、2 条决定这套知识库能不能被信任——开发后同步文档、以及「知识库不是事实源，必须与源码交叉验证」。这几条的违反后果最重，所以放在 §规则 最前面。
 - **只想找某件事该去哪一层**：直接查 §索引 的「要做什么 → 去哪一层」表，不必通读本文。
 - **要动依赖、目录结构或外观**：先读 §规则 的「技术栈约束」「模块化：依赖方向与宿主分界」「外观层硬约定」三段。
 - 本文只讲跨层的事；某一层的细节进该层入口（见 §索引 的「要做什么 → 去哪一层」）。
 
 ## 规则
 
-### 首要规则（先读这两条）
+### 首要规则（先读这几条）
 
-这两条决定这套知识库能不能被信任，**优先级高于本文其它一切内容**。
+这几条决定这套知识库能不能被信任，**优先级高于本文其它一切内容**。
+
+**0.（当前生效）UI 重构期间，动手前必须先读设计决策记录。** 本仓库做过一次**从零开始**的 UI 重构；第七轮（2026-10-06）已把 G01–G10 与 C01–C44 按样张落地到代码（含外壳改「无顶栏 + 侧栏承载」、弹窗改 `.dlg*` 骨架、设置弹窗改 BentoGrid）。**决策记录仍是外观的唯一事实源**，后续任何外观改动都先读它：
+
+- **必读**：`web/docs/design/decisions.md`（开发须知 + 总表 + 进度）与 `web/docs/design/decisions/G-tokens.md`
+  （设计令牌总表，唯一事实源）；再读本次要做的那个组件那一篇 `web/docs/design/decisions/C**.md`。
+- **这两份必须始终留在上下文里**：它们是本次重构的**唯一验收依据**，离开它们就没有验收标准。
+- 这次重构期间，**本文下面的「外观层硬约定」不再是设计前提**：`tokens.css` / `bgm.css` / `motionTokens.ts`
+  的取值以 `G-tokens.md` 那张表为准，与本文冲突的旧描述一律作废；**为保证没有残余，相关样式可以完全删掉重写**。
+- **验收标准是样张**：`web/docs/design/index.html` 里每一项都能点进对应 demo，最终实现的效果必须与 demo 一致
+  （同尺寸、同间距、同圆角、同层次、同状态与同交互）。
 
 **1. 每次开发后都要更新对应的知识库文档。** 只要改动落到了某一层（页面 / 组件 / 工具 / 状态 / 样式），就要在**同一次开发里**更新那一层的文档：
 
@@ -56,12 +66,12 @@
 
 依赖**只装在** `bangumi/node_modules`：`web/` 没有自己的 `package.json`，而 Node/Vite/tsc 都从 importer 逐级向上找 `node_modules`、不会拐进兄弟目录。因此：
 
-1. **新增任何第三方包，都要在 `bangumi/vite.config.ts` 的 `resolve.alias` 与 `web/tsconfig.json` 的 `paths` 各注册一次**——现有 `react`、`react-dom`、`redux`、`react-redux`、`motion`、`motion/react`、`gsap`、`gsap/ScrollTrigger`、`antd` 就是这么接的（`antd` 的 `paths` 指向 `../bangumi/node_modules/antd/es/index.d.ts`）。违反后果：类型能过、运行时解析失败，或反之。
+1. **新增任何第三方包，都要在 `bangumi/vite.config.ts` 的 `resolve.alias` 与 `web/tsconfig.json` 的 `paths` 各注册一次**——现有 `react`、`react-dom`、`redux`、`react-redux`、`motion`、`motion/react`、`gsap`、`gsap/ScrollTrigger` 就是这么接的。违反后果：类型能过、运行时解析失败，或反之。
 2. **子路径别名必须排在裸包名之前**（`'motion/react'` 在 `motion` 前、`'gsap/ScrollTrigger'` 在 `gsap` 前），否则子路径会先命中裸包名规则、被截成一个不存在的目录。
 3. **改动后至少跑 `npm run typecheck`**；动到样式、DOM 结构或状态流时，按 `docs/agents/regression/` 的用例过一遍主链路。
-4. **Windows 上的一个坑**：同一秒内对多个文件做写入可能被 Vite 的 watcher 漏检，表现为 dev server 仍提供旧模块（界面看起来「改动没生效」，或直接报 `does not provide an export named ...`）。此时重启 `npm run dev:web` 即可，不要按「代码写错了」去查。
-5. **ReactBits 一律「源码拷贝 + 四处改造」**：组件放 `components/motion/vendor/`，`Xxx.tsx` 顶部 `import './Xxx.css'`（CSS 跟着组件走，不并进 `styles/`）。拷进来必须完成四件事，缺一件就不许合入：① **配色令牌化**——TSX/CSS 里不得出现 `#hex` / `rgb()` / `rgba()` / `hsl()`（含 props 默认值），透明度用 `color-mix(in srgb, var(--令牌) N%, transparent)` 就地派生；② **动画只动 `transform` / `opacity` / `filter` / `background-position`**；③ **常驻循环默认静止**（`animated` / `shimmer` / `playOnce` 一类开关）；④ **尊重 `prefers-reduced-motion`**。文件头用中文写「来源链接 / 相对官方的逐条改动 / 为什么改」。需要给 vendor 类补属性时起**组合类**（范例：`.contentSubjectSpotlight`、`.contentTagGlare`、`.contentCalloutGlow`），不要改 vendor 自己的类。
-6. **`antd` 是「只服务组件库文档页（`library.html`）的骨架」的例外**：它**不得**被主界面与调试页引入——`web/src/library.tsx` 是唯一的引入点，构建产物里 antd 全部落在 `library-*.js`，主入口 `index-*.js` 的体积不受它影响。两条附带约束：① antd 的 token 色值抄在 `web/src/page/library/theme.ts`（`LIBRARY_THEME`），因为 antd 的 token 要参与色阶推导，传 `var(--bgm-*)` 算不出来、会退回默认蓝，所以**改 `--bgm-*` 令牌时必须同步改它**；② `Divider` 的标题位置在 v6 叫 `titlePlacement`（`orientation` 在 v6 表示**分割线方向**，horizontal / vertical）。违反后果：主界面体积被 antd 拖大，或文档页配色退回 antd 默认蓝。
+4. **Windows 上的 watcher 漏检（根因已定位）**：编辑工具是「写临时文件 + rename」保存的，Vite 的 chokidar 碰到这个临时文件会报 `EBUSY: resource busy or locked, watch '...\<file>.<pid>.<uuid>.tmpdir\<file>.tmp'`，于是**真正的改动不被感知**——dev server 继续提供旧模块（界面看起来「改动没生效」，或直接报 `does not provide an export named ...`）。**判定方式**：不要只看磁盘文件，用 CDP 读 CSSOM（`document.styleSheets` 里那条规则是新是旧）或看 dev server 输出里有没有那行 EBUSY。**处理**：改完样式重启 `npm run dev:web`（每批改完就重启是最省事的做法，约 3 秒），不要按「代码写错了」去查。
+5. **ReactBits 一律「源码拷贝 + 四处改造」**：组件放 `components/motion/vendor/`，`Xxx.tsx` 顶部 `import './Xxx.css'`（CSS 跟着组件走，不并进 `styles/`）。拷进来必须完成四件事，缺一件就不许合入：① **配色令牌化**——TSX/CSS 里不得出现 `#hex` / `rgb()` / `rgba()` / `hsl()`（含 props 默认值），透明度用 `color-mix(in srgb, var(--令牌) N%, transparent)` 就地派生；② **动画只动 `transform` / `opacity` / `filter` / `background-position`**；③ **常驻循环默认静止**（`animated` / `shimmer` / `playOnce` 一类开关）；④ **尊重 `prefers-reduced-motion`**。文件头用中文写「来源链接 / 相对官方的逐条改动 / 为什么改」。需要给 vendor 类补属性时起**组合类**（范例：`.contentTagGlare`——把 `GlareHover` 的掠光压到 32%、`.contentCalloutGlow`——把 `StarBorder` 的色带压到 34%），不要改 vendor 自己的类。
+6. **UI 框架：none（曾经的 antd 例外已取消）**：组件库文档页的骨架已改为**自绘**，与主界面、调试页共用同一批共享组件（`components/common/`）与同一套令牌。因此：① 项目里不再有任何 UI 框架依赖，新增第三方 UI 库要先问过用户；② **主界面没有顶栏**（C01 已删除）：`components/common/AppTopBar` 只服务调试页与组件库文档页，**不要给主界面加回顶栏，也不要为某一个入口另写顶栏**；③ 文档页的骨架改动进 `page/library/`、样式进 `styles/library.css`，两者都不许引入框架类名。违反后果：三个入口的外观各自漂移，或主包体积被一个只服务单一页面的框架拖大。
 
 技术栈选型见 §索引「技术栈选型」，运行命令见 §索引「运行与验证命令」。
 
@@ -76,7 +86,7 @@ components/   组件：三类（mainPage / dialog / content），边界判定见
   ▼
 utils/        工具：按功能类别一个文件，纯函数 + 宿主接口封装
 store/        状态：三切片 + 动作 + 选择器 + hooks（与 page/components 双向：读用 selector，写用 actions）
-styles/       样式：9 个文件，令牌驱动，按作用对象分文件
+styles/       样式：10 个文件，令牌驱动，按作用对象分文件（含跨入口共享的 common.css）
 ```
 
 **依赖方向不得反向**：页面只装配、组件 props 驱动、工具层无状态。违反后果：分层失效，同一份数据出现第二个来源。
@@ -89,17 +99,21 @@ styles/       样式：9 个文件，令牌驱动，按作用对象分文件
 
 ### 外观层硬约定
 
-1. **同一元素同一属性只有一个来源**：样式按作用对象分文件（外壳 → `frame.css`，输入区 → `composer.css`，卡片与按钮 → `cards.css`，弹窗 → `modal.css`，内容条目 → `content.css`，调试页 → `debug.css`），令牌集中在 `tokens.css`（`--dsw-*` / `--dsh-*` / `--app-*`）与 `bgm.css`（`--bgm-*` 与语义别名重定向）。**不要在别处再覆写一遍**——这层没有"覆盖层"概念，重复声明会被当成 bug。需要给既有组件类加属性时，起一个**组合类**（范例：`debug.css` 的 `.appBrandAction` 与 `.appBrand` 并用），而不是在第二个文件里改那个既有类。
+1. **同一元素同一属性只有一个来源**：样式按作用对象分文件（跨入口共享的表面原语 → `common.css`，外壳 → `frame.css`，输入区 → `composer.css`，卡片与按钮 → `cards.css`，弹窗 → `modal.css`，内容条目 → `content.css`，调试页 → `debug.css`，文档页 → `library.css`），令牌集中在 `tokens.css`（`--app-*`）与 `bgm.css`（`--bgm-*`）——**上游的 `--dsw-*` / `--dsh-*` 已在第七轮删除**，`bgm.css` 那套「把 DSH 语义别名重定向到 `--bgm-*`」的机制也随之去掉。**不要在别处再覆写一遍**——这层没有"覆盖层"概念，重复声明会被当成 bug。需要给既有组件类加属性时，起一个**组合类**（范例：`common.css` 的 `.appBrandAction`——它只补「这里可点是调试入口」这一件事，不去改顶栏骨架的 `.appTopBarBrand`），而不是在第二个文件里改那个既有类。**同一种形态在多个条目里重复时**（行、柔光填充、轨道、标签、表格外壳），把它收敛成 `content.css` §共享基类里的一条**选择器列表**，而不是在每处各写一遍。
 2. **动效令牌只有一处定义、两处消费**：CSS 用 `styles/tokens.css` 的 `--app-dur-*` / `--app-ease-*` / `--app-shift-*`，JS 用 `components/motion/motionTokens.ts`。改一处必须同时改另一处。
 3. **只动 `transform` / `opacity`（少量 `filter`、`background-position`）**：不做 layout 动画——`width` / `height` / `top` / `left` 的变化一律不算动效载体（内容组件的横向条形与进度条用 `scaleX`、竖向柱高用 `scaleY`，两者都要配对写 `transform-origin`）。会话区的 `content-visibility: auto` 屏外优化与流式期间的 `memo` 都依赖稳定结构，motion 的 layout 动画会强制重排并让它们失效。
 4. **常驻循环必须「有语义且可关」**：不做纯装饰的呼吸、脉冲、无限扫光，默认一律静止。允许的循环只有两类：(a) 表达「正在发生」的进程（流式光标、`StarBorder` 只在 `progress` 态流动）；(b) 表达「这里还能交互」的指针效果。每个循环都必须有显式开关（`animated` / `shimmer` / `playOnce` / `speed<=0`），默认关闭或只在对应语义下开启，并尊重 `prefers-reduced-motion: reduce`（静止）。
-5. **配色不引入新色值**：全部走 Bangumi 浅色令牌（`--bgm-*`）。层次语言是：**侧栏取站点页面底色（`--app-surface-sunken` = `--bgm-bg` `#f5f5f5`），白面留给对话区与顶栏**，两块区域靠底色分区、再由 1px hairline 收边；卡片不靠底色差、而靠「描边 + 两级阴影」浮起；输入卡用比白面略沉一档的 `--bgm-surface-alt`，否则整张卡只剩一圈描边可辨。三级阴影（`--app-shadow-raised` / `--app-shadow-card` / `--app-shadow-panel`）分别给内嵌元素、浮起卡片与浮层。
+5. **配色不引入新色值，且不使用中性灰表面**：全部走 Bangumi 浅色令牌（`--bgm-*`），表面与描边一律由主色 `--bgm-primary` `#ec6570`（HSL 355 78% 66%）用 `color-mix()` 就地派生——**页面上不出现灰色表面**（文字色阶仍是中性深色，语义色一律保留原值）。实心按钮另取加深一档的 `--bgm-primary-deep`，让白字达到 AA（主色本身只有约 3.1:1）。
+   层次语言（[C44b](docs/design/decisions/C44-sidebar.md) 第七轮定稿）是：**侧栏与对话区同为白面**，两者靠侧栏投出的一条**向右发散阴影**（`--app-shadow-edge`，26/60/36%）分区；主界面**没有顶栏**（[C01](docs/design/decisions/C01-app-top-bar.md) 已删除，`AppTopBar` 只留给调试页与组件库文档页）；卡片不靠底色差、而靠「描边 + 两级阴影」浮起；**五档阴影**（`--app-shadow-raised` / `-chip` / `-card` / `-panel` / `-float`）分别给内嵌元素、胶囊与标签、浮起卡片、浮层、**弹窗的深扩散**，阴影色由深粉棕 `--bgm-primary-text` 半透明派生。
+   **表面按内容类型分配装饰预算**（全项目最重要的一条外观判断）：浮起层用玻璃（`--app-glass-fill` / `-stroke` / `-blur`，同时出现的模糊层 ≤ 3）、只有数据可视化用柔光（`.contentFill` 的渐变 + 端点高光 + 光晕）、文本密集类与内容卡片一律素（纯色 + 描边 + 留白 + 字重）。**装饰性径向底光已按 G07 全部删除**（`--app-glow-ambient` 不复存在，任何地方都不得再新增），面板底只用纯色阶梯（页面底 / 内嵌块 / 卡片浅面 / 白面四档）。正文底仍是纯白。
+   **算不出 `color-mix()`、只能写实色的抄本**，改令牌时必须同步：`index.html` 与 `library.html` 的预涂底色与 `theme-color`。圆角只走四档（`--app-radius-cell` / `-control` / `-panel` / `-float` = **8 / 10 / 14 / 18**，以 [docs/design/decisions/G-tokens.md](docs/design/decisions/G-tokens.md) §二 为准），**元素越小圆角越小**；超椭圆 `superellipse(1.4)` 由 `tokens.css` 的 `*, *::before, *::after` **一处统一下发**（曲率令牌 `--dsw-corner-shape`）——**不要在浮层或别处再声明一次**，那是同一属性两个来源；胶囊与正圆用 `corner-shape: round` 退出。
+   **上游令牌与别名重定向已在第七轮整体删除**：`--dsw-*` / `--dsh-*` 的 65 处消费点全部迁到 `--app-*` / `--bgm-*`，`bgm.css` 里那套「把 DSH 语义别名重定向过去」的机制随之去掉（现在它**只有** `--bgm-*` 的定义）。因此「重定向必须写 `:root, body` 两处」这条坑不再适用；仅 `--dsw-corner-shape`（超椭圆曲率）作为一条独立的上游令牌保留。
 6. **动效分工**：流程过渡（会话切换、流式光标、确认卡接管、弹窗进出、侧栏折叠、Toast 进出、连接状态、聚焦与 hover）由组件自己的样式与 motion 实现。ReactBits 组件按用途落点，**不再限定「全局只有一个」**：
 
-   - 外壳与流程：`BlurText` 首屏标题、`TextType` 流式光标（传空文本 + `loop={false}`，**不接管真实流式文本**）、`BorderGlow` 输入卡边缘光、`Magnet` 发送按钮（幅度压到约 6px）、`AnimatedContent` 内容条目入场、`CountUp` 统计底栏读数；
-   - 内容组件库：12 种条目可以各带一个落点，当前是 `SpotlightCard`（条目卡光斑）、`GlareHover`（标签云掠光）、`ShinyText`（引用块标题）、`StarBorder`（仅「进行中」提示的边框）、`Counter`（统计主数字）。
+   - 外壳与流程：`BlurText` 首屏标题、`TextType` 流式光标（传空文本 + `loop={false}`，**不接管真实流式文本**；光标本身是 6×13px 的实心方块，见 `frame.css` 的 `.appStreamingCursor`）、`BorderGlow` 输入卡边缘光、`AnimatedContent` 内容条目入场、`CountUp` 统计底栏读数。**`Magnet` 已移除**——用户在 `style-demo-interaction.html` 选的是「A · 只精修状态反馈」，明确排除磁吸与指针光斑；
+   - 内容组件库：12 种条目可以各带一个落点，当前是 `GlareHover`（标签云掠光，强度按 `content-fix` 的「压低强度、只 hover 一次」收到 32%）、`StarBorder`（仅「进行中」提示的细光：色带 34%、透明度 12%、单程 2.2s）、`Counter`（统计主数字）。**`SpotlightCard` 与 `ShinyText` 已移除**：前者同属被排除的指针效果，后者的常驻闪光与「V3 · 点睛对比」把引用块标题退成等宽小字的做法冲突。
 
-   **会话流的轮次与普通行不做 JS 入场动画**：逐行动画要付出 JS 开销与每节点观察器。内容条目这一层挂 `AnimatedContent`，行级入场用 `content.css` 的 CSS keyframes（`contentRowIn`，只动 opacity/transform + 尊重 reduced-motion）。
+   **动效有两条路径、一套参数**：组件挂载即入场用 `<Stagger>`（CSS keyframes，55ms 错峰 + spring，只给短列表）；**滚动容器内的行**用 `content.css` 的 CSS keyframes（`contentRowIn`）；**滚进视口才浮现**用 `utils/revealOnScroll.ts` 的共享 `IntersectionObserver`（按滚动容器缓存，进入即 `unobserve`——全站只有这一个模块建观察器，不要在每个列表里各建一个）。三条路径的时长 / 曲线 / 位移 / 错峰全部取自同一批令牌（`--app-dur-*` / `--app-ease-*` / `--app-shift-*` / `--app-stagger`）。浮层的展开方向由**结构**决定（`transform-origin` 写在各自的浮层规则里），不做 JS 坐标计算。
 
 ## 索引
 
@@ -130,7 +144,7 @@ styles/       样式：9 个文件，令牌驱动，按作用对象分文件
 | 语言 | TypeScript 5.9 | `strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`verbatimModuleSyntax`、`noUnusedLocals/Parameters` |
 | 构建 | Vite 8.3 | 配置在 `bangumi/vite.config.ts`，`root` 指向 `../web`，产物落 `bangumi/dist/web` |
 | 状态 | redux 5.0 + react-redux 9.3 | **裸 redux**：无 RTK、无中间件；异步动作是闭包 `dispatch` 的普通函数 |
-| 样式 | 手写 CSS + 设计令牌 | 无 CSS 框架、无 CSS-in-JS、无 CSS Modules；共 9 个文件在 `web/src/styles/`（第 8 个是调试页的 `debug.css`，第 9 个是组件库文档页的 `library.css`）。**唯一例外**：组件库文档页的*骨架*用 antd（CSS-in-JS），且只服务 `library.html`——见 §规则「技术栈约束」第 6 条 |
+| 样式 | 手写 CSS + 设计令牌 | 无 CSS 框架、无 CSS-in-JS、无 CSS Modules、**无 UI 框架**；共 10 个文件在 `web/src/styles/`（`common.css` 是跨入口共享的表面原语，`debug.css` 与 `library.css` 各服务一个入口） |
 | 动效 | motion 14 + gsap 3.15 | ReactBits 组件的原生依赖 |
 | 路由 | 无路由库 | 单页应用；`main.tsx` 的 `Root` 按 URL hash（`#debug`）在 `MainPage` 与 `DebugPage` 之间互斥挂载，其余查询参数不参与分流 |
 | 测试 | 无前端测试运行器 | 前端回归靠 `docs/agents/regression/` 的文档化用例 + `npm run typecheck`；宿主侧另有 `npm run test:mcp`（node:test，不覆盖前端） |
@@ -161,27 +175,42 @@ page/debug/
   DebugInputPanel.tsx / DebugPreview.tsx  两侧面板，props 驱动；输入面板另在顶栏挂「组件库」链接（`./library.html`，新标签，见 page/debug.md）
 page/library/
   index.tsx    只做导出：`export { LibraryPage } from './App'`
-  App.tsx      骨架（antd）：Header（品牌 + 搜索 + 栏目）/ Sider（两层分组导航）/ Content / 右侧自绘目录（PageToc）
+  App.tsx      骨架（**自绘**）：顶栏用共享组件 AppTopBar（品牌 + 栏目 + 搜索 + 三个入口互链）/ 左导航（两层分组，行用共享基类 `.appNavRow`）/ 内容区 / 右侧自绘目录（PageToc）
   router.ts     极简 hash 路由：总览页 / `#/components/<kind>` 详情页 / 其它 hash 落到「没有这个组件」
   search.ts     顶部搜索的过滤口径（kind 名 / 标题 / summary / 载荷 JSON / 参数表）
-  Overview.tsx  总览页：每个 kind 一张卡（数量与文案取自 `LIBRARY_SECTIONS`，不写死数字），卡里是真实 `ContentItem` 小预览
-  ComponentPage.tsx  详情页：严格五块（UI 预览 / customType / 参数 / event / frame）+ 参数表五列 + 一行参考附注；`PAGE_ANCHORS` 是这五项的 id 契约
+  Overview.tsx  总览页：每个 kind 一张自绘卡（数量与文案取自 `LIBRARY_SECTIONS`，不写死数字），卡里是真实 `ContentBlock` 小预览
+  ComponentPage.tsx  详情页：严格四块（UI 预览 / 参数 / event / frame）+ 参数表五列 + 一行参考附注；`PAGE_ANCHORS` 是这四块的 id 契约
   items.ts      载荷 → 条目 / event / frame 文本（所见即所粘）
   samples.ts    两张数据表：`LIBRARY_SECTIONS`（12 个 kind 的载荷 / 参数 / 参考）+ `LIBRARY_GROUPS`（左侧导航的分组）；新增 kind 只改这里
-  theme.ts      antd 主题：token 色值抄自 `bgm.css` 的 `--bgm-*`（改令牌要同步改它）
+components/common/
+  AppTopBar / Pill / Stagger
+                三个入口共享的表面原语（骨架、胶囊、错峰入场）；只放「≥ 2 个入口共用」的东西
+                （`SessionHead` 已按 C03 决策删除、并在 C34 落地——对话区顶部不再有常驻标题行；
+                 `GlassSurface` / `MicroLabel` 也已并入 `styles/common.css` 的类，不再各占一个文件）
+                （浮起层本身沉淀在 `styles/common.css` 的 `.appGlass`——六处浮层直接引这个类，
+                 不再包一层组件：Modal 与 Toast 是 motion 元素，包成组件反而要处理 `as` 的类型）
 components/mainPage/
-  shell/         Header / Sidebar / SidebarBrand（顶栏、侧栏与品牌区）
-  conversation/  Stage / Turn / Streaming / Hero（会话容器、轮次、流式区、首屏）
+  shell/         Sidebar / CollapseBubbles / icons（侧栏是**唯一外壳**：品牌行 + 8px 连接状态点 + 折叠钮、
+                 实心主色「开启新对话」、分组列表、底部用户行与齿轮设置入口（C45：原「···」菜单已删）；收起态的两个胶囊在
+                 CollapseBubbles.tsx。Header.tsx 已随 C01 删除——主界面不再有顶栏）
+  conversation/  Stage / Turn / Streaming / Hero（会话容器、轮次、流式区、首屏；Hero 的 props 是
+                 onPick（填草稿）与 onOpenSettings（开设置弹窗），都由 `page/mainPage/Shell.tsx` 注入）
                  MessageParts / ConfirmationCard（props 驱动的共享原子行与确认卡）
   composer/      Composer / ComposerSeat / StatsDock / ThinkingPicker（输入区、座位、读数、思考强度）
   overlays/      DialogStage / Toast（浮层的挂载点）
 components/motion/
   vendor/          ReactBits 组件源码（每个都是 Xxx.tsx + Xxx.css 成对，改造规范见 §规则 技术栈约束第 5 条）
-                   已有：BlurText / TextType / BorderGlow / Magnet / AnimatedContent / CountUp / AnimatedList
-                   本轮新增且有落点：SpotlightCard / GlareHover / ShinyText / StarBorder / Counter
-                   本轮新增但暂无落点：Stepper / LineSidebar / LogoLoop / PixelTransition
+                   共 17 个（9 个有落点 / 8 个暂无落点）
+                   有落点：BlurText / TextType / BorderGlow / AnimatedContent / CountUp /
+                           GlareHover / StarBorder / Counter / BentoGrid（设置弹窗四格，C29）
+                   原本有落点、按用户选择**已移除**（文件仍留在 vendor）：Magnet（磁吸）、
+                           SpotlightCard（指针光斑）、ShinyText（常驻闪光）
+                           ——见 §规则「外观层硬约定」第 6 条
+                   本就无落点：AnimatedList / Stepper / LineSidebar / LogoLoop / PixelTransition
+                           （各自的原因见 §现状「已知未做」第 1 条）
   motionTokens.ts  JS 侧动效令牌，与 styles/tokens.css 的 --app-* 一一对应
-styles/           9 个文件：tokens / frame / composer / cards / modal / bgm / content / debug / library（`library.css` 现在只负责文档页的三栏布局 + 内容区排版，骨架已交给 antd，见下）
+styles/           10 个文件：tokens / common / frame / composer / cards / modal / bgm / content / debug / library
+                  （`common.css` 放三个入口共享的表面原语；`library.css` 只负责文档页的三栏布局 + 内容区排版）
 ```
 
 两个 HTML 入口：`index.html`（主界面与调试页，按 hash 分流）与 `library.html`（组件库文档页，不连宿主）。
@@ -190,38 +219,39 @@ styles/           9 个文件：tokens / frame / composer / cards / modal / bgm 
 
 ### 样式文件的职责与引入顺序
 
-`main.tsx` 是契约；`library.tsx` 用同一顺序、末位换成 `library.css`（并在**最前面**多引一份 `antd/dist/reset.css`）：
+`main.tsx` 是契约；`library.tsx` 用同一顺序、末位换成 `library.css`（**不再有额外的前置 reset**——UI 框架已移除）：
 
 ```ts
-tokens → frame → composer → cards → modal → bgm → content → debug
+tokens → common → frame → composer → cards → modal → bgm → content → debug
 ```
 
 | 文件 | 作用对象 | 令牌体系 |
 |---|---|---|
-| `tokens.css` | DSH 语义令牌 + **外观层令牌**（`--app-*`：时长、缓动、位移、阴影、表面、圆角） | 定义 `--dsw-*` / `--dsh-*` / `--app-*` |
-| `frame.css` | 外壳网格（`.appFrame`）、侧栏、顶栏、提示条、会话容器与轮次、首屏、轮次导航，以及共享渲染器（消息行、过程折叠、思考块、流式区、Markdown） | 消费 `--bgm-*` / `--app-*` |
+| `tokens.css` | **外观层令牌**（`--app-*`：时长、缓动、位移、阴影、表面、圆角四档、玻璃、字体阶梯、间距刻度、侧栏宽与抽屉内容宽、spring 与错峰）；另保留唯一一条上游令牌 `--dsw-corner-shape`（超椭圆曲率） | 定义 `--app-*` |
+| `common.css` | **共享的表面原语**：顶栏骨架 `.appTopBar*`（只服务调试页与文档页）、品牌组合类 `.appBrandAction`、玻璃 `.appGlass`、导航行 `.appNavRow`、空态、微标签、胶囊、错峰入场、视口入场 | 消费 `--bgm-*` / `--app-*` |
+| `frame.css` | 外壳网格（`.appFrame`）、侧栏（品牌行 / 新建 / 分组列表 / 用户行 / 菜单 / 收起态胶囊 / **抽屉式收起**）、提示条、会话容器与轮次、首屏、轮次导航，以及共享渲染器（消息行、过程折叠、思考块、流式区、Markdown） | 消费 `--bgm-*` / `--app-*` |
 | `composer.css` | 输入卡、命令候选、发送按钮、思考强度菜单、统计底栏与其浮层 | 消费 `--bgm-*` / `--app-*` |
 | `cards.css` | 写入确认卡与按钮基元 | 消费 `--bgm-*` / `--app-*` |
-| `modal.css` | 弹窗（遮罩、表面、字段、选项行、状态条、设置行、会话选择列表） | 消费 `--bgm-*` / `--app-*` |
-| `bgm.css` | **只有令牌**：定义 `--bgm-*`，并把组件实际用到的 `--dsw-*` 别名重定向过去 | 定义 `--bgm-*`，重定向 `--dsw-*` |
+| `modal.css` | 弹窗：共享表面（`.modalOverlay` / `.modalSurface`）+ **`.dlg*` 表单骨架**（`.dlgPane` / `.dlgHead` / `.dlgField` / `.dlgInput` / `.dlgList` / `.dlgRow` / `.dlgCombo` / `.dlgChoices` / `.dlgActions` / `.dlgBtn*` …） | 消费 `--bgm-*` / `--app-*` |
+| `bgm.css` | **只有令牌**：定义 `--bgm-*`（主色、表面阶梯、描边、状态色、圆角、焦点环、字体栈）。第七轮之后**不再有别名重定向**——上游 `--dsw-*` 已删 | 定义 `--bgm-*` |
 | `content.css` | 内容组件库（12 种内容条目的皮肤） | 消费 `--bgm-*` / `--app-*` |
-| `debug.css` | 调试页（左侧输入区、预览条、空态）、组合类 `.appBrandAction` 与 `.debugLink`（顶栏「组件库」链接，只补 `text-decoration: none`），以及 `html[data-debug='on']` 下的侧栏加宽 | 消费 `--bgm-*` / `--app-*` |
-| `library.css` | 组件库文档页（三栏粘性布局、顶栏内元素间距、右侧自绘目录、内容区预览卡 / 代码块 / 参数表排版与窄屏适配）；只由 `library.tsx` 引入，排在 `content.css` **之后**，而 `antd/dist/reset.css` 在整条链**最前** | 消费 `--bgm-*` / `--app-*` |
+| `debug.css` | 调试页（输入区、预览条、空态）、组合类 `.debugLink`（顶栏「组件库」链接，只补 `text-decoration: none`），以及 `.appFrame[data-mode='debug']` 的输入列宽度（`.appBrandAction` 已移到 `common.css`——它现在被两个入口共用） | 消费 `--bgm-*` / `--app-*` |
+| `library.css` | 组件库文档页（三栏粘性布局、顶栏内元素、自绘卡片与网格、代码块、参数表的组合类补充、窄屏适配）；只由 `library.tsx` 引入，排在 `content.css` **之后** | 消费 `--bgm-*` / `--app-*` |
 
-关键顺序约束：`bgm.css` 必须在 `tokens/frame/composer/cards/modal` **之后**（重定向靠"后定义覆盖先定义"生效），`content.css`、`debug.css` 与 `library.css` 排在最后（它们只消费令牌，位置不影响前两条）；`library.tsx` 额外在最前面引 `antd/dist/reset.css`，它只服务这一个入口。
+关键顺序约束：`common.css` 紧跟 `tokens.css`（它只消费令牌，但要排在 `frame.css` 之前，好让外壳规则能覆盖共享骨架）；`bgm.css` 必须在 `tokens/common/frame/composer/cards/modal` **之后**（重定向靠"后定义覆盖先定义"生效）；`content.css`、`debug.css` 与 `library.css` 排在最后（它们只消费令牌，位置不影响前两条）。
 
 ### 现状：已完成 / 已知未做
 
-**已完成**：外壳（框架 / 侧栏 / 顶栏，含「待确认 / 待登录 / 运行中 / 当前」状态展示）；会话区（轮次、流式区光标、轮次导航、首屏 `BlurText`）；输入区（`BorderGlow` + `Magnet` + 命令候选，草稿按会话保存在 `ui.drafts`，切换中/未就绪/断线时禁用）；`Modal` 的进出过渡与 `DialogStage` 的 `AnimatePresence`；`Toast` 进出过渡；思考菜单、统计底栏、确认卡的观感（待授权只在输入区呈现一次，历史模式只呈现结果）；`CountUp`（统计底栏的**精确**读数；胶囊上的缩写读数不滚动）；`AnimatedContent`（内容条目入场，`container="#app-stage-scroll"`）；12 种内容条目的皮肤（`styles/content.css`）；回归用例（[regression/readme.md](docs/agents/regression/readme.md) 的 `L` 组与 `A` 组）；**12 种内容条目已用真实载荷逐个实机渲染核对**（组件库文档页与调试页两条入口）；**5 个 ReactBits 动效落点**接入内容条目（`SpotlightCard` / `GlareHover` / `ShinyText` / `StarBorder` / `Counter`，见 §规则「外观层硬约定」第 6 条）；**组件库文档页 `library.html` 改造成 antd 骨架的文档站形态**（antd 只服务这一个入口：总览页 + 一组件一页 + 搜索过滤 + 详情页五块；12 种条目仍是真实 `ContentItem` 渲染 + 参数表 + 可直接粘进调试页的 event / frame）。
+**已完成**：外壳（框架 / 侧栏 / 顶栏，含「待确认 / 待登录 / 运行中 / 当前」状态展示）；会话区（轮次、流式区光标、轮次导航、首屏 `BlurText`）；输入区（`BorderGlow` + `Magnet` + 命令候选，草稿按会话保存在 `ui.drafts`，切换中/未就绪/断线时禁用）；`Modal` 的进出过渡与 `DialogStage` 的留场管理（**2026-10-10 起**：进出动画改由 `modal.css` 的 CSS keyframes 给、只动 `transform`，弹窗**不做 `opacity` 淡入**——`opacity < 1` 会让 `backdrop-filter` 失效，presence 也不再由 `AnimatePresence` 提供，见 [G09](docs/design/decisions/G09-overlay.md) §补充与 [C41](docs/design/decisions/C41-dialog-stage.md)）；`Toast` 进出过渡；思考菜单、统计底栏、确认卡的观感（待授权只在输入区呈现一次，历史模式只呈现结果）；`CountUp`（统计底栏的**精确**读数；胶囊上的缩写读数不滚动）；`AnimatedContent`（内容条目入场，`container="#app-stage-scroll"`）；12 种内容条目的皮肤（`styles/content.css`）；回归用例（[regression/readme.md](docs/agents/regression/readme.md) 的 `L` 组与 `A` 组）；**12 种内容条目已用真实载荷逐个实机渲染核对**（组件库文档页与调试页两条入口）；**3 个 ReactBits 动效落点**接入内容条目（`GlareHover` / `StarBorder` / `Counter`；`SpotlightCard`、`ShinyText` 与 `Magnet` 已按「A · 只精修状态反馈」移除，见 §规则「外观层硬约定」第 6 条）；**组件库文档页 `library.html` 改为自绘骨架**（与主界面、调试页共用 `AppTopBar` 与同一套令牌：总览页 + 一组件一页 + 搜索过滤 + 详情页四块；12 种条目仍是真实 `ContentItem` 渲染 + 参数表 + 可直接粘进调试页的 event / frame）。**全仓 UI 重构完成**（方案见 `docs/ui-restyle-plan.md`）：8 组沉淀令牌（玻璃、底光、圆角四档、超椭圆、字体阶梯、间距刻度、spring 与错峰、行高）、`components/common/` 共享层与 `styles/common.css`、主界面在第七轮改为 **C44b 的「无顶栏 + 侧栏承载」结构**（品牌行、折叠钮、新建、会话列表、底部用户行与三入口菜单全在侧栏；顶栏已按 C01 删除；粘性会话头已在 C34 决策中删除）、12 种内容条目按定稿改版（含共享基类的选择器列表收敛）、调试页与文档页与主界面**同构**、**antd 全量移除**、ReactBits 全部按新曲线重调参。
 
 **已知未做 / 未验证**：
 
 1. **5 个 vendor 组件「已 vendor、无落点」，不等于不可用**：`AnimatedList`（只接受 `items: string[]` 并统一渲染 `<p class="item-text">`，承载不了侧栏「标题 + 状态」两栏与结构化内容行；且内部固定 `marginBottom: 1rem`、默认全局拦下 Tab/方向键。侧栏因此按同样的动势自己实现逐项入场，见 `components/mainPage/shell/Sidebar.tsx`）、`Stepper`（`<Step>` children 形状的多步向导，与章节网格语义不符）、`LineSidebar`（`items` 是 `string[]` 且不含 `<a>`，承载不了链接列表）、`LogoLoop`（跑马灯会复制 DOM——链接会重复、键盘方向键滚动会失效）、`PixelTransition`（双面切换要把信息藏进 hover，违反内容组件「信息不藏在 hover 里」的既有原则）。五者都留在 `components/motion/vendor/`，落点清单见 [components/readme.md](docs/agents/components/readme.md) §索引「`motion/vendor/` 的组件与落点」。
 2. **12 种内容条目的逐一渲染核对已完成**（本轮）：用真实载荷在组件库文档页与调试页两条入口逐个渲染，12 种全部无降级；示例数据另有脚本按 `validate.ts` 的规则自检。此前「只做静态核对」的记录作废。
-3. 浏览器实测覆盖（**均已实机确认**）：首页与会话渲染、轮次导航、侧栏收放、输入区与命令候选、弹窗进出与 Esc 关闭、统计底栏读数、**对话区白底与侧栏灰底**、**`TextType` 用法**（空文本 + `loop={false}` 不启动打字、光标闪烁、光标 7px 宽度生效）、**`BorderGlow` 指针链路**（`--edge-proximity` 与 `--cursor-angle` 随指针变化）、**`Magnet`**（指针靠近位移约 2px，离开回位）、**`CountUp`**（探针实测渐近到目标值）、**`AnimatedContent`**（`container="#app-stage-scroll"` 被正确解析，元素不会被卡成不可见）。
-4. **仍未实机验证**：写入确认卡接管——它需要宿主发起 `pending` 确认，即一次真实写入流程，不能在自动化里安全触发。三条环境限制：(a) `BorderGlow` 的 `edge-light` 与 `SpotlightCard` / `GlareHover` 的指针效果都依赖真实 `:hover`，而 CDP 驱动下 `element.matches(':hover')` 恒为 false，自动化只能验证到「CSS 变量 → 透明度公式」这一环；(b) Windows 上同一秒内的多次写入可能被 Vite 的 watcher 漏检（见 §规则 的「技术栈约束」）；(c) 本机浏览器与 harness **都访问不了外网**（`bgm.tv` / `lain.bgm.tv` 全部 fetch 失败），因此链接「能真实打开」只验证到 `href` / `target` / `rel` 契约与域名路径，图片走的是加载失败回落。
-5. **文档页的右侧页内目录是自绘的，没有用 antd 的 `Anchor`**（本轮取舍）：`Anchor` 的锚点实现依赖写 `location.hash`，而文档页的「一组件一页」路由也占着 hash（`#/components/<kind>`），两者会互相覆盖。取舍是**保路由**（前进后退、可直连 URL 都已实机确认），目录改用 `PageToc` + `IntersectionObserver` 自己实现——代价是平滑滚动与目标高亮都要自己写。
+3. 浏览器实测覆盖（**均已实机确认**）：首页与会话渲染、轮次导航、侧栏收放、输入区与命令候选、弹窗进出与 Esc 关闭、统计底栏读数、**对话区白底、侧栏同为白面并靠向右发散阴影（`--app-shadow-edge`）分区**、**`TextType` 用法**（空文本 + `loop={false}` 不启动打字；光标是 6×13px 的实心方块 + 1.06s 硬切闪烁，见 `frame.css` 的 `.appStreamingCursor`）、**`BorderGlow` 指针链路**（`--edge-proximity` 与 `--cursor-angle` 随指针变化）、**`CountUp`**（探针实测渐近到目标值）、**`AnimatedContent`**（`container="#app-stage-scroll"` 被正确解析，元素不会被卡成不可见）、**弹窗进出动画（2026-10-10 复测）**：进场 `animationName = modalIn`、退场 `modalOut`，表面 `opacity` 全程为 `1`（不做淡入），退场由 `data-leaving` 触发、播完约 400ms 才从 DOM 移除；同时实测确认 **Chromium 在 `opacity < 1` 时会跳过 `backdrop-filter`**（同一条 `blur(20px)`，`opacity: 1` 时背后文字糊掉、`opacity: .5` 时清晰可读；`will-change` / `translateZ(0)` / 子层承载模糊 / 祖辈承载透明度，四种写法都无效）——这条是弹窗不做淡入的直接依据。
+4. **仍未实机验证**：写入确认卡接管——它需要宿主发起 `pending` 确认，即一次真实写入流程，不能在自动化里安全触发。三条环境限制：(a) `BorderGlow` 的 `edge-light` 与 `GlareHover` 的掠光都依赖真实 `:hover`，而 CDP 驱动下 `element.matches(':hover')` 恒为 false，自动化只能验证到「CSS 变量 → 透明度公式」这一环；(b) Windows 上 Vite 的 watcher 会因编辑工具的「临时文件 + rename」保存方式报 EBUSY 而漏检改动（见 §规则 的「技术栈约束」第 4 条），所以样式改动后要重启 dev server 再验证；(c) 本机浏览器与 harness **都访问不了外网**（`bgm.tv` / `lain.bgm.tv` 全部 fetch 失败），因此链接「能真实打开」只验证到 `href` / `target` / `rel` 契约与域名路径，图片走的是加载失败回落。
+5. **文档页的右侧页内目录是自绘的**：目录项若直接写 `location.hash`，会与「一组件一页」的 hash 路由（`#/components/<kind>`）互相覆盖。取舍是**保路由**（前进后退、可直连 URL 都已实机确认），目录用 `PageToc` + `IntersectionObserver` 自己实现——代价是平滑滚动与目标高亮都要自己写。
 
 ### 设计历史与外部文档
 
-设计过程中的方案与验收记录不在本知识库内（它们位于被 gitignore 的仓库根 `docs/`）：`modularization-plan.md`（分层方案）、`modularization-record.md`（实施与验收记录）、`model-credential-persistence.md`（模型配置持久化）、`bgm-design/*`（内容组件库与视觉规范）。
+设计过程中的方案与验收记录不在本知识库内（它们位于被 gitignore 的仓库根 `docs/`）：`modularization-plan.md`（分层方案）、`modularization-record.md`（实施与验收记录）、`model-credential-persistence.md`（模型配置持久化）、`ui-restyle-plan.md`（**本次全仓 UI 重构的方案**：目标、沉淀与复用设计、12 种条目的逐项定稿、防土硬规则、验收标准、文档同步清单）、`bgm-design/*`（内容组件库与视觉规范）。

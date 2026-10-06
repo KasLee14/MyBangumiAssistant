@@ -4,23 +4,44 @@
    依据 docs/bgm-design/ui-style.md（bgm.tv r771 实测）与已确认的
    docs/bgm-design/style-preview.html。
 
-   本文件只做两件事，**不含任何形态规则**——形态规则就近写在各组件样式文件里
-   （frame.css / composer.css / cards.css / modal.css / content.css）：
+   本文件**只有 `--bgm-*` 令牌的定义，不含任何形态规则**
+   （形态规则就近写在各组件样式文件里：frame.css / composer.css / cards.css /
+   modal.css / content.css）。
 
-   1. 定义 `--bgm-*` 令牌；
-   2. 把组件样式实际引用到的 DSH 语义别名重定向过去，既有的颜色与描边成片跟着变。
+   第七轮令牌层清理（2026-10-06）之后**不再做别名重定向**：原先这里有一大段把上游
+   DSH 语义别名（色板别名、specific 组、elevation、滚动条等）重定向到 `--bgm-*` 的
+   机制，随着上游 DSH 令牌整体删除而一并去掉——消费点已直接改指 `--app-*` / `--bgm-*`。
+   因此原来那条「重定向必须同时写 `:root` 与 `body`」的坑不再适用：变量重定向靠「后定义
+   覆盖先定义」，只写 `:root` 时 body 子树拿到的仍是上游默认值。
 
-   因此它必须排在 tokens/frame/composer/cards/modal 之后：变量重定向靠
-   「后定义覆盖先定义」生效。
+   配色口径（配色重构后）：以**粉色与白色**为核心，**不使用中性灰表面**。
+   表面与描边一律由 --bgm-primary 就地 color-mix 派生（不新增色值），白色只
+   出现在对话区 / 顶栏 / 卡片 / 浮层；文字色阶保持中性深色，语义色（交互蓝、
+   链接蓝、危险红、成功绿、警告黄、焦点环）一律保持原值。
    ============================================================ */
 
 /* ------------------------------------------------------------
-   1. Bangumi 令牌：浅色
+   Bangumi 令牌：浅色
    ------------------------------------------------------------ */
 :root {
-  --bgm-primary: #f09199;
-  --bgm-primary-soft: #fdf0f1;
-  --bgm-primary-text: #a8575f;
+  /* 主色：由 #f09199 提饱和为 #ec6570（hsl 355 78% 66%）。
+     派生色全部由它混白 / 混深得出，不新增色值。 */
+  --bgm-primary: #ec6570;
+  --bgm-primary-soft: color-mix(in srgb, var(--bgm-primary) 10%, #fff);
+  --bgm-primary-text: color-mix(in srgb, var(--bgm-primary) 62%, #2f2f33);
+  /* 实心按钮的底色：比主色深一档，让白字达到 AA（≈4.7:1） */
+  --bgm-primary-deep: color-mix(in srgb, var(--bgm-primary) 72%, #2f2f33);
+  /* 实心底上的前景色（实心按钮 / 选中标签 / 选中集数格的白字）。
+     白色是中性端点，收成令牌后全站白字只此一处来源——以后要整体调整
+     （例如换米白）只改这一行。 */
+  --bgm-on-accent: #fff;
+  /* 描边按钮 hover 的填充（2026-10-06 定案，见 decisions/G01-primary.md §补充）。
+     原先是走一块**不透明交互蓝**（#369cf8），粉白体系里唯一一块冷色。改为
+     「与实心主按钮同族、只是同色系深一档」：底色与白字都取 `--bgm-primary-deep`
+     （实测白字 4.66:1，达 AA）。
+     单独收成令牌是因为 `.button.ghost`（悬停填 `--bgm-interactive`）与
+     `.button.reject`（悬停填 `--bgm-danger`）仍走各自的填充，不能整体改。 */
+  --bgm-primary-hover-fill: var(--bgm-primary-deep);
   --bgm-interactive: #369cf8;
   --bgm-link: #0084b4;
   --bgm-danger: #c00;
@@ -32,10 +53,21 @@
   --bgm-success-text: #2f6b33;
   --bgm-warn: #8a6d1f;
 
-  --bgm-bg: #f5f5f5;
+  /* 表面阶梯：粉白两色体系，全部由主色就地派生（不新增色值）。
+     由深到浅：sunken（内嵌块）→ bg（页面与侧栏）→ surface-alt（卡片与浮层）
+     → surface（纯白：对话区、顶栏、卡片）。
+     配色重构：原先的中性灰阶梯（#f5f5f5 / #fafafa）整体粉调化，
+     页面上不再出现灰色表面；层级仍靠底色分区 + hairline 收边表达。
+     **2026-10-06 落地 G02/G-tokens：更淡一档 `9 / 15 / 4`**（原 `13 / 20 / 6`）——
+     页面底 13→9%、内嵌块 20→15%、卡片浅面 6→4%，三档同时压淡、档间差保持。
+     **遮罩**：弹窗按 [C21](../docs/design/decisions/C21-modal.md) / G09 的定稿改成
+     **无蒙层**，所以这里没有遮罩令牌——上游那枚遮罩别名及其重定向都已随别名层删除
+     （原先重定向为「深粉棕 26%」并只被 `modal.css` 的 `.modalOverlay` 消费）。
+     若将来恢复压暗，在 `modal.css` 里改，**不要在这里复活别名**。 */
   --bgm-surface: #fff;
-  --bgm-surface-alt: #fafafa;
-  --bgm-sunken: #f5f5f5;
+  --bgm-surface-alt: color-mix(in srgb, var(--bgm-primary) 4%, #fff);
+  --bgm-bg: color-mix(in srgb, var(--bgm-primary) 9%, #fff);
+  --bgm-sunken: color-mix(in srgb, var(--bgm-primary) 15%, #fff);
 
   --bgm-text: #444;
   --bgm-text-strong: #333;
@@ -43,118 +75,44 @@
   --bgm-text-weak: #999;
   --bgm-text-disabled: #aaa;
 
-  --bgm-border: #ddd;
-  --bgm-border-soft: #eee;
-  --bgm-dotted: #e0e0e0;
-  /* 表单控件描边：站点 input.inputtext 的 1px #d9d9d9 */
-  --bgm-input-border: #d9d9d9;
+  /* 描边：同样走粉调，三档深浅由主色混白比例表达（原 #ddd / #eee / #e0e0e0） */
+  --bgm-border: color-mix(in srgb, var(--bgm-primary) 36%, #fff);
+  --bgm-border-soft: color-mix(in srgb, var(--bgm-primary) 20%, #fff);
+  --bgm-dotted: color-mix(in srgb, var(--bgm-primary) 30%, #fff);
+  /* 表单控件描边：比 hairline 再深一档，保证输入框边界可辨 */
+  --bgm-input-border: color-mix(in srgb, var(--bgm-primary) 42%, #fff);
   /* 弹窗右上角的关闭图标：站点 #TB_closeWindowButton 的 15px 细线 ×。
      以 mask 形式保存，按钮只给底色，hover 变色不需要第二份资源。 */
   --bgm-close-icon: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2215%22%20height%3D%2215%22%20viewBox%3D%220%200%2015%2015%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M0.248438%2014.7539C0.134965%2014.6467%200.0593157%2014.5205%200.0214912%2014.3754C-0.0100292%2014.2303%20-0.00687718%2014.0852%200.0309473%2013.9401C0.0687718%2013.795%200.141269%2013.6688%200.248438%2013.5615L6.30036%207.49527L0.248438%201.43849C0.141269%201.33123%200.0687718%201.20505%200.0309473%201.05994C-0.000573098%200.914827%20-0.000573098%200.769716%200.0309473%200.624606C0.0687718%200.479495%200.141269%200.353312%200.248438%200.246057C0.355608%200.132492%200.481689%200.0599369%200.626683%200.0283912C0.771677%20-0.00946372%200.916671%20-0.00946372%201.06167%200.0283912C1.21296%200.0599369%201.3422%200.132492%201.44937%200.246057L7.50129%206.30284L13.5532%200.246057C13.6604%200.132492%2013.7865%200.0599369%2013.9315%200.0283912C14.0765%20-0.00946372%2014.2214%20-0.00946372%2014.3664%200.0283912C14.5114%200.0599369%2014.6407%200.132492%2014.7541%200.246057C14.8613%200.353312%2014.9338%200.479495%2014.9716%200.624606C15.0095%200.769716%2015.0095%200.914827%2014.9716%201.05994C14.9338%201.20505%2014.8613%201.33123%2014.7541%201.43849L8.70222%207.49527L14.7541%2013.5615C14.8613%2013.6688%2014.9307%2013.795%2014.9622%2013.9401C15%2014.0852%2015%2014.2303%2014.9622%2014.3754C14.9307%2014.5205%2014.8613%2014.6467%2014.7541%2014.7539C14.647%2014.8675%2014.5177%2014.9401%2014.3664%2014.9716C14.2214%2015.0095%2014.0765%2015.0095%2013.9315%2014.9716C13.7865%2014.9338%2013.6604%2014.8612%2013.5532%2014.7539L7.50129%208.69716L1.44937%2014.7539C1.3422%2014.8612%201.21612%2014.9338%201.07112%2014.9716C0.926128%2015.0095%200.781134%2015.0095%200.63614%2014.9716C0.491146%2014.9338%200.361912%2014.8612%200.248438%2014.7539Z%22%20fill%3D%22%23000%22%2F%3E%0A%3C%2Fsvg%3E%0A");
-  /* 提示条的浅块底：会话区底色是 --bgm-bg，比它暗一档才看得出分组 */
-  --bgm-tint: #ebebed;
+  /* 提示条的浅块底：比它所在的粉底再深一档才看得出分组 */
+  --bgm-tint: color-mix(in srgb, var(--bgm-primary) 26%, #fff);
+  /* 柔光渐变端点（进度条与统计竖柱的**浅端**）：`#ffd9d3` 不是纯「主色混白」
+     出来的（反解配比 R 0% / G 24.7% / B 30.8%，三通道不一致），所以保留精确值。
+     由 `.contentProgressBar` 与 `.contentStatColumnBar` 消费。 */
+  --bgm-primary-mist: #ffd9d3;
 
-  --bgm-r-sm: 5px;
+  /* 圆角阶梯（[G-tokens](../docs/design/decisions/G-tokens.md) §二，元素越小圆角越小）：
+     单元格 8 / 控件 10 / 容器 14 / 浮层 18 / 胶囊 999。
+     曲率由 `tokens.css` 的 `--dsw-corner-shape` 一处统一下发，这里只管四档半径。 */
+  --bgm-r-sm: 8px;
   --bgm-r-md: 10px;
-  --bgm-r-lg: 15px;
-  --bgm-r-tag: 20px;
+  --bgm-r-lg: 14px;
+  --bgm-r-tag: 18px;
   --bgm-r-pill: 999px;
 
-  --bgm-shadow-soft: 0 0 5px #ddd;
-  /* 站点弹窗外发光：0 5px 30px 10px rgba(80,80,80,.5)（#TB_window / .modal-panel 实测） */
-  --bgm-shadow-modal: 0 5px 30px 10px rgba(80, 80, 80, .5);
-  --bgm-focus: 0 0 0 2px rgba(54, 156, 248, .35);
-  --bgm-fast: all linear .1s;
-  --bgm-slow: all .25s ease-out;
+  /* 阴影也走粉调：主色半透明，浅色底上不留灰边 */
+  --bgm-shadow-soft: 0 0 5px color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+  /* 弹窗外发光：原为站点实测的 0 5px 30px 10px rgba(80,80,80,.5)，改由深粉棕派生 */
+  --bgm-shadow-modal: 0 5px 30px 10px color-mix(in srgb, var(--bgm-primary-text) 40%, transparent);
+  /* 焦点环（[G10](../docs/design/decisions/G10-ux.md)）：3px 主色 45%。
+     换成主色环后，粉底（顶栏 / 侧栏）上的可聚焦元素另补 1px 描边保证可辨性
+     ——见 `frame.css` 的 `.appTopBarTab` 与 `common.css` 的 `.appNavRow`。 */
+  --bgm-focus: 0 0 0 3px color-mix(in srgb, var(--bgm-primary) 45%, transparent);
 
   --bgm-font: "SF Pro SC", "SF Pro Display", "PingFang SC", "Lucida Grande",
     "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif, "Hiragino Sans GB";
-  --bgm-mono: Menlo, Monaco, Consolas, "Courier New", monospace;
-}
-
-/* ------------------------------------------------------------
-   2. 把既有 DSH 语义别名重定向到 Bangumi 值
-   ------------------------------------------------------------
-   弹窗、toast、菜单材质等组件消费的是 DSH 语义别名，这里把它们整体重定向到
-   `--bgm-*`，颜色与描边会成片跟着变。浅色是唯一外观，因此只在 `:root` 声明。
-   ------------------------------------------------------------ */
-:root {
-  /* 字体：改用系统 UI 字体栈，不再使用打包进来的 Montserrat */
-  --dsw-font-family: var(--bgm-font);
-  --dsw-font-family-brand: var(--bgm-font);
-  --ds-font-family-code: var(--bgm-mono);
-  --dsw-font-markdown-code: var(--bgm-mono);
-  --dsw-font-markdown-code-block: var(--bgm-mono);
-
-  /* 字号阶梯：正文 14px、次级 13px，辅助信息不低于 12px */
-  --dsh-content-font-size: 14px;
-  --dsh-content-font-size-secondary: 13px;
-  --dsh-content-font-delta: 1px;
-  --dsh-content-font-delta-secondary: 1px;
-  --dsw-font-markdown-base: 14px;
-
-  /* 圆角：对齐 Bangumi 的 5 / 10 / 15 / 20 阶梯 */
-  --dsw-radius-sm: var(--bgm-r-sm);
-  --dsw-radius-md: var(--bgm-r-md);
-  --dsw-radius-lg: var(--bgm-r-lg);
-  --dsw-radius-xl: var(--bgm-r-tag);
-  --dsw-radius-panel: var(--bgm-r-sm);
-
-  /* 背景 */
-  --dsw-alias-bg-base: var(--bgm-bg);
-  --dsw-alias-bg-module-platform: var(--bgm-surface);
-  --dsw-alias-bg-mask-1: rgba(0, 0, 0, .35);
-  --dsw-specific-sidebar-fill: var(--bgm-surface-alt);
-  --dsw-specific-menu: var(--bgm-surface);
-  --dsw-specific-input-major: var(--bgm-surface);
-  --dsw-specific-bubble: var(--bgm-primary-soft);
-
-  /* 文字 */
-  --dsw-alias-label-primary: var(--bgm-text);
-  --dsw-alias-label-primary-bluish: var(--bgm-text-strong);
-  --dsw-alias-label-primary-foreground: var(--bgm-text-strong);
-  --dsw-alias-label-secondary: var(--bgm-text-muted);
-  --dsw-alias-label-tertiary: var(--bgm-text-weak);
-  --dsw-alias-label-caption: var(--bgm-text-weak);
-  --dsw-alias-label-dimmed: var(--bgm-text-disabled);
-
-  /* 描边 */
-  --dsw-alias-border-l1: var(--bgm-border-soft);
-  --dsw-alias-border-l2: var(--bgm-border);
-  --dsw-alias-border-l2-darkmode-thin: var(--bgm-border);
-  --dsw-alias-border-l3: var(--bgm-border);
-  --dsw-alias-border-l4: var(--bgm-border);
-
-  /* 交互与按钮 */
-  --dsw-alias-interactive-bg-hover: var(--bgm-interactive);
-  --dsw-alias-interactive-bg-active: var(--bgm-interactive);
-  --dsw-alias-interactive-bg-hover-danger: var(--bgm-danger);
-  --dsw-alias-button-primary-fill: var(--bgm-primary);
-  --dsw-alias-button-primary-hover: var(--bgm-interactive);
-  --dsw-alias-button-info-fill: var(--bgm-interactive);
-  --dsw-alias-button-info-hover: var(--bgm-primary);
-  --dsw-alias-button-elevated-fill: var(--bgm-surface);
-  --dsw-alias-button-floating-hover: var(--bgm-border-soft);
-  --dsw-alias-link: var(--bgm-link);
-
-  /* 状态色 */
-  --dsw-alias-state-error-primary: var(--bgm-danger);
-  --dsw-alias-state-success-primary: var(--bgm-success);
-  --dsw-alias-state-success-secondary: var(--bgm-success);
-  --dsw-alias-state-success-tertiary: var(--bgm-primary-soft);
-  --dsw-alias-state-warn-label: var(--bgm-warn);
-  --dsw-alias-state-warn-secondary: #f0d9a0;
-  --dsw-alias-state-warn-tertiary: #fff8e6;
-  --dsw-alias-state-business-primary: var(--bgm-interactive);
-  --dsw-alias-state-business-tertiary: var(--bgm-primary-soft);
-  --dsw-alias-state-idle-primary: var(--bgm-text-disabled);
-
-  /* 阴影：Bangumi 用 1px 边框 + 极柔光，不用大扩散投影 */
-  --dsw-shadow-lv2: var(--bgm-shadow-soft);
-  --dsw-elevation-soft: none;
-  --dsw-elevation-stroke: 1px solid var(--bgm-border);
-  --dsw-elevation-panel: var(--bgm-shadow-soft);
-  --dsw-elevation-prominent: var(--bgm-shadow-modal);
-  --dsw-menu-backdrop-filter: none;
-  --dsw-mask-blur: 0;
+  /* 代码字体栈：末尾**补中文兜底**。裸 `monospace` 在 Windows 上会把中文交给宋体
+     （被删的上游代码字体栈正是为这条理由补了 'PingFang SC' / 'Microsoft YaHei'），
+     这里沿用同一处理，不让「等宽」把中文的字体质量换掉。 */
+  --bgm-mono: Menlo, Monaco, Consolas, "Courier New", "PingFang SC", "Microsoft YaHei", monospace;
 }

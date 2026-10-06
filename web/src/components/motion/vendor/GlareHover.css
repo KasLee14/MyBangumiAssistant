@@ -5,6 +5,8 @@
   --gh-width: 500px;
   --gh-height: 500px;
   --gh-bg: transparent;
+  /* 厂商默认 10px。产品侧 `TagCloud.tsx` 传的 `borderRadius="var(--app-radius-control)"`
+     已把它覆盖成令牌（且 10px 恰好等于控件档），本次不改这份拷贝，仅登记。 */
   --gh-br: 10px;
   --gh-border: var(--app-hairline);
   --gh-angle: -45deg;

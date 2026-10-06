@@ -79,27 +79,28 @@ document.querySelectorAll('.appTurn').length     // 不因 /help 增加
 
 **步骤**：在有内容的会话里执行 `/new`。
 
-**预期**：当前会话被替换为新会话（条目清空、回到首屏）；侧栏「历史会话」列表刷新（此前会话出现为可恢复项，右侧显示最后对话时间）。
+**预期**：当前会话被替换为新会话（条目清空、回到首屏）；侧栏的「开启新对话」（`.appSidebarNew`，侧栏唯一的主色实心操作）恢复可用；侧栏会话列表刷新（此前会话出现为可恢复项 `.appNavRow`，右侧 `.appNavMeta` 显示最后对话时间）。
 
 **判定**
 ```js
 document.querySelectorAll('.appTurn').length === 0
 document.querySelector('.appStage').dataset.phase === 'hero'
-document.querySelectorAll('.appSessionRow').length > 0
-[...document.querySelectorAll(".appSessionRow:not([data-current='true']) .appSessionTime")].every(el => /^(刚刚|\d+(分钟|小时|天|个月|年))$/.test(el.textContent))
+document.querySelectorAll('.appNavRow').length > 0
+// 当前会话那行右侧是「当前」，其余行是相对时间：
+[...document.querySelectorAll(".appNavRow:not([data-current='true']) .appNavMeta")].every(el => /^(刚刚|\d+(分钟|小时|天|个月|年))$/.test(el.textContent))
 ```
 
 ## K5 `/sessions` 打开会话弹窗
 
 **步骤**：执行 `/sessions`。
 
-**预期**：打开「历史会话」弹窗（`.pickerRow` 列表，当前会话标 `当前`，其余行右侧为最后对话时间）；点一项即切换会话并关闭弹窗；弹窗打开时**设置弹窗被关闭**（互斥）。
+**预期**：打开「历史会话」弹窗（新骨架：标题 `.dlgTitle`，列表 `.dlgList > .dlgRow`，当前项同时标 `当前` 与 `aria-selected="true"`，其余行右侧 `.dlgRowMeta` 为最后对话时间）；点一项只改本地选中，**底部「切换」才是提交点**（`取消` / `切换`）；弹窗打开时**设置弹窗被关闭**（互斥）。
 
 **判定**
 ```js
-document.querySelector('.modalHeader h2')?.textContent === '历史会话'
-document.querySelectorAll('.pickerRow').length > 0
-[...document.querySelectorAll('.pickerRow:not(.selected) .meta')].every(el => /^(刚刚|\d+(分钟|小时|天|个月|年))$/.test(el.textContent))
+document.querySelector('.dlgTitle')?.textContent === '历史会话'
+document.querySelectorAll('.dlgRow').length > 0
+[...document.querySelectorAll(".dlgRow:not([aria-selected='true']) .dlgRowMeta")].every(el => /^(刚刚|\d+(分钟|小时|天|个月|年))$/.test(el.textContent))
 ```
 
 ## K6 `/model` 直达模型选择
@@ -110,8 +111,8 @@ document.querySelectorAll('.pickerRow').length > 0
 
 **判定**
 ```js
-document.querySelector('.modalHeader h2')?.textContent === '模型选择'
-document.querySelector('#model-pick') !== null
+document.querySelector('.dlgTitle')?.textContent === '模型选择'
+document.querySelector('.dlgList[aria-label="可用模型"]') !== null
 ```
 
 ## K7 `/details` 展开过程折叠块
@@ -131,7 +132,7 @@ document.querySelector('#model-pick') !== null
 **判定**
 ```js
 document.querySelector('.appToast')?.textContent.includes('/exit')
-document.querySelector('.appHeader .appChip')?.textContent.trim() === '已连接'
+document.querySelector('.appSidebarStatus')?.dataset.state === 'on'     // 连接状态点在侧栏（顶栏已删除）
 ```
 
 ## K9 未登记命令被拦下（不发宿主）
@@ -182,7 +183,7 @@ document.querySelector('.appComposerHint')?.textContent === 'Esc 停止本轮'  
 ## K12 思考强度菜单（需模型）
 
 **步骤**
-1. 点输入卡右侧的思考标签；
+1. 点输入卡外一行读数（`.appComposerDock`）里的思考标签（`.thinkingTrigger`）；
 2. 选一个与当前不同的级别。
 
 **预期**

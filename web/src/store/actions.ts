@@ -36,5 +36,7 @@ export const sessionsOpened = (): UiAction => ({ type: 'ui/sessionsOpened' });
 export const sessionsClosed = (): UiAction => ({ type: 'ui/sessionsClosed' });
 export const collapsedSet = (collapsed: boolean): UiAction => ({ type: 'ui/collapsedSet', collapsed });
 export const collapsedToggled = (): UiAction => ({ type: 'ui/collapsedToggled' });
+/** 置顶 / 取消置顶：状态在 `ui.pinned`，落盘由 store 的订阅负责（纯前端本地状态）。 */
+export const pinnedToggled = (sessionId: string): UiAction => ({ type: 'ui/pinnedToggled', sessionId });
 export const revealIncremented = (): UiAction => ({ type: 'ui/revealIncremented' });
 export const credentialProviderSet = (provider: string): UiAction => ({ type: 'ui/credentialProviderSet', provider });

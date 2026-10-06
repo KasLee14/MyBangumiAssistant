@@ -1,99 +1,113 @@
 /* ============================================================
  * 组件库文档页（library.html）皮肤
  * ------------------------------------------------------------
- * 骨架由 antd 提供（Layout / Menu / Input / Card / Table / Typography），配色通过
- * `page/library/theme.ts` 的 ConfigProvider token 映射到 `--bgm-*` 的当前色值。
+ * **骨架是自绘的**：文档页与主界面、调试页使用同一套表面语言——同一个
+ * `AppTopBar`、同一套 `--app-*` 令牌、同一个导航行基类 `.appNavRow`。
+ * 「工具页另有一套外观」这个例外已取消。
  *
- * 这一页**不守**本项目其它外观约定（间距、阴影尺度自己定）——产品明确要求它对齐
- * ant.design 文档站的形态；只有**配色**必须与站点一致，所以下面所有颜色都走
- * `--bgm-*` / `--app-*` 令牌，不写裸色值。
- *
- * 只声明 `lib*` 前缀的类，不覆写 antd 或内容组件的既有类。
+ * 只声明 `lib*` 前缀的类，不覆写共享类与内容组件的既有类。
+ * 引入顺序：在 library.tsx 里排在 content.css 之后（只消费令牌）。
  * ============================================================ */
 
 .libFrame {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  /* 三栏统一白底，靠 1px hairline 分区（对齐 ant 文档站；此前是灰底白卡） */
   background: var(--bgm-surface);
 }
 
-/* ---------------------------------------------------------------- 顶栏 */
-
-.libHeader {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  border-bottom: 1px solid var(--app-hairline);
-}
+/* ---------------------------------------------------------------- 顶栏内元素 */
+/* 顶栏骨架来自共享组件 `AppTopBar`（styles/common.css），这里只声明放进去的东西。 */
 
 .libBrand {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  flex: none;
+  gap: var(--app-space-8);
 }
 
 .libBrandMark {
-  font-family: var(--dsw-font-family-brand);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: .01em;
+  font: 700 15px/1.2 var(--bgm-font);
+  letter-spacing: var(--app-tracking-title);
   color: var(--bgm-primary);
 }
 
 .libBrandTitle {
-  font-size: 15px;
+  font: var(--app-font-sub);
   color: var(--bgm-text-muted);
 }
 
-/* 搜索框居中：ant 的顶栏是「品牌 | 导航 | 居中搜索 | 工具」，这里用 auto 外边距把它推到中间 */
 .libSearch {
-  flex: 1 1 auto;
-  max-width: 420px;
-  margin: 0 auto;
+  width: min(260px, 32vw);
+  height: 28px;
+  padding: 0 var(--app-space-12);
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text);
+  font: var(--app-font-sub);
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-out),
+    box-shadow var(--app-dur-fast) var(--app-ease-out);
 }
 
-/* 横向菜单嵌在顶栏里：去掉它自带的下边线与多余内边距 */
-.libTopMenu {
-  flex: none;
-  border-bottom: 0;
-  background: transparent;
-  line-height: 62px;
+.libSearch::placeholder { color: var(--bgm-text-weak); }
+
+.libSearch:focus-visible {
+  outline: none;
+  border-color: var(--bgm-primary);
+  box-shadow: 0 0 0 3px var(--app-primary-veil);
 }
 
-.libTopMenu::after {
-  display: none;
+.libHeaderLink {
+  font: var(--app-font-sub);
+  color: var(--bgm-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--app-dur-fast) var(--app-ease-out);
 }
 
-.libHeaderActions {
-  margin-left: auto;
-  flex: none;
-}
+.libHeaderLink:hover { color: var(--bgm-primary-text); }
 
 /* ---------------------------------------------------------------- 三栏骨架 */
 
 .libBody {
+  display: flex;
+  flex: 1;
+  min-height: 0;
   align-items: flex-start;
-  background: var(--bgm-surface);
 }
 
-.libSider {
+.libNav {
   position: sticky;
-  top: 64px;
-  height: calc(100vh - 64px);
+  top: 46px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 252px;
+  height: calc(100vh - 46px);
   overflow-y: auto;
+  padding: var(--app-space-12) var(--app-space-8) var(--app-space-32);
+  /* 左导航取粉底、内容区取白面：与主界面的「侧栏 | 对话区」是同一套分区语言 */
+  background: var(--app-surface-sunken);
   border-right: 1px solid var(--app-hairline);
 }
 
-.libNavMenu {
-  border-inline-end: 0;
-  padding: 12px 8px 32px;
+.libNavGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--app-space-12);
+}
+
+.libNavGroupLabel {
+  padding: var(--app-space-8) var(--app-space-12) var(--app-space-4);
+  font: var(--app-font-note);
+  color: var(--bgm-text-weak);
 }
 
 .libContent {
+  flex: 1;
   min-width: 0;
   background: var(--bgm-surface);
 }
@@ -101,16 +115,18 @@
 .libContentInner {
   max-width: 980px;
   margin: 0 auto;
-  padding: 28px 32px 120px;
+  padding: var(--app-space-32) var(--app-space-32) 120px;
 }
 
 .libTocSider {
   position: sticky;
-  top: 64px;
-  height: calc(100vh - 64px);
+  top: 46px;
+  flex: none;
+  width: 184px;
+  height: calc(100vh - 46px);
   overflow-y: auto;
+  padding: var(--app-space-24) var(--app-space-12);
   border-left: 1px solid var(--app-hairline);
-  padding: 20px 12px;
 }
 
 /* 右侧页内目录：自绘（antd 的 Anchor 会抢 hash，与「一组件一页」的路由冲突） */
@@ -118,119 +134,208 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-left: 2px solid var(--app-hairline);
+  border-left: 2px solid var(--bgm-border-soft);
 }
 
 .libTocLink {
   display: block;
   width: 100%;
-  padding: 4px 12px;
+  padding: var(--app-space-4) var(--app-space-12);
   border: 0;
   background: transparent;
   color: var(--bgm-text-muted);
-  font-size: 13px;
+  font: var(--app-font-sub);
   text-align: left;
   cursor: pointer;
-  transition: color var(--app-dur-fast) var(--app-ease-out);
+  transition:
+    color var(--app-dur-fast) var(--app-ease-out),
+    box-shadow var(--app-dur-fast) var(--app-ease-out);
 }
 
-.libTocLink:hover {
-  color: var(--bgm-primary);
-}
+.libTocLink:hover { color: var(--bgm-primary-text); }
 
 .libTocLink[data-active='true'] {
   color: var(--bgm-primary-text);
-  font-weight: 600;
+  font-weight: 500;
   box-shadow: inset 2px 0 0 var(--bgm-primary);
 }
 
 /* ---------------------------------------------------------------- 内容区 */
 
 .libPageTitle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px !important;
+  margin: 0 0 var(--app-space-8);
+  font: 600 20px/1.5 var(--bgm-font);
+  letter-spacing: var(--app-tracking-title);
+  color: var(--bgm-text-strong);
 }
 
 .libPageSummary {
-  margin-bottom: 0 !important;
+  margin: 0 0 var(--app-space-24);
+  font: var(--app-font-body);
+  color: var(--bgm-text-muted);
 }
 
-.libBlock {
-  scroll-margin-top: 80px;
+/* 行内链接：与全站口径一致——主色深字 + 下划线，不用蓝色 `--bgm-link` */
+.libInlineLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bgm-primary-text);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
+
+.libInlineLink:hover { color: var(--bgm-primary); }
+
+.libBlock { scroll-margin-top: 80px; }
 
 .libBlockDivider {
-  margin: 32px 0 20px !important;
-  font-size: 15px !important;
+  margin: var(--app-space-32) 0 var(--app-space-16);
+  font: 600 15px/1.5 var(--bgm-font);
+  letter-spacing: var(--app-tracking-title);
+  color: var(--bgm-text-strong);
 }
 
-.libPreviewCard {
-  margin-bottom: 12px;
+.libPreviewCard { margin-bottom: var(--app-space-12); }
+
+/* 自绘的「卡」：预览卡与代码卡共用（这两块原来是 antd 的 Card） */
+.libCard {
+  overflow: hidden;
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--app-radius-panel);
+  background: var(--bgm-surface);
 }
 
-.libPreviewCard .ant-card-body {
-  background: var(--app-surface);
+.libCardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  padding: var(--app-space-8) var(--app-space-12);
+  border-bottom: 1px solid var(--bgm-border-soft);
+  background: var(--bgm-surface-alt);
 }
 
-.libCodeCard .ant-card-body {
-  padding: 0;
+.libCardTitle {
+  flex: 1;
+  min-width: 0;
+  font: var(--app-font-note);
+  color: var(--bgm-text-muted);
 }
+
+.libCardBody { padding: var(--app-space-16); }
+
+/* 行内代码（字段名、取值）：等宽 + 淡粉底。与 .contentLabel 的分工是「代码 vs 标签」 */
+.libCode {
+  padding: 1px var(--app-space-4);
+  border-radius: var(--app-radius-cell);
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+  font: var(--app-font-note);
+  font-family: var(--bgm-mono);
+}
+
+/* 参数表**复用**内容条目的表格皮肤 `.contentTable`，只补两处差异：
+   1) 表头没有排序按钮，所以要自己给内边距（内容表格把 padding 挪到了按钮上）；
+   2) 必填列走危险色。 */
+.libParamTable thead th { padding: var(--app-space-8) var(--app-space-12); }
+.libParamTable tbody td[data-required='true'] { color: var(--bgm-danger); }
 
 .libCodeBody {
   margin: 0;
-  padding: 14px 16px;
+  padding: var(--app-space-12) var(--app-space-16);
   max-height: 340px;
   overflow: auto;
+  font: var(--app-font-note);
   font-family: var(--bgm-mono);
-  font-size: 12px;
   line-height: 1.7;
   white-space: pre;
   color: var(--bgm-text);
   background: var(--bgm-surface-alt);
 }
 
-.libParamTable .ant-table {
-  font-size: 13px;
-}
+/* 这里原有 `.libParamTable .ant-table { font: var(--app-font-sub); }`：骨架自绘之后页面里不再有 antd 元素，
+   这是一条永远不会命中的死规则，随 antd 移除一并删除。 */
 
 .libReferenceLine {
-  margin: 12px 0 0 !important;
-  font-size: 13px;
+  margin: var(--app-space-12) 0 0;
+  font: var(--app-font-sub);
 }
 
+/* 参考行的链接：没有这条时会**直接吃浏览器默认链接蓝**（`rgb(0,0,238)`）——
+   那是比灰色更严重的偏离，它凭空引入第三个色系。按项目口径给主色深字 + 下划线。 */
+.libReferenceLine a {
+  color: var(--bgm-primary-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+  transition: color var(--app-dur-fast) var(--app-ease-out);
+}
+
+.libReferenceLine a:hover { color: var(--bgm-primary); }
+
 .libReferenceUsage {
-  margin-left: 8px;
+  margin-left: var(--app-space-8);
   color: var(--bgm-text-weak);
 }
 
 .libEmptyHint {
-  margin-top: 24px !important;
+  margin-top: var(--app-space-24);
+  font: var(--app-font-body);
+  color: var(--bgm-text-muted);
 }
 
 /* ---------------------------------------------------------------- 总览页 */
 
+.libOverviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--app-space-16);
+}
+
 .libOverviewCard {
-  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+  padding: var(--app-space-16);
+  border: 1px solid var(--bgm-border);
+  border-radius: var(--app-radius-panel);
+  background: var(--bgm-surface);
+  box-shadow: var(--app-shadow-raised);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--app-dur-base) var(--app-ease-spring),
+    border-color var(--app-dur-fast) var(--app-ease-out),
+    box-shadow var(--app-dur-fast) var(--app-ease-out);
+}
+
+.libOverviewCard:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--bgm-primary) 38%, transparent);
+  box-shadow: var(--app-shadow-card);
+}
+
+.libOverviewCard:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+.libOverviewHead {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
 }
 
 .libOverviewTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.libKindTag {
-  font-family: var(--bgm-mono);
-  font-size: 11px;
-  font-weight: 400;
+  font: var(--app-font-body);
+  color: var(--bgm-text-strong);
 }
 
 .libOverviewSummary {
-  margin-bottom: 12px !important;
-  font-size: 12px;
+  font: var(--app-font-sub);
+  color: var(--bgm-text-muted);
 }
 
 /* 小预览：裁到固定高度，只露出这条目的「第一眼」形态 */
@@ -252,61 +357,20 @@
 /* ---------------------------------------------------------------- 窄屏 */
 
 @media (max-width: 1100px) {
-  .libTocSider {
-    display: none;
-  }
+  .libTocSider { display: none; }
 }
 
 @media (max-width: 860px) {
-  .libHeader {
-    flex-wrap: wrap;
-    gap: 8px 16px;
-    height: auto;
-    padding: 12px 16px;
-  }
+  .libBody { flex-direction: column; }
 
-  .libSearch {
-    order: 3;
-    max-width: 100%;
-  }
-
-  .libTopMenu {
-    line-height: 46px;
-  }
-
-  /* 窄屏把三栏改成竖排。
-     **必须用 .libFrame > .libBody 这种更高特异性**：antd 的样式是运行时注入的，位置在我们的
-     样式表之后，同优先级（`.ant-layout` vs `.libBody`）它会赢——只写 `.libBody` 时
-     flex-direction 根本改不掉，Content 会被 `align-items: flex-start` 压成 0 宽。 */
-  .libFrame > .libBody {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  /* antd 的 Sider 宽度是内联 style，覆盖它必须 !important —— 这里没有更干净的办法 */
-  .libFrame .libSider {
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    flex: none !important;
+  .libNav {
     position: static;
+    width: 100%;
     height: auto;
     max-height: 38vh;
-    overflow-y: auto;
     border-right: 0;
     border-bottom: 1px solid var(--app-hairline);
   }
 
-  /* 与 Sider 同理：antd 的 `.ant-layout-content` 带着 flex 上下文的宽度约束，
-     在竖排布局下会把内容区压成 0 宽（实测：只靠 `.libFrame .libContent` 的更高特异性仍不够，
-     注入 `width: 100% !important` 才生效）。这一条是必要的例外，别去掉。 */
-  .libFrame .libContent {
-    width: 100% !important;
-    min-width: 0 !important;
-    flex: 1 1 auto !important;
-  }
-
-  .libContentInner {
-    padding: 20px 16px 80px;
-  }
+  .libContentInner { padding: var(--app-space-24) var(--app-space-16) 80px; }
 }

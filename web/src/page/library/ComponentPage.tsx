@@ -1,11 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Button, Card, Divider, Table, Tag, Tooltip, Typography, type TableProps } from 'antd';
+import { Pill } from '../../components/common/Pill';
 import { ContentBlock } from '../../components/content';
 import { eventText, frameText, blockOf } from './items';
-import type { LibrarySection, ParamRow } from './samples';
+import type { LibrarySection } from './samples';
 
 /**
- * 单个 kind 的详情页。
+ * 单个 kind 的详情页（**自绘**）。
  *
  * 内容严格只有四块（这是产品定的边界，别往里加第五块）：
  * 1. UI 预览——真实 `ContentBlock` 渲染主载荷，另给一张「空数据」变体；
@@ -14,6 +14,10 @@ import type { LibrarySection, ParamRow } from './samples';
  * 4. 调试页 frame 输入——同上。
  *
  * 页内目录由 `App` 指向这四块的 id，所以 id 命名是契约（见 `PAGE_ANCHORS`）。
+ *
+ * 骨架与卡片全部自绘：按钮用 `.button`（cards.css 的按钮基元）、标签用 `<Pill>`、
+ * **参数表直接复用内容条目的表格皮肤 `.contentTable`**——同一张表的形态在一处定义，
+ * 文档页只补「表头没有排序按钮」这一处差异。
  */
 
 /** 四个块的锚点 id 与标题；`App` 的右侧目录按这份清单生成。 */
@@ -24,26 +28,16 @@ export const PAGE_ANCHORS = [
   { id: 'frame', title: 'frame 输入' },
 ] as const;
 
-const PARAM_COLUMNS: NonNullable<TableProps<ParamRow>['columns']> = [
-  {
-    title: '字段', dataIndex: 'field', width: '22%',
-    render: (value: string) => <Typography.Text code>{value}</Typography.Text>,
-  },
-  { title: '类型', dataIndex: 'type', width: '20%' },
-  {
-    title: '必填', dataIndex: 'required', width: '9%',
-    render: (value: ParamRow['required']) => (
-      <Typography.Text type={value === '必填' ? 'danger' : 'secondary'}>{value}</Typography.Text>
-    ),
-  },
-  {
-    title: '取值', dataIndex: 'values', width: '24%',
-    render: (value?: string) => (value === undefined ? '—' : <Typography.Text code>{value}</Typography.Text>),
-  },
-  { title: '说明', dataIndex: 'note' },
+/** 参数表五列；宽度按内容比例给，最后一列吃掉剩余宽度。 */
+const PARAM_COLUMNS: readonly { title: string; width: string | undefined }[] = [
+  { title: '字段', width: '22%' },
+  { title: '类型', width: '20%' },
+  { title: '必填', width: '9%' },
+  { title: '取值', width: '24%' },
+  { title: '说明', width: undefined },
 ];
 
-/** 一段可复制的 JSON：antd 的卡片 + 复制按钮，按钮文案自己切换作反馈。 */
+/** 一段可复制的 JSON：自绘卡片 + 复制按钮，按钮文案自己切换作反馈。 */
 function CodeBlock({ hint, code }: { hint: string; code: string }): ReactNode {
   const [copied, setCopied] = useState(false);
 
@@ -59,21 +53,22 @@ function CodeBlock({ hint, code }: { hint: string; code: string }): ReactNode {
   };
 
   return (
-    <Card
-      size="small"
-      className="libCodeCard"
-      title={<Typography.Text type="secondary">{hint}</Typography.Text>}
-      extra={<Button size="small" onClick={() => { void copy(); }}>{copied ? '已复制' : '复制'}</Button>}
-    >
+    <section className="libCard">
+      <header className="libCardHead">
+        <span className="libCardTitle">{hint}</span>
+        <button type="button" className="button sm" onClick={() => { void copy(); }}>
+          {copied ? '已复制' : '复制'}
+        </button>
+      </header>
       <pre className="libCodeBody"><code>{code}</code></pre>
-    </Card>
+    </section>
   );
 }
 
 function ReferenceLine({ section }: { section: LibrarySection }): ReactNode {
   const reference = section.reference;
   return (
-    <Typography.Paragraph type="secondary" className="libReferenceLine">
+    <p className="libReferenceLine">
       参考：
       {reference === null
         ? '未使用 ReactBits 组件。'
@@ -83,7 +78,7 @@ function ReferenceLine({ section }: { section: LibrarySection }): ReactNode {
             <span className="libReferenceUsage">{reference.usage}</span>
           </>
         )}
-    </Typography.Paragraph>
+    </p>
   );
 }
 
@@ -95,54 +90,79 @@ export function ComponentPage({ section }: { section: LibrarySection }): ReactNo
 
   return (
     <>
-      <Typography.Title level={2} className="libPageTitle">
+      <h2 className="libPageTitle">
         {section.title}
-        <Tag className="libKindTag">{section.kind}</Tag>
-      </Typography.Title>
-      <Typography.Paragraph type="secondary" className="libPageSummary">{section.summary}</Typography.Paragraph>
+        <Pill>{section.kind}</Pill>
+      </h2>
+      <p className="libPageSummary">{section.summary}</p>
 
       <section id="ui-preview" className="libBlock">
-        <Divider titlePlacement="start" className="libBlockDivider">UI 预览</Divider>
-        <Card
-          size="small"
-          className="libPreviewCard"
-          title="主载荷"
-          extra={(
-            <Tooltip title="把这类的 event JSON 复制走">
-              <Button size="small" type="text" onClick={() => { void navigator.clipboard.writeText(event); }}>
-                复制 event
-              </Button>
-            </Tooltip>
-          )}
-        >
-          <ContentBlock block={main} />
-        </Card>
-        <Card size="small" className="libPreviewCard" title="空数据">
-          <ContentBlock block={empty} />
-        </Card>
+        <h3 className="libBlockDivider">UI 预览</h3>
+        <section className="libCard libPreviewCard">
+          <header className="libCardHead">
+            <span className="libCardTitle">主载荷</span>
+            <button
+              type="button"
+              className="button sm"
+              title="把这类的 event JSON 复制走"
+              onClick={() => { void navigator.clipboard.writeText(event); }}
+            >
+              复制 event
+            </button>
+          </header>
+          <div className="libCardBody"><ContentBlock block={main} /></div>
+        </section>
+        <section className="libCard libPreviewCard">
+          <header className="libCardHead">
+            <span className="libCardTitle">空数据</span>
+          </header>
+          <div className="libCardBody"><ContentBlock block={empty} /></div>
+        </section>
       </section>
 
       <section id="params" className="libBlock">
-        <Divider titlePlacement="start" className="libBlockDivider">参数</Divider>
-        <Table<ParamRow>
-          size="small"
-          rowKey="field"
-          columns={PARAM_COLUMNS}
-          dataSource={[...section.params]}
-          pagination={false}
-          locale={{ emptyText: '—' }}
-          className="libParamTable"
-        />
+        <h3 className="libBlockDivider">参数</h3>
+        <div className="contentTableScroll">
+          <table className="contentTable libParamTable">
+            <caption className="contentTableCaption">{section.title} 的参数</caption>
+            <thead>
+              <tr>
+                {PARAM_COLUMNS.map(column => (
+                  <th
+                    key={column.title}
+                    style={column.width === undefined ? undefined : { width: column.width }}
+                  >
+                    {column.title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {section.params.map(param => (
+                <tr key={param.field}>
+                  <td><code className="libCode">{param.field}</code></td>
+                  <td>{param.type}</td>
+                  <td data-required={param.required === '必填' ? 'true' : undefined}>{param.required}</td>
+                  <td>{param.values === undefined ? '—' : <code className="libCode">{param.values}</code>}</td>
+                  <td>{param.note}</td>
+                </tr>
+              ))}
+              {section.params.length === 0 ? (
+                <tr><td colSpan={PARAM_COLUMNS.length}>—</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
         <ReferenceLine section={section} />
       </section>
 
       <section id="event" className="libBlock">
-        <Divider titlePlacement="start" className="libBlockDivider">调试页 event 输入</Divider>
+        <h3 className="libBlockDivider">调试页 event 输入</h3>
         <CodeBlock hint="粘进调试页的「event 输入」框" code={event} />
       </section>
 
       <section id="frame" className="libBlock">
-        <Divider titlePlacement="start" className="libBlockDivider">调试页 frame 输入</Divider>
+        <h3 className="libBlockDivider">调试页 frame 输入</h3>
         <CodeBlock hint="粘进「frame 输入」框（先把 event 框清空）" code={frame} />
       </section>
     </>

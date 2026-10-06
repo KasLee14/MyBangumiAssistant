@@ -120,4 +120,4 @@ export function useStreamSubscription(): void {
 - `rememberSession` 只记录 store 里**实际接受**的 `sessionId`（reducer 可能因迟到帧丢弃本帧），所以它读的是 `store.getState()` 而不是帧里的字段；
 - 状态合并全在 reducer 里，**这个 hook 只负责转发**，不要在这里写业务判断（见 §规则「SSE hook 只做转发」）；
 - 只在主界面挂载时建立：页面不挂载就不连宿主（这一性质曾被调试面板依赖）；
-- `EventSource` 自带重连，宿主重启会自动接回，因此不写重试逻辑；连接状态由 `onStatus` 反映到顶栏 chip。
+- `EventSource` 自带重连，宿主重启会自动接回，因此不写重试逻辑；连接状态由 `onStatus` 反映到侧栏品牌行里那颗 8px 连接状态点（`.appSidebarStatus` 的 `data-state`，主界面已无顶栏）。

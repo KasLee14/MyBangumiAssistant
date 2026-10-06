@@ -3,6 +3,8 @@
  *
  * 复用 harness（MIT）的两件事：MenuSurface 的材质做法（底色与模糊放在子层，
  * 卡片只负责几何与描边），以及 elevation 三件套里的 prominent 档。
+ *
+ * 结构：共享表面（`.modalOverlay` + `.modalSurface`，见下）+ 内容骨架 `.dlg*`（文件末段）。
  */
 
 .modalOverlay {
@@ -13,8 +15,14 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  backdrop-filter: var(--dsw-mask-blur);
-  background: rgba(40, 40, 40, .32);
+  /* **无蒙层**（2026-10-06 定案，见 `docs/design/decisions/C21-modal.md` 与 `G09-overlay.md`）。
+     此前这里写的是上游那枚遮罩别名（重定向为「深粉棕 26%」，G09 的旧结论；该别名已随
+     第七轮令牌层清理删除），它与 C21 的定稿「无蒙层、层次靠扩散阴影」冲突；
+     本轮按用户裁示去掉整屏压暗。
+     这一层现在只负责三件事：整屏定位、居中、接住外部点击（点外关闭的语义靠它，
+     所以 `pointer-events` 不能用 none）。层次全部由 `.modalSurface` 自己承担：
+     `.appGlass` 的玻璃填充 + 背后那一片 backdrop-filter 模糊 + `--app-shadow-panel`。
+     若将来要恢复压暗，这里是唯一落点。 */
 }
 
 .modalSurface {
@@ -26,189 +34,79 @@
   max-height: min(85vh, 640px);
   padding: 0;
   color: var(--bgm-text);
-  backdrop-filter: none;
-  border: 1px solid var(--app-hairline-strong);
-  border-radius: var(--app-radius-panel);
-  background: var(--app-surface);
-  box-shadow: var(--app-shadow-panel);
+  /* 表面来自共享类 `.appGlass`（玻璃 + 半透明白描边 + 浮层圆角 + `--glass-shadow` 默认档）。
+     **这里不覆写 `--glass-shadow`**：[C41](../docs/design/decisions/C41-dialog-stage.md) 定稿 A
+     与样张 `components/C41-dialog-stage.html:58-60` 都写明「弹窗阴影维持共享档
+     `--app-shadow-panel`（两段、最大模糊 28px）」。此前覆写成 `--app-shadow-float`
+     （最大 72px），是 C21 与 C41 两份决策互斥的那一段；按「以样张为准」收口到共享档。
+     弹窗从屏心撑开，所以 origin 是中心。 */
+  transform-origin: center;
 }
 
 .modalSurface[data-wide='true'] {
   width: min(600px, 100%);
 }
 
-.modalEyebrow {
-  margin-bottom: 4px;
-  font: var(--dsw-font-xxs-12);
-  flex: none;
-  margin: 0 8px 0 0;
-  font-size: 12px;
-  letter-spacing: 0;
-  color: var(--bgm-primary-text);
+/* ---------------------------------------------------------------- 进出动画
+ * [G09](../docs/design/decisions/G09-overlay.md) / [C41](../docs/design/decisions/C41-dialog-stage.md)
+ * 的定稿（进出对称的 `scale .98 + y 4px` · 360ms · `--app-ease-out`）不变，
+ * 只换载体：从 `motion` 的 JS 逐帧内联样式换成这两个 keyframes。
+ *
+ * **这里绝不能动画 `opacity`**（2026-10-10 实测结论，改回去会复现「突然就不透明了」）：
+ * Chromium 在元素有效 `opacity` 小于 1 时会**跳过它的 `backdrop-filter`**。
+ * 最小复现：同一条 `blur(20px) saturate(160%)` 规则，`opacity: 1` 时背后的字糊掉、
+ * `opacity: .5` 时清晰可读；加 `will-change: opacity` / `translateZ(0)` / 把模糊挪到子层，
+ * 四种写法都无效（`opacity` 落在祖先上同样无效——它会给子树建渲染上下文）。
+ * 于是淡入的那 360ms 里，弹窗等于「74% 白 + 完全清晰的背景文字」，动画结束时模糊才突然生效。
+ * 去掉淡入之后，玻璃材质从第一帧起就是完整的，`backdrop-filter` 全程有效。
+ *
+ * 为什么用 CSS 而不是 `motion`：`motion` 的 `animate` 由主线程逐帧写样式，主线程被 SSE 帧事件
+ * 或 React 挂载占住时会跳帧（实测单帧掉 20–50ms、透明度一步跳 0.12–0.16）；纯 `transform`
+ * 的 CSS keyframes 可以交给合成线程，主线程忙也照常播。
+ *
+ * 4px 是弹窗专属的「几乎不位移」，不在 `--app-shift-*` 的两级刻度（row 8 / panel 16）上——
+ * 为它单开一档只会多一个同义令牌，所以按 C41 定稿直接写数。 */
+@keyframes modalIn {
+  from { transform: scale(.98) translateY(4px); }
+  to   { transform: none; }
 }
 
-.modalHeader {
-  display: flex;
-  margin-bottom: 12px;
-  flex: none;
-  align-items: center;
-  gap: 0;
-  height: 40px;
-  margin: 0;
-  padding: 0 5px 0 15px;
-  border-bottom: 1px solid var(--app-hairline);
+@keyframes modalOut {
+  from { transform: none; }
+  to   { transform: scale(.98) translateY(4px); }
 }
 
-.modalHeader h2 {
-  margin: 0;
-  font: 500 16px/24px var(--dsw-font-family);
-  overflow-wrap: anywhere;
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  color: var(--bgm-primary);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 24px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--bgm-text-strong);
-  font-size: 16px;
-  font-weight: 600;
+.modalSurface {
+  animation: modalIn var(--app-dur-slow) var(--app-ease-out) both;
 }
 
-.modalBody {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
-  gap: 10px;
-  padding: 15px;
-  color: var(--bgm-text);
+/* 退场：`modalOut` 正向播放，比 `modalIn` 加 `animation-direction: reverse` 更明确——
+   后者会把 `--app-ease-out` 一起倒过来，读代码时看不出退场到底收得急不急。
+   动画播完由 `Modal.tsx` 的 `onAnimationEnd` 通知挂载点卸载 DOM。
+
+   **退场期间绝不能换掉这棵子树**（别在这里挂「按当前一屏渲染」的分支）：换分支就是换
+   元素，旧 `.modalSurface` 会被卸载，`modalOut` 一帧都播不完、`animationend` 也永远不会来，
+   弹窗会卡在屏幕上。挂载点为此做了两件事：一是「渲不渲染」只看退场播完了没（不看开关），
+   二是设置弹窗那一屏在退场期间冻结（`ui.lastSettingsPane`）。见
+   `overlays/DialogStage.tsx` 与 `components/dialog/SettingsDialog.tsx`。 */
+.modalSurface[data-leaving] {
+  animation-name: modalOut;
 }
 
-.modalFooter {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 16px;
-  flex: none;
-  margin: 0;
-  padding: 0 15px 15px;
-  border-top: 1px solid var(--app-hairline);
+/* 「减少动态效果」下不播动画：进场直接落在终态（keyframes 的 `both` 已保证），
+   退场由 `Modal.tsx` 的 `matchMedia` 兜底立刻卸载——不能等一个永远不会发生的 `animationend`。 */
+@media (prefers-reduced-motion: reduce) {
+  .modalSurface { animation: none; }
 }
 
-.modalFooter .note {
-  flex: 1;
-  min-width: 0;
-  font: var(--dsw-font-xxs-12);
-  font-size: 12px;
-  color: var(--bgm-text-muted);
-}
-
-.modalField {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.modalField label {
-  font: var(--dsw-font-xs-13);
-  color: var(--bgm-text-muted);
-  font-size: 12px;
-  color: var(--bgm-text-muted);
-}
-
-.modalInput {
-  width: 100%;
-  outline: none;
-  font: var(--dsw-font-s-14);
-  height: 34px;
-  padding: 5px 8px;
-  font-size: 14px;
-  line-height: 22px;
-  border: 1px solid var(--bgm-input-border);
-  border-radius: var(--app-radius-control);
-  background: var(--bgm-surface);
-  color: var(--bgm-text-strong);
-  transition: border-color var(--app-dur-fast) var(--app-ease-out), box-shadow var(--app-dur-fast) var(--app-ease-out);
-}
-
-.modalInput:focus {
-  border-color: var(--bgm-primary);
-  box-shadow: 0 0 0 3px var(--app-primary-veil);
-  outline: none;
-}
-
-.modalInput::placeholder {
-  color: var(--bgm-text-disabled);
-}
-
-.modalCheck {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: var(--dsw-font-xs-13);
-  cursor: pointer;
-  color: var(--bgm-text);
-  font-size: 14px;
-  border-radius: var(--app-radius-control);
-  transition: background var(--app-dur-fast) var(--app-ease-out);
-}
-
-.modalCheck input {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--bgm-interactive);
-}
-
-.modalCheck[data-disabled='true'] {
-  color: var(--dsw-alias-label-dimmed);
-  cursor: not-allowed;
-}
-
-.modalHint,
+/* 错误文本：新骨架里**没有**等价的类（`.dlg*` 那一套只有提示 `.dlgHint`），7 个弹窗组件
+   仍在用它。原先它与 `.modalHint` 共用一条 `margin: 0; font: var(--app-font-note)` 的基线
+   规则；`.modalHint` 随旧骨架删除后，这里必须留一条**完整的独立规则**——少一条，
+   错误文字的字体与边距就会回落到浏览器默认（`<p>` 上下各 1em 会把底部动作行推远）。 */
 .modalError {
   margin: 0;
-  font: var(--dsw-font-xxs-12);
-}
-
-.modalHint {
-  color: var(--bgm-text-muted);
-}
-
-.modalError {
+  font: var(--app-font-note);
   color: var(--bgm-danger);
-}
-
-.modalStatus {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: var(--dsw-font-xs-13);
-  overflow-wrap: anywhere;
-  padding: 5px 10px;
-  font-size: 13px;
-  border: 1px solid var(--app-hairline);
-  border-radius: var(--app-radius-control);
-  background: var(--bgm-surface-alt);
-  color: var(--bgm-text-muted);
-}
-
-.modalStatus .dot {
-  width: 6px;
-  height: 6px;
-  flex: none;
-  border-radius: 50%;
-  corner-shape: round;
-  background: var(--dsw-alias-state-idle-primary);
-  transition: background var(--app-dur-base) var(--app-ease-out);
-}
-
-.modalStatus[data-configured='true'] .dot {
-  background: var(--dsw-alias-state-success-primary);
 }
 
 /* ---------------------------------------------------------------- 外观层补充
@@ -216,53 +114,8 @@
  * 已经并入上面的规则，因此同一元素同一属性只有一个来源。
  * ---------------------------------------------------------------- */
 
-.modalClose {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  margin-right: 5px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background-color: #ccc;
-  -webkit-mask: var(--bgm-close-icon) center / 15px 15px no-repeat;
-  mask: var(--bgm-close-icon) center / 15px 15px no-repeat;
-  cursor: pointer;
-  transition: var(--bgm-fast);
-}
-
-.modalClose:hover {
-  background-color: #000;
-}
-
-.modalClose:focus-visible {
-  outline: 2px solid var(--bgm-interactive);
-  outline-offset: 2px;
-}
-
 .modalSteps li {
   color: var(--bgm-text-muted);
-}
-
-textarea.modalInput {
-  height: auto;
-  min-height: 64px;
-  resize: vertical;
-}
-
-.modalInput:disabled {
-  background: var(--bgm-surface-alt);
-  color: var(--bgm-text-disabled);
-}
-
-.modalChoiceRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 0 0 10px;
-  border-bottom: 1px solid var(--bgm-border-soft);
-  color: var(--bgm-text-muted);
-  font-size: 14px;
 }
 
 .modalSurface code {
@@ -272,203 +125,436 @@ textarea.modalInput {
   font-family: var(--bgm-mono);
 }
 
-.settingsRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--bgm-border-soft);
+/* 弹窗表面已由 `.appGlass` 提供材质（玻璃 + 半透明白描边 + 深扩散阴影），
+   所以这里只把 `Modal.tsx` 里的材质子层**隐藏**。原先它还重写了 background /
+   backdrop-filter / box-shadow 三条——在 `opacity: 0` 之下它们完全不生效，
+   属于跨文件整段重写（还带一个裸值 `rgba(254,254,254,.8)`），已删除。 */
+.modalSurface .menuMaterial {
+  opacity: 0;
 }
 
-.settingsRow:last-child {
-  border-bottom: 0;
-}
+/* 这里原有 `.modalSurface .button:focus-visible`（「焦点环只有一个来源 `--bgm-focus`」）。
+   弹窗内的按钮已全部改用 `.dlgBtn`，这条随之失去消费点——焦点环搬到了 `.dlgBtn:focus-visible`。 */
 
-.settingsRow .label {
-  flex: none;
-  width: 5.5em;
-  color: var(--bgm-text-weak);
-  font-size: 12px;
-}
+/* ============================================================
+ * 弹窗骨架 `.dlg*`（C22–C28，样张 `components/C21-C28-dialogs.html`）
+ * ------------------------------------------------------------
+ * 值取自样张的定稿列（`demo.css:3257-3506`）。这一套取代了原先的
+ * `.modalHeader / .modalBody / .modalFooter / .modalField / .modalInput /
+ * .modalCheck / .modalHint / .modalStatus / .modalClose / .modalChoiceRow /
+ * .settingsRow / .pickerList / .pickerRow`——8 个弹窗组件全部迁到 `.dlg*` 之后，
+ * 旧骨架的规则已从本文件删除，不再留第二个来源。
+ * （样张 `demo.js` 的 `modalRows()` 里还有旧类名的查询，样本本身已是 `.dlg*` 结构，
+ * 删样式不改变样张渲染，本次未越界改动样张资产。）
+ *
+ * 与旧骨架的三点结构性差别：
+ * ① 只有一个 `.dlgPane`（单列 gap 18 / padding 20），不再分「头 / 身 / 脚」三段各自的描边与内距；
+ * ② 标题块（`.dlgHead`）带副标题，关闭键绝对定位在右上角，不再占标题行；
+ * ③ 底部 `.dlgActions` 两端对齐（次要靠左、主靠右），不再靠 `.note { flex: 1 }` 把按钮推右。
+ *
+ * 字号：样张里写的是 13.5px / 11.5px，而 G-tokens §三 已把小字收敛成四档
+ * （10 / 12 / 13 / 14）并明确「13.5 并入 body(14) 与 note(12)」——这里按四档取
+ * 13px（sub）与 12px（note），差 0.5px 已登记在交付说明里。
+ *
+ * 从旧骨架一并带过来的长期结论（原注释挂在被删的规则上，结论仍然有效）：
+ * ① 过渡一律写**明确属性** + `--app-dur-*` / `--app-ease-*`；旧的 `--bgm-fast`
+ *    （`all linear .1s`）已删除，不要再写出 `all` 或裸时长；
+ * ② 焦点环只有一个来源 `--bgm-focus`（`bgm.css`），不要在各处再写一份 outline；
+ * ③ 弹窗里的次要 / 描边按钮 hover 走**主色系**（G01：不再是交互蓝 `--bgm-interactive`，
+ *    那在粉白弹窗里是唯一的冷色块）；
+ * ④ 展示型大字（≥15px 的标题）按字号收敛决策**不令牌化**，`.dlgTitle` 的 17px 是样张定稿值。
+ * ============================================================ */
 
-.settingsRow .value {
-  flex: 1;
-  min-width: 0;
-  color: var(--bgm-text);
-  font-size: 14px;
-  line-height: 22px;
-  overflow-wrap: anywhere;
-}
-
-.settingsRow .actions {
-  flex: none;
-  display: flex;
-  gap: 6px;
-}
-
-.settingsRow .actions .button {
-  height: 24px;
-  padding: 0 10px;
-  font-size: 12px;
-}
-
-.pickerList {
+.dlgPane {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  max-height: 320px;
+  gap: 18px;
+  padding: 20px;
   overflow-y: auto;
+  /* 原先在这里把滚动条重绑到上游 l2 那一档；两级滑块取值本来就相同，
+     令牌层清理时已合并成一枚 `--app-scrollbar-thumb`（`tokens.css`），故不再重绑。 */
 }
 
-.pickerRow {
+.dlgHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+}
+
+.dlgTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--bgm-text-strong);
+}
+
+.dlgSub {
+  margin: 0;
+  font: var(--app-font-sub);
+  line-height: 1.6;
+  color: var(--bgm-text-muted);
+}
+
+/* 右上角的关闭键：28×28、实心 `×`（不是 mask 图标）、透明底。
+   距弹窗右上各 14px，靠绝对定位——它不再参与标题行的高度。 */
+.dlgCloseTop {
+  position: absolute;
+  top: 14px;
+  right: 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border: 0;
-  border-bottom: 1px dotted var(--bgm-dotted);
-  border-radius: 0;
-  background: transparent;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 17px;
+  line-height: 1;
   color: var(--bgm-text-muted);
-  font-size: 14px;
-  line-height: 160%;
+  border: 0;
+  border-radius: var(--app-radius-cell);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
+}
+
+.dlgCloseTop:hover {
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-strong);
+}
+
+/* ---------------------------------------------------------------- 字段 */
+
+.dlgFields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dlgField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+}
+
+.dlgField label {
+  font: var(--app-font-sub);
+  font-weight: 500;
+  color: var(--bgm-text-strong);
+}
+
+.dlgInput {
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  font: var(--app-font-body);
+  color: var(--bgm-text-strong);
+  border: 1px solid var(--bgm-input-border);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface);
+  outline: none;
+  transition: border-color var(--app-dur-fast) var(--app-ease-out), box-shadow var(--app-dur-fast) var(--app-ease-out);
+}
+
+.dlgInput::placeholder {
+  color: var(--bgm-text-disabled);
+}
+
+/* 禁用态（原先挂在 `.modalInput:disabled` 上）：代理地址在「非手动」模式下是**禁用而不是隐藏**，
+   所以要看得出它「在、但不可改」。 */
+.dlgInput:disabled {
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-disabled);
+}
+
+/* 多行字段（原 `textarea.modalInput`）：高度交给内容，允许纵向拉伸。 */
+textarea.dlgInput {
+  height: auto;
+  min-height: 64px;
+  resize: vertical;
+}
+
+.dlgInput:focus {
+  border-color: var(--bgm-primary);
+  box-shadow: 0 0 0 3px var(--app-primary-veil);
+}
+
+/* `margin: 0` 是必需的：`.dlgHint` 是 `<p>`，浏览器默认上下各 1em——
+   那会把字段区与底部动作行推得很开，而 `.dlgPane` 的 gap 才是唯一该管块间距的地方。 */
+.dlgHint {
+  margin: 0;
+  font: var(--app-font-note);
+  line-height: 1.6;
+  color: var(--bgm-text-muted);
+}
+
+.dlgCheck {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  font: var(--app-font-sub);
+  color: var(--bgm-text);
+  cursor: pointer;
+}
+
+.dlgCheck input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--bgm-primary);
+}
+
+.dlgCheck[data-disabled='true'] {
+  color: var(--bgm-text-disabled);
+  cursor: not-allowed;
+}
+
+/* 单选组：横排、可换行；**没有下描边**（旧 `.modalChoiceRow` 自带一条，
+   决策未要求，它会让选项与下面的字段之间多出一道横线）。 */
+.dlgChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.dlgChoice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: var(--app-font-sub);
+  color: var(--bgm-text);
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- 状态行 */
+
+.dlgStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  padding: 11px 13px;
+  font: var(--app-font-sub);
+  color: var(--bgm-text);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface);
+}
+
+.dlgDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--bgm-r-pill);
+  /* 样张漏写这一条：8px 的正圆会被下发的超椭圆曲率压成方形，必须显式退出。 */
+  corner-shape: round;
+  background: var(--bgm-primary);
+}
+
+/* 已配置态：圆点转成功色（原先挂在 `.modalStatus[data-configured] .dot` 上）。 */
+.dlgStatus[data-configured='true'] .dlgDot {
+  background: var(--bgm-success);
+}
+
+/* ---------------------------------------------------------------- 列表型选择 */
+
+.dlgList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  max-height: 260px;
+  overflow-y: auto;
+  /* 原先在这里把滚动条重绑到上游 l2 那一档；两级滑块取值本来就相同，
+     令牌层清理时已合并成一枚 `--app-scrollbar-thumb`（`tokens.css`），故不再重绑。 */
+}
+
+.dlgRow {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-10);
+  padding: var(--app-space-10) 11px;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-cell);
+  background: var(--bgm-surface);
   text-align: left;
   cursor: pointer;
-  transition: var(--bgm-fast);
+  transition: background var(--app-dur-fast) var(--app-ease-out), border-color var(--app-dur-fast) var(--app-ease-out);
 }
 
-.pickerRow:hover {
-  background: var(--bgm-interactive);
-  color: #fff;
+.dlgRow:hover {
+  background: var(--bgm-surface-alt);
 }
 
-.pickerRow:focus-visible {
-  background: var(--bgm-interactive);
-  color: #fff;
+/* 选中行：主色 34% 描边 + 主色 7% 淡底（整行可点，不是右侧一个小按钮）。 */
+.dlgRow[aria-selected='true'] {
+  border-color: color-mix(in srgb, var(--bgm-primary) 34%, transparent);
+  background: color-mix(in srgb, var(--bgm-primary) 7%, var(--bgm-surface));
 }
 
-.pickerRow.selected {
-  color: var(--bgm-primary);
-  font-weight: 700;
-}
-
-.pickerRow.selected:hover {
-  color: #fff;
-}
-
-.pickerRow.selected:focus-visible {
-  color: #fff;
-}
-
-.pickerRow .title {
+.dlgRowMain {
   flex: 1;
   min-width: 0;
+  font: var(--app-font-sub);
+  font-weight: 500;
+  color: var(--bgm-text-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pickerRow .meta {
+.dlgRowMeta {
   flex: none;
+  font: var(--app-font-note);
   color: var(--bgm-text-weak);
-  font-size: 12px;
 }
 
-.pickerRow:hover .meta {
-  color: rgba(255, 255, 255, .88);
+.dlgRowMark {
+  flex: none;
+  font: var(--app-font-note);
+  color: var(--bgm-primary-text);
 }
 
-.pickerRow:focus-visible .meta {
-  color: rgba(255, 255, 255, .88);
+/* ---------------------------------------------------------------- 自绘下拉 */
+
+.dlgCombo {
+  position: relative;
 }
 
-.modalFooter .button {
-  height: 32px;
-  padding: 0 24px;
-  font-size: 14px;
-  line-height: 150%;
+.dlgTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-8);
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  font: var(--app-font-body);
+  text-align: left;
+  color: var(--bgm-text-strong);
+  border: 1px solid var(--bgm-input-border);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface);
+  cursor: pointer;
+  transition: border-color var(--app-dur-fast) var(--app-ease-out), box-shadow var(--app-dur-fast) var(--app-ease-out);
 }
 
-.modalFooter .button.ghost {
-  background: var(--bgm-border-soft);
+.dlgTrigger:hover {
+  border-color: color-mix(in srgb, var(--bgm-primary) 38%, transparent);
+}
+
+.dlgTrigger:focus-visible {
+  outline: none;
+  border-color: var(--bgm-primary);
+  box-shadow: 0 0 0 3px var(--app-primary-veil);
+}
+
+.dlgCaret {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: var(--app-font-tiny);
+  color: var(--bgm-text-muted);
+  pointer-events: none;
+}
+
+.dlgMenu {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: none;
+  padding: 5px;
   border: 1px solid var(--bgm-border-soft);
-  color: #888;
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface);
+  box-shadow: var(--app-shadow-panel);
 }
 
-.modalFooter .button.outline {
-  background: var(--bgm-border-soft);
-  border: 1px solid var(--bgm-border-soft);
-  color: #888;
+.dlgCombo[data-open='true'] .dlgMenu {
+  display: block;
 }
 
-.settingsRow .actions .button.ghost {
-  background: var(--bgm-border-soft);
-  border: 1px solid var(--bgm-border-soft);
-  color: #888;
+.dlgOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-8);
+  width: 100%;
+  padding: 8px 9px;
+  font: var(--app-font-sub);
+  text-align: left;
+  border: 0;
+  border-radius: var(--app-radius-cell);
+  background: none;
+  color: var(--bgm-text);
+  cursor: pointer;
 }
 
-.settingsRow .actions .button.outline {
-  background: var(--bgm-border-soft);
-  border: 1px solid var(--bgm-border-soft);
-  color: #888;
-}
-
-.modalFooter .button.ghost:hover:not(:disabled) {
-  background: var(--bgm-interactive);
-  border-color: var(--bgm-interactive);
-  color: #fff;
-}
-
-.modalFooter .button.outline:hover:not(:disabled) {
-  background: var(--bgm-interactive);
-  border-color: var(--bgm-interactive);
-  color: #fff;
-}
-
-.settingsRow .actions .button.ghost:hover:not(:disabled) {
-  background: var(--bgm-interactive);
-  border-color: var(--bgm-interactive);
-  color: #fff;
-}
-
-.settingsRow .actions .button.outline:hover:not(:disabled) {
-  background: var(--bgm-interactive);
-  border-color: var(--bgm-interactive);
-  color: #fff;
-}
-
-.modalSurface .menuMaterial {
-  opacity: 0;
-  background: rgba(254, 254, 254, .8);
-  backdrop-filter: blur(20px);
-  box-shadow: none;
-}
-
-.modalCheck:hover {
+.dlgOption:hover {
   background: var(--bgm-surface-alt);
 }
 
-.modalCheck input:focus-visible {
-  outline: none;
-  box-shadow: var(--bgm-focus);
+.dlgOption[aria-selected='true'] {
+  color: var(--bgm-primary-text);
+  font-weight: 500;
 }
 
-.modalStatus[data-configured='true'] {
-  border-color: var(--bgm-success-border);
-  background: var(--bgm-success-soft);
-  color: var(--bgm-success-text);
+/* ---------------------------------------------------------------- 底部动作行 */
+
+/* 两端对齐：次要动作靠左、主操作靠右（旧骨架靠 `.note { flex: 1 }` 撑开，
+   那是「用一条空白占位」实现的，语义上不该留那个元素）。 */
+.dlgActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-10);
 }
 
-.modalSurface .button {
+.dlgActionsEnd {
+  justify-content: flex-end;
+}
+
+.dlgBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-4);
+  height: 36px;
+  padding: 0 16px;
+  font: var(--app-font-sub);
+  font-weight: 500;
   border-radius: var(--app-radius-control);
-  transition: background var(--app-dur-fast) var(--app-ease-out), border-color var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out), transform var(--app-dur-instant) var(--app-ease-out);
+  cursor: pointer;
+  transition: border-color var(--app-dur-fast) var(--app-ease-out), background var(--app-dur-fast) var(--app-ease-out);
 }
 
-.modalSurface .button:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.modalSurface .button:focus-visible {
+/* 焦点环只有一个来源（`--bgm-focus`）。新骨架的按钮**不再吃 `.button` 基元**，
+   所以这一条必须由 `.dlgBtn` 自己承担——否则键盘焦点只剩浏览器默认的 outline，
+   与全站「3px 主色 45%」的焦点语汇不一致。 */
+.dlgBtn:focus-visible {
   outline: none;
   box-shadow: var(--bgm-focus);
+}
+
+.dlgBtnGhost {
+  border: 1px solid var(--bgm-border);
+  background: var(--bgm-surface);
+  color: var(--bgm-text-strong);
+}
+
+.dlgBtnGhost:hover {
+  border-color: color-mix(in srgb, var(--bgm-primary) 38%, transparent);
+}
+
+/* 主操作：实心加深档配白字（G01 硬约束），hover 在同一色系里再深一点——
+   **不做抬升、不加阴影**（样张定稿：弹窗内的按钮不参与浮起层的层次语言）。 */
+.dlgBtnPrimary {
+  border: 1px solid transparent;
+  background: var(--bgm-primary-deep);
+  color: var(--bgm-on-accent);
+}
+
+.dlgBtnPrimary:hover {
+  background: color-mix(in srgb, var(--bgm-primary-deep) 88%, #000);
 }

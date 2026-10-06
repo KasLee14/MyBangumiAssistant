@@ -4,6 +4,9 @@
 .starBorder {
   display: inline-block;
   position: relative;
+  /* 厂商默认 20px（不在四档内）。产品侧由消费方传入的组合类
+     `.contentCalloutGlow { border-radius: inherit }` 覆盖成 `.contentCallout` 的档位。
+     本次不改这份拷贝，仅登记（见 G03 的例外清单）。 */
   border-radius: 20px;
   overflow: hidden;
 }
@@ -51,6 +54,7 @@
   font-size: 16px;
   text-align: center;
   padding: 16px 26px;
+  /* 同上：厂商默认 20px，由消费方的组合类覆盖。 */
   border-radius: 20px;
   z-index: 1;
 }
