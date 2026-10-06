@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { AppError } from '../support/errors.js';
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
-import { PROVIDER_CONTENT_SCHEMA, MAX_CONTENT_PARTS, normalizeProviderPart } from '../output/content-schema.js';
+import { CONTENT_OUTPUT_SCHEMA, MAX_CONTENT_PARTS, validateMixedPart } from '../output/content-schema.js';
 import { accessContextSchema, withAccessContext, type AccessContext } from './access-context.js';
 import { candidateCoverageSchema, type CandidateCoverage } from './candidate-contract.js';
 
@@ -60,7 +60,7 @@ const properties: Record<string, JsonSchema> = {
   title: { type: 'string', maxLength: 300 },
 };
 export const candidatePresentationInputSchema: JsonSchema = closed(properties, ['candidate_ref']);
-const tableSchema = PROVIDER_CONTENT_SCHEMA.properties!.content!.items!.anyOf!
+const tableSchema = CONTENT_OUTPUT_SCHEMA.properties!.content!.items!.anyOf!
   .find(branch => branch.properties?.type?.enum?.includes('DataTable'))!;
 const wholePlanSchema = closed({ memberCount: integer(), tablePartsCount: integer(), wholeWireBytes: integer(),
   maxWholeWireBytes: { const: MAX_CANDIDATE_TABLE_WIRE_BYTES }, maxTableParts: { const: MAX_CANDIDATE_TABLE_PARTS },
@@ -118,7 +118,7 @@ export function checkCandidatePresentationResponse(value: unknown, input: Record
     return;
   }
   if (!plan.fit) invalid();
-  try { normalizeProviderPart(response.presentation); } catch { invalid(); }
+  try { validateMixedPart(response.presentation); } catch { invalid(); }
   const rows = response.presentation.props.rows, page = response.page, counts = response.counts;
   if (response.bytes !== Buffer.byteLength(JSON.stringify(response.presentation), 'utf8') || response.bytes > args.max_bytes
     || page.offset !== args.offset || page.limit !== args.limit || page.returnedCount !== rows.length || rows.length > args.limit

@@ -8,12 +8,22 @@ import { sanitizeErrorDiagnostic } from '../support/errors.js';
 import { TOOL_DEFINITIONS } from '../mcp/catalog.js';
 import { outputCheckpoint, attachOutputCheckpoint } from './recovery-checkpoint.js';
 import { validateMixedContent, validateMixedPart, type MixedPart } from './content-schema.js';
+import { deriveNextTypes, contentFingerprint } from './content-normalize.js';
 
-type Mode = 'retry_request' | 'continue_output' | 'repair_component' | 'replan_read' | 'report_failure';
+type Mode = 'retry_request' | 'continue_output' | 'repair_component' | 'regenerate_output' | 'replan_read' | 'report_failure';
 interface Plan { mode: Mode; prefix: MixedPart[]; feedback: string; delayMs: number; errorId: string }
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const mixed = (message: AssistantMessage): MixedPart[] => message.content.filter(part => part.type !== 'thinking' && part.type !== 'toolCall').map(part =>
   part.type === 'text' ? validateMixedPart({ type: 'text', nextType: part.nextType, text: part.text }) : part);
+const connect = (content: AssistantMessage['content']): AssistantMessage['content'] => {
+  const visual = deriveNextTypes(content.filter(part => part.type !== 'thinking' && part.type !== 'toolCall'));
+  let index = 0;
+  return content.map(part => {
+    if (part.type === 'thinking' || part.type === 'toolCall') return part;
+    const connected = visual[index++];
+    return part.type === 'text' ? { ...part, nextType: connected?.type === 'text' ? connected.nextType ?? null : null } : part;
+  });
+};
 
 /** 每个Pi会话独立的宿主恢复状态；只使用原生边界草稿和请求/流适配，不更改前端。 */
 export class RecoveryController {
@@ -76,8 +86,8 @@ export class RecoveryController {
             let mergedFailure = false;
             const message = event.type === 'error' ? event.error : event.type === 'done' ? event.message : event.partial;
             const prefix = plan?.prefix ?? [];
-            const projected = { ...message, content: [...prefix, ...message.content] };
-            if (event.type === 'done' && plan && ['continue_output', 'repair_component', 'report_failure'].includes(plan.mode)) {
+            const projected = { ...message, content: event.type === 'done' ? connect([...prefix, ...message.content]) : [...prefix, ...message.content] };
+            if (event.type === 'done' && plan && ['continue_output', 'repair_component', 'regenerate_output', 'report_failure'].includes(plan.mode)) {
               try {
                 if (message.content.some(part => part.type === 'toolCall')) throw new Error('恢复阶段禁止工具调用。');
                 validateMixedContent({ content: mixed(projected) });
@@ -92,7 +102,7 @@ export class RecoveryController {
                 const diagnostic = createErrorDiagnostic({ code: 'CONTENT_SCHEMA_INVALID', reason: 'recovery_result_invalid', origin: 'content', stage: 'validate', recovery: 'repair_component',
                   issues: [{ path: '/content', rule: 'recovery_contract', message: error instanceof Error ? error.message.slice(0, 300) : '恢复结果不合法' }] });
                 event = { type: 'error', reason: 'error', error: withAssistantDiagnostic({ ...projected, stopReason: 'error', errorMessage: 'CONTENT_OUTPUT_INVALID：恢复结果未通过合并校验。' }, diagnostic) };
-                event.error = attachOutputCheckpoint(event.error, { prefix, jsonComplete: false });
+                event.error = attachOutputCheckpoint(event.error, { prefix, jsonComplete: true, failureScope: 'host' });
                 mergedFailure = true;
               }
             }
@@ -106,7 +116,7 @@ export class RecoveryController {
               const ids = kept.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []);
               if (new Set(ids).size !== ids.length) kept = prefix;
               const failed = attachOutputCheckpoint({ ...raw, content: plan ? [...kept, ...raw.content.filter(part => part.type === 'thinking')] : raw.content },
-                { ...cp, prefix: kept });
+                { ...cp, prefix: kept, ...(cp.failedPartIndex === undefined ? {} : { failedPartIndex: mergedFailure ? cp.failedPartIndex : prefix.length + cp.failedPartIndex }) });
               const diagnostic = assistantErrorDiagnostic(failed);
               const annotated = diagnostic ? withAssistantDiagnostic(failed, { ...diagnostic, evidence: { ...diagnostic.evidence,
                 completedParts: kept.length, completedComponents: kept.filter(part => part.type !== 'text' && part.pending === false).length,
@@ -135,13 +145,16 @@ export class RecoveryController {
   private schedule(message: AssistantMessage, diagnostic: ErrorDiagnostic, targetId: string): SessionBoundaryDraft[] {
     const cp = outputCheckpoint(message), previous = this.plan?.prefix ?? [];
     const prefix = cp.prefix;
-    const failure = hash({ code: diagnostic.code, reason: diagnostic.reason, issues: diagnostic.issues.map(issue => [issue.path, issue.rule]), prefix });
+    const failure = hash({ code: diagnostic.code, reason: diagnostic.reason, issues: diagnostic.issues.map(issue => [issue.path, issue.rule]), prefix: contentFingerprint(prefix) });
     this.noProgress = failure === this.lastFailure ? this.noProgress + 1 : 0; this.lastFailure = failure;
     const policy = this.policy();
     let mode: Mode | undefined;
     if (['continue_output', 'repair_component'].includes(diagnostic.recovery) || diagnostic.recovery === 'correct_parameters' && diagnostic.origin === 'content')
       mode = diagnostic.recovery === 'repair_component' ? 'repair_component' : 'continue_output';
     if (diagnostic.recovery === 'retry_request') mode = prefix.length ? 'continue_output' : 'retry_request';
+    if (cp.failureScope === 'envelope' && diagnostic.origin === 'content') mode = 'regenerate_output';
+    // 供应商网络/限流错误优先使用原诊断的退避策略；空线路断点不能把它改成即时JSON续写。
+    if (cp.failureScope === 'json' && mode && diagnostic.recovery !== 'retry_request') mode = 'continue_output';
     if (!policy.enabled || this.attempts >= policy.maxRetries || this.noProgress >= 2 || !mode || this.stopped || this.plan?.mode === 'report_failure') {
       this.stopped = true; this.pending = false;
       return [{ type: 'context_edit', targetId, replacement: null }, this.record('stopped', diagnostic), {
@@ -150,18 +163,18 @@ export class RecoveryController {
       }];
     }
     // 断点只能推进；已有合法块在后续失败中不能消失或被模型重写。
-    if (previous.length > prefix.length || previous.some((part, index) => JSON.stringify(part) !== JSON.stringify(prefix[index]))) {
+    if (previous.length > prefix.length || contentFingerprint(previous) !== contentFingerprint(prefix.slice(0, previous.length))) {
       this.stopped = true; return [this.record('checkpoint_conflict', diagnostic)];
     }
     this.attempts++;
     const feedback = { schemaVersion: 1, kind: 'host_recovery_feedback', chainId: this.chainId, attempt: this.attempts, maxAttempts: policy.maxRetries,
       error: sanitizeErrorDiagnostic(diagnostic), scope: this.scope,
       checkpoint: { completedParts: prefix.length, resumeAt: prefix.length, errorPathScope: 'last_response_suffix',
-        expectedNextType: prefix.at(-1)?.type === 'text' ? (prefix.at(-1) as Extract<MixedPart, { type: 'text' }>).nextType : null,
+        failureScope: cp.failureScope ?? 'unknown', ...(cp.failedPartIndex === undefined ? {} : { failedPartIndex: cp.failedPartIndex }),
         completedSubjectIds: prefix.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []),
         ...(cp.draft === undefined ? {} : { draft: cp.draft }), jsonComplete: cp.jsonComplete },
       goal: { strategy: mode, instruction: mode === 'retry_request' ? '依据错误恢复当前阶段，保留已完成工具结果及用户范围。'
-        : '只返回断点之后的剩余内容或待修复块及必要后续内容。禁止重复已完成作品，禁止工具调用，输出独立合法content JSON；完成部分由宿主合并。' } };
+        : '只返回resumeAt位置的待修复块及必要后续内容，或尚未完成的后缀。若确实没有剩余内容，返回content空数组作为独立响应结束。禁止重复已完成作品，禁止工具调用，输出独立合法content JSON；完成部分由宿主合并并维护连接状态。' } };
     this.plan = { mode, prefix, feedback: JSON.stringify(feedback), errorId: diagnostic.errorId,
       delayMs: mode === 'retry_request' ? retryDelayMs(policy, this.attempts) : 0 };
     this.pending = true;

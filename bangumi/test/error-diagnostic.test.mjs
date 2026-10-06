@@ -59,6 +59,13 @@ test('真正的组件字段错误定位实际类型与JSON路径，不夹带其�
   assert.equal(d.issues.some(issue => issue.path.includes('nextType')), false);
 });
 
+test('根结构错误与额外组件字段定位区分，JSON Pointer转义字段名', async () => {
+  const root = assistantErrorDiagnostic(await output('{"data":{"content":[]}}'));
+  assert.equal(root.reason, 'content_envelope_invalid'); assert.equal(root.issues[0].path, '/content');
+  const bad = assistantErrorDiagnostic(await output(JSON.stringify({ content: [{ type: 'Callout', props: { tone: 'success', text: '事实', 'extra/~key': 1 } }] })));
+  assert.equal(bad.issues[0].path, '/content/0/props/extra~1~0key');
+});
+
 test('语法、闭合、字节、内容块及嵌套超限分别保留具体原因', async () => {
   const syntax = assistantErrorDiagnostic(await output('{"content":x}'));
   assert.equal(syntax.code, 'CONTENT_JSON_SYNTAX'); assert.equal(typeof syntax.evidence.offset, 'number');

@@ -139,6 +139,8 @@ export class TraceRun {
     const span = this.llm;
     const diagnostic = assistantErrorDiagnostic(message);
     if (diagnostic) this.recordError(diagnostic, span);
+    const normalized = message.diagnostics?.findLast(item => item.type === 'bangumi_output_normalized');
+    if (normalized) this.emit('content.normalized', traceRecord(traceRedact(normalized.details)), span);
     const safe = traceRecord(traceRedact(message));
     const ref = this.payload(safe);
     const thoughts = message.content.filter(part => part.type === 'thinking');

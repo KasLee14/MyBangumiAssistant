@@ -32,6 +32,17 @@ const message = (content, options) => {
     usage: { input: 8, output: 3, cacheRead: 2, cacheWrite: 0, totalTokens: 13, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } };
 };
 
+test('入口规范化单独记录content.normalized，无错误恢复且不记录额外字段值', async t => {
+  const f = await fixture(t);
+  f.faux.setResponses([fauxAssistantMessage(JSON.stringify({ metadata: { opaque: 'ignored-private-value' }, type: 'json_object', content: [{ type: 'text', text: '事实' }] }))]);
+  await f.runtime.session.prompt('规范化记录'); await f.runtime.session.waitForIdle();
+  const run = summaries(f.traceDir).find(item => item.value.purpose === 'agent');
+  const records = events(run.directory), normalized = records.find(item => item.event === 'content.normalized');
+  assert.ok(normalized); assert.equal(records.some(item => item.event === 'error.diagnostic'), false);
+  assert.equal(JSON.stringify(normalized).includes('ignored-private-value'), false);
+  assert.ok(normalized.data.adjustments.some(item => item.path === '/metadata'));
+});
+
 function summaries(root) {
   try { return readdirSync(root, { recursive: true }).filter(file => file.endsWith('summary.json')).map(file => {
     const path = join(root, file);

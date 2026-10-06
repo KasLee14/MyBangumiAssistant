@@ -219,7 +219,9 @@ test('字节、数量、提前占位和嵌套上限在流中生效', () => {
   const parts = Array.from({ length: MAX_CONTENT_PARTS + 1 }, () => ({ type: 'text', nextType: 'text', text: 'a' }));
   assert.throws(() => new ContentDecoder().feed(JSON.stringify({ content: parts })), error => error.code === 'size');
   const placeholders = Array.from({ length: MAX_CONTENT_PARTS }, (_, index) => ({ type: 'text', nextType: index === MAX_CONTENT_PARTS - 1 ? 'StatsCard' : 'text', text: 'a' }));
-  assert.throws(() => new ContentDecoder().feed(JSON.stringify({ content: placeholders })), error => error.code === 'size');
+  assert.throws(() => new ContentDecoder({ mode: 'canonical' }).feed(JSON.stringify({ content: placeholders })), error => error.code === 'size');
+  const provider = new ContentDecoder(); provider.feed(JSON.stringify({ content: placeholders }));
+  assert.equal(provider.finish().content.length, MAX_CONTENT_PARTS);
   assert.throws(() => new ContentDecoder().feed('['.repeat(65)), error => error.code === 'size');
 });
 

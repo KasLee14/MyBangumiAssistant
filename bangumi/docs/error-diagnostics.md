@@ -39,3 +39,5 @@ Pi助手错误使用原生`diagnostics`中的`bangumi_error`条目，MCP安全�
 ## 验证
 
 `error-diagnostic.test.mjs`覆盖完整121张卡片遇length、未知请求额度、字段路径、语法和容量、原因链、候选契约、HTTP阶段与写入未知；`native-web-content.test.mjs`覆盖宿主实际SSE及历史恢复；`tracing.test.mjs`覆盖trace关联、原文保存及脱敏。验收通过typecheck、完整MCP回归及字段文档同步检查。
+
+模型入口与内部组件校验分离：根结构错误使用content_envelope_invalid及/content路径；组件字段错误定位到实际字段，required和additionalProperties补全JSON Pointer并转义斜线/波浪号。可确定的外层投影和状态字段派生记为bangumi_output_normalized，trace事件为content.normalized，不作为失败或模型恢复触发条件。规范化记录只含有界脱敏路径/规则，不保存额外字段值。

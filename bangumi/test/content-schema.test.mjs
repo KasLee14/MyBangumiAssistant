@@ -1,9 +1,10 @@
+import { PROVIDER_CONTENT_SCHEMA, CONTENT_OUTPUT_INSTRUCTION, normalizeProviderContent, normalizeProviderPart } from '../dist/src/output/provider-content.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  CONTENT_OUTPUT_SCHEMA, PROVIDER_CONTENT_SCHEMA, CONTENT_OUTPUT_INSTRUCTION,
+  CONTENT_OUTPUT_SCHEMA,
   MAX_CONTENT_BYTES, MAX_CONTENT_PARTS, ContentOutputError, COMPONENT_KINDS,
-  validateMixedContent, validateMixedPart, normalizeProviderContent, normalizeProviderPart,
+  validateMixedContent, validateMixedPart,
   normalizePartialComponentProps,
 } from '../dist/src/output/content-schema.js';
 import { registry, sectionsModule, validateMessageBlock, providerPart } from './frontend-content-fixture.mjs';
@@ -35,15 +36,17 @@ test('12 种展示库主/空示例原样作为 props，TagCloud 直接使用数�
   }
 });
 
-test('生成与前端使用同一份13分支契约，保留 pending、对象行和可选字段', () => {
-  assert.equal(PROVIDER_CONTENT_SCHEMA, CONTENT_OUTPUT_SCHEMA);
+test('生成与内部契约分离，13分支复用严格载荷，状态由宿主生成', () => {
+  assert.notEqual(PROVIDER_CONTENT_SCHEMA, CONTENT_OUTPUT_SCHEMA);
+  assert.deepEqual(PROVIDER_CONTENT_SCHEMA.properties.content.items.anyOf[0].required, ['type', 'text']);
   const branches = PROVIDER_CONTENT_SCHEMA.properties.content.items.anyOf;
   assert.equal(branches.length, 13);
   assert.deepEqual(branches.map(branch => branch.properties.type.enum[0]), ['text', ...COMPONENT_KINDS]);
   assert.deepEqual(Object.keys(branches[0].properties), ['type', 'nextType', 'text']);
   for (const branch of branches.slice(1)) {
-    assert.deepEqual(Object.keys(branch.properties), ['type', 'pending', 'props']);
-    assert.deepEqual(branch.properties.pending.enum, [false]);
+    assert.deepEqual(Object.keys(branch.properties), ['type', 'props']);
+    assert.deepEqual(branch.required, ['type', 'props']);
+    assert.deepEqual(branch.properties.props, CONTENT_OUTPUT_SCHEMA.properties.content.items.anyOf.find(item => item.properties.type.enum[0] === branch.properties.type.enum[0]).properties.props);
   }
   const visit = schema => {
     if (schema.type === 'object') {
@@ -59,7 +62,7 @@ test('生成与前端使用同一份13分支契约，保留 pending、对象行�
   assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes(JSON.stringify(PROVIDER_CONTENT_SCHEMA)));
 });
 
-test('完整组件必须有 pending:false，可选未知字段省略且不转换类型', () => {
+test('内部组件必须完成，模型状态字段不控制完成，载荷不转换类型', () => {
   for (const type of ['subjects', 'stats', 'progress', 'infobox', 'table', 'timeline', 'tags', 'gallery', 'compare', 'quote', 'callout', 'links']) {
     assert.throws(() => normalizeProviderPart({ type, props: {} }), ContentOutputError);
   }
@@ -68,13 +71,12 @@ test('完整组件必须有 pending:false，可选未知字段省略且不转换
     { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: false } });
   for (const value of [
     { type: 'QuoteBlock', pending: false, props: { text: null, mono: false } },
-    { type: 'QuoteBlock', props: { text: '引文', mono: false } },
     { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: 'false' } },
     { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: false, arbitrary: true } },
     { type: 'QuoteBlock', pending: false, props: { title: null, text: '引文', mono: false } },
     { type: 'QuoteBlock', pending: false, quote: { text: '引文', mono: false } },
-    { type: 'QuoteBlock', pending: true, props: { text: '引文', mono: false } },
   ]) assert.throws(() => normalizeProviderPart(value), ContentOutputError);
+  for (const pending of [undefined, true, false, 'false']) assert.deepEqual(normalizeProviderPart({ type: 'QuoteBlock', ...(pending === undefined ? {} : { pending }), props: { text: '引文', mono: false } }), { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: false } });
   assert.throws(() => validateMixedPart({ type: 'text', nextType: null, text: 'hello', id: 1 }), ContentOutputError);
   assert.throws(() => validateMixedPart({ type: 'rend', props: {} }), ContentOutputError);
   assert.throws(() => validateMixedPart({ type: 'QuoteBlock', pending: true, props: { text: 'x', mono: false } }), ContentOutputError);

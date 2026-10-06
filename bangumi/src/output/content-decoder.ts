@@ -1,10 +1,13 @@
 import {
   ContentOutputError, MAX_CONTENT_BYTES, MAX_CONTENT_PARTS,
-  normalizeProviderContent, normalizeProviderPart,
   normalizePartialComponentProps, validateMixedContent, validateMixedPart,
   isComponentKind, isContentKind,
   type MixedContent, type MixedPart, type TextPart, type CompleteComponentPart, type ComponentKind,
 } from './content-schema.js';
+import { normalizeProviderContent, normalizeProviderPart, type OutputAdjustment } from './provider-content.js';
+import { deriveNextTypes } from './content-normalize.js';
+import type { FailureScope } from './recovery-checkpoint.js';
+import { credentialValues, redact } from '../support/errors.js';
 
 export type ContentDelta =
   | { type: 'text'; index: number; delta: string }
@@ -37,6 +40,8 @@ export class ContentDecoder {
   private ended = false;
   private failure: Error | null = null;
   private readonly parts: MixedPart[] = [];
+  private readonly predicted = new Map<number, ComponentKind>();
+  private readonly adjustments: OutputAdjustment[] = [];
   private completedCount = 0;
   private readonly emittedText = new Map<number, number>();
   private output: ContentDelta[] = [];
@@ -68,16 +73,30 @@ export class ContentDecoder {
 
   /** 有序快照包括提前占位、已闭合 props 字段及可安全展示的文字。 */
   snapshot(): MixedContent {
-    return clone({ content: this.parts });
+    const content = [...this.parts];
+    for (const [index, kind] of this.predicted) if (!content[index]) content[index] = kind === 'TagCloud'
+      ? { type: kind, pending: true, props: [] } : { type: kind, pending: true, props: {} };
+    return clone({ content });
+  }
+  normalizationAdjustments(): OutputAdjustment[] { return clone(this.adjustments); }
+  private adjustment(value: OutputAdjustment): void {
+    if (this.adjustments.length < 8 && !this.adjustments.some(item => item.path === value.path && item.rule === value.rule))
+      this.adjustments.push({ ...value, path: redact(value.path, credentialValues()).slice(0, 300) });
   }
   diagnosticState(): { bytes: number; completedParts: number; jsonComplete: boolean } {
     return { bytes: this.byteLength, completedParts: this.completedCount, jsonComplete: this.rootComplete && this.frames.length === 0 && this.token === null };
   }
-  recoveryCheckpoint(): { prefix: MixedPart[]; draft?: unknown; jsonComplete: boolean } {
+  recoveryCheckpoint(): { prefix: MixedPart[]; draft?: unknown; jsonComplete: boolean; failureScope: FailureScope; failedPartIndex?: number } {
     let draft: unknown;
     try { draft = (JSON.parse(this.raw) as { content?: unknown[] }).content?.[this.completedCount]; }
     catch { draft = this.parts[this.completedCount] ?? this.frames.find(frame => isPartPath(frame.path) && frame.path[1] === this.completedCount)?.value; }
-    return { prefix: clone(this.parts.slice(0, this.completedCount)), jsonComplete: this.diagnosticState().jsonComplete,
+    const error = this.failure instanceof ContentOutputError ? this.failure : undefined;
+    const path = error?.issueDetails[0]?.path ?? '';
+    const failedPartIndex = Number(path.match(/^\/content\/(\d+)(?:\/|$)/)?.[1]);
+    const failureScope: FailureScope = error?.code === 'size' ? 'capacity' : error?.code === 'syntax' || error?.code === 'truncated' ? 'json'
+      : Number.isInteger(failedPartIndex) ? 'part' : error?.reason === 'content_envelope_invalid' ? 'envelope' : 'host';
+    return { prefix: clone(this.parts.slice(0, this.completedCount)), jsonComplete: this.diagnosticState().jsonComplete, failureScope,
+      ...(Number.isInteger(failedPartIndex) ? { failedPartIndex } : {}),
       ...(draft === undefined ? {} : { draft: clone(draft) }) };
   }
   private locate(error: unknown): Error {
@@ -93,8 +112,11 @@ export class ContentDecoder {
     try {
       if (this.token?.kind === 'number' || this.token?.kind === 'literal') this.finishScalar();
       if (this.token || this.frames.length || !this.rootComplete) this.fail('incomplete', '混合内容 JSON 未完整结束');
-      const answer = this.mode === 'provider' ? normalizeProviderContent(this.root) : validateMixedContent(this.root);
-      if (this.completedCount !== answer.content.length || JSON.stringify(answer) !== JSON.stringify({ content: this.parts })) this.fail('schema', '增量结果与完整响应不一致');
+      const answer = this.mode === 'provider' ? normalizeProviderContent(this.root, adjustment => this.adjustment(adjustment)) : validateMixedContent(this.root);
+      const actual = this.mode === 'provider' ? deriveNextTypes(this.parts.slice(0, this.completedCount)) : this.parts;
+      if (this.completedCount !== answer.content.length || JSON.stringify(answer.content) !== JSON.stringify(actual)) this.fail('schema', '增量结果与完整响应不一致');
+      this.parts.splice(0, this.parts.length, ...answer.content);
+      this.predicted.clear();
       this.ended = true;
       return clone(answer);
     } catch (error) {
@@ -287,7 +309,10 @@ export class ContentDecoder {
     const existing = this.parts[index];
     if (existing && existing.type !== type) this.fail('schema', `content[${index}] 与提前声明的组件类型不一致`);
     const previous = this.parts[index - 1];
-    if (previous?.type === 'text' && previous.nextType !== type) {
+    if (previous?.type === 'text' && previous.nextType !== type && this.mode === 'provider') {
+      this.adjustment({ path: `/content/${index - 1}/nextType`, rule: 'derived_next_type' });
+      this.update(index - 1, { ...previous, nextType: type });
+    } else if (previous?.type === 'text' && previous.nextType !== type) {
       throw new ContentOutputError('nextType 与实际下一项类型不一致', 'schema', [],
         [{ path: `/content/${index - 1}/nextType`, rule: 'next_type', message: '声明的下一类型与实际内容不一致', expected: type }], 'next_type_mismatch');
     }
@@ -297,10 +322,19 @@ export class ContentDecoder {
     if (index > this.parts.length) this.fail('schema', '内容块序列出现空缺');
     if (JSON.stringify(this.parts[index]) === JSON.stringify(part)) return;
     this.parts[index] = part;
+    this.predicted.delete(index);
     this.output.push({ type: 'update', index, part: clone(part) });
   }
 
   private reserve(index: number, kind: ComponentKind): void {
+    if (this.mode === 'provider') {
+      if (index >= MAX_CONTENT_PARTS || this.parts[index]) return;
+      if (this.predicted.get(index) === kind) return;
+      this.predicted.set(index, kind);
+      this.output.push({ type: 'update', index, part: kind === 'TagCloud'
+        ? { type: kind, pending: true, props: [] } : { type: kind, pending: true, props: {} } });
+      return;
+    }
     if (index >= MAX_CONTENT_PARTS) this.fail('size', '提前声明的组件超过内容数量上限');
     const existing = this.parts[index];
     if (existing) {
@@ -323,7 +357,10 @@ export class ContentDecoder {
     if (kind === 'text') {
       const declared = frame.value.nextType;
       const hasDeclared = Object.hasOwn(frame.value, 'nextType');
-      if (hasDeclared && declared !== null && !isContentKind(declared)) this.fail('schema', 'nextType 必须是已知内容类型或 null');
+      if (hasDeclared && declared !== null && !isContentKind(declared)) {
+        if (this.mode === 'canonical') this.fail('schema', 'nextType 必须是已知内容类型或 null');
+        this.adjustment({ path: `/content/${index}/nextType`, rule: 'derived_next_type' });
+      }
       const nextType = isContentKind(declared) ? declared : null;
       const previous = this.parts[index];
       this.update(index, { type: 'text', nextType, text: previous?.type === 'text' ? previous.text : '' });
@@ -343,7 +380,7 @@ export class ContentDecoder {
 
   private completePart(index: number, value: unknown): void {
     let part;
-    try { part = this.mode === 'provider' ? normalizeProviderPart(value) : validateMixedPart(value); }
+    try { part = this.mode === 'provider' ? normalizeProviderPart(value, adjustment => this.adjustment({ ...adjustment, path: `/content/${index}${adjustment.path}` })) : validateMixedPart(value); }
     catch (error) { if (error instanceof ContentOutputError) throw error.at(`/content/${index}`); throw error; }
     this.assertIndex(index, part.type);
     if (part.type === 'text') {
@@ -358,6 +395,7 @@ export class ContentDecoder {
       this.output.push({ type: 'component', index, part: clone(part) });
     }
     this.parts[index] = part;
+    this.predicted.delete(index);
     this.completedCount++;
   }
 }

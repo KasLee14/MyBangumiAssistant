@@ -1,7 +1,8 @@
+import { PROVIDER_CONTENT_SCHEMA, normalizeProviderContent } from '../dist/src/output/provider-content.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { shouldUseMixedContent, withContentConstraint } from '../dist/src/output/provider-options.js';
-import { CONTENT_OUTPUT_SYSTEM_MARKER, PROVIDER_CONTENT_SCHEMA, ContentOutputError } from '../dist/src/output/content-schema.js';
+import { CONTENT_OUTPUT_SYSTEM_MARKER, ContentOutputError } from '../dist/src/output/content-schema.js';
 import { COMPONENT_SELECTION_INSTRUCTION, validateRequiredComponents } from '../dist/src/output/component-selection.js';
 import { createBangumiExtension } from '../dist/src/extension.js';
 

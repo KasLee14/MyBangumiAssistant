@@ -11,7 +11,9 @@ const summaries: Record<string, string> = {
 /** 仅宿主接口投影：返回脱敏的结构化诊断，不生成前端详情布局或动作。 */
 export function assistantErrorView(message: AssistantMessage): { text: string; diagnostic?: ErrorDiagnostic } {
   const diagnostic = assistantErrorDiagnostic(message);
-  return { text: diagnostic && summaries[diagnostic.code] ? `${diagnostic.code}：${summaries[diagnostic.code]}` : redact(message.errorMessage ?? '模型请求失败。', credentialValues()),
+  const summary = diagnostic?.code === 'CONTENT_SCHEMA_INVALID' && diagnostic.reason === 'content_envelope_invalid'
+    ? '模型输出根结构不合法，必须包含 content 数组。' : diagnostic && summaries[diagnostic.code];
+  return { text: diagnostic && summary ? `${diagnostic.code}：${summary}` : redact(message.errorMessage ?? '模型请求失败。', credentialValues()),
     ...(diagnostic ? { diagnostic: sanitizeErrorDiagnostic(correlatedDiagnostic(diagnostic)) } : {}) };
 }
 export function exceptionErrorView(error: unknown): { text: string; diagnostic?: ErrorDiagnostic } {

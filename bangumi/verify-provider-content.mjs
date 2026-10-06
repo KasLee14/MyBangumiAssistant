@@ -6,7 +6,8 @@ import { SessionManager } from '@earendil-works/pi-coding-agent';
 import { createBangumiRuntime } from './dist/src/pi-host.js';
 import { createPiTransport } from './dist/src/pi-transport.js';
 import { policyFor } from './dist/src/support/proxy.js';
-import { CONTENT_OUTPUT_INSTRUCTION, validateMixedContent } from './dist/src/output/content-schema.js';
+import { validateMixedContent } from './dist/src/output/content-schema.js';
+import { CONTENT_OUTPUT_INSTRUCTION } from './dist/src/output/provider-content.js';
 import { COMPONENT_SELECTION_INSTRUCTION } from './dist/src/output/component-selection.js';
 
 const args = process.argv.slice(2);

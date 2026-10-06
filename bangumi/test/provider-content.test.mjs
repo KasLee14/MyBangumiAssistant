@@ -1,3 +1,4 @@
+import { PROVIDER_CONTENT_SCHEMA, normalizeProviderContent } from '../dist/src/output/provider-content.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -11,7 +12,7 @@ import { createBangumiExtension } from '../dist/src/extension.js';
 import { parseLauncherArgs } from '../dist/src/launcher.js';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { AppError } from '../dist/src/support/errors.js';
-import { CONTENT_OUTPUT_SYSTEM_MARKER, PROVIDER_CONTENT_SCHEMA, normalizeProviderContent } from '../dist/src/output/content-schema.js';
+import { CONTENT_OUTPUT_SYSTEM_MARKER } from '../dist/src/output/content-schema.js';
 
 const textPart = (text, nextType = null) => ({ type: 'text', nextType, text });
 const normalized = { content: [
@@ -36,6 +37,54 @@ function recoveryFeedback(context) {
 }
 const recoveryRecords = f => f.manager.getBranch().filter(entry => entry.type === 'custom' && entry.customType === 'bangumi/recovery').map(entry => entry.data);
 const rawLastAssistant = f => f.manager.getBranch().findLast(entry => entry.type === 'message' && entry.message.role === 'assistant').message;
+
+test('合法正文带外层元数据一次完成，不启动恢复；状态字段由宿主生成', async t => {
+  const wire = { type: 'json_object', metadata: { note: '不消费元数据' }, content: [
+    { type: 'text', text: '周历', nextType: 'StatsCard' },
+    { type: 'DataTable', pending: true, props: { columns: [{ key: 'day', label: '星期' }], rows: [{ day: '周一' }] } },
+    { type: 'text', text: '说明', nextType: 'LinkList' },
+  ] };
+  const f = await fixture(t, [nativeMessage(JSON.stringify(wire))]);
+  await f.runtime.session.prompt('帮我整理一下我在看的本季度新番的播出时间，整理成一个表格，展现周一到周日每天有哪些动画更新。同一天更新的动画放到同一行');
+  const last = rawLastAssistant(f);
+  assert.equal(last.stopReason, 'stop'); assert.equal(f.faux.state.callCount, 1);
+  assert.deepEqual(last.content.map(part => part.type), ['text', 'DataTable', 'text']);
+  assert.equal(last.content[0].nextType, 'DataTable'); assert.equal(last.content[1].pending, false); assert.equal(last.content[2].nextType, null);
+  assert.equal(recoveryRecords(f).length, 0); assert.ok(last.diagnostics.some(item => item.type === 'bangumi_output_normalized'));
+});
+
+test('已完成末段声明结束也可续接合法后缀，不改写前缀事实', async t => {
+  const first = textPart('保留前缀');
+  const f = await fixture(t, [nativeMessage('{"content":[' + JSON.stringify(first) + ',{"type":"text","text":"未闭合', { stopReason: 'length' }), context => {
+    const feedback = recoveryFeedback(context); assert.equal(feedback.checkpoint.resumeAt, 1);
+    assert.equal(feedback.checkpoint.failureScope, 'json'); assert.equal('expectedNextType' in feedback.checkpoint, false);
+    return nativeMessage(JSON.stringify({ content: [{ type: 'text', text: '合法后缀' }] }));
+  }]);
+  await f.runtime.session.prompt('测试文本续接');
+  const last = rawLastAssistant(f); assert.equal(last.stopReason, 'stop');
+  assert.deepEqual(last.content, [textPart('保留前缀', 'text'), textPart('合法后缀')]); assert.equal(f.faux.state.callCount, 2);
+});
+
+test('仅JSON尾部缺失时用独立空后缀完成，不丢失已交付内容', async t => {
+  const first = textPart('已经交付');
+  const f = await fixture(t, [nativeMessage('{"content":[' + JSON.stringify(first), { stopReason: 'length' }), nativeMessage('{"content":[]}')]);
+  await f.runtime.session.prompt('测试JSON尾部恢复');
+  assert.equal(rawLastAssistant(f).stopReason, 'stop'); assert.deepEqual(rawLastAssistant(f).content, [first]); assert.equal(f.faux.state.callCount, 2);
+});
+
+test('多个文字源的错误索引投影到同一后缀坐标，保留之前完整源', async t => {
+  const first = textPart('第一个源的事实');
+  const bad = { type: 'Callout', props: { tone: 'wrong', text: '坏字段' } };
+  const fixed = { type: 'Callout', pending: false, props: { tone: 'success', text: '修复后' } };
+  const response = nativeMessage([fauxText(JSON.stringify({ content: [first] })), fauxThinking('原生思考'), fauxText(JSON.stringify({ content: [bad] }))]);
+  const f = await fixture(t, [response, context => {
+    const feedback = recoveryFeedback(context); assert.equal(feedback.checkpoint.resumeAt, 1); assert.equal(feedback.checkpoint.failedPartIndex, 1);
+    assert.ok(feedback.error.issues.some(issue => issue.path === '/content/1/props/tone'));
+    return nativeMessage(JSON.stringify({ content: [fixed] }));
+  }]);
+  await f.runtime.session.prompt('测试多个文字源恢复');
+  assert.equal(rawLastAssistant(f).stopReason, 'stop'); assert.deepEqual(rawLastAssistant(f).content, [textPart(first.text, 'Callout'), fixed]);
+});
 
 test('长度截断保留50张卡片，模型收到断点后只补71张且完整结果无重复', async t => {
   const cards = (first, count) => ({ type: 'SubjectCards', pending: false, props: { layout: 'list', items: Array.from({ length: count }, (_, index) => ({ id: first + index, name: `模拟作品${first + index}`, kind: 'anime' })) } });

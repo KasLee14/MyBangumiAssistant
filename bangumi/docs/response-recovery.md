@@ -6,9 +6,9 @@
 
 失败原记录保留在原始历史，模型投影省略该记录并追加`bangumi/recovery-feedback`。反馈含诊断、attempt/maxAttempts、冻结的候选引用和scope、已完成块数、resumeAt、已交付作品ID、待修复对象草稿及恢复目标。宿主系统section明确反馈/草稿仅为数据，仍输出独立合法content JSON，不续写原始JSON字符串。
 
-`bangumi_output_checkpoint`只包含完整且已校验的前缀和待修复对象数据，不复制思考、签名、凭据或原始JSON线路。错误落在已闭合text的nextType时回退至该text块。未闭合文本不作为完成事实；草稿保留可读部分供模型重建。
+`bangumi_output_checkpoint`只包含完整且已校验的前缀和待修复对象数据，不复制思考、签名、凭据或原始JSON线路。v2断点补充schemaVersion、resumeAt、failureScope（envelope/part/json/transport/capacity/host）和可定位的failedPartIndex；旧断点信息缺失按未知处理。预测占位不属于prefix。未闭合文本不作为完成事实；草稿保留可读部分供模型重建。
 
-输出截断/JSON未闭合续接未完成后缀；字段错误仅修复该后缀。展示恢复暂时撤去工具声明，终结输出还检查工具调用，越权工具调用不会执行。恢复结果验证完整Schema、跨边界nextType及已交付ID去重；已由prepare_candidate_output提供完整卡片集合时，额外检查成员不增加或遗漏。
+输出截断/JSON未闭合续接未完成后缀；字段错误从待修复块开始返回必要后续内容。确无剩余内容时可返回独立content空数组。根结构无法投影时重新生成输出，不按组件错误盲目追加；原始JSON语法损坏仍失败。入口规范化成功直接完成，不触发恢复。网络/限流原诊断优先使用原退避策略，不能被空JSON断点改成即时续写。展示恢复暂时撤去工具声明，终结输出还检查工具调用，越权工具调用不会执行。恢复结果合并后由宿主重新生成跨边界nextType，再验证内部完整Schema及已交付ID去重；前缀保护和无进展比较基于真实内容指纹，派生连接字段更新不算事实改写；已由prepare_candidate_output提供完整卡片集合时，额外检查成员不增加或遗漏。
 
 单个上游响应即使以length结束，只要原始JSON完整闭合、全部块完成且通过完整内容契约，就直接收束为stop并保留rawStopReason及bangumi_output_finalized，不重新生成合法完整响应。
 
@@ -29,3 +29,5 @@ bangumi/recovery记录scheduled/running/recovered/reported/stopped/cancelled及�
 ## 验收
 
 provider-content定向测试覆盖50+71卡片、只补尾部、坏字段局部修复、禁止工具、重复交付、跨工具预算、取消、MCP反馈、新任务清理、认证、未知写入及额度拒绝；native-web-content覆盖实际SSE同ID更新及停止后历史恢复；Pi retry测试验证宿主接管时不叠加通用重试。真实模型验收仅使用模拟事实，不调用Bangumi账户或写入工具。
+
+反馈不再把expectedNextType作为模型硬约束；提供resumeAt、failureScope、错误路径、草稿、已完成作品ID及原范围。jsonComplete仅说明原始JSON闭合，不证明内容或任务完整。完成块的连接字段可以随后缀重新推导，文本、类型、props及顺序仍必须保留。

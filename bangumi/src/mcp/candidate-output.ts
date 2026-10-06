@@ -1,5 +1,5 @@
 import { AppError } from '../support/errors.js';
-import { MAX_CONTENT_PARTS, normalizeProviderContent, normalizeProviderPart, validateMixedContent } from '../output/content-schema.js';
+import { MAX_CONTENT_PARTS, validateMixedContent, validateMixedPart } from '../output/content-schema.js';
 import { ContentDecoder } from '../output/content-decoder.js';
 import type { AccessContext } from './access-context.js';
 import type { CandidateCoverage, CandidateRow } from './candidate-contract.js';
@@ -169,8 +169,8 @@ export function prepareCandidateOutput(store: CandidateStore, input: CandidateOu
   content.push(...components, ...textParts);
   const presentation = { content }, wholePlan = plan(set.rows.length, content.length, bytes(presentation));
   if (!wholePlan.fit) return receipt(wholePlan);
-  for (const part of content) normalizeProviderPart(part);
-  validateMixedContent(normalizeProviderContent(presentation));
+  for (const part of content) validateMixedPart(part);
+  validateMixedContent(presentation);
   const decoder = new ContentDecoder(); decoder.feed(JSON.stringify(presentation)); validateMixedContent(decoder.finish());
   const response: CandidateOutputResponse = { ...common, kind: 'candidate_output', presentation, bytes: wholePlan.wholeWireBytes, wholePlan,
     counts: { memberCount: set.rows.length, preparedCount: set.rows.length, remainingCount: 0, unknownFieldCount } };

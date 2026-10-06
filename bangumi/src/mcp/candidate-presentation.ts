@@ -1,5 +1,5 @@
 import { AppError } from '../support/errors.js';
-import { normalizeProviderPart } from '../output/content-schema.js';
+import { validateMixedPart } from '../output/content-schema.js';
 import type { AccessContext } from './access-context.js';
 import type { CandidateRow } from './candidate-contract.js';
 import { CandidateStore, candidateStage, summarizeCandidateCoverage, type CandidateBinding, type CandidateSet } from './candidate-store.js';
@@ -169,7 +169,7 @@ export function prepareCandidateTable(store: CandidateStore, input: CandidatePre
     presentation.props.rows.push(values); actualBytes = nextBytes;
     unknownFieldCount += prepared.unknown[index]!;
   }
-  normalizeProviderPart(presentation);
+  validateMixedPart(presentation);
   const preparedCount = presentation.props.rows.length, next = args.offset + preparedCount, complete = next === set.rows.length;
   const response: CandidatePresentationResponse = { ...common, kind: 'candidate_table', presentation, bytes: actualBytes,
     counts: { memberCount: set.rows.length, preparedCount, remainingCount: set.rows.length - next, unknownFieldCount },

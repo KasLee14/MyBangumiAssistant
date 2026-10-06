@@ -21,7 +21,7 @@ export class ContentOutputError extends Error {
   }
 }
 
-type Schema = {
+export type Schema = {
   type?: string;
   properties?: Record<string, Schema>;
   required?: string[];
@@ -43,7 +43,7 @@ const object = (properties: Record<string, Schema>, required: string[] = Object.
 });
 
 /** 同一份组件规则用于 provider schema、完整校验及已闭合字段的部分校验。 */
-const payloads: Record<ComponentKind, Schema> = {
+export const COMPONENT_PAYLOAD_SCHEMAS: Record<ComponentKind, Schema> = {
   SubjectCards: object({
     title: str, layout: choice('grid', 'list'), total: num, hint: str,
     items: array(object({
@@ -83,6 +83,7 @@ const payloads: Record<ComponentKind, Schema> = {
   Callout: object({ tone: choice('progress', 'success', 'warning', 'error'), text: str, detail: str }, ['tone', 'text']),
   LinkList: object({ title: str, links: array(object({ label: str, url, hint: str }, ['label', 'url']), 50) }, ['links']),
 };
+const payloads = COMPONENT_PAYLOAD_SCHEMAS;
 const textSchema = object({ type: choice('text'), nextType: { anyOf: [choice('text', ...COMPONENT_KINDS), { type: 'null' }] }, text: str });
 const partSchema: Schema = { anyOf: [textSchema, ...COMPONENT_KINDS.map(kind => object({
   type: choice(kind), pending: { type: 'boolean', enum: [false] }, props: payloads[kind],
@@ -90,8 +91,7 @@ const partSchema: Schema = { anyOf: [textSchema, ...COMPONENT_KINDS.map(kind => 
 /** 正式结果 schema：占位不属于完整结果，pending 必须为 false。 */
 export const CONTENT_OUTPUT_SCHEMA = object({ content: array(partSchema, MAX_CONTENT_PARTS) });
 
-/** 生成、convertToLlm 回放、持久化和前端使用同一份内容契约。 */
-export const PROVIDER_CONTENT_SCHEMA = CONTENT_OUTPUT_SCHEMA;
+/** 宿主生成、MCP回执、持久化和前端使用严格的内部内容契约。 */
 const ajv = new Ajv({ strict: true, allErrors: true, coerceTypes: false, removeAdditional: false, useDefaults: false });
 // 根结构与具体组件分开检查，避免 anyOf 其他12个分支的噪音掩盖真实字段错误。
 const checkContent = ajv.compile(object({ content: array({}, MAX_CONTENT_PARTS) }));
@@ -107,7 +107,8 @@ function checkSize(value: unknown): void {
 }
 function invalid(errors: ErrorObject[] | null | undefined, value?: unknown): never {
   const details: DiagnosticIssue[] = (errors ?? []).slice(0, 8).map(issue => {
-    const path = issue.keyword === 'required' ? `${issue.instancePath}/${String(issue.params.missingProperty)}` : issue.instancePath;
+    const field = issue.keyword === 'required' ? issue.params.missingProperty : issue.keyword === 'additionalProperties' ? issue.params.additionalProperty : undefined;
+    const path = field === undefined ? issue.instancePath : `${issue.instancePath}/${String(field).replaceAll('~', '~0').replaceAll('/', '~1')}`;
     let actual = value;
     for (const token of path.split('/').slice(1)) actual = actual !== null && typeof actual === 'object'
       ? (actual as Record<string, unknown>)[token.replaceAll('~1', '/').replaceAll('~0', '~')] : undefined;
@@ -183,7 +184,8 @@ export function normalizePartialComponentProps(kind: ComponentKind, value: unkno
     tableKeys(source.columns, '/columns');
   }
   for (const [field, raw] of Object.entries(source)) {
-    if (!Object.hasOwn(spec.properties!, field)) throw new ContentOutputError(`${kind}.props 包含未知字段 ${field}`);
+    if (!Object.hasOwn(spec.properties!, field)) throw new ContentOutputError(`${kind}.props 包含未知字段`, 'schema', [],
+      [{ path: `/${field.replaceAll('~', '~0').replaceAll('/', '~1')}`, rule: 'additionalProperties', message: 'props包含未允许的字段' }]);
     const child = spec.properties![field]!;
     const key = `${kind}:${field}`;
     let check = fieldChecks.get(key);
@@ -230,23 +232,4 @@ export function validateMixedContent(value: unknown): MixedContent {
   return answer;
 }
 
-export function normalizeProviderPart(value: unknown): MixedPart {
-  return validateMixedPart(value);
-}
-export function normalizeProviderContent(value: unknown): MixedContent {
-  return validateMixedContent(value);
-}
-
 export const CONTENT_OUTPUT_SYSTEM_MARKER = '[bangumi-provider-content-v2]';
-export const CONTENT_OUTPUT_INSTRUCTION = `${CONTENT_OUTPUT_SYSTEM_MARKER}
-助手文字输出必须是单个 JSON 对象，content 数组按阅读顺序包含 text 和具体组件类型。
-text 项按 type、nextType、text 顺序生成；nextType 是紧邻下一项的类型，末项文本必须填 null。
-组件项按 type、pending、props 顺序生成，全部组件参数放在 props 中，完整组件必须提供 pending:false。pending:true 表示生成中或占位；运行时在完整组件闭合并通过校验前向前端发布 pending:true，通过后发布 pending:false。
-text 内允许 Markdown，文本与组件可以交错；不要输出代码围栏或 JSON 外正文。
-组件事实来自已获得的信息，不补造字段，不重复用 Markdown 展示同一份组件数据。
-工具调用仍使用原生工具通道；思考仍使用原生思考通道，不写进 content。
-只提供必填属性及已知的可选属性，未知可选属性省略；普通解释/澄清可以只有 text。历史 convertToLlm 中的组件 JSON 与当前生成使用相同字段和载荷。
-DataTable.props.rows 使用对象数组，每行按 columns.key 提供字符串单元格，空单元格用空字符串；columns.key 不得重复，不使用二维数组。
-InfoBox.props 直接包含 rows；TagCloud.props 是标签对象数组，不套 tags 对象。
-URL 必须是 http/https 绝对地址；整个输出最多 ${MAX_CONTENT_BYTES} UTF-8 字节、${MAX_CONTENT_PARTS} 项。数值和枚举遵守以下组件契约：
-${JSON.stringify(PROVIDER_CONTENT_SCHEMA)}`;

@@ -3,7 +3,7 @@ import test from 'node:test';
 import { lazyStream, getCurrentSystemMessage } from '@earendil-works/pi-ai';
 import { fauxProvider, fauxAssistantMessage } from '@earendil-works/pi-ai/providers/faux';
 import { withProviderFetch } from '../dist/src/pi-host.js';
-import { CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/content-schema.js';
+import { CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
 import { fixture, eventually } from './web-fixture.mjs';
 import { sectionsModule, providerPart, validateMessageBlock } from './frontend-content-fixture.mjs';
 
@@ -81,6 +81,25 @@ function webStream(provider, model, context, options, stream) {
     },
   }));
 }
+
+test('模型输入规范化经真实SSE更新占位，最终和历史不残留预测组件或错误', async t => {
+  const f = await fixture(t);
+  const faux = fauxProvider({ api: 'openai-responses', provider: 'web-normalized' });
+  const table = { type: 'DataTable', props: { columns: [{ key: 'day', label: '星期' }], rows: [{ day: '周一' }] } };
+  faux.setResponses([fauxAssistantMessage(JSON.stringify({ type: 'json_object', content: [
+    { type: 'text', text: '前言', nextType: 'StatsCard' }, table, { type: 'text', text: '结语', nextType: 'Gallery' },
+  ] }))]);
+  const provider = withProviderFetch(faux.provider);
+  f.initial.session.agent.streamFunction = (_model, context, options) => webStream(provider, faux.getModel(), context, options, stream);
+  const stream = await f.stream('normalized'); const id = (await f.state('normalized')).sessionId;
+  await f.post('normalized', 'submit', { input: '周历规范化' }, id); await f.initial.session.waitForIdle();
+  const state = await f.state('normalized'), answer = state.items.find(item => item.kind === 'assistant');
+  assert.deepEqual(answer.content, [{ type: 'text', text: '前言' }, { ...table, pending: false }, { type: 'text', text: '结语' }]);
+  assert.equal(state.items.some(item => item.kind === 'error'), false); assert.equal(faux.state.callCount, 1);
+  assert.ok(stream.frames.some(frame => frame.state?.liveContent?.some(part => part.type === 'DataTable' && part.pending === true)));
+  await f.post('normalized', 'session', { action: 'new' }); await f.post('normalized', 'session', { action: 'resume', sessionId: id });
+  assert.deepEqual((await f.state('normalized')).items.find(item => item.kind === 'assistant').content, answer.content);
+});
 
 test('原生组件经实际 Web SSE 保留前后文字、true占位和false完成，end及历史无重复', async t => {
   const f = await fixture(t);

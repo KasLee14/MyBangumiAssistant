@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { AppError } from '../support/errors.js';
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
-import { MAX_CONTENT_PARTS, PROVIDER_CONTENT_SCHEMA, normalizeProviderContent, normalizeProviderPart, validateMixedContent } from '../output/content-schema.js';
+import { MAX_CONTENT_PARTS, CONTENT_OUTPUT_SCHEMA, validateMixedContent, validateMixedPart } from '../output/content-schema.js';
 import { accessContextSchema, withAccessContext, type AccessContext } from './access-context.js';
 import { candidateCoverageSchema, type CandidateCoverage } from './candidate-contract.js';
 import { CANDIDATE_PRESENTATION_FIELDS, MAX_CANDIDATE_TABLE_WIRE_BYTES, MAX_CANDIDATE_TABLE_PARTS,
@@ -96,7 +96,7 @@ const common: Record<string, JsonSchema> = { schemaVersion: { const: 1 }, candid
   account: closed({ id: count(1), username: { type: 'string', minLength: 1, maxLength: 200 } }),
   readAt: { type: 'string', maxLength: 50 }, accessContext: accessContextSchema };
 const requiredCommon = Object.keys(common).filter(key => !['account', 'accessContext'].includes(key));
-const providerBranches = PROVIDER_CONTENT_SCHEMA.properties!.content!.items!.anyOf!
+const providerBranches = CONTENT_OUTPUT_SCHEMA.properties!.content!.items!.anyOf!
   .filter(branch => branch.properties?.type?.enum?.some(value => ['text', 'DataTable', 'SubjectCards'].includes(String(value))));
 const presentationSchema = closed({ content: { type: 'array', minItems: 1, maxItems: MAX_CONTENT_PARTS,
   items: { anyOf: structuredClone(providerBranches) } } });
@@ -178,8 +178,8 @@ export function checkCandidateOutputResponse(value: unknown, input: Record<strin
     || response.bytes !== Buffer.byteLength(JSON.stringify(response.presentation), 'utf8') || plan.wholeWireBytes !== response.bytes
     || plan.contentPartsCount !== response.presentation.content.length) invalid();
   try {
-    for (const part of response.presentation.content) normalizeProviderPart(part);
-    validateMixedContent(normalizeProviderContent(response.presentation));
+    for (const part of response.presentation.content) validateMixedPart(part);
+    validateMixedContent(response.presentation);
   } catch { invalid(); }
   const parts = response.presentation.content, components = parts.filter(part => part.type !== 'text');
   if (!components.length || components.some(part => part.type !== (args.format === 'table' ? 'DataTable' : 'SubjectCards'))) invalid();
