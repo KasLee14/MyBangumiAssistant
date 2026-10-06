@@ -19,7 +19,7 @@ import { registerTraceHooks } from './tracing/pi-hooks.js';
 import type { TraceOptions } from './tracing/schema.js';
 import { TOOL_DEFINITIONS } from './mcp/catalog.js';
 import { clearReadRecoveryScope } from './mcp/read-recovery.js';
-import { CONTENT_OUTPUT_INSTRUCTION } from './output/content-schema.js';
+import { CONTENT_OUTPUT_INSTRUCTION } from './output/provider-content.js';
 import { COMPONENT_SELECTION_INSTRUCTION } from './output/component-selection.js';
 
 export interface BangumiExtensionConfig {

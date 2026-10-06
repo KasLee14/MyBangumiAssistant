@@ -1,10 +1,16 @@
 import { createHash } from 'node:crypto';
 import { credentialValues, redact } from '../support/errors.js';
 import type { PayloadRef } from './schema.js';
+import type { ErrorDiagnostic } from '../support/error-diagnostic.js';
 
 const payloadReferences = new WeakSet<object>();
 /** 引用来自宿主生成的哈希，不能因它偶然包含短凭据片段而再次改写。 */
 export function tracePayloadReference(value: PayloadRef): PayloadRef {
+  payloadReferences.add(value);
+  return Object.freeze(value);
+}
+/** 调用方先脱敏；保留宿主关联ID，避免短凭据偶然命中破坏诊断关联。 */
+export function traceDiagnosticReference(value: ErrorDiagnostic): ErrorDiagnostic {
   payloadReferences.add(value);
   return Object.freeze(value);
 }
@@ -32,7 +38,7 @@ export function traceRedact(value: unknown, partial = false): unknown {
       if (depth < 64 && /^[\s]*[\[{]/.test(item)) {
         try { return JSON.stringify(visit(JSON.parse(item), depth + 1)); } catch { /* 普通文本照常脱敏。 */ }
       }
-      return text(item, partial && ['text', 'thinking', 'content'].includes(field));
+      return text(item, partial && ['text', 'thinking', 'content', 'responseText', 'message', 'stack', 'thrownValue'].includes(field));
     }
     if (item === null || typeof item === 'boolean' || typeof item === 'number') return item;
     if (typeof item === 'bigint') return item.toString();

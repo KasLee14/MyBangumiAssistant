@@ -23,6 +23,94 @@ const interest = (type, extra = {}) => ({ type, rate: 8, tags: [], comment: '', 
 const group = (id, relations) => ({ character: character(id), relations });
 const relation = (id, type = 1, form = 'TV', extra = {}) => ({ subject: subject(id, form, extra), type });
 
+test('候选出演按作品去重、原快照续页不重网；prepare只投影缓存并保留未知形式和角色gap', async () => {
+  const groups = [group(11, [relation(101, 1), relation(102, 4), relation(103, 2)]),
+    group(12, [relation(101, 1), relation(104, 1, ''), relation(105, 1, 'OVA')]),
+    group(13, [relation(106, 1), relation(106, 4)])];
+  const details = [subject(101, 'TV', { interest: interest(1) }), subject(102), subject(104, ''), subject(106)];
+  const f = fixture({ groups, details, uncheckedNsfw: true });
+  const args = { person_id: 71, subject_type: 2, subject_form: 'tv', appearance_role: 'main',
+    result_mode: 'candidates', fields: ['id', 'nameCn', 'subjectForm', 'collectionState', 'collectionStatus'], limit: 1 };
+  let page = await f.service.call('get_person_characters', args);
+  const before = f.calls.length, firstCoverage = page.coverage.coverageRef;
+  while (page.sourcePage.nextOffset !== null) page = await f.service.call('get_person_characters', { ...args, offset: page.sourcePage.nextOffset,
+    snapshot_ref: page.appearanceStage.snapshotRef, merge_ref: page.candidateRef });
+  assert.equal(f.calls.length, before); assert.equal(page.appearanceStage.sourceUnit, 'character');
+  assert.equal(page.appearanceStage.sourceTotal, 3); assert.equal(page.appearanceStage.relationTotal, 8);
+  assert.equal(page.appearanceStage.matchedRelationTotal, 3); assert.equal(page.set.resultCount, 2);
+  assert.equal(page.appearanceStage.unknownRoleCount, 1); assert.equal(page.appearanceStage.unknownFormCount, 1);
+  assert.equal(page.appearanceStage.qualificationGapCount, 2); assert.equal(page.coverage.complete, false);
+  const detail = await f.service.call('get_candidate_coverage', { coverage_ref: page.coverage.coverageRef });
+  const evidence = JSON.parse(detail.sources.find(source => source.tool === 'get_person_characters').scope).appearanceEvidence;
+  assert.deepEqual(evidence.unknownRoleSubjectIds, [102]); assert.deepEqual(evidence.unknownSubjectFormIds, [104]);
+  const old = await f.service.call('get_candidate_coverage', { coverage_ref: firstCoverage });
+  assert.equal(old.sources.find(source => source.tool === 'get_person_characters').nextOffset, 1);
+  const refined = await f.service.call('refine_subject_candidates', { candidate_ref: page.resultRef, filter: { exclude_collection_types: [2, 3, 4, 5] },
+    fields: ['id', 'nameCn'] });
+  assert.deepEqual(refined.data.map(row => row.id), [101, 106]);
+  const table = await f.service.call('prepare_candidate_output', { candidate_ref: refined.resultRef, format: 'table', completion_scope: 'selected', fields: ['displayName', 'url'] });
+  assert.equal(table.presentation.content.find(part => part.type === 'DataTable').props.rows.length, 2); assert.equal(f.calls.length, before);
+  assert.equal(table.coverage.complete, false);
+});
+
+test('reference出演候选只回refs/counts且消费完整快照；明确配角不补字段，原native调用保持关系页', async () => {
+  const f = fixture({ groups: [group(11, [relation(101, 1), relation(102, 1), relation(103, 2)])],
+    details: [subject(101), subject(102)] });
+  const value = await f.service.call('get_person_characters', { person_id: 71, subject_type: 2, appearance_role: 'main', subject_form: 'tv',
+    result_mode: 'candidates', fields: ['id', 'nameCn'], response_view: 'reference', limit: 1 });
+  assert.deepEqual(value.data, []); assert.equal(value.set.resultCount, 2); assert.equal(value.appearanceStage.sourcePaginationComplete, true);
+  assert.equal(value.appearanceStage.relationRowsConsumed, 2); assert.equal(value.coverage.complete, true);
+  const native = await f.service.call('get_person_characters', { person_id: 71, subject_type: 2, appearance_role: 'main', subject_form: 'tv', include: ['subject_facts'] });
+  assert.equal(native.kind, 'page'); assert.equal(native.entity, 'personCharacter'); assert.equal(native.appearanceStage, undefined);
+});
+
+test('出演候选归一零日期为未知并保留部分年月；prepare不显示零占位，legacy事实原契约保留', async () => {
+  const dates = ['0000-00-00', '2026', '2026-10', '2026-10-00', '2026-00-00', '2024-02-29'];
+  const details = dates.map((date, index) => subject(101 + index, 'TV', { airtime: { date } }));
+  const f = fixture({ groups: [group(11, details.map(row => ({ subject: row, type: 1 })))], details });
+  const args = { person_id: 71, subject_type: 2, appearance_role: 'main', include: ['subject_facts'], limit: 100 };
+  const native = await f.service.call('get_person_characters', args);
+  assert.deepEqual(native.data.map(row => row.subjectFacts.airDate), dates);
+  const { include: _legacyInclude, ...candidateArgs } = args;
+  const candidates = await f.service.call('get_person_characters', { ...candidateArgs, result_mode: 'candidates', fields: ['id', 'date'] });
+  assert.deepEqual(candidates.data.map(row => row.date), [null, '2026', '2026-10', '2026-10', '2026', '2024-02-29']);
+  const before = f.calls.length;
+  const table = await f.service.call('prepare_candidate_output', { candidate_ref: candidates.resultRef, format: 'table', completion_scope: 'selected', fields: ['displayName', 'date', 'url'] });
+  assert.equal(table.counts.unknownFieldCount, 1);
+  assert.deepEqual(table.presentation.content.find(part => part.type === 'DataTable').props.rows.map(row => row.date), ['', '2026', '2026-10', '2026-10', '2026', '2024-02-29']);
+  assert.equal(JSON.stringify(table.presentation).includes('0000-00-00'), false);
+  assert.equal(f.calls.length, before);
+});
+
+test('出演候选冻结原生条件/快照/turn；未知收藏不当作未收藏，错误owner不升级', async () => {
+  const f = fixture({ groups: [group(11, [relation(101, 1), relation(102, 1)])], details: [{ id: 101, type: 2 }, subject(102)] });
+  const args = { person_id: 71, subject_type: 2, appearance_role: 'main', result_mode: 'candidates',
+    fields: ['id', 'collectionState'], limit: 1 };
+  const first = await f.service.call('get_person_characters', args);
+  assert.equal(first.data[0].collectionState, null); assert.equal(first.appearanceStage.unavailableCollectionCount, 1);
+  await assert.rejects(f.service.call('get_person_characters', { ...args, appearance_role: 'supporting', offset: 1,
+    snapshot_ref: first.appearanceStage.snapshotRef, merge_ref: first.candidateRef }), error => error.code === 'CANDIDATE_SCOPE_MISMATCH');
+  await assert.rejects(f.service.call('get_person_characters', { ...args, offset: 1, snapshot_ref: first.appearanceStage.snapshotRef }),
+    error => error.code === 'CANDIDATE_SCOPE_MISMATCH');
+});
+
+test('Pi桥接按出演候选契约校验而非角色page；own_collection读路由仍要求账户，缓存个人事实支路可用', async () => {
+  const { createReadTools } = await import('../dist/src/mcp/pi-tools.js');
+  const { planRead } = await import('../dist/src/mcp/read-routing.js');
+  const f = fixture({ groups: [group(11, [relation(101, 1)])], details: [subject(101, 'TV', { interest: interest(1) })], uncheckedNsfw: true });
+  const args = { person_id: 71, subject_type: 2, appearance_role: 'main', subject_form: 'tv',
+    result_mode: 'candidates', response_view: 'page', fields: ['id', 'collectionStatus'], limit: 100 };
+  assert.equal(planRead('get_person_characters', args).requiresIdentity, true);
+  const tool = createReadTools(f.service).find(tool => tool.name === 'get_person_characters');
+  const result = await tool.execute('person-candidate-bridge', args, undefined, undefined, {});
+  assert.notEqual(result.isError, true); const value = JSON.parse(result.content[0].text).value;
+  assert.equal(value.kind, 'candidate_page'); assert.equal(value.set.resultCount, 1); assert.equal(value.data.length, 1); assert.equal(value.data[0].collectionStatus, 1);
+  const before = f.calls.length;
+  const selected = await f.service.call('refine_subject_candidates', { candidate_ref: value.resultRef,
+    filter: { collection_types: [1] }, fields: ['id'] });
+  assert.equal(selected.stage.matchedCount, 1); assert.equal(f.calls.length, before);
+});
+
 function fixture({ groups = [], details = [], anonymous = false, reverse = [], rawPublic, fail, mutatePage, uncheckedNsfw = false } = {}) {
   let context = anonymous ? anonymousContext() : accountContext();
   const calls = []; const checks = { identity: 0, nsfw: 0 }; const detailMap = new Map(details.map(row => [row.id, row]));

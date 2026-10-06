@@ -6,7 +6,8 @@ import { SessionManager } from '@earendil-works/pi-coding-agent';
 import { createBangumiRuntime } from './dist/src/pi-host.js';
 import { createPiTransport } from './dist/src/pi-transport.js';
 import { policyFor } from './dist/src/support/proxy.js';
-import { CONTENT_OUTPUT_INSTRUCTION, validateMixedContent } from './dist/src/output/content-schema.js';
+import { validateMixedContent } from './dist/src/output/content-schema.js';
+import { CONTENT_OUTPUT_INSTRUCTION } from './dist/src/output/provider-content.js';
 import { COMPONENT_SELECTION_INSTRUCTION } from './dist/src/output/component-selection.js';
 
 const args = process.argv.slice(2);
@@ -38,7 +39,7 @@ try {
       pi.on('before_provider_request', event => {
         requestCount++;
         if (event.payload?.text?.format?.type === 'json_schema' || event.payload?.response_format?.type === 'json_schema') schemaRequests++;
-        if (event.payload?.response_format?.type === 'json_object') jsonObjectRequests++;
+        if (event.payload?.text?.format?.type === 'json_object' || event.payload?.response_format?.type === 'json_object') jsonObjectRequests++;
       });
     },
   });
@@ -47,8 +48,8 @@ try {
       if (event.assistantMessageEvent.type === 'text_delta') incrementalTextEvents++;
       if (event.assistantMessageEvent.type === 'content_update') incrementalComponentEvents++;
       const parts = event.message.content ?? [];
-      placeholderSeen ||= parts.some(part => part.type === 'subjects' && part.pending === true && Object.keys(part.props).length === 0);
-      nextTypeSeen ||= parts.some(part => part.type === 'text' && part.nextType === 'subjects');
+      placeholderSeen ||= parts.some(part => part.type === 'SubjectCards' && part.pending === true && Object.keys(part.props).length === 0);
+      nextTypeSeen ||= parts.some(part => part.type === 'text' && part.nextType === 'SubjectCards');
     } else if (event.type === 'message_end' && event.message.role === 'assistant') {
       answer = event.message;
     }
@@ -65,7 +66,7 @@ try {
       part.type === 'text' ? { type: 'text', nextType: part.nextType, text: part.text } : part);
     const decoded = validateMixedContent({ content });
     const types = decoded.content.map(part => part.type);
-    const valid = JSON.stringify(types) === JSON.stringify(['text', 'subjects', 'text'])
+    const valid = JSON.stringify(types) === JSON.stringify(['text', 'SubjectCards', 'text'])
       && decoded.content.filter(part => part.type !== 'text').every(part => part.pending === false);
     console.log(JSON.stringify({ ...base, valid, types, noSidecar: answer.contentOutput === undefined,
       completedComponents: decoded.content.filter(part => part.type !== 'text' && part.pending === false).length,

@@ -237,8 +237,8 @@ export async function retryAssistantCall(
 
 /**
  * Classifies whether a failed assistant message looks like a transient provider
- * or transport error, so callers can decide if the last assistant turn should be
- * restarted.
+ * or transport error, or an invalid/incomplete generated content response, so
+ * callers can decide if the last assistant turn should be restarted.
  *
  * This does not implement retry policy. Callers should first handle context
  * overflow separately, then apply their own retry budget, backoff, and reporting
@@ -246,7 +246,16 @@ export async function retryAssistantCall(
  */
 export function isRetryableAssistantError(message: AssistantMessage): boolean {
 	if (message.stopReason !== "error" || !message.errorMessage) return false;
+	// A host-owned recovery policy prepares feedback/checkpoints and its own bounded continuation.
+	if (
+		message.diagnostics?.some((item) => item.type === "application_recovery" && item.details?.autoRetry === "host")
+	) {
+		return false;
+	}
 	const errorMessage = message.errorMessage;
+	// Output validation failures can be regenerated within the same bounded policy.
+	// Match the leading code only; quoted output or schema details are not provider limits.
+	if (/^CONTENT_OUTPUT_(?:INVALID|INCOMPLETE)(?:$|[:：\s])/.test(errorMessage)) return true;
 	if (NON_RETRYABLE_PROVIDER_LIMIT_ERROR_PATTERN.test(errorMessage)) return false;
 	return RETRYABLE_PROVIDER_ERROR_PATTERN.test(errorMessage);
 }

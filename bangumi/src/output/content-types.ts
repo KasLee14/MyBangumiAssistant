@@ -1,28 +1,13 @@
-import type {
-  SubjectCollectionView, StatsView, ProgressView, InfoBoxView, TableView,
-  TimelineView, TagCloudItemView, GalleryView, CompareView, QuoteView,
-  CalloutView, LinkListView,
-} from '../web/protocol.js';
+import type { ContentBlockView } from '../web/protocol.js';
 
-/** 组件 props 复用现有展示库；tags 的数组额外包装为对象。 */
-export interface ComponentPropsMap {
-  subjects: SubjectCollectionView;
-  stats: StatsView;
-  progress: ProgressView;
-  infobox: InfoBoxView;
-  table: TableView;
-  timeline: TimelineView;
-  tags: { tags: TagCloudItemView[] };
-  gallery: GalleryView;
-  compare: CompareView;
-  quote: QuoteView;
-  callout: CalloutView;
-  links: LinkListView;
-}
+/** 名称与载荷直接取自 Web 协议，模型输出不另建组件别名。 */
+export type ComponentPropsMap = {
+  [K in ContentBlockView['type']]: Extract<ContentBlockView, { type: K }>['props'];
+};
 
 export const COMPONENT_KINDS = [
-  'subjects', 'stats', 'progress', 'infobox', 'table', 'timeline',
-  'tags', 'gallery', 'compare', 'quote', 'callout', 'links',
+  'SubjectCards', 'StatsCard', 'ProgressView', 'InfoBox', 'DataTable', 'Timeline',
+  'TagCloud', 'Gallery', 'CompareTable', 'QuoteBlock', 'Callout', 'LinkList',
 ] as const satisfies readonly (keyof ComponentPropsMap)[];
 export type ComponentKind = keyof ComponentPropsMap;
 export type ContentKind = 'text' | ComponentKind;
@@ -51,17 +36,17 @@ export function isContentKind(value: unknown): value is ContentKind {
 /** Pi 只提供扩展槽位，应用组件字段仍由本模块负责。 */
 declare module '@earendil-works/pi-ai' {
   interface AssistantContentExtensions {
-    subjects: ComponentState<'subjects'>;
-    stats: ComponentState<'stats'>;
-    progress: ComponentState<'progress'>;
-    infobox: ComponentState<'infobox'>;
-    table: ComponentState<'table'>;
-    timeline: ComponentState<'timeline'>;
-    tags: ComponentState<'tags'>;
-    gallery: ComponentState<'gallery'>;
-    compare: ComponentState<'compare'>;
-    quote: ComponentState<'quote'>;
-    callout: ComponentState<'callout'>;
-    links: ComponentState<'links'>;
+    SubjectCards: ComponentState<'SubjectCards'>;
+    StatsCard: ComponentState<'StatsCard'>;
+    ProgressView: ComponentState<'ProgressView'>;
+    InfoBox: ComponentState<'InfoBox'>;
+    DataTable: ComponentState<'DataTable'>;
+    Timeline: ComponentState<'Timeline'>;
+    TagCloud: ComponentState<'TagCloud'>;
+    Gallery: ComponentState<'Gallery'>;
+    CompareTable: ComponentState<'CompareTable'>;
+    QuoteBlock: ComponentState<'QuoteBlock'>;
+    Callout: ComponentState<'Callout'>;
+    LinkList: ComponentState<'LinkList'>;
   }
 }

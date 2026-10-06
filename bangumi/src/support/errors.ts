@@ -1,4 +1,5 @@
 import type { AccessContext } from '../mcp/access-context.js';
+import { createErrorDiagnostic, fallbackErrorDiagnostic, isErrorDiagnostic, rememberErrorDebug, type ErrorDiagnostic } from './error-diagnostic.js';
 export const DIAGNOSIS_CATEGORIES = ['input', 'authentication', 'capability', 'transient', 'not_found', 'incomplete', 'cancelled', 'contract', 'other'] as const;
 export const DIAGNOSIS_STAGES = ['input', 'access', 'fetch', 'response_contract', 'execution'] as const;
 export const CAPABILITY_SUGGESTIONS = ['correct_parameters', 'use_public_sfw', 'use_account_source', 'relogin', 'inspect_permissions', 'narrow_scope', 'read_alternate_source', 'report_gap', 'stop'] as const;
@@ -18,6 +19,7 @@ export const READ_DIAGNOSIS_SCHEMA: Record<string, unknown> = { type: 'object', 
   replanAllowed: { type: 'boolean' }, retryable: { type: 'boolean' },
 }, required: ['category', 'stage', 'effect', 'blockedFields', 'allowedValues', 'capabilitySuggestions', 'replanAllowed', 'retryable'] };
 export class AppError extends Error {
+  readonly diagnostic?: ErrorDiagnostic;
   readonly networkAttempted?: false;
   readonly rejection?: SubmissionRejection;
   readonly sourceTool?: string;
@@ -28,6 +30,20 @@ export class AppError extends Error {
     super(message);
     this.name = 'AppError';
   }
+}
+export function diagnosedError<T extends AppError>(error: T, diagnostic: ErrorDiagnostic, cause?: unknown): T {
+  Object.defineProperty(error, 'diagnostic', { value: diagnostic, configurable: true });
+  if (cause !== undefined) rememberErrorDebug(diagnostic, cause);
+  return error;
+}
+export function sanitizeErrorDiagnostic(diagnostic: ErrorDiagnostic): ErrorDiagnostic {
+  const safe = structuredClone(diagnostic), secrets = credentialValues();
+  // 本地随机关联ID不按正文脱敏，避免短凭据碰巧命中ID使关联契约失效。
+  safe.issues = safe.issues.map(issue => ({ ...issue, path: redact(issue.path, secrets).slice(0, 300), message: redact(issue.message, secrets).slice(0, 300),
+    ...(issue.expected === undefined ? {} : { expected: redact(issue.expected, secrets).slice(0, 300) }) }));
+  safe.evidence = Object.fromEntries(Object.entries(safe.evidence).map(([key, value]) => [key, typeof value === 'string' ? redact(value, secrets).slice(0, 300) : value]));
+  safe.causes = safe.causes.map(cause => ({ name: redact(cause.name, secrets).slice(0, 100), ...(cause.code === undefined ? {} : { code: redact(cause.code, secrets).slice(0, 100) }) }));
+  return safe;
 }
 export interface InputIssue { path: string; rule: string; hint: string; allowed?: readonly unknown[] }
 const contractPaths = {
@@ -59,6 +75,8 @@ export class ContractError extends AppError {
     if (!isContractIssue(issue)) throw new Error('本地契约诊断参数无效。');
     Object.defineProperty(this, 'contractIssue', { value: issue });
     Object.defineProperty(this, 'sourceTool', { value: 'browse_subjects' });
+    diagnosedError(this, createErrorDiagnostic({ code: this.code, origin: 'mcp', stage: 'validate', reason, operation: 'browse_subjects',
+      issues: [{ path, rule: reason, message: contractIssueMessage(issue).slice(0, 300) }] }));
   }
 }
 /** 仅本地固定契约生成的反馈；不包含原始参数值或服务端正文。 */
@@ -66,6 +84,8 @@ export class SchemaInputError extends AppError {
   readonly networkAttempted = false;
   constructor(readonly issues: readonly InputIssue[]) {
     super('INVALID_INPUT', issues.map(issue => `${issue.path || '/'}：${issue.hint}`).join('；'));
+    diagnosedError(this, createErrorDiagnostic({ code: this.code, origin: 'domain', stage: 'input', reason: 'input_schema_invalid', recovery: 'correct_parameters',
+      evidence: { networkAttempted: false }, issues: issues.slice(0, 8).map(issue => ({ path: issue.path, rule: issue.rule, message: issue.hint.slice(0, 300) })) }));
   }
 }
 /** 仅固定上游契约证明修改前已拒绝；不根据 HTTP 状态或任意正文推断。 */
@@ -93,7 +113,7 @@ export class SubmissionError extends AppError {
     if (isSubmissionRejection(rejection)) Object.defineProperty(this, 'rejection', { value: structuredClone(rejection) });
   }
 }
-export interface SafeError { code: string; message: string; issues?: readonly InputIssue[]; networkAttempted?: false; rejection?: SubmissionRejection; submission?: SubmissionReceipt; accessContext?: AccessContext; sourceTool?: string; recovery?: { stage: 'response_contract'; retryable: false }; diagnosis?: ReadDiagnosis; contractIssue?: ContractIssue }
+export interface SafeError { code: string; message: string; diagnostic?: ErrorDiagnostic; issues?: readonly InputIssue[]; networkAttempted?: false; rejection?: SubmissionRejection; submission?: SubmissionReceipt; accessContext?: AccessContext; sourceTool?: string; recovery?: { stage: 'response_contract'; retryable: false }; diagnosis?: ReadDiagnosis; contractIssue?: ContractIssue }
 const localSecrets = new Set<string>();
 /** 本地凭据也参与模型、日志和终端的统一裁剪，原值不进入配置或会话。 */
 export function registerCredentials(values: readonly string[]): void { for (const value of values) if (value) localSecrets.add(value); }
@@ -145,13 +165,20 @@ export function credentialValues(env: NodeJS.ProcessEnv = process.env): string[]
 }
 
 export function safeError(error: unknown): SafeError {
+  const code = error instanceof AppError ? error.code : error instanceof Error && error.name === 'AbortError' ? 'CANCELLED' : 'INTERNAL_ERROR';
+  const diagnostic = structuredClone(error instanceof AppError && isErrorDiagnostic(error.diagnostic) ? error.diagnostic : fallbackErrorDiagnostic(error, code));
+  if (error instanceof AppError && error.sourceTool) diagnostic.operation = error.sourceTool;
+  if (error instanceof AppError && error.networkAttempted === false) diagnostic.evidence.networkAttempted = false;
+  if (error instanceof SubmissionError) { diagnostic.recovery = ['unknown', 'partial', 'acknowledged'].includes(error.submission.submissionState) ? 'verify_write' : 'none'; diagnostic.evidence.submissionState = error.submission.submissionState; }
+  const safeDiagnostic = sanitizeErrorDiagnostic(diagnostic);
   const context = error instanceof AppError ? { ...(error.accessContext ? { accessContext: structuredClone(error.accessContext) } : {}), ...(error.sourceTool ? { sourceTool: error.sourceTool } : {}),
     ...(isSubmissionRejection(error.rejection) ? { rejection: structuredClone(error.rejection) } : {}),
     ...(error.recovery ? { recovery: structuredClone(error.recovery) } : {}), ...(error.diagnosis ? { diagnosis: structuredClone(error.diagnosis) } : {}),
     ...(isContractIssue(error.contractIssue) ? { contractIssue: structuredClone(error.contractIssue) } : {}), ...(error.networkAttempted === false ? { networkAttempted: false as const } : {}) } : {};
-  if (error instanceof SubmissionError) return { code: error.code, message: redact(error.message, credentialValues()), submission: structuredClone(error.submission), ...context };
-  if (error instanceof SchemaInputError) return { code: error.code, message: redact(error.message, credentialValues()), issues: error.issues, networkAttempted: false, ...context };
-  if (error instanceof AppError) return { code: error.code, message: redact(error.message, credentialValues()), ...context };
-  if (error instanceof Error && error.name === 'AbortError') return { code: 'CANCELLED', message: '操作已取消。' };
-  return { code: 'INTERNAL_ERROR', message: '操作失败；请检查配置、网络或输入。' };
+  const information = { ...context, diagnostic: safeDiagnostic };
+  if (error instanceof SubmissionError) return { code: error.code, message: redact(error.message, credentialValues()), submission: structuredClone(error.submission), ...information };
+  if (error instanceof SchemaInputError) return { code: error.code, message: redact(error.message, credentialValues()), issues: error.issues, networkAttempted: false, ...information };
+  if (error instanceof AppError) return { code: error.code, message: redact(error.message, credentialValues()), ...information };
+  if (code === 'CANCELLED') return { code, message: '操作已取消。', ...information };
+  return { code, message: '内部执行失败；返回的诊断包含错误ID和底层原因。', ...information };
 }

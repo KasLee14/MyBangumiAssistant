@@ -10,6 +10,8 @@ export type AppearanceMeaning = 'main' | 'supporting' | 'guest' | 'unknown';
 export type SubjectForm = 'tv' | 'ova' | 'movie' | 'web' | 'other';
 export interface AppearanceRole { code: number | null; meaning: AppearanceMeaning; label: string | null }
 export interface PersonCharactersReadOptions {
+  /** 仅宿主候选适配请求额外资格缺口；原生输出与筛选保持不变。 */
+  candidateMode?: boolean;
   /** 宿主绑定本机登录会话版本；模型不能指定。 */
   scopeKey: string;
   readAccount: (path: string, options: McpRequestOptions) => Promise<unknown>;
@@ -28,7 +30,8 @@ interface SubjectFacts { airDate: string | null; platform: string | null; form: 
 interface OwnCollection { state: 'collected' | 'not_collected' | 'unavailable'; collectionStatus: number | null; chapters: number | null; volumes: number | null }
 interface Edge { character: Data; subject: Data; staff: string | null; appearanceRole: AppearanceRole; sourceTypeCode: number | null }
 interface SubjectRead { subject: Data; facts: SubjectFacts; collection: OwnCollection | undefined; unavailable: boolean }
-interface Snapshot { key: string; rows: Data[]; coverage: AppearanceCoverage; expires: number; enhanced: boolean; readAt: string; account: AccessContext['account']; size: number }
+export interface AppearanceCandidateEvidence { unknownRoleSubjectIds: number[] }
+interface Snapshot { key: string; rows: Data[]; coverage: AppearanceCoverage; candidateEvidence?: AppearanceCandidateEvidence; expires: number; enhanced: boolean; readAt: string; account: AccessContext['account']; size: number }
 interface FailureMemo { error: AppError; expires: number }
 
 const TTL_MS = 10 * 60_000;
@@ -182,12 +185,12 @@ export class PersonCharactersQuery {
     if (args.subject_form !== undefined && args.subject_type !== 2) throw new AppError('INVALID_INPUT', 'subject_form 仅适用于 subject_type=2 的动画查询。');
     if (include.includes('own_collection')) context.source = 'p1';
     context.nsfwApplied = context.source === 'p1' && context.nsfw.allowed === true && context.nsfw.preference !== false;
-    const key = binding(args, context, options.scopeKey), wantsEnhanced = enhanced(args);
+    const key = JSON.stringify([binding(args, context, options.scopeKey), options.candidateMode === true]), wantsEnhanced = enhanced(args);
     if (args.snapshot_ref !== undefined) {
       const ref = String(args.snapshot_ref), snapshot = this.snapshots.get(ref);
       if (!snapshot) throw new AppError('SNAPSHOT_EXPIRED', '人物出演查询快照已过期或不属于当前连接，请从 offset=0 重新查询。');
       if (snapshot.key !== key) throw new AppError('SNAPSHOT_SCOPE_MISMATCH', '快照与当前人物、筛选、字段组、会话、账户或权限不一致。');
-      await verifyScope(); return this.page(snapshot, ref, args);
+      await verifyScope(); return { ...this.page(snapshot, ref, args), ...(options.candidateMode ? { candidateEvidence: structuredClone(snapshot.candidateEvidence) } : {}) };
     }
     if (wantsEnhanced && Number(args.offset) > 0) throw new AppError('INVALID_INPUT', '筛选后分页必须携带首个结果的 snapshot_ref，避免重新扫描或混用不同快照。');
     // 旧参数续页兼容，但只能复用同一宿主绑定下已完整成功的关系快照。
@@ -221,7 +224,7 @@ export class PersonCharactersQuery {
         readAt: new Date().toISOString(), account: include.includes('own_collection') ? structuredClone(context.account) : null, size };
       assertCurrent();
       this.snapshots.set(ref, snapshot); this.snapshotBytes += size;
-      return this.page(snapshot, ref, args);
+      return { ...this.page(snapshot, ref, args), ...(options.candidateMode ? { candidateEvidence: structuredClone(snapshot.candidateEvidence) } : {}) };
     } catch (error) {
       if (generation !== this.generation) assertCurrent();
       if (generation === this.generation && error instanceof AppError && error.code === 'INVALID_RESPONSE') {
@@ -264,7 +267,7 @@ export class PersonCharactersQuery {
     if (!context.account) throw new AppError('BGM_AUTH_REQUIRED', '账户出演源需要已核实身份。');
     const characterIds = new Set<number>(); let total: number | undefined, returned = 0;
     const role = args.appearance_role as AppearanceMeaning | undefined;
-    const roleCode = role === undefined || role === 'unknown' ? undefined : meanings.indexOf(role);
+    const roleCode = options.candidateMode || role === undefined || role === 'unknown' ? undefined : meanings.indexOf(role);
     for (let offset = 0; offset < MAX_SOURCE_ROWS; offset += PAGE_SIZE) {
       options.assertCurrent();
       const page = record(await options.readAccount(`/p1/persons/${personId}/casts`, { expectedAccountId: context.account.id,
@@ -294,10 +297,11 @@ export class PersonCharactersQuery {
     }
     throw new AppError('INCOMPLETE_DATA', '人物出演源分页未覆盖完整范围。');
   }
-  private async read(args: Data, context: AccessContext, signal: AbortSignal | undefined, options: BoundReadOptions): Promise<{ rows: Data[]; coverage: AppearanceCoverage }> {
+  private async read(args: Data, context: AccessContext, signal: AbortSignal | undefined, options: BoundReadOptions): Promise<{ rows: Data[]; coverage: AppearanceCoverage; candidateEvidence?: AppearanceCandidateEvidence }> {
     const source = await this.source(args, context, signal, options), include = Array.isArray(args.include) ? args.include as string[] : [];
     const includeFacts = include.includes('subject_facts') || args.subject_form !== undefined, includeOwn = include.includes('own_collection');
-    const candidates = source.edges.filter(edge => (args.appearance_role === undefined || edge.appearanceRole.meaning === args.appearance_role)
+    const candidates = source.edges.filter(edge => (args.appearance_role === undefined || edge.appearanceRole.meaning === args.appearance_role
+      || options.candidateMode && edge.appearanceRole.meaning === 'unknown')
       && (args.subject_type === undefined || subjectType(edge.subject.type) === null || edge.subject.type === args.subject_type));
     const subjects = new Map<number, Data>();
     for (const edge of candidates) {
@@ -356,12 +360,22 @@ export class PersonCharactersQuery {
     const rows: Data[] = [];
     for (const edge of candidates) {
       const resolved = reads.get(Number(edge.subject.id))!;
+      if (args.appearance_role !== undefined && edge.appearanceRole.meaning !== args.appearance_role) continue;
       if (args.subject_type !== undefined && resolved.subject.type !== args.subject_type || args.subject_form !== undefined && resolved.facts.form !== args.subject_form) continue;
       rows.push({ ...edge.character, subject: subjectReference(resolved.subject), staff: edge.staff, appearanceRole: edge.appearanceRole, source_type_code: edge.sourceTypeCode,
         ...(includeFacts ? { subjectFacts: resolved.facts } : {}), ...(includeOwn ? { ownCollection: resolved.collection! } : {}) });
     }
     const ids = (values: Set<number>) => [...values].sort((a, b) => a - b);
-    return { rows, coverage: { complete: unknown.size === 0 && unavailable.size === 0 && unavailableCollections.size === 0,
+    const confirmed = new Set(candidates.filter(edge => args.appearance_role === undefined || edge.appearanceRole.meaning === args.appearance_role)
+      .map(edge => Number(edge.subject.id))), unknownRoles = new Set<number>();
+    if (options.candidateMode && args.appearance_role !== undefined && args.appearance_role !== 'unknown') for (const edge of candidates) {
+      const subjectId = Number(edge.subject.id), resolved = reads.get(subjectId)!;
+      if (edge.appearanceRole.meaning !== 'unknown' || confirmed.has(subjectId)) continue;
+      if (args.subject_type !== undefined && subjectType(resolved.subject.type) !== null && resolved.subject.type !== args.subject_type) continue;
+      if (args.subject_form !== undefined && resolved.facts.form !== null && resolved.facts.form !== args.subject_form) continue;
+      unknownRoles.add(subjectId);
+    }
+    return { rows, ...(options.candidateMode ? { candidateEvidence: { unknownRoleSubjectIds: ids(unknownRoles) } } : {}), coverage: { complete: unknown.size === 0 && unavailable.size === 0 && unavailableCollections.size === 0,
       sourceComplete: true, sourceTotal: source.sourceTotal, sourceReturnedCount: source.sourceReturnedCount, sourceUnit: source.sourceUnit,
       relationTotal: source.edges.length, matchedRelationTotal: rows.length, matchedSubjectTotal: new Set(rows.map(row => (row.subject as Data).id)).size,
       unknownSubjectFormIds: ids(unknown), unavailableSubjectIds: ids(unavailable), unavailableCollectionSubjectIds: ids(unavailableCollections) } };

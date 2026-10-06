@@ -1,5 +1,6 @@
 import { Ajv, type ErrorObject, type ValidateFunction } from 'ajv';
 import { SchemaInputError, type InputIssue } from './errors.js';
+import type { DiagnosticIssue } from './error-diagnostic.js';
 
 export type JsonSchema = Record<string, unknown>;
 const ajv = new Ajv({ strict: true, allErrors: true, coerceTypes: false, removeAdditional: false, useDefaults: false });
@@ -8,6 +9,24 @@ export function compileSchema(schema: JsonSchema): ValidateFunction {
   let validator = validators.get(schema);
   if (!validator) { validator = ajv.compile(schema); validators.set(schema, validator); }
   return validator;
+}
+/** 输出校验按实际 discriminator 选分支，只返回字段位置和规则，不回显数据值。 */
+export function outputIssues(schema: JsonSchema, value: unknown): DiagnosticIssue[] {
+  const row = value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  const branches = (schema.oneOf ?? schema.anyOf) as JsonSchema[] | undefined;
+  const active = branches?.find(branch => {
+    const props = branch.properties as Record<string, JsonSchema> | undefined;
+    return props && (['type', 'kind', 'entity', 'format'].some(key => Object.hasOwn(row, key)
+      && (props[key]?.const === row[key] || Array.isArray(props[key]?.enum) && (props[key]!.enum as unknown[]).includes(row[key])))
+      || Object.hasOwn(row, 'value') && Object.hasOwn(props, 'value') || Object.hasOwn(row, 'error') && Object.hasOwn(props, 'error'));
+  }) ?? schema;
+  // 子分支仍引用原根的$defs；诊断不能因丢失引用环境再抛编译错误。
+  const validator = compileSchema(active === schema || schema.$defs === undefined ? active : { ...active, $defs: schema.$defs }); validator(value);
+  return (validator.errors ?? []).filter(error => !['anyOf', 'oneOf', 'if'].includes(error.keyword)).slice(0, 8).map(error => ({
+    path: error.keyword === 'required' ? `${error.instancePath}/${String(error.params.missingProperty)}` : error.instancePath,
+    rule: error.keyword, message: error.message ?? '返回字段不符合固定契约',
+    ...(error.params.type === undefined ? {} : { expected: String(error.params.type) }),
+  }));
 }
 export function schemaAt(schema: JsonSchema, path: string): JsonSchema | null {
   let current = schema;
