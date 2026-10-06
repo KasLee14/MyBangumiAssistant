@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { SubjectCardView, SubjectCollectionView, SubjectKind } from '../../../../bangumi/src/web/protocol';
-import { SpotlightCard } from '../motion/vendor/SpotlightCard';
+/* SpotlightCard 已移除：用户在 style-demo-interaction.html 里选的是「A · 只精修状态反馈」，
+   明确排除了指针跟随类效果。详见 GridCard 的注释。 */
 
 /** 类型角标的文案与简写；未知值只显示角标色块，不猜测媒体类型。 */
 const KIND_LABEL: Record<SubjectKind, string> = {
@@ -53,19 +54,29 @@ function GridCard({ item }: { item: SubjectCardView }): ReactNode {
   const score = scoreText(item.score);
   return (
     <li className="contentSubjectGridItem">
-      {/* ReactBits 的 SpotlightCard 提供指针跟随光斑（参考 https://www.reactbits.dev/components/spotlight-card）；
-          组合类把它的自带白面/内边距归零，外观仍由 .contentSubjectCard 决定。 */}
-      <SpotlightCard className="contentSubjectSpotlight">
-        <Shell url={item.url} className="contentSubjectCard">
-          <Cover className="contentSubjectCover" image={item.image} name={item.name} />
+      {/* 这里原有 ReactBits 的 SpotlightCard（指针跟随光斑）。已移除：
+          用户在 `style-demo-interaction.html` 里选的是「A · 只精修状态反馈」，
+          明确排除了指针光斑、磁吸与行光带这三类「指针跟随」效果——
+          卡片的指针反馈只保留 hover 抬升与阴影加深。 */}
+      <Shell url={item.url} className="contentSubjectCard">
+        <Cover className="contentSubjectCover" image={item.image} name={item.name} />
+        {/* 文字区是**一层独立的内距容器**（[C05](../../docs/design/decisions/C05-subject-cards.md)
+            定稿：内距 `9px 10px 11px`）。卡片自己不能带内距，否则封面会被一起推进去、
+            四周露出卡片底色；名称的上边距也归零——间距由这层的内距表达，不再各写一份。 */}
+        <div className="contentSubjectBody">
           <p className="contentSubjectName">{item.name}</p>
+          {/* 中文名：样张的网格卡有这一行（`11.5px / text-muted`，见 content.html 的 `.cn`）。
+              与原名相同、或宿主没给时都不渲染——免得同一串字出现两遍。 */}
+          {item.nameCn === undefined || item.nameCn === '' || item.nameCn === item.name ? null : (
+            <p className="contentSubjectNameCn">{item.nameCn}</p>
+          )}
           <p className="contentSubjectFacts">
             <span className="contentKindBadge" title={KIND_LABEL[item.kind]}>{KIND_SHORT[item.kind]}</span>
             {KIND_LABEL[item.kind]}
             {score === null ? null : <span className="contentSubjectScore">{score}</span>}
           </p>
-        </Shell>
-      </SpotlightCard>
+        </div>
+      </Shell>
     </li>
   );
 }

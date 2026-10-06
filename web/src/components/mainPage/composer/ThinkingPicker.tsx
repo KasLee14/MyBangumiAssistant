@@ -74,7 +74,7 @@ export function ThinkingPicker(): ReactNode {
         {text}
       </button>
       {open ? (
-        <div className="thinkingMenu" role="listbox" aria-label="思考强度">
+        <div className="appGlass thinkingMenu" role="listbox" aria-label="思考强度">
           <div className="menuMaterial" />
           <div className="menuViewport">
             <div className="menuLabel">思考强度</div>

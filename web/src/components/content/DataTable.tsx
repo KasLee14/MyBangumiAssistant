@@ -16,10 +16,12 @@ function cellText(row: Record<string, string>, key: string): string | undefined 
  * 这类中文数字串也得到自然顺序；空单元格始终排到末尾，不参与比较。
  */
 export function DataTable({ view }: { view: TableView }): ReactNode {
-  const { title, columns, rows, note } = view;
+  const { title, columns, rows, note, keyColumn, currentRow } = view;
   const [sort, setSort] = useState<SortState>(null);
   // 首列用于给行生成 key；列可以为空，所以先取出再兜底。
   const primaryKey = columns[0]?.key ?? '';
+  // 「当前行」按 `keyColumn`（缺省首列）的值匹配；宿主没给 `currentRow` 就一层强调都不加。
+  const currentKey = keyColumn ?? primaryKey;
 
   const sorted = sort === null ? rows : rows.slice().sort((left, right) => {    const a = cellText(left, sort.key) ?? '';
     const b = cellText(right, sort.key) ?? '';
@@ -70,16 +72,31 @@ export function DataTable({ view }: { view: TableView }): ReactNode {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((row, index) => (
+              {sorted.map((row, index) => {
                 // 行没有稳定 id，用「首列内容 + 序号」作为 key：序号保证同一内容的多行也能区分。
-                <tr key={`${cellText(row, primaryKey) ?? ''}#${index}`}>
-                  {columns.map(column => (
-                    <td key={column.key} className="contentTableCell" data-align={column.align ?? 'left'}>
-                      {cellText(row, column.key) ?? ''}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+                const isCurrent = currentRow !== undefined && currentRow !== '' && cellText(row, currentKey) === currentRow;
+                return (
+                  <tr key={`${cellText(row, primaryKey) ?? ''}#${index}`} data-current={isCurrent}>
+                    {columns.map(column => {
+                      const isKey = keyColumn !== undefined && keyColumn !== '' && column.key === keyColumn;
+                      return (
+                        <td
+                          key={column.key}
+                          className={isKey ? 'contentTableCell contentTableKey' : 'contentTableCell'}
+                          data-align={column.align ?? 'left'}
+                        >
+                          {cellText(row, column.key) ?? ''}
+                          {/* 「当前」徽章跟在关键值后面（V3 点睛的第二通道）；
+                              没有关键列时退回首格，免得徽章孤零零地挂在行尾。 */}
+                          {isCurrent && (isKey || (keyColumn === undefined && column.key === primaryKey)) ? (
+                            <span className="contentTableCurrent">当前</span>
+                          ) : null}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

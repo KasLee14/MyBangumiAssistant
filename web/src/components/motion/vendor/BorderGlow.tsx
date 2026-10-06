@@ -1,3 +1,26 @@
+/**
+ * 来源：https://reactbits.dev/components/border-glow（ReactBits 官方源码拷贝）
+ *
+ * 相对官方的逐条改动：
+ * 1. **配色令牌化**：`backgroundColor` 默认值由 `#120F17` 改为 `var(--app-surface)`、
+ *    `colors` 默认值由官方那组紫/粉/蓝 hex 改为由 `--bgm-primary` 派生的三色、
+ *    `glowColor` 默认值由官方的黄绿（`40 80 80`）改为主色 HSL；
+ *    CSS 里描边、六层阴影、七色 mesh 回退值与 `--glow-color*` 回退值全部换成令牌派生。
+ * 2. **底色走变量层**：`--card-bg-css`（消费方注入，本项目是玻璃填充）优先于 `--card-bg`，
+ *    所以输入卡能吃到 `.appGlass` 那一套玻璃令牌。
+ * 3. **`--light` 分支只剩 `mix-blend-mode`**：官方在这里另给一套浅色描边与阴影，
+ *    现在基础分支已是同一批 `--app-*` 令牌，两处都写会让同一属性出现两个来源。
+ * 4. **扫描编排参数集中为 `SWEEP`**：它们是一次扫过的编排（不是全站过渡节奏），
+ *    所以不套 `--app-dur-*`，但必须在一个地方能读全。
+ * 5. 过渡时长改用 `--app-dur-*` / `--app-ease-*`；`animated` 开关保持默认关闭。
+ *
+ * 为什么改：本项目的表面与动效全部由令牌驱动，硬编码色值在浅色令牌体系下要么发灰、
+ * 要么与粉调打架；而 `glowColor` 用 `H S L` 三段数字是本组件的 API 格式（装不下 `var()`），
+ * 所以 CSS 侧的回退值必须自己令牌化。
+ *
+ * 保留的官方行为：指针距离与角度算法、锥形遮罩、七点位 mesh 渐变、
+ * `isLightColor()`（只认 hex）与 `--light` 类（现在与默认渲染等价，保留是为了与官方结构对齐）。
+ */
 import { useRef, useCallback, useEffect, type ReactNode, type PointerEvent, type CSSProperties } from 'react';
 import './BorderGlow.css';
 
@@ -15,6 +38,22 @@ export interface BorderGlowProps {
   colors?: string[];
   fillOpacity?: number;
 }
+
+/**
+ * 指针扫描（`animated`）的编排参数，集中在这里。
+ *
+ * 它们是「一次扫过」的编排，不是全站动效节奏，所以不套 `--app-dur-*` 令牌
+ * （那些是过渡时长）；放一处是为了让「扫多久、何时收」一眼可读。
+ */
+const SWEEP = {
+  fadeIn: 500,
+  sweepOut: 1500,
+  sweepBack: 2250,
+  fadeOut: 1500,
+  fadeOutDelay: 2500,
+  angleStart: 110,
+  angleEnd: 465,
+} as const;
 
 function parseHSL(hslStr: string): { h: number; s: number; l: number } {
   const match = hslStr.match(/([\d.]+)\s*([\d.]+)%?\s*([\d.]+)%?/);
@@ -82,14 +121,20 @@ export function BorderGlow({
   children,
   className = '',
   edgeSensitivity = 30,
-  glowColor = '40 80 80',
-  backgroundColor = '#120F17',
-  borderRadius = 28,
+  // 默认光色 = 主色的 HSL（`H S L` 是组件的 API 格式，装不下 var()；CSS 侧回退值已令牌化）
+  glowColor = '355 78 66',
+  backgroundColor = 'var(--app-surface)',
+  borderRadius = 20,
   glowRadius = 40,
   glowIntensity = 1.0,
   coneSpread = 25,
   animated = false,
-  colors = ['#c084fc', '#f472b6', '#38bdf8'],
+  // 默认渐变三色收进默认值：消费方（输入卡）不必再抄一遍同样的三色
+  colors = [
+    'var(--bgm-primary)',
+    'color-mix(in srgb, var(--bgm-primary) 62%, var(--bgm-surface))',
+    'color-mix(in srgb, var(--bgm-primary) 38%, var(--bgm-surface))',
+  ],
   fillOpacity = 0.5,
 }: BorderGlowProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -139,19 +184,20 @@ export function BorderGlow({
   useEffect(() => {
     if (!animated || !cardRef.current) return;
     const card = cardRef.current;
-    const angleStart = 110;
-    const angleEnd = 465;
     card.classList.add('sweep-active');
-    card.style.setProperty('--cursor-angle', `${angleStart}deg`);
+    card.style.setProperty('--cursor-angle', `${SWEEP.angleStart}deg`);
 
-    animateValue({ duration: 500, onUpdate: v => card.style.setProperty('--edge-proximity', `${v}`) });
-    animateValue({ ease: easeInCubic, duration: 1500, end: 50, onUpdate: v => {
-      card.style.setProperty('--cursor-angle', `${(angleEnd - angleStart) * (v / 100) + angleStart}deg`);
+    const angleAt = (v: number): string =>
+      `${(SWEEP.angleEnd - SWEEP.angleStart) * (v / 100) + SWEEP.angleStart}deg`;
+
+    animateValue({ duration: SWEEP.fadeIn, onUpdate: v => card.style.setProperty('--edge-proximity', `${v}`) });
+    animateValue({ ease: easeInCubic, duration: SWEEP.sweepOut, end: 50, onUpdate: v => {
+      card.style.setProperty('--cursor-angle', angleAt(v));
     }});
-    animateValue({ ease: easeOutCubic, delay: 1500, duration: 2250, start: 50, end: 100, onUpdate: v => {
-      card.style.setProperty('--cursor-angle', `${(angleEnd - angleStart) * (v / 100) + angleStart}deg`);
+    animateValue({ ease: easeOutCubic, delay: SWEEP.sweepOut, duration: SWEEP.sweepBack, start: 50, end: 100, onUpdate: v => {
+      card.style.setProperty('--cursor-angle', angleAt(v));
     }});
-    animateValue({ ease: easeInCubic, delay: 2500, duration: 1500, start: 100, end: 0,
+    animateValue({ ease: easeInCubic, delay: SWEEP.fadeOutDelay, duration: SWEEP.fadeOut, start: 100, end: 0,
       onUpdate: v => card.style.setProperty('--edge-proximity', `${v}`),
       onEnd: () => card.classList.remove('sweep-active'),
     });

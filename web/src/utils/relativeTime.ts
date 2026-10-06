@@ -49,3 +49,41 @@ export function relativeTimeLabel(modified: string, now: number): string {
   const bucket = BUCKETS.find(candidate => diff < candidate.limit)!;
   return bucket.unit === 0 ? bucket.word : `${Math.floor(diff / bucket.unit)}${bucket.word}`;
 }
+
+/** 某个时刻所在**日历日**的零点。用 `setHours` 而不是减 86400000，跨月与夏令时都不会偏。 */
+function startOfDay(ms: number): number {
+  const date = new Date(ms);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+/** 在某个零点上偏移若干**日历日**（`setDate` 会自己处理月/年进位）。 */
+function dayOffset(zero: number, days: number): number {
+  const date = new Date(zero);
+  date.setDate(date.getDate() + days);
+  return date.getTime();
+}
+
+/**
+ * 侧栏时间分组：今天 / 昨天 / 7 天内 / 更早。
+ *
+ * [C44](../../docs/design/decisions/C44-sidebar.md) 把分组从「今天 / 更早」改成四档；
+ * 「置顶」不在这里判——它不是时间档，而是一个**独立于时间**的分组，由侧栏先按
+ * `ui.pinned` 挑出去（见 `components/mainPage/shell/Sidebar.tsx`）。
+ *
+ * 与 `relativeTimeLabel` 一样，`now` 由调用方注入，保证同一屏里所有行共用同一个时刻
+ * （否则跨零点时相邻两行会落进不同分组）。解析不出来的时间归入「更早」，好过伪造一个今天。
+ */
+export function sessionDayGroup(modified: string, now: number): string {
+  const at = Date.parse(modified);
+  if (Number.isNaN(at)) return '更早';
+  const today = startOfDay(now);
+  if (at >= today) return '今天';
+  if (at >= dayOffset(today, -1)) return '昨天';
+  // 「7 天内」= 前天起的 5 个日历日（昨天与今天已各占一档）。
+  if (at >= dayOffset(today, -6)) return '7 天内';
+  return '更早';
+}
+
+/** 分组标题的固定顺序：置顶永远在最前，其余按时间由近到远。 */
+export const SESSION_GROUP_ORDER = ['置顶', '今天', '昨天', '7 天内', '更早'] as const;

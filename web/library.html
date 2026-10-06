@@ -3,12 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f5f5f5" />
+    <meta name="theme-color" content="#fdf1f2" />
     <title>Bangumi 助手 · 内容组件库</title>
     <style>
-      /* 与主界面同源的预涂底色，避免样式表加载前白闪。 */
+      /* 与主界面同源的预涂底色，避免样式表加载前白闪；必须是 --bgm-bg 的实际色值
+         （primary **9%** + 白，见 styles/bgm.css），改令牌时同步改。 */
       :root { color-scheme: light; }
-      body { margin: 0; background: #f5f5f5; }
+      /* 预涂底色 = `--bgm-bg`（主色 #ec6570 9% + 白）= #fdf1f2。这里必须写实色：
+         `color-mix()` 要等 CSS 变量就位才算得出来，而这行要在样式表之前生效以消除首帧闪白。
+         改主色或改混白比例时按同一公式重算（这是全项目仅剩的实色抄本之一）。 */
+      body { margin: 0; background: #fdf1f2; }
     </style>
   </head>
   <body>

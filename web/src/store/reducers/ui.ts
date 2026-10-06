@@ -16,8 +16,31 @@ export interface UiState {
   drafts: Record<string, string>;
   settingsOpen: boolean;
   settingsPane: SettingsPane | null;
+  /**
+   * 设置弹窗**屏幕上此刻渲染的是哪一屏**（`null` = 主屏）。
+   *
+   * 与 `settingsPane` 的分工：后者是「用户要去的屏」，前者是「已经画出来的屏」。
+   * 两者在两种时刻会分开，而分开的每一刻都必须照后者渲染：
+   *
+   * - **退场期间**（`settingsClosed` 之后）：`settingsPane` 已被清空，若照它算渲染分支，
+   *   弹窗会在关闭的同一帧从「模型配置」跳成「设置主屏」——换分支就是换子树，正在播的
+   *   退场动画会连同旧 `Modal` 一起被卸载，于是既不播退场、也永远不会消失（实测症状：
+   *   `data-leaving` 从未出现、元素留在 DOM 里）。
+   * - **子弹窗刚关、弹窗还开着**（`settingsOpened(null)` 之后）：这一屏已经不存在了，
+   *   要立刻让位给主屏，所以它是跟着 `settingsPane` 走的。
+   *
+   * 因此 `SettingsDialog` 的取值口径是 `leaving ? lastSettingsPane : settingsPane`。
+   */
+  lastSettingsPane: SettingsPane | null;
   sessionsOpen: boolean;
   collapsed: boolean;
+  /**
+   * 置顶的会话 id（按置顶顺序）。
+   *
+   * **纯前端状态**：宿主协议里没有「置顶」字段（见 `utils/pinnedStorage.ts` 的说明），
+   * 所以它只存在浏览器本地，由 `store/index.ts` 的一处订阅落盘。
+   */
+  pinned: string[];
   /** `/details` 递增的展开计数：每次递增都强制展开过程折叠块。 */
   reveal: number;
   notice: string | null;
@@ -31,8 +54,11 @@ export const INITIAL_UI_STATE: UiState = {
   drafts: {},
   settingsOpen: false,
   settingsPane: null,
+  lastSettingsPane: null,
   sessionsOpen: false,
   collapsed: false,
+  // 真实的初始值在 `store/index.ts` 里从 localStorage 读入（这里只给同样的空默认值）。
+  pinned: [],
   reveal: 0,
   notice: null,
   problem: null,
@@ -50,6 +76,7 @@ export type UiAction =
   | { type: 'ui/sessionsClosed' }
   | { type: 'ui/collapsedSet'; collapsed: boolean }
   | { type: 'ui/collapsedToggled' }
+  | { type: 'ui/pinnedToggled'; sessionId: string }
   | { type: 'ui/revealIncremented' }
   | { type: 'ui/credentialProviderSet'; provider: string };
 
@@ -66,18 +93,29 @@ export function uiReducer(state: UiState = INITIAL_UI_STATE, action: AppAction):
     case 'ui/problem':
       return { ...state, problem: action.message };
     case 'ui/settingsOpened':
-      // 同一时刻只留一个弹窗：会话弹窗与设置弹窗不叠加。
-      return { ...state, settingsOpen: true, settingsPane: action.pane, sessionsOpen: false };
+      /* 同一时刻只留一个弹窗：会话弹窗与设置弹窗不叠加。
+         `lastSettingsPane` 跟着 `action.pane` 走——它是「这一刻屏幕上真渲染的是哪一屏」，
+         退场动画期间还要照它渲染（见 `lastSettingsPane` 的字段注释）。 */
+      return { ...state, settingsOpen: true, settingsPane: action.pane, lastSettingsPane: action.pane, sessionsOpen: false };
     case 'ui/settingsClosed':
+      /* 只关开关，**刻意不清** `lastSettingsPane`：`Modal` 还要照它把退场动画播完
+         （内容一换分支就是换子树，旧 `Modal` 会被卸载，动画一帧都播不出来）。 */
       return { ...state, settingsOpen: false, settingsPane: null };
     case 'ui/sessionsOpened':
-      return { ...state, sessionsOpen: true, settingsOpen: false, settingsPane: null };
+      return { ...state, sessionsOpen: true, settingsOpen: false, settingsPane: null, lastSettingsPane: null };
     case 'ui/sessionsClosed':
       return { ...state, sessionsOpen: false };
     case 'ui/collapsedSet':
       return state.collapsed === action.collapsed ? state : { ...state, collapsed: action.collapsed };
     case 'ui/collapsedToggled':
       return { ...state, collapsed: !state.collapsed };
+    case 'ui/pinnedToggled': {
+      // 新数组（而不是原地 splice）：订阅处用引用比较判断「值真的变了」，原地改会漏掉落盘。
+      const pinned = state.pinned.includes(action.sessionId)
+        ? state.pinned.filter(id => id !== action.sessionId)
+        : [action.sessionId, ...state.pinned];
+      return { ...state, pinned };
+    }
     case 'ui/revealIncremented':
       return { ...state, reveal: state.reveal + 1 };
     case 'ui/credentialProviderSet':

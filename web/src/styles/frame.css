@@ -25,9 +25,9 @@ body,
 }
 
 body {
-  background: var(--dsw-alias-bg-base);
-  color: var(--dsw-alias-label-primary);
-  font: var(--dsw-font-s-14);
+  background: var(--bgm-bg);
+  color: var(--bgm-text);
+  font: var(--app-font-body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -71,19 +71,24 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  max-width: 78%;
+  /* [C38](../../docs/design/decisions/C38-message-parts.md) 定稿 B：气泡最大宽 78% → **88%**。 */
+  max-width: 88%;
 }
 
+/* 用户气泡：按样张 `web/style-demo-layout.html` 的 L-B 列——
+   `#fdeff0`（主色浅底）+ `1px solid rgba(236,101,112,.22)` + **主色深字** + 四角一致 + **无阴影**。
+   早先写成「右下角收一档的不对称圆角 + raised 阴影 + 中性深字」，三处都偏离样张：
+   样张里用户消息是**唯一使用主色深字**的文本，「我说的」靠这个区分，而不是靠阴影与切角。 */
 .bubble {
-  padding: 10px 15px;
-  border: 1px solid color-mix(in srgb, var(--bgm-primary) 26%, transparent);
-  /* 右下角收一档，作为「这是我说的话」的方向暗示，不靠箭头装饰。 */
-  border-radius: var(--app-radius-panel) var(--app-radius-panel) var(--bgm-r-sm) var(--app-radius-panel);
+  padding: var(--app-space-10) 15px;
+  border: 1px solid color-mix(in srgb, var(--bgm-primary) 22%, transparent);
+  /* [C38](../../docs/design/decisions/C38-message-parts.md)：圆角由控件档升到**容器档 14px**
+     ——气泡是内容容器而不是按钮，与它同一视觉层的卡片都走这一档。 */
+  border-radius: var(--app-radius-panel);
   background: var(--bgm-primary-soft);
-  box-shadow: var(--app-shadow-raised);
-  color: var(--bgm-text-strong);
-  font-size: var(--dsh-content-font-size, 14px);
-  line-height: 22px;
+  color: var(--bgm-primary-text);
+  font-size: 14px;
+  line-height: var(--app-line-base);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -94,15 +99,15 @@ body {
 }
 
 .assistantBody {
-  border-left: 2px solid var(--bgm-border-soft);
-  padding-left: 10px;
+  /* 样张里助手正文**没有任何前缀装饰**（无边线、无引导标记）：与用户气泡的区别靠
+     「气泡底 + 主色深字」就够了。原先那条 2px 左边线属于多余装饰，与「素面」方向相反，故移除。
+     行距仍是「干净、留白」的主要来源。C35 决策 D：正文段距 16 → 20px。 */
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   color: var(--bgm-text);
-  font: var(--dsw-font-markdown-base);
-  /* 行距比正文默认更松：这是「干净、留白」的主要来源，不加任何装饰元素。 */
-  line-height: 1.75;
+  font: var(--app-font-body);
+  line-height: var(--app-line-base);
 }
 
 /* 流式：上游用 mask 扫光而不是闪烁光标 */
@@ -119,11 +124,13 @@ body {
   }
 }
 
-/* 提示、错误与通知 */
+/* 提示、错误与通知。
+   公共那一组只留真正共享的属性：原先的 `line-height: calc(22px + …)` 被下面两条各自的
+   `line-height: 20px` 完全覆盖（实测 20px），属于死声明，已删。 */
 .noticeRow,
 .errorRow {
-  font-size: var(--dsh-content-font-size-secondary, 13px);
-  line-height: calc(22px + var(--dsh-content-font-delta-secondary, 0px));
+  font-size: 13px;
+  line-height: 20px;
   white-space: pre-wrap;
 }
 
@@ -131,22 +138,17 @@ body {
   align-self: flex-start;
   padding: 7px 12px;
   border-radius: var(--app-radius-control);
-  font-size: var(--dsh-content-font-size-secondary, 13px);
-  line-height: 20px;
-  white-space: pre-wrap;
   border: 1px solid color-mix(in srgb, var(--bgm-warn) 24%, transparent);
   background: color-mix(in srgb, var(--bgm-warn) 8%, var(--app-surface));
   color: var(--bgm-warn);
 }
 
 .errorRow {
-  grid-template-columns: 10px minmax(0, 1fr);
   align-self: flex-start;
   padding: 7px 12px;
   border-radius: var(--app-radius-control);
-  font-size: var(--dsh-content-font-size-secondary, 13px);
-  line-height: 20px;
-  white-space: pre-wrap;
+  /* 这一行是 flex（下面的 `display: flex`），所以**不要**写 `grid-template-columns`
+     ——那是 grid 专用属性，在 flex 容器上不产生任何布局效果（原先那条是死声明）。 */
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -156,12 +158,12 @@ body {
 }
 
 .sessionBanner {
-  font-family: var(--ds-font-family-code);
+  font: var(--app-font-note);
   margin: 0;
   padding: 8px 12px;
   border-left: 2px solid var(--app-hairline-strong);
   color: var(--bgm-text-weak);
-  font: 12px/1.6 var(--bgm-mono);
+  font-family: var(--bgm-mono);
   white-space: pre-wrap;
 }
 
@@ -176,7 +178,7 @@ body {
   /* 对话区是白底，这条状态行用比白面略沉的一档，才看得出是一块「进行中」的载体。 */
   background: var(--bgm-surface-alt);
   color: var(--bgm-text-muted);
-  font-size: calc(var(--dsh-content-font-size, 14px) - 2px);
+  font-size: 12px;
   line-height: 20px;
   font-variant-numeric: tabular-nums;
 }
@@ -191,18 +193,21 @@ body {
 }
 
 .processTitle {
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  /* 原先这里还有一条 `border-bottom: 0.5px solid …`，但被下面 `border: 0` 的简写整体清掉
+     ——实测 computed 是 `0px none`，那条描边从来没出现过。折叠头的形态由
+     **左侧 2px 主色条 + 6% 主色浅底 + 右侧两角圆角**表达（[C40](../../docs/design/decisions/C40-tool-activity.md)
+     的四个候选正是围绕它展开的）。 */
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 6px 10px;
+  padding: var(--app-space-6) var(--app-space-10);
   border: 0;
   border-left: 2px solid color-mix(in srgb, var(--bgm-primary) 45%, transparent);
   border-radius: 0 var(--app-radius-control) var(--app-radius-control) 0;
   background: color-mix(in srgb, var(--bgm-primary) 6%, var(--app-surface));
   color: var(--bgm-text-muted);
-  font: 13px/1.5 var(--bgm-font);
+  font: var(--app-font-sub);
   text-align: left;
   cursor: pointer;
   transition: background var(--app-dur-fast) var(--app-ease-out), border-color var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
@@ -223,19 +228,18 @@ body {
 }
 
 .processTitle .count {
-  font: var(--dsw-font-xs-13);
   margin-left: auto;
   color: var(--bgm-text-weak);
-  font-size: 12px;
+  font: var(--app-font-note);
 }
 
 .processBody {
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  /* 原先在这里把滚动条重绑到上游 l2 那一档；两级滑块取值本来就相同，
+     令牌层清理时已合并成一枚 `--app-scrollbar-thumb`（`tokens.css`），故不再重绑。 */
   border-left: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--app-space-6);
   margin-top: 8px;
   padding-left: 12px;
   max-height: min(400px, 50vh);
@@ -248,12 +252,12 @@ body {
   align-items: baseline;
   gap: 8px;
   color: var(--bgm-text-muted);
-  font: 13px/1.5 var(--bgm-font);
+  font: var(--app-font-sub);
 }
 
 /* 失败的工具调用才标红；running/ok 走默认与成功色 */
 .activityRow[data-state='error'] {
-  color: var(--dsw-alias-state-error-primary);
+  color: var(--bgm-danger);
 }
 
 .activityRow .mark {
@@ -281,24 +285,24 @@ body {
 .markdown h2,
 .markdown h3 {
   margin: 32px 0 16px;
-  color: var(--dsw-alias-label-primary);
+  color: var(--bgm-text);
 }
 
 .markdown h1 {
-  font: var(--dsw-font-markdown-h1);
+  font: var(--app-font-md-h1);
 }
 
 .markdown h2 {
-  font: var(--dsw-font-markdown-h2);
+  font: var(--app-font-md-h2);
 }
 
 .markdown h3 {
-  font: var(--dsw-font-markdown-h3);
+  font: var(--app-font-md-h3);
 }
 
 .markdown h4 {
   margin: 16px 0;
-  font: var(--dsw-font-markdown-h4);
+  font: var(--app-font-md-h4);
 }
 
 .markdown ul,
@@ -309,8 +313,12 @@ body {
 
 .markdown blockquote {
   margin: 16px 0;
-  padding: 0 0 0 14px;
-  border-left: 3px solid var(--bgm-primary);
+  /* **2026-10-06 落地 C20 定稿 B**：① 去掉左 3px 主色竖条（与 C14 的 QuoteBlock 统一，
+     引用块在全站只有一种形态：留白 + 浅底 + 弱字色）；② 补容器档圆角；
+     ③ 内距与 `.contentQuote` 同口径（12px 13px）——引用的「块感」由底色与外留白表达，
+     不再靠一条竖线。 */
+  padding: 12px 13px;
+  border-radius: var(--app-radius-control);
   background: var(--bgm-surface-alt);
   color: var(--bgm-text-muted);
 }
@@ -320,37 +328,50 @@ body {
 }
 
 .markdown li + li {
-  margin-top: 6px;
+  margin-top: var(--app-space-6);
 }
 
 .markdown strong {
   font-weight: 600;
 }
 
+/* 正文里的链接：用**主色深字 + 下划线**而不是蓝色 `--bgm-link`。
+   蓝色是上游沿用的站点外链色，与「粉白两色为核心」冲突（它凭空引入第三个色系）；
+   而链接与强调在这里是同一件事——都该落在主色上。 */
 .markdown a {
-  text-decoration: none;
   overflow-wrap: anywhere;
-  color: var(--bgm-link);
+  color: var(--bgm-primary-text);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+  text-underline-offset: 2px;
 }
 
 .markdown a:hover {
-  text-decoration: underline;
-  color: var(--bgm-interactive);
+  /* 这里原来同时声明了两个 `color`（主色 → 又被交互蓝覆盖），属「同一属性两个来源」。
+     统一到主色：在这套体系里，链接与强调本就是同一件事。 */
+  color: var(--bgm-primary);
+  text-decoration-color: var(--bgm-primary);
 }
 
 .markdown :not(pre) > code {
   padding: 0 5px;
-  border: 0.5px solid var(--dsw-alias-border-l1);
-  border-radius: var(--dsw-radius-sm);
-  background: var(--dsw-alias-markdown-inline-code);
-  font: var(--dsw-font-markdown-code);
+  border: 0.5px solid var(--bgm-border-soft);
+  border-radius: var(--app-radius-cell);
+  /* 行内代码底由主色就地派生（上游是中性灰色板，粉白体系里不留灰底）。 */
+  background: color-mix(in srgb, var(--bgm-primary) 12%, var(--bgm-surface));
+  /* **只换字体族，不写 `font` 简写**：下面那行 `font-size: 0.875em` 要相对**正文**计算
+     （14px × 0.875 = 12.25px）。若写成 `font: var(--app-font-note)`（12px），
+     0.875em 会变成 12 × 0.875 = 10.5px——比正文小太多，行内代码会缩成一小块。 */
+  font-family: var(--bgm-mono);
   font-size: 0.875em;
 }
 
 .markdown pre {
   margin: 16px 0;
   padding: 16px;
-  font: var(--dsw-font-markdown-code-block);
+  /* 代码块字号走上游的最小一档意图，但收进项目的字号阶梯（note 12px）——
+     上游是 11px/19px，超出「小字四档」之外，差 1px 已记在交付说明里。 */
+  font: var(--app-font-note);
   white-space: pre-wrap;
   word-break: break-all;
   overflow-x: auto;
@@ -379,21 +400,23 @@ body {
 
 .markdown th,
 .markdown td {
-  padding: 6px 10px;
+  padding: var(--app-space-6) var(--app-space-10);
   text-align: left;
   vertical-align: top;
   overflow-wrap: anywhere;
 }
 
 .markdown th {
-  font: var(--dsw-font-markdown-table-head);
+  /* 表头 = 次级档 + 半粗（上游简写里已含 500，拆成两条以免又被字号令牌吃掉字重）。 */
+  font: var(--app-font-sub);
+  font-weight: 500;
   white-space: nowrap;
   background: var(--bgm-surface-alt);
   border-bottom: 1px solid var(--bgm-border);
 }
 
 .markdown td {
-  font: var(--dsw-font-markdown-table);
+  font: var(--app-font-sub);
   border-bottom: 1px dotted var(--bgm-dotted);
 }
 
@@ -422,7 +445,7 @@ body {
 
 .assistantRow .assistantBody {
   border-left: 2px solid var(--bgm-border-soft);
-  padding-left: 10px;
+  padding-left: var(--app-space-10);
 }
 
 .activityRow > span:last-child {
@@ -448,32 +471,46 @@ body {
   background: var(--bgm-sunken);
   border: 1px solid var(--bgm-border-soft);
   border-radius: 3px;
+  font: var(--app-font-note);
   font-family: var(--bgm-mono);
-  font-size: 12px;
-}
-
-.appFrame[data-sidebar='collapsed'] {
-  --app-sidebar-width: 60px;
 }
 
 @media (max-width: 1024px) {
   .appFrame {
-      --app-sidebar-width: 60px;
+      /* 窄屏自动收起：抽屉式收起后列宽就是 0（不再是 60px 的窄条）。 */
+      --app-sidebar-width: 0px;
   }
 }
 
 .appFrame {
   animation: app-frame-in var(--app-dur-slow) var(--app-ease-out) both;
-  --app-sidebar-width: 264px;
+  /* 横向分区只有侧栏一处：展开宽取自 `--app-sidebar-full`（tokens.css 里唯一那份 264px），
+     收起态把它重绑成 0。 */
+  --app-sidebar-width: var(--app-sidebar-full);
+  /* 收起态的两个气泡绝对定位在本层，所以这里必须是定位基准。 */
+  position: relative;
   display: grid;
-  grid-template-rows: 100%;
+  /* [C01](../docs/design/decisions/C01-app-top-bar.md)：顶栏已删除，外壳只剩「侧栏 | 对话区」两列。 */
   grid-template-columns: var(--app-sidebar-width) minmax(400px, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'side main';
   height: 100%;
   overflow: hidden;
-  background: var(--bgm-bg);
+  /* **没有底光**（[G07](../docs/design/decisions/G07-glow.md) 定「全部去掉」，G-tokens §五 记
+     `--app-glow-ambient` 为**删除**）：表面只用纯色，不叠加任何装饰性径向渐变。 */
+  background-color: var(--bgm-bg);
   /* 折叠是一次「流程过渡」：列宽跟着走，而不是整块跳变。 */
   transition: grid-template-columns var(--app-dur-slow) var(--app-ease-out);
 }
+
+/* 收起：列宽归零（C44b 定稿是 0，不是 60px 窄条）。 */
+.appFrame[data-sidebar='collapsed'] {
+  --app-sidebar-width: 0px;
+}
+
+/* 槽位的落位。用组合选择器：只在外壳里生效，不污染共享组件的其它用法。 */
+.appFrame > .appSidebar { grid-area: side; }
+.appFrame > .appConversation { grid-area: main; }
 
 @keyframes app-frame-in {
   from { opacity: 0; }
@@ -481,44 +518,365 @@ body {
 }
 
 .appSidebar {
+  /* [C44b](../docs/design/decisions/C44-sidebar.md)：白底 + 向右的发散阴影、**去掉描边**。
+     侧栏与对话区同为白面（落差 1.000:1），分层完全靠这条阴影。
+     `position: relative; z-index: 1` 是必需的：两块都是 grid item，对话区在 DOM 里靠后、
+     会把侧栏投出的阴影盖掉。 */
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 10px 12px;
+  padding: var(--app-space-8);
   overflow: hidden;
-  /* 侧栏走站点页面底色（下沉一档的灰），把白面整体让给对话区：
-     「哪块是导航、哪块是内容」靠底色就能读出来，不必去猜那条 1px 边线在哪。 */
-  background: var(--app-surface-sunken);
-  border-right: 1px solid var(--app-hairline);
+  background: var(--bgm-surface);
+  box-shadow: var(--app-shadow-edge);
 }
 
+/* 抽屉式收起：内容**锁宽**并整体左移，窗口（grid 列宽）随后收窄。
+   只改列宽是不够的——内容宽度自适应时会被一路压扁（文字被挤、行被压窄），
+   那不是「收起来」，是「压扁」。位移用短一档的时长（240ms vs 窗口的 360ms），
+   让内容先滑走、窗口后收窄：两者同长时，几何上要等进度到 97% 内容才完全离开窗口。
+
+   **限定在主界面外壳上**（`:not([data-mode='debug'])`）：调试页复用同一个 `.appSidebar`
+   作为输入列，但它的列宽是 400px（`debug.css`），锁成 248px 会把输入区挤成一条。
+   抽屉是主界面「收起/展开侧栏」这一个交互的实现，不是 `.appSidebar` 这个类的通用行为。 */
+.appFrame:not([data-mode='debug']) .appSidebar > * {
+  width: var(--app-sidebar-content);
+  transition: transform var(--app-dur-base) var(--app-ease-out);
+}
+
+/* 收起态：侧栏自己的内距与阴影都要撤掉——0 宽的盒子留着 8px 内距会被撑到 18px，
+   在对话区左缘留下一块被盖住的空白。 */
 .appFrame[data-sidebar='collapsed'] .appSidebar {
-  padding: 10px 9px;
+  padding: 0;
+  box-shadow: none;
 }
 
-.appLogoRow {
+.appFrame:not([data-mode='debug'])[data-sidebar='collapsed'] .appSidebar > * {
+  transform: translateX(calc(-1 * var(--app-sidebar-full)));
+}
+
+/* ---------------------------------------------------------------- 侧栏 · 顶部一行 */
+
+/* 品牌 + 连接状态点 + 折叠钮（[C43](../docs/design/decisions/C43-header.md) 定稿 D：
+   原来挂在顶栏上的那几件事全部落到这一行与底部用户行）。 */
+.appSidebarTop {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 44px;
-  padding: 2px 2px 2px 4px;
+  gap: var(--app-space-6);
+  padding: 0 2px var(--app-space-10);
 }
 
-.appBrand {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: .02em;
-  color: var(--bgm-text-strong);
+.appSidebarBrand {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  /* 折叠：文字淡出而不是直接消失，与列宽过渡同步。 */
-  transition: opacity var(--app-dur-base) var(--app-ease-out), transform var(--app-dur-base) var(--app-ease-out);
+  /* 15px 属「展示型大字」，按 G-tokens §一 第 3 条的成文例外直接写 px（不令牌化）。 */
+  font: 700 15px/1.2 var(--bgm-font);
+  letter-spacing: var(--app-tracking-title);
+  color: var(--bgm-text-strong);
 }
 
-.appFrame[data-sidebar='collapsed'] .appBrand {
+/* 连接状态：**8px 圆点**，常态可见、不占一行。颜色 + 一圈同色光环表态，
+   光环让它在白底上也一眼可辨（原来的 26px 状态胶囊随顶栏一并删除）。 */
+.appSidebarStatus {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--bgm-r-pill);
+  corner-shape: round;
+  transition: background var(--app-dur-base) var(--app-ease-out), box-shadow var(--app-dur-base) var(--app-ease-out);
+}
+
+.appSidebarStatus[data-state='on'] {
+  background: var(--bgm-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bgm-success) 18%, transparent);
+}
+
+.appSidebarStatus[data-state='off'] {
+  background: var(--bgm-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bgm-danger) 16%, transparent);
+}
+
+/* 「开启新对话」：**侧栏**唯一的实心主色操作（C44 定稿 C）。首屏的设置入口
+   （`.appHeroSettings`）取同一组颜色（`--bgm-primary-deep` + `--bgm-on-accent`），见 C45 修订。
+   实心底走 `--bgm-primary-deep`——主色本身配白字只有 3.15:1，达不到 AA。
+   **不写 `width`**：宽度由上面 `.appSidebar > *` 的锁宽规则给。这里若再写 `width: 100%`，
+   两条规则特异性相同而这条在后面，会在收起态把按钮压成父级的 100%（= 0）而不是锁宽。 */
+.appSidebarNew {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  margin-bottom: var(--app-space-12);
+  border: 1px solid var(--bgm-primary-deep);
+  border-radius: var(--app-radius-float);
+  background: var(--bgm-primary-deep);
+  color: var(--bgm-on-accent);
+  font: var(--app-font-sub);
+  cursor: pointer;
+  transition: background var(--app-dur-fast) var(--app-ease-out), border-color var(--app-dur-fast) var(--app-ease-out);
+}
+
+.appSidebarNew:hover:not(:disabled) {
+  background: var(--bgm-primary);
+  border-color: var(--bgm-primary);
+}
+
+.appSidebarNew:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* 列表滚动区 */
+.appSidebarScroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--app-space-4);
+}
+
+/* 侧栏分组标题。**2026-10-06 落地 G04**：`10.5px/400/.03em` → **`12px/600`、字距 normal**
+   （G-tokens §三那一行）。
+   这里原先的注释主张「导航层级靠更轻、字距更开、颜色更弱退到背景里，且不要用微标签档」，
+   方向与 G04 相反——G04 的判据是「小字一律不用大写 / 宽字距 / 等宽」，而分组标题是要读得清的
+   层级，所以取 12px/600 + normal 字距。 */
+.appSidebarGroup {
+  padding: var(--app-space-12) var(--app-space-12) var(--app-space-4);
+  font: var(--app-font-note);
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--bgm-text-weak);
+  white-space: nowrap;
+}
+
+/* 会话行的标题：占满剩余宽度并省略；状态与时间由 .appNavMeta 靠右 */
+.appNavTitle {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 侧栏 · 会话行与置顶入口 */
+
+/* 行 + 它的「···」按钮。`.appNavRow` 本身是 `<button>`，按钮里不能再嵌按钮，
+   所以置顶入口是**行外的兄弟元素**，由这一层负责定位——基类因此完全不用改，
+   文档页左导航复用同一个类时也不会凭空多出一个按钮。 */
+.appNavItem {
+  position: relative;
+}
+
+/* 常态隐藏、行 hover（或键盘聚焦、或菜单已展开）时淡入；同一时刻行尾的时间淡出，
+   于是观感是「时间换成了按钮」。 */
+.appNavAction {
+  position: absolute;
+  top: 50%;
+  right: var(--app-space-6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-cell);
+  background: none;
+  color: var(--bgm-text-weak);
+  font: var(--app-font-sub);
+  line-height: 1;
+  cursor: pointer;
   opacity: 0;
-  transform: translateX(-6px);
-  pointer-events: none;
+  transform: translateY(-50%);
+  transition:
+    opacity var(--app-dur-fast) var(--app-ease-out),
+    background var(--app-dur-fast) var(--app-ease-out),
+    color var(--app-dur-fast) var(--app-ease-out);
+}
+
+.appNavItem:hover .appNavAction,
+.appNavItem:focus-within .appNavAction,
+.appNavItem[data-menu-open='true'] .appNavAction {
+  opacity: 1;
+}
+
+.appNavItem:hover .appNavMeta,
+.appNavItem[data-menu-open='true'] .appNavMeta {
+  opacity: 0;
+}
+
+.appNavAction:hover {
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-strong);
+}
+
+.appNavAction:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+/* 行内展开的置顶菜单。
+   **为什么是就地展开而不是浮层**：它挂在会话行里，而行的父级 `.appSidebarScroll`
+   是 `overflow-y: auto` 的滚动容器——绝对定位的浮层会被这个容器裁剪（列表越靠下的行越明显，
+   菜单会被切成一半）。就近展开不会被裁剪，也不需要 JS 去算坐标。 */
+.appNavMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--app-space-4) 0 var(--app-space-4) var(--app-space-12);
+  padding: var(--app-space-4);
+  border: 1px solid var(--app-hairline);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface-alt);
+  animation: appMenuIn var(--app-dur-base) var(--app-ease-spring-soft) both;
+}
+
+/* ---------------------------------------------------------------- 侧栏 · 底部用户行 */
+
+/* 底部一行：头像 + 用户名 + 设置入口。[C45](../docs/design/decisions/C45-settings-entry.md)
+   定稿 B：这里原来是「···」浮层菜单（设置 + 三入口互链），现在**只有一枚齿轮按钮、单击直达设置**
+   ——菜单连同它在 `Sidebar.tsx` 里的开合状态一起删掉了，所以这一行不再需要 `position: relative`
+   （原先只为给那个绝对定位的浮层做定位祖先）。 */
+.appSidebarUser {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  padding: var(--app-space-10) 2px 2px;
+  border-top: 1px solid var(--app-hairline);
+}
+
+.appSidebarAvatar {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--bgm-r-pill);
+  corner-shape: round;
+  background: linear-gradient(150deg, var(--bgm-primary), var(--bgm-primary-deep));
+}
+
+.appSidebarUserName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--app-font-sub);
+  color: var(--bgm-text);
+}
+
+/* 行内菜单的入场（`.appNavMenu` 在用）。 */
+@keyframes appMenuIn {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 菜单**行**的基类（浮层本身由各自的使用方给：行内菜单是 `.appNavMenu`）。
+   底部用户行那套浮层菜单（`.appMenu` / `.appMenuSep` / `.appMenuLabel`）已随
+   [C45](../docs/design/decisions/C45-settings-entry.md) 定稿 B 删除——底部改成齿轮按钮直达设置，
+   这一族现在只服务行内展开的置顶菜单。 */
+.appMenuRow {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  width: 100%;
+  padding: var(--app-space-8) var(--app-space-12);
+  border: 0;
+  border-radius: var(--app-radius-control);
+  background: none;
+  color: var(--bgm-text);
+  font: var(--app-font-sub);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.appMenuRow:hover {
+  background: var(--bgm-surface-alt);
+}
+
+.appMenuRow[data-current='true'] {
+  background: var(--bgm-primary-soft);
+  color: var(--bgm-primary-text);
+}
+
+.appMenuHint {
+  margin-left: auto;
+  font: var(--app-font-note);
+  color: var(--bgm-text-weak);
+}
+
+/* ---------------------------------------------------------------- 收起态的两个入口气泡 */
+
+/* [C44b](../docs/design/decisions/C44-sidebar.md) 定稿：绝对定位在 `.appFrame` 上（不参与 grid），
+   只在收起态出现。展开态与收起态各有一份入口，两者永远不会同时可见。 */
+.appCollapseBubbles {
+  position: absolute;
+  left: var(--app-space-12);
+  top: var(--app-space-12);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-6);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--app-dur-base) var(--app-ease-out),
+    visibility var(--app-dur-base) var(--app-ease-out);
+}
+
+.appFrame[data-sidebar='collapsed'] .appCollapseBubbles {
+  opacity: 1;
+  visibility: visible;
+}
+
+.appCollapseBubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-6);
+  height: 36px;
+  min-width: 36px;
+  padding: 0 var(--app-space-10);
+  border: 1px solid var(--app-glass-stroke);
+  border-radius: var(--bgm-r-pill);
+  corner-shape: round;
+  background: var(--app-glass-fill);
+  box-shadow: var(--app-shadow-raised);
+  color: var(--bgm-text-muted);
+  font: var(--app-font-sub);
+  cursor: pointer;
+  transition:
+    transform var(--app-dur-base) var(--app-ease-spring),
+    box-shadow var(--app-dur-base) var(--app-ease-out),
+    color var(--app-dur-fast) var(--app-ease-out);
+}
+
+/* 模糊只在气泡真的浮起来时才算：展开态它们不可见，没必要让浏览器先算一遍 `backdrop-filter`。 */
+.appFrame[data-sidebar='collapsed'] .appCollapseBubble {
+  -webkit-backdrop-filter: var(--app-glass-blur);
+  backdrop-filter: var(--app-glass-blur);
+}
+
+.appCollapseBubble:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--app-shadow-card);
+  color: var(--bgm-text);
+}
+
+.appCollapseBubbleAccent {
+  color: var(--bgm-primary-text);
+}
+
+.appCollapseText {
+  white-space: nowrap;
 }
 
 .appIconButton {
@@ -552,210 +910,64 @@ body {
   box-shadow: var(--bgm-focus);
 }
 
-.appNewSession {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  margin-top: 6px;
-  padding: 0 10px;
-  border: 1px solid var(--app-hairline-strong);
-  border-radius: var(--app-radius-control);
-  background: var(--app-surface);
-  color: var(--bgm-text-strong);
-  font: 500 13px/1 var(--bgm-font);
-  cursor: pointer;
-  overflow: hidden;
-  transition: border-color var(--app-dur-fast) var(--app-ease-out), box-shadow var(--app-dur-fast) var(--app-ease-out), transform var(--app-dur-instant) var(--app-ease-out);
+/* 主色图标按钮。
+   **产品侧已无消费点**：它原先只服务顶栏那枚「新建会话」图标按钮，而主界面顶栏已按
+   [C01](../../docs/design/decisions/C01-app-top-bar.md) 删除、新建改成了侧栏的实心主色整行
+   `.appSidebarNew`。保留它是因为**样张脚手架仍在用**（`web/docs/design/demo.js` 的三处
+   旧外壳样本）——等样张脚手架也升级到新外壳后，这一组规则应当一并删掉。 */
+.appIconButtonAccent {
+  /* [G01](../../docs/design/decisions/G01-primary.md) 硬约束 + [C44](../docs/design/decisions/C44-sidebar.md)：
+     白字底用 `--bgm-primary-deep`（4.66:1），hover 回到主色本身「亮起来」
+     ——原先方向相反（常态浅色、hover 反而加深）。 */
+  background: var(--bgm-primary-deep);
+  border-color: var(--bgm-primary-deep);
+  color: var(--bgm-on-accent);
+  box-shadow: 0 var(--app-space-4) var(--app-space-16) color-mix(in srgb, var(--bgm-primary) 30%, transparent);
+  transition:
+    background var(--app-dur-fast) var(--app-ease-out),
+    box-shadow var(--app-dur-fast) var(--app-ease-out),
+    transform var(--app-dur-base) var(--app-ease-spring);
 }
 
-.appNewSession:hover {
-  border-color: color-mix(in srgb, var(--bgm-primary) 55%, var(--bgm-border));
-  box-shadow: var(--app-shadow-raised);
+.appIconButtonAccent:hover:not(:disabled) {
+  background: var(--bgm-primary);
+  border-color: var(--bgm-primary);
+  color: var(--bgm-on-accent);
+  /* [G10](../docs/design/decisions/G10-ux.md)：hover 抬升统一 3px（原 -1px） */
+  transform: translateY(-3px);
 }
 
-.appNewSession:active {
-  transform: translateY(1px);
-}
-
-.appNewSession:focus-visible {
-  outline: none;
-  box-shadow: var(--bgm-focus);
-}
-
-.appNewSessionLabel {
-  white-space: nowrap;
-  transition: opacity var(--app-dur-base) var(--app-ease-out);
-}
-
-.appFrame[data-sidebar='collapsed'] .appNewSession {
-  justify-content: center;
-  padding: 0;
-}
-
-.appFrame[data-sidebar='collapsed'] .appNewSessionLabel {
-  opacity: 0;
-  width: 0;
-}
-
-.appRegionArea {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 14px;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.appRegionLabel {
-  padding: 6px 8px;
-  color: var(--bgm-text-weak);
-  font: 500 12px/1.4 var(--bgm-font);
-  letter-spacing: .04em;
-  white-space: nowrap;
-  transition: opacity var(--app-dur-base) var(--app-ease-out);
-}
-
-.appFrame[data-sidebar='collapsed'] .appRegionLabel {
-  opacity: 0;
-  height: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-.appSessionRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 32px;
-  padding: 6px 8px;
-  border: 1px solid transparent;
-  border-radius: var(--app-radius-control);
-  background: transparent;
-  color: var(--bgm-text);
-  font: 13px/1.4 var(--bgm-font);
-  text-align: left;
-  cursor: pointer;
-  overflow: hidden;
-  transition: background var(--app-dur-fast) var(--app-ease-out), border-color var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
-}
-
-.appSessionRow:hover {
-  /* 灰侧栏上「变白」才是高亮；#fafafa 那一档在 #f5f5f5 上读不出来。 */
-  background: var(--app-surface);
-  border-color: var(--app-hairline);
-}
-
-.appSessionRow[data-current='true'] {
-  background: var(--bgm-primary-soft);
-  border-color: color-mix(in srgb, var(--bgm-primary) 28%, transparent);
-  color: var(--bgm-primary-text);
-  font-weight: 500;
-}
-
-.appSessionRow:focus-visible {
-  outline: none;
-  box-shadow: var(--bgm-focus);
-}
-
-.appSessionTitle {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.appSessionTime {
-  flex: none;
-  color: var(--bgm-text-weak);
-  font-size: 12px;
-  transition: opacity var(--app-dur-base) var(--app-ease-out);
-}
-
-.appFrame[data-sidebar='collapsed'] .appSessionTitle {
-  opacity: 0;
-}
-
-.appFrame[data-sidebar='collapsed'] .appSessionTime {
-  opacity: 0;
+.appIconButtonAccent:disabled {
+  opacity: .4;
+  cursor: not-allowed;
 }
 
 .appConversation {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  /* 对话区是站点内容面的白（--bgm-surface），与侧栏的下沉灰形成整块分区：
-     消息、卡片、浮层都落在白面上，避免灰底上叠白卡的双层描边。 */
-  background: var(--app-surface);
+  /* 对话区是白面（--app-surface），与侧栏的粉底形成整块分区：
+     消息、卡片、浮层都落在白面上，避免粉底上叠白卡的双层描边。
+     **没有底光**（G07 / G-tokens §五）：这一层与外壳都只用纯色，浮层玻璃的背后就是纯色与内容。 */
+  background-color: var(--app-surface);
 }
 
-.appHeader {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  min-height: 68px;
-  padding: 0 20px 0 22px;
-  background: var(--app-surface);
-  border-bottom: 1px solid var(--app-hairline);
-}
+/* 会话头（C34 决策：删除）——对话区顶部不再有任何粘性行，「我在哪个会话」只由侧栏表态
+   （`.appNavRow[data-current]`）。原先由它撑出的顶部留白现在由 `.appStageFlow` 的 20px 上内边距
+   承担：样张 C35 / C36 的壳本来就是无会话头形态，顶部内距就是那 20px，所以这里不另加值。
+   不要在后继组件里悄悄把标题行加回来（C03 的同一条约束）。 */
 
-.appTitleRow {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  min-width: 0;
-}
-
-.appTitle {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--bgm-text-strong);
-  white-space: nowrap;
-}
-
-.appTab {
-  position: relative;
-  padding-bottom: 2px;
-  color: var(--bgm-text-muted);
-  font: 500 13px/1.2 var(--bgm-font);
-}
-
-.appTab::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -3px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--bgm-primary);
-  animation: app-tab-underline var(--app-dur-slower) var(--app-ease-out) both;
-}
-
-@keyframes app-tab-underline {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
-.appHeaderMeta {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  min-width: 0;
-  color: var(--bgm-text-muted);
-  font: 13px/1 var(--bgm-font);
-}
-
+/* 连接状态胶囊（26px + 圆点 + 文案）。
+   **产品侧已无消费点**：连接状态已收成侧栏品牌行里的 8px 状态点（`.appSidebarStatus`，
+   [C43](../../docs/design/decisions/C43-header.md) 定稿 D）。保留这一组同样是因为
+   **样张脚手架仍在用**（`web/docs/design/demo.js` 的八处旧外壳样本）——
+   样张脚手架升级到新外壳后应与 `.appIconButtonAccent` 一并删除。 */
 .appChip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--app-space-6);
   min-height: 26px;
-  padding: 0 10px;
+  padding: 0 var(--app-space-10);
   border: 1px solid var(--app-hairline);
   border-radius: var(--bgm-r-pill);
   background: var(--bgm-surface-alt);
@@ -768,7 +980,9 @@ body {
   height: 6px;
   flex: none;
   border-radius: 50%;
-  background: var(--bgm-text-weak);
+  /* 未就绪态的连接点：配色重构后由主色派生浅粉，不再用中性灰（原 --bgm-text-weak）。
+     这是图形填充而不是文字，所以不入文字色阶。 */
+  background: color-mix(in srgb, var(--bgm-primary) 55%, var(--bgm-surface));
   /* 连接状态变化是一次状态迁移：颜色与光晕一起过渡，不闪断。 */
   transition: background var(--app-dur-base) var(--app-ease-out), box-shadow var(--app-dur-base) var(--app-ease-out);
 }
@@ -785,17 +999,18 @@ body {
 
 .appToast {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: var(--app-space-24);
+  bottom: var(--app-space-24);
   z-index: 40;
   max-width: min(420px, calc(100vw - 40px));
-  padding: 10px 14px;
-  border: 1px solid var(--app-hairline-strong);
-  border-radius: var(--app-radius-control);
-  background: var(--app-surface);
-  box-shadow: var(--app-shadow-panel);
+  padding: var(--app-space-12) var(--app-space-16);
+  /* 表面来自共享类 `.appGlass`。圆角走**浮层档**（[G-tokens](../docs/design/decisions/G-tokens.md) §二
+     把 Toast 明确归入浮层档；用户 2026-10-06 裁示「以 G-tokens 为准」）。
+     早先这里写的是控件档 10px 并注了「窄条降一档」，与令牌表归类相反，已改回。
+     进出的动效在 JS 里（`overlays/Toast.tsx`）。 */
+  --glass-radius: var(--app-radius-float);
   color: var(--bgm-text);
-  font: 13px/1.5 var(--bgm-font);
+  font: var(--app-font-sub);
 }
 
 .appStage {
@@ -823,6 +1038,9 @@ body {
   min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  /* 平滑滚动（样张 web/style-demo-scroll.html 的滚动方案里有 scroll-behavior: smooth）：
+     轮次导航跳转与「回到底部」都用它，避免瞬移。 */
+  scroll-behavior: smooth;
 }
 
 .appStageScroll[data-phase='hero'] {
@@ -855,7 +1073,9 @@ body {
 .appTurnStack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  /* C35 决策 D：轮内行距 10 → 14px。一轮里并列着用户气泡、过程块、正文与四类条目行，
+     10px 让它们读起来像一整块。 */
+  gap: 14px;
 }
 
 .errorRow .stateDot {
@@ -879,19 +1099,45 @@ body {
   color: var(--bgm-danger);
 }
 
+/* 流式区与历史条目（`.appTurnStack` / `.assistantBody`）必须**同参数**：正文写完那一瞬
+   从流式区换成历史轮次，两处行距/段距不一致就会跳变（见 C19 的同一条约束）。
+   C35 决策 D 因此同步落到这两条上：行距 10 → 14px、段距 16 → 20px。 */
 .appStreaming {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 .appStreamingBody {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   color: var(--bgm-text);
-  font: var(--dsw-font-markdown-base);
+  font: var(--app-font-body);
   line-height: 1.75;
+}
+
+/* 流式光标：**实心方块**而不是字符（值取自样张 `web/style-demo-shell.html` 的 `.caret`：
+   圆角 2px、主色、1.06s 硬切闪烁）。**C36 决策 B：宽度 4 → 6px**——4px 在 130% 缩放下
+   接近一根细线，6px 才像一个「正在写」的块；高度 13px 与节奏不变。
+   `TextType` 只负责挂这个类，尺寸与闪烁都由这里给；`prefers-reduced-motion` 下由文件末尾的兜底保留常亮。 */
+.appStreamingCursor {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  border-radius: 2px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--bgm-primary);
+  /* 流式光标闪烁：[C36](../docs/design/decisions/C36-streaming.md) 定「1.06s `steps(1)` 硬切，不变」。
+     这是**动画自身的周期参数**（不是过渡时长），所以不并入 `--app-dur-*` 阶梯——
+     吸附到 450ms 会让光标几乎连续亮着。此处登记为「动画专属参数」豁免。 */
+  animation: app-cursor-blink 1.06s steps(1) infinite;
+}
+
+@keyframes app-cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 @keyframes app-cursor-breathe {
@@ -904,7 +1150,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: var(--app-space-10);
   padding: 0 24px 6vh;
   text-align: center;
 }
@@ -915,29 +1161,88 @@ body {
   /* 不设 gap：BlurText 逐词渲染时自己在词间插不换行空格，再加 gap 会撑出双倍词距。 */
   gap: 0;
   margin: 0;
-  font-size: 30px;
-  font-weight: 600;
-  letter-spacing: .01em;
+  /* 值取自 [C37](../../docs/design/decisions/C37-hero.md) 定稿样张
+     （`components/C37-hero.html:55-56` 的覆盖值）：标题 **32px / 700 / -.035em**。
+     首屏是唯一允许「重字重 + 紧字距」的地方，与会话正文的 600/17px 拉开对比。
+     32px 属「展示型大字」，按 G-tokens §一 第 3 条的成文例外直接写 px。 */
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -.035em;
   color: var(--bgm-text-strong);
 }
 
-.appHeroBadge {
-  padding: 3px 10px;
-  border: 1px solid color-mix(in srgb, var(--bgm-primary) 35%, transparent);
-  border-radius: var(--bgm-r-pill);
-  background: var(--bgm-primary-soft);
+/* 首屏示例：三枚玻璃 chip。玻璃本身由 `.appGlass` 提供（只有那一处定义），
+   这里只把圆角与阴影降到控件档——靠 .appGlass 的局部变量，而不是重写玻璃属性。 */
+.appHeroSamples {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--app-space-8);
+  margin-top: var(--app-space-8);
+}
+
+.appHeroSample {
+  /* [C37](../../docs/design/decisions/C37-hero.md) 定稿 B + C：示例改**胶囊档**
+     （`--bgm-r-pill` / 13px 字 / `9px 14px` 内距）。原先是控件档 10px + 12px 字 + 7px 11px，
+     三枚并排时圆角不够、字偏小，与 32px 的标题落差也不够。阴影仍走 raised 档，hover 升一档。 */
+  --glass-radius: var(--bgm-r-pill);
+  --glass-shadow: var(--app-shadow-raised);
+  padding: 9px 14px;
+  font: var(--app-font-sub);
+  color: var(--bgm-text-muted);
+  cursor: pointer;
+  transition:
+    transform var(--app-dur-base) var(--app-ease-spring),
+    color var(--app-dur-fast) var(--app-ease-out),
+    box-shadow var(--app-dur-fast) var(--app-ease-out);
+}
+
+.appHeroSample:hover {
+  transform: translateY(-2px);
   color: var(--bgm-primary-text);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: .04em;
+  box-shadow: var(--app-shadow-card);
+}
+
+/* 首屏的设置入口。[C45](../docs/design/decisions/C45-settings-entry.md) 定稿 ③，
+   **2026-10-10 修订**：从「示例**下方**的同材质玻璃胶囊」改成**说明与示例之间**的
+   **实心深档**按钮——底色 / 字色 / hover 变亮三件事与侧栏「开启新对话」（`.appSidebarNew`）完全一致
+   （深档实心 `--bgm-primary-deep` + `--bgm-on-accent`：主色配白字只有 3.15:1，达不到 AA）。
+   几何仍取首屏胶囊档（999 / 13px 字 / `9px 14px` 内距），与三枚示例同高。
+   它因此**不再是 `.appHeroSample` 的组合类**：表面规则与示例恰好相反，没有可共享的属性。
+   `margin-top` 补上示例那一档 8px，让「说明 → 入口」与「入口 → 示例」都是 18px。 */
+.appHeroSettings {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--app-space-6);
+  margin-top: var(--app-space-8);
+  padding: 9px 14px;
+  border: 1px solid var(--bgm-primary-deep);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-primary-deep);
+  box-shadow: var(--app-shadow-raised);
+  color: var(--bgm-on-accent);
+  font: var(--app-font-sub);
+  cursor: pointer;
+  transition:
+    transform var(--app-dur-base) var(--app-ease-spring),
+    background var(--app-dur-fast) var(--app-ease-out),
+    border-color var(--app-dur-fast) var(--app-ease-out),
+    box-shadow var(--app-dur-fast) var(--app-ease-out);
+}
+
+.appHeroSettings:hover {
+  transform: translateY(-2px);
+  background: var(--bgm-primary);
+  border-color: var(--bgm-primary);
+  box-shadow: var(--app-shadow-card);
 }
 
 .appHeroHint {
-  max-width: 46ch;
+  max-width: 400px;
   margin: 0;
   color: var(--bgm-text-muted);
-  font-size: var(--dsh-content-font-size-secondary, 13px);
-  line-height: 1.9;
+  font: var(--app-font-sub);
+  line-height: 1.65;
 }
 
 .appRail {
@@ -948,7 +1253,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 8px 6px;
+  padding: 8px var(--app-space-6);
   border: 1px solid var(--app-hairline);
   border-radius: var(--bgm-r-pill);
   background: color-mix(in srgb, var(--app-surface) 88%, transparent);
@@ -984,7 +1289,7 @@ body {
 
 @media (max-width: 720px) {
   .appStageFlow {
-      padding: 16px 14px 6px;
+      padding: 16px 14px var(--app-space-6);
   }
 }
 

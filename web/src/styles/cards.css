@@ -13,13 +13,18 @@
 /* ---------------------------------------------------------------- 写入确认卡 */
 
 .planCard {
-  --dsw-elevation-stroke-color: var(--dsw-alias-border-l2-darkmode-thin);
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: var(--dsh-composer-card-max-width);
+  /* 宽度上限**不在这里声明**：C39 定稿「接管卡与内容列同宽（每边不超出）」，
+     而内容列那条轴只有一处来源——父级 `.appComposerStack`（`composer.css`）与
+     `.appStageColumn`（`frame.css`）共用同一条
+     `min(calc(100cqw - 48px), clamp(680px, 64cqw, 900px))`，卡只需 `width: 100%`。
+     原先这里还有一条 `max-width` 指向一个**全仓从未定义**的令牌（只在 mock 里见过
+     这个名字）：声明在计算值阶段作废、等于没写，宽屏下卡反而比内容列宽。
+     第七轮令牌层清理时随上游令牌一并删除。 */
   margin: 0 auto;
-  color: var(--dsw-alias-label-primary);
+  color: var(--bgm-text);
   border: 1px solid color-mix(in srgb, var(--bgm-primary) 30%, transparent);
   border-radius: var(--app-radius-panel);
   background: var(--app-surface);
@@ -28,33 +33,43 @@
 }
 
 .planCard[data-state='accepted'] {
-  border-color: var(--dsw-alias-state-success-secondary);
+  border-color: var(--bgm-success-border);
 }
 
 .planCard[data-state='rejected'],
 .planCard[data-state='expired'] {
-  border-color: var(--dsw-alias-border-l3);
+  border-color: var(--bgm-border);
 }
 
 .planStrip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  font: 13px/18px var(--dsw-font-family);
+  padding: var(--app-space-10) 16px;
+  font: var(--app-font-sub);
   border-bottom: 1px solid var(--bgm-border-soft);
   background: var(--bgm-primary-soft);
   color: var(--bgm-primary-text);
 }
 
+/* 映射后这一条的底色与基础条**同值**（上游那枚 success-tertiary 在粉白体系里本来就是
+   主色浅底：`--bgm-primary-soft`），因此「已授权」在条带上看不出额外差异——
+   它现在的唯一状态信号是 `.planCard` 外框转 `--bgm-success-border`。 */
 .planCard[data-state='accepted'] .planStrip {
-  background: var(--dsw-alias-state-success-tertiary);
+  background: var(--bgm-primary-soft);
 }
 
-.planCard[data-state='rejected'] .planStrip,
+/* 拒绝与过期都是「已失效」：条带要弱化而不是高亮。上游别名层把这块失效底填成
+   `--bgm-interactive`（**不透明的交互蓝**），被拒绝的确认条会比待确认的还醒目，
+   因此改用语义色各自的浅底。 */
+.planCard[data-state='rejected'] .planStrip {
+  background: var(--bgm-danger-soft);
+  color: var(--bgm-danger);
+}
+
 .planCard[data-state='expired'] .planStrip {
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-secondary);
+  background: var(--app-surface-sunken);
+  color: var(--bgm-text-muted);
 }
 
 .planTitle {
@@ -65,31 +80,35 @@
 .planBody {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--app-space-6);
   max-height: 336px;
   padding: 12px 16px 0;
   overflow-y: auto;
   color: var(--bgm-text);
 }
 
-/* 宿主生成的业务说明：普通正文、保留换行，浏览器不截断也不改写 */
+/* 宿主生成的业务说明：次级字号、保留换行，浏览器不截断也不改写。
+   形态取自 [C39](../../docs/design/decisions/C39-confirmation-card.md) 定稿 C
+   （样张 `components/C39-confirmation-card.html:21-27` 的覆盖值）：
+   **去底去边、改留白 + 左侧 2px 槽线**，字号降次级档 13px。原来的做法是「内嵌块」
+   （sunken 底 + 四边 1px + 四角圆角 + 正文 14px），它让预览区比确认卡本身还重。 */
 .planPreview {
   margin: 0;
-  padding: 10px 12px;
-  font: var(--dsw-font-s-14);
+  padding: var(--app-space-8) 0 var(--app-space-8) var(--app-space-12);
+  border: 0;
+  border-left: 2px solid var(--app-hairline-strong);
+  border-radius: 0 var(--app-radius-control) var(--app-radius-control) 0;
+  background: transparent;
+  font: var(--app-font-sub);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: var(--bgm-sunken);
-  border: 1px solid var(--bgm-border-soft);
-  border-radius: var(--bgm-r-sm);
   color: var(--bgm-text);
 }
 
 .planNote {
   margin: 0;
-  font: var(--dsw-font-xxs-12);
   white-space: pre-wrap;
-  font-size: 12px;
+  font: var(--app-font-note);
   color: var(--bgm-text-muted);
 }
 
@@ -108,17 +127,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--app-space-4);
   height: 36px;
-  padding: 0 14px;
+  padding: 0 var(--app-space-12);
   border: 0;
-  border-radius: var(--dsw-radius-md);
+  border-radius: var(--app-radius-control);
   background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font: var(--dsw-font-s-14);
+  color: var(--bgm-text);
+  font: var(--app-font-sub);
   cursor: pointer;
-  transition: background-color 100ms ease;
-  font-size: 12px;
+  transition:
+    background var(--app-dur-fast) var(--app-ease-out),
+    border-color var(--app-dur-fast) var(--app-ease-out),
+    color var(--app-dur-fast) var(--app-ease-out),
+    transform var(--app-dur-base) var(--app-ease-spring);
 }
 
 .button:disabled {
@@ -126,42 +148,71 @@
   cursor: not-allowed;
 }
 
+/* 主按钮用比主色深一档的底：白字在 --bgm-primary 上只有 3.1:1，
+   在这一档上约 4.7:1（达到 AA）。悬停回到主色本身，等于「亮起来」。 */
 .button.primary {
-  background: var(--bgm-primary);
-  border: 1px solid var(--bgm-primary);
-  color: #fff;
+  background: var(--bgm-primary-deep);
+  border: 1px solid var(--bgm-primary-deep);
+  color: var(--bgm-on-accent);
+  box-shadow: 0 var(--app-space-4) var(--app-space-16) color-mix(in srgb, var(--bgm-primary) 26%, transparent);
 }
 
 .button.primary:hover:not(:disabled) {
-  background: var(--bgm-interactive);
-  border-color: var(--bgm-interactive);
+  background: var(--bgm-primary);
+  border-color: var(--bgm-primary);
+  /* [G10](../../docs/design/decisions/G10-ux.md)：hover 抬升统一 3px（原 -1px） */
+  transform: translateY(-3px);
 }
 
 .button.outline {
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0.5px solid var(--bgm-border);
 }
 
-.button.outline:hover:not(:disabled),
+/* 描边按钮的 hover（2026-10-06 定案，见 `docs/design/decisions/G01-primary.md` §补充）：
+   原来与 `.button.ghost` 共用一条规则，填 `--bgm-interactive`（#369cf8 不透明交互蓝）。
+   那支蓝是配色重构的漏网，它让「取消 / 设置行 / 登录按钮」在悬停时整体变冷、
+   而按下时又跳回蓝色。
+   现改为与实心主按钮**同族**：填充 `--bgm-primary-hover-fill`（= `--bgm-primary-deep`）
+   配白字，白字对比 4.66:1 达 AA；`.button.primary:hover` 的「亮起来」仍是从深档回主色，
+   两者方向一致、不撞车。`.button.ghost` 保持原样——它没有描边，需要靠底色表达可交互。 */
+.button.outline:hover:not(:disabled) {
+  background: var(--bgm-primary-hover-fill);
+  border-color: var(--bgm-primary-hover-fill);
+  color: var(--bgm-on-accent);
+}
+
+/* 按下回到主色本身（与 `.button.primary:hover` 的「亮起来」同一档），
+   让「悬停加深 → 按下变亮」这一对反馈可用；沿用 ghost 的填充令牌以示同族。 */
+.button.outline:active:not(:disabled) {
+  background: var(--bgm-primary);
+  border-color: var(--bgm-primary);
+  color: var(--bgm-on-accent);
+}
+
+/* 幽灵按钮：无描边、靠底色表达可交互，走不透明交互蓝填充 */
 .button.ghost:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-hover);
+  background: var(--bgm-interactive);
+  color: var(--bgm-on-accent);
 }
 
 .button.ghost:active:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-active);
+  background: var(--bgm-interactive);
+  color: var(--bgm-on-accent);
 }
 
 /* 危险动作不进 Button 变体：直接覆色（上游 Rows 的做法） */
 .button.reject:hover:not(:disabled) {
   border-color: transparent;
-  background: var(--dsw-alias-interactive-bg-hover-danger);
-  color: var(--dsw-alias-state-error-primary);
+  /* 同上：危险填充是不透明的危险红，配白字（红底红字会互相吃掉） */
+  background: var(--bgm-danger);
+  color: var(--bgm-on-accent);
 }
 
 .button.sm {
   height: 28px;
-  padding: 0 10px;
-  border-radius: var(--dsw-radius-sm);
-  font: var(--dsw-font-xxs-12);
+  padding: 0 var(--app-space-8);
+  border-radius: var(--app-radius-cell);
+  font: var(--app-font-note);
 }
 
 /* ---------------------------------------------------------------- 流式思考 */
@@ -178,44 +229,44 @@
 
 .thinkingTitle {
   width: 100%;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  border-bottom: 0.5px solid var(--bgm-border);
   text-align: left;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: var(--app-space-6) var(--app-space-10);
   border: 1px solid var(--app-hairline);
   border-radius: var(--app-radius-control);
   background: var(--bgm-surface-alt);
   color: var(--bgm-text-muted);
-  font: 13px/1.5 var(--bgm-font);
+  font: var(--app-font-sub);
   cursor: pointer;
   transition: border-color var(--app-dur-fast) var(--app-ease-out);
 }
 
 .thinkingTitle:hover {
-  color: var(--dsw-alias-label-secondary);
+  color: var(--bgm-text-muted);
   border-color: var(--app-hairline-strong);
 }
 
 .thinkingTitle .count {
-  font: var(--dsw-font-xxs-12);
   margin-left: auto;
   color: var(--bgm-text-weak);
-  font-size: 12px;
+  font: var(--app-font-note);
 }
 
 .thinkingBody {
   max-height: min(240px, 40vh);
   overflow-y: auto;
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  /* 原先在这里把滚动条重绑到上游 l2 那一档；两级滑块取值本来就相同，
+     令牌层清理时已合并成一枚 `--app-scrollbar-thumb`（`tokens.css`），故不再重绑。 */
   margin: 0;
   padding: 12px;
   border-radius: var(--app-radius-control);
   background: var(--bgm-surface-alt);
   color: var(--bgm-text-muted);
-  font: 12px/1.7 var(--bgm-mono);
+  font: var(--app-font-note);
+  font-family: var(--bgm-mono);
   white-space: pre-wrap;
 }
 
@@ -225,15 +276,15 @@
 
 /* running 用中性色，ok/error 才染色：未结束的调用不应读成已成功 */
 .activityRow[data-state='ok'] {
-  color: var(--dsw-alias-label-secondary);
+  color: var(--bgm-text-muted);
 }
 
 .activityRow[data-state='ok'] .mark {
-  color: var(--dsw-alias-state-success-primary);
+  color: var(--bgm-success);
 }
 
 .activityRow[data-state='running'] {
-  color: var(--dsw-alias-label-deep-diving);
+  color: var(--bgm-interactive);
 }
 
 .activityRow[data-state='error'] {

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { ProgressView as ProgressViewModel } from '../../../../bangumi/src/web/protocol';
 
 type Episode = NonNullable<ProgressViewModel['episodes']>[number];
@@ -73,8 +73,13 @@ export function ProgressView({ view }: { view: ProgressViewModel }): ReactNode {
               aria-valuenow={current}
               aria-label={progressLabel}
             >
-              {/* 进度长度用 scaleX 而不是 width：只动 transform，数据刷新不触发布局重排 */}
-              <span className="contentProgressBar" style={{ transform: `scaleX(${(percent / 100).toFixed(4)})` }} />
+              {/* 进度长度用 **CSS 变量**交给样式层（不写内联 `transform`）：
+                  keyframes 的 `to` 帧会盖掉内联值，动画一结束条就被拉到满格。
+                  几何与入场动画都在 `content.css` 的 `.contentProgressBar` 上。 */}
+              <span
+                className="contentProgressBar"
+                style={{ '--content-progress': String(percent / 100) } as CSSProperties}
+              />
             </div>
           )}
         </>

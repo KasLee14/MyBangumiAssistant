@@ -16,8 +16,10 @@ export function Magnet({
   padding = 100,
   disabled = false,
   magnetStrength = 2,
-  activeTransition = 'transform 0.3s ease-out',
-  inactiveTransition = 'transform 0.5s ease-in-out',
+  // 过渡走令牌：指针靠近是「按钮注意到你了」的微反馈（200ms spring）；
+  // 离开用大面积收敛版 spring（450ms），否则按钮回位会弹一下。
+  activeTransition = 'transform var(--app-dur-base) var(--app-ease-spring)',
+  inactiveTransition = 'transform var(--app-dur-slower) var(--app-ease-spring-soft)',
   wrapperClassName = '',
   innerClassName = '',
   ...props

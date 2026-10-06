@@ -27,6 +27,10 @@ export function TagCloud({ view }: { view: TagCloudItemView[] }): ReactNode {
           height="auto"
           borderColor="transparent"
           borderRadius="var(--app-radius-control)"
+          /* 掠光**压低调**：该 prop 的默认值是 `surface 70%`，在浅色标签上会糊成一片白。
+             按 `style-demo-content-fix.html` 的「压低强度、只在 hover 掠过一次」原则收到 32%
+             （样张只给了原则、没给具体数值，这个数是按原则定的，可随时调）。 */
+          glareColor="color-mix(in srgb, var(--bgm-surface) 32%, transparent)"
           playOnce
         >
           <ul className="contentTagCloud">

@@ -39,7 +39,8 @@ export function BlurText({
   rootMargin = '0px',
   animationFrom,
   animationTo,
-  easing = (t: number) => t,
+  // 默认曲线与 `--app-ease-out` 同形（这里是 motion 的 easing **函数**签名，装不下 cubic-bezier 数组）
+  easing = (t: number) => 1 - Math.pow(1 - t, 3),
   onAnimationComplete,
   stepDuration = 0.35
 }: BlurTextProps) {

@@ -39,9 +39,16 @@ const LiveBlocks = memo(function LiveBlocks({ blocks }: { blocks: MessageBlock[]
             text=""
             loop={false}
             showCursor
-            cursorCharacter="▍"
+            /* 光标**不靠字形画**：样张 `web/style-demo-shell.html` 里的流式光标是 4×13px 的实心方块
+               （`border-radius: 2px`、`background: 主色`、1.06s 硬切闪烁），而不是 `▍` 这类字符
+               ——字形在不同字体下的宽高与基线都不一样，方块才能精确控制。
+               这里传不换行空格占位，尺寸与颜色由 `.appStreamingCursor` 给。 */
+            cursorCharacter={'\u00a0'}
             cursorClassName="appStreamingCursor"
-            cursorBlinkDuration={0.5}
+            /* **不传 `cursorBlinkDuration`**（[C36](../../docs/design/decisions/C36-streaming.md) 登记的
+               「同一属性两个来源」）：vendor 那个值走 gsap 的 opacity 淡入淡出，而
+               `.appStreamingCursor` 上的 CSS 动画（1.06s `steps(1)` 硬切）优先级更高——
+               两套都声明时实际生效的只有 CSS 那套，留着这个 prop 只会让人以为闪烁是 0.5s 的。 */
             className="appStreamingCursorHolder"
             aria-hidden="true"
           />

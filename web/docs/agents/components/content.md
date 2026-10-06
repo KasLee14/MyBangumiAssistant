@@ -109,6 +109,7 @@ export function contentRenderer(type: unknown): ((block: ContentBlockView) => Re
 **不注入 HTML**：行内标记（粗体、行内代码、链接）与表格/分隔线都以 React 节点输出，`INLINE` 白名单之外的内容按纯文本渲染。
 
 - 外部链接一律 `target="_blank" rel="noreferrer noopener"`。
+- 正文链接的**外观**不在这里决定：统一是「主色深字 + 下划线」（`--bgm-primary-text`，hover 转主色 / 交互蓝），**不使用蓝色链接色**（`--bgm-link` `#0084b4` 是上游遗留），规则落在 `frame.css` 的 `.markdown a`——组件只负责结构与 `target` / `rel`，不写颜色。
 - 它只被 `MessageBlocks.tsx` 使用（流式区与历史条目共用同一个正文入口）；改渲染规则等于改所有助手文本的呈现，回归时至少覆盖一条含表格与链接的回答。
 
 **违反后果**：渲染不可控，且引入注入面。
@@ -134,17 +135,17 @@ export function contentRenderer(type: unknown): ((block: ContentBlockView) => Re
 
 ### 每个 `kind` 的动效落点
 
-ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENTS.md) §规则「外观层硬约定」第 6 条）：内容组件库的 12 种条目可以各带一个落点，**不再限定「每个 vendor 组件全局只有一个落点」**。当前有 5 个落点：
+ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENTS.md) §规则「外观层硬约定」第 6 条）：内容组件库的 12 种条目可以各带一个落点，**不再限定「每个 vendor 组件全局只有一个落点」**。当前有 3 个落点：
 
 | `kind` | 落点组件 | 位置与用法 | 什么时候读 |
 |---|---|---|---|
-| `SubjectCards` | `SpotlightCard` | `SubjectCards.tsx` 的**网格卡**（`GridCard`）；组合类 `.contentSubjectSpotlight` 把组件自带的白面与内边距归零，外观仍由 `.contentSubjectCard` 决定 | 改条目卡光斑时 |
 | `StatsCard` | `Counter` | `StatsCard.tsx` 的**主数字**；只在 `headline.value` 是纯数字字符串（`/^-?\d+(\.\d+)?$/`）时启用，带单位或千分位的值仍走静态文本 | 改统计主数字时 |
 | `TagCloud` | `GlareHover` | `TagCloud.tsx` 包裹**整个标签云**；`playOnce`（首次悬停只掠光一次），组合类 `.contentTagGlare` | 改标签云掠光时 |
-| `QuoteBlock` | `ShinyText` | `QuoteBlock.tsx` 的**标题**（`shimmer` 未开、只扫一次；正文一个字都不动） | 改引用块标题时 |
 | `Callout` | `StarBorder` | `Callout.tsx`，**仅 `tone === 'progress'`** 时作为装饰层：`animated` + `thickness={0}` + 组合类 `.contentCalloutGlow` + `aria-hidden`，绝对定位铺满、不参与布局、不吃指针事件 | 改「进行中」提示边框时 |
 
-其余 7 个 `kind` 没有 vendor 落点：`ProgressView` / `InfoBox` / `DataTable` / `Timeline` / `Gallery` / `CompareTable` / `LinkList` 的入场交给下面的 CSS 行级 keyframes。
+其余 9 个 `kind` 没有 vendor 落点：`SubjectCards` / `ProgressView` / `InfoBox` / `DataTable` / `Timeline` / `Gallery` / `CompareTable` / `QuoteBlock` / `LinkList` 的入场交给下面的 CSS 行级 keyframes。
+
+**原先有落点、按用户选择已移除（vendor 文件仍留在 `motion/vendor/`）**：`SubjectCards` 的 `SpotlightCard`（指针光斑）与 `QuoteBlock` 的 `ShinyText`（常驻闪光）——前者与 `Magnet` 同属被排除的指针效果（用户在 `style-demo-interaction.html` 选的是「A · 只精修状态反馈」，明确排除指针光斑与磁吸）；后者与 `content-v2` 的 V3 把引用块标题退成等宽小字的做法冲突。组合类 `.contentSubjectSpotlight` 已随 `SpotlightCard` 一起从 `content.css` 删除，现存组合类只有 `.contentTagGlare` 与 `.contentCalloutGlow`（口径同 [AGENTS.md](../../../AGENTS.md) §规则「外观层硬约定」第 6 条）。
 
 **已 vendor 但当前无落点，不等于不可用**（理由写在 [readme.md](readme.md) §索引「`motion/vendor/` 的组件与落点」）：`AnimatedList`（只接受 `items: string[]` 并统一渲染 `<p class="item-text">`，承载不了结构化行）、`Stepper`（`<Step>` children 形状的多步向导，与章节网格语义不符）、`LineSidebar`（`items` 是 `string[]` 且不含 `<a>`，承载不了链接列表）、`LogoLoop`（跑马灯会复制 DOM——链接会重复、键盘方向键滚动会失效）、`PixelTransition`（双面切换要把信息藏进 hover，违反内容组件「信息不藏在 hover 里」的既有原则）。**不要为了"用上"而把它们塞进语义不符的位置。**
 
@@ -154,11 +155,38 @@ ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENT
 
 ### 行级入场用 CSS keyframes（`contentRowIn`），不用 JS 观察器
 
-`.contentInfoRow` / `.contentTimelineRow` / `.contentSubjectRow` / `.contentLinkRow` 的入场写在 `styles/content.css` 的 `@keyframes contentRowIn`：只动 `opacity` 与 `transform`（`translateY(4px)` → `none`），前 5 行按 `:nth-child` **错峰 30ms 递增**（第 5 行起封顶 120ms），`@media (prefers-reduced-motion: reduce)` 下 `animation: none`。
+`.contentInfoRow` / `.contentTimelineRow` / `.contentSubjectRow` / `.contentLinkRow` 的入场写在 `styles/content.css` 的 `@keyframes contentRowIn`：只动 `opacity` 与 `transform`（`translateY(var(--app-shift-row))` + `scale(.985)` → `none`），按 `:nth-child` 错峰 **`--app-stagger`（55ms）递增**，**第 9 行起封顶**（8 × 55ms = 440ms；与 `.appStagger` 同一张表，4 档封顶时第 5 行起会一次冒出好几行，见 [C04](../../design/decisions/C04-stagger.md)）；时长 `--app-dur-slow`、曲线 `--app-ease-spring`，`@media (prefers-reduced-motion: reduce)` 下 `animation: none`。`ProgressView` 的章节格（`.contentEpGrid > *`）复用同一条 keyframes，但**比别处多一档**：一话一格、网格里同时十几格是常态，第 10 格起沿用第 9 档（见 [C07](../../design/decisions/C07-progress-view.md)）。
 
-**为什么不用 JS / vendor 组件**：逐行动画如果每行挂一个观察器或 motion 组件，流式帧（约 40ms 一帧）里就是 N 个观察器与 N 次内联样式写入；CSS keyframes 由合成器执行、不触发布局，且天然尊重 reduced-motion。同一理由也是 `AnimatedList` 不采用的原因——它只接受 `items: string[]`，承载不了「标签 + 值」这类结构化行。**思路参考 ReactBits Animated List，但没有引入它的源码。**
+**为什么不用 JS / vendor 组件**：逐行动画如果每行挂一个观察器或 motion 组件，流式帧（约 40ms 一帧）里就是 N 个观察器与 N 次内联样式写入；CSS keyframes 由合成器执行、不触发布局，且天然尊重 reduced-motion。同一理由也是 `AnimatedList` 不采用的原因——它只接受 `items: string[]`，承载不了「标签 + 值」这类结构化行。**思路参考 ReactBits Animated List，但没有引入它的源码。**（滚动容器内**整块**的入场是另一条路径：`MessageBlocks` 用 `AnimatedContent` + `motionTokens` 的 `SHIFT.reveal` / `DURATION.reveal`。）
 
 **违反后果**：流式期间每帧写入 N 个节点的样式，滚动与输入开始掉帧（这条是 [AGENTS.md](../../../AGENTS.md) §规则「外观层硬约定」第 3 条在内容条目上的落地）。
+
+### 条形与进度条的长度走 CSS 变量，不写内联 `transform`
+
+`StatsCard` 的条形与 `ProgressView` 的进度条把长度写成 **CSS 变量**（`--content-bar` / `--content-progress`，值域 0–1），组件只负责把这个变量放进 `style`：
+
+```tsx
+<span className="contentStatBar" style={{ '--content-bar': ratioOf(entry).toFixed(4) } as CSSProperties} />
+<span className="contentProgressBar" style={{ '--content-progress': String(percent / 100) } as CSSProperties} />
+```
+
+入场 keyframes 的 `to` 帧要引用这个变量（`@keyframes progBarIn { to { transform: scaleX(var(--content-progress, 1)); } }`）——**内联的 `transform` 会被 keyframes 的 `to` 帧盖掉**，长度只能从变量进。轨道高度 `.contentStatTrack` / `.contentProgressTrack` 都是 **9px**，`.contentStatTrack` 另补 `flex: 1`（它在 flex 行里占剩余宽度）；横向缩放必须配对写 `transform-origin`（见 [AGENTS.md](../../../AGENTS.md) §规则「外观层硬约定」第 3 条）。
+
+**违反后果**：动画一跑长度就跳回默认值，或两种轨道的粗细在同一张卡里不一致。
+
+### 形态要点按 C04–C20 定稿，改这些结构前先读对应决策
+
+第七轮把内容条目按样张逐项对齐，几处**结构**变化容易在后续改动里被改回去：
+
+| 组件 | 结构要点 | 决策 |
+|---|---|---|
+| `SubjectCards` | 卡片墙的 `.contentSubjectGrid` 是**固定 3 列**（不是 `auto-fill`）；卡片内文字区外面有一层 `.contentSubjectBody` 包裹层承担内距（卡片自己不写内距，否则封面会被一起推进去） | [C05](../../design/decisions/C05-subject-cards.md) |
+| `ProgressView` | 条形轨道改成 9px，章节格 `.contentEpGrid` 逐格入场 | [C07](../../design/decisions/C07-progress-view.md) |
+| `Timeline` | 行是「时间 \| 正文 \| actor」三列，**actor 是行尾的独立一列、不在 `<p>` 里**（`margin-left: auto` 在 `<p>` 内不生效，会退化成正文前缀）；节点用 `11px` 盒 + `border: 2px solid` 画环（`box-shadow` 画的环落在布局盒之外，节点会与竖轴不同心） | [C10](../../design/decisions/C10-timeline.md) |
+| `CompareTable` | `.contentCompareLine` 是**五列** grid，hover 指示条是行上的 `::before` | [C13](../../design/decisions/C13-compare-table.md) |
+| `QuoteBlock` | 外框 `0.5px` 描边 + 区块内距归零；标题**独立成条**（淡底 + 下描边 + 等宽字族）；正文左侧留 34px 槽位并画槽线 | [C14](../../design/decisions/C14-quote-block.md) |
+| `ContentSkeleton` | 扫光**由 `aria-busy` 开关**：组件无条件带 `aria-busy="true"`，扫光只挂在 `[aria-busy='true'] .contentSkeletonBar::after` 上 | [C17](../../design/decisions/C17-content-skeleton.md) |
+| `ContentFallback` | **素面 + 左侧 2px 短条**：语义只由左侧短条与 `△` 标记承担，不做整块彩色横幅 | [C18](../../design/decisions/C18-content-fallback.md) |
 
 ### 新增一种内容 `kind` 的完整清单
 
@@ -170,7 +198,7 @@ ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENT
 4. **渲染组件**：在 `components/content/` 建 `Xxx.tsx`，接收 `{ view }: { view: XxxView }`（`XxxView` 从协议取）；
 5. **`CONTENT_RENDERERS`**：加表项，写 `limit`（载荷内有数组时，字段名是**载荷内部**的字段）与 `render`（从 `block.props` 取载荷）；
 6. **`validate.ts`**：为载荷加守卫（形状、字段类型、规模上限），让非法数据降级而不是崩；载荷不是对象时用 `checkArray` 直接守卫（参考 `validateTags`），并同步 `registry.tsx` 的 `limit`（载荷本身是数组时不声明）；
-7. **`styles/content.css`**：加样式，类名用 `content` 前缀；只用 `--bgm-*` 令牌，不写裸色值。
+7. **`styles/content.css`**：加样式，类名用 `content` 前缀；只用 `--bgm-*` 令牌，不写裸色值。**胶囊与正圆要显式 `corner-shape: round`**（超椭圆由 `tokens.css` 下发到所有元素，会把半圆端压成偏方），并把类名登记进文件末尾那张超椭圆例外表——见 [../styles/content-and-brand.md](../styles/content-and-brand.md) §规则「`content.css` 的约定」第 7 条。
 
 然后跑 `npm run typecheck`，并按 [../regression/session-flow.md](../regression/session-flow.md) 里"内容条目渲染"的用例验证降级与截断行为。
 
@@ -194,6 +222,8 @@ ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENT
 | §规则「内容块的来源：助手消息 `content` 与 custom 消息」 | 问"这些卡片是谁产生的"、想把 kind 知识加进宿主时 |
 | §规则「每个 `kind` 的动效落点」 | 想给某个 `kind` 加动效、或问"某个 ReactBits 组件为什么没被用"时 |
 | §规则「行级入场用 CSS keyframes（`contentRowIn`），不用 JS 观察器」 | 想给内容行加入场动画、怀疑流式期间掉帧时 |
+| §规则「条形与进度条的长度走 CSS 变量，不写内联 `transform`」 | 改统计条形 / 进度条的长度，或动画结束后长度跳回默认值时 |
+| §规则「形态要点按 C04–C20 定稿，改这些结构前先读对应决策」 | 改内容条目的结构（网格列数、时间线列、引用块骨架、骨架扫光、降级卡）时 |
 | §规则「新增一种内容 `kind` 的完整清单」 | **新增内容展示时逐步照做**（7 步，缺一步会编译失败或静默丢弃） |
 | §索引「组成」 | 找某个文件或某个 `kind` 的渲染器 |
 
@@ -202,11 +232,11 @@ ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENT
 | 文件 | 职责 |
 |---|---|
 | `registry.tsx` | **注册表本体**：`kind` 清单、`type → { limit, render }` 表、渲染函数查找、覆盖率断言 |
-| `MessageBlocks.tsx` | **助手消息正文的唯一渲染入口**：按块顺序渲染（文本 → `Markdown`、内容块 → `ContentBlock`），块级 `memo`，历史条目里挂入场动画 |
+| `MessageBlocks.tsx` | **助手消息正文的唯一渲染入口**：按块顺序渲染（文本 → `Markdown`、内容块 → `ContentBlock`），块级 `memo`；历史条目的内容块用 `AnimatedContent` 挂滚动入场（`SHIFT.reveal` 18px / `DURATION.reveal` 460ms，C19 定稿，`container="#app-stage-scroll"`） |
 | `index.tsx` | `ContentBlock`：`pending` → 骨架；否则接收侧校验 + 分发 + 降级/丢弃 |
-| `ContentSkeleton.tsx` | 骨架：载荷还在传时的占位（与 kind 无关，一次性淡入） |
+| `ContentSkeleton.tsx` | 骨架：载荷还在传时的占位（与 kind 无关）；**扫光的开关就是 `aria-busy` 语义本身**（`aria-busy="true"` + `[aria-busy='true']` 选择器），不在别处再挂一个 `animated` 开关 |
 | `validate.ts` | 块的载荷校验（零依赖手写守卫）`validateMessageBlock`，返回 `ok` / `degraded` / `dropped` |
-| `ContentFallback.tsx` | 降级块：把问题清单与原始 JSON 呈现给用户 |
+| `ContentFallback.tsx` | 降级块：**素面 + 左侧 2px 短条**（语义只由短条与 `△` 标记承担），把问题清单与折叠的原始 JSON 呈现给用户 |
 | `markdown.tsx` | `Markdown` 渲染器（行内标记 + 表格 + 分隔线），**以 React 节点输出，不注入 HTML** |
 | 12 个渲染组件 | `SubjectCards`、`StatsCard`、`ProgressView`、`InfoBox`、`DataTable`、`Timeline`、`TagCloud`、`Gallery`、`CompareTable`、`QuoteBlock`、`Callout`、`LinkList` |
 

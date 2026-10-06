@@ -8,6 +8,7 @@ import {
   type UIEvent
 } from 'react';
 import { motion, useInView } from 'motion/react';
+import { DURATION, EASE_OUT } from '../motionTokens';
 import './AnimatedList.css';
 
 interface AnimatedItemProps {
@@ -29,8 +30,10 @@ function AnimatedItem({ children, delay = 0, index, onMouseEnter, onClick }: Ani
       onClick={onClick}
       initial={{ scale: 0.7, opacity: 0 }}
       animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0 }}
-      transition={{ duration: 0.2, delay }}
-      style={{ marginBottom: '1rem', cursor: 'pointer' }}
+      // 时长与曲线走 JS 侧令牌（与 styles/tokens.css 的 --app-dur-* / --app-ease-* 一一对应）；
+      // 间距也走令牌，避免与 .item 的 margin-bottom 形成两套尺度。
+      transition={{ duration: DURATION.base, ease: EASE_OUT, delay }}
+      style={{ marginBottom: 'var(--app-space-4)', cursor: 'pointer' }}
     >
       {children}
     </motion.div>

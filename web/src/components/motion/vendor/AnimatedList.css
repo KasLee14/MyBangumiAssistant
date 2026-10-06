@@ -1,3 +1,10 @@
+/* AnimatedList（ReactBits 源码拷贝）的样式。
+ *
+ * 相对官方的改动：**配色与动效全部令牌化**——官方这里是深色主题的硬编码值
+ * （轨道 #060606、thumb #222、条目底 #111 / #222、文字 white、渐变遮罩 #120F17、
+ * 过渡 0.3s ease），在浅色令牌体系下会让条目变成黑块、遮罩糊出灰边。
+ * 圆角与间距也改走令牌，避免同一形态出现两套尺度。 */
+
 .scroll-list-container {
   position: relative;
   width: 500px;
@@ -6,7 +13,7 @@
 .scroll-list {
   max-height: 400px;
   overflow-y: auto;
-  padding: 16px;
+  padding: var(--app-space-16);
 }
 
 .scroll-list::-webkit-scrollbar {
@@ -14,12 +21,12 @@
 }
 
 .scroll-list::-webkit-scrollbar-track {
-  background: #060606;
+  background: var(--bgm-bg);
 }
 
 .scroll-list::-webkit-scrollbar-thumb {
-  background: #222;
-  border-radius: 4px;
+  background: var(--bgm-border);
+  border-radius: var(--bgm-r-sm);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -32,18 +39,18 @@
 }
 
 .item {
-  padding: 16px;
-  background-color: #111;
-  border-radius: 8px;
-  margin-bottom: 1rem;
+  padding: var(--app-space-16);
+  background-color: var(--app-surface);
+  border-radius: var(--app-radius-control);
+  margin-bottom: var(--app-space-16);
 }
 
 .item.selected {
-  background-color: #222;
+  background-color: var(--bgm-surface-alt);
 }
 
 .item-text {
-  color: white;
+  color: var(--bgm-text);
   margin: 0;
 }
 
@@ -53,9 +60,9 @@
   left: 0;
   right: 0;
   height: 50px;
-  background: linear-gradient(to bottom, #120F17, transparent);
+  background: linear-gradient(to bottom, var(--app-surface), transparent);
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--app-dur-slow) var(--app-ease-out);
 }
 
 .bottom-gradient {
@@ -64,7 +71,7 @@
   left: 0;
   right: 0;
   height: 100px;
-  background: linear-gradient(to top, #120F17, transparent);
+  background: linear-gradient(to top, var(--app-surface), transparent);
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--app-dur-slow) var(--app-ease-out);
 }

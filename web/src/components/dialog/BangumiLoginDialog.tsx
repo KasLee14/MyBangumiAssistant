@@ -49,59 +49,70 @@ export function BangumiLoginDialog(): ReactNode {
 
   return (
     <Modal
-      eyebrow="设置"
+      /* 新骨架下 `eyebrow` 是**标题下方的副标题**（`.dlgSub`），不再是旧骨架的分组名——
+         原先传的「设置」会显示成「Bangumi 登录 / 设置」。这里换成 C23 定稿的副标题
+         （样张 `demo.js:1963`）。 */
+      eyebrow="人机验证在默认浏览器里完成，这里只显示进度。"
       title="Bangumi 登录"
       onClose={close}
       footer={pending ? (
-        <>
-          <span className="note">人机验证在默认浏览器里完成。</span>
-          <button type="button" className="button ghost" onClick={close}>取消</button>
-        </>
+        /* 单个次要按钮：`.dlgActions` 默认两端对齐，只有一个子元素时会贴左；
+           这里再加上它的「靠右」变体。**必须同时带 `.dlgActions`**——`.dlgActionsEnd`
+           只声明 `justify-content`，自身没有 `display: flex`，单独用时作为 flex 子项
+           宽度只有内容宽，仍然贴左。 */
+        <div className="dlgActions dlgActionsEnd">
+          <button type="button" className="dlgBtn dlgBtnGhost" onClick={close}>取消</button>
+        </div>
       ) : (
         <>
-          <span className="note">凭据不经聊天、模型或会话条目。</span>
-          <button type="button" className="button ghost" onClick={close}>取消</button>
-          <button type="button" className="button primary" disabled={!canSubmit} onClick={() => void submit()}>
+          <button type="button" className="dlgBtn dlgBtnGhost" onClick={close}>取消</button>
+          <button type="button" className="dlgBtn dlgBtnPrimary" disabled={!canSubmit} onClick={() => void submit()}>
             登录
           </button>
         </>
       )}
     >
       {pending ? (
-        <div className="modalStatus" data-configured>
-          <span className="dot" />
+        <div className="dlgStatus" data-configured>
+          <span className="dlgDot" />
           {status || '正在登录…'}
         </div>
       ) : (
         <>
-          <div className="modalField">
-            <label htmlFor="bangumi-email">邮箱</label>
-            <input
-              id="bangumi-email"
-              className="modalInput"
-              type="email"
-              value={email}
-              autoFocus
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="name@example.com"
-              onChange={event => setEmail(event.target.value)}
-            />
+          {/* 字段区包一层：`.dlgPane` 的 gap 是块与块之间的距离（18px），
+              字段之间按定稿是 14px，得靠这个容器给。 */}
+          <div className="dlgFields">
+            <div className="dlgField">
+              <label htmlFor="bangumi-email">邮箱</label>
+              <input
+                id="bangumi-email"
+                className="dlgInput"
+                type="email"
+                value={email}
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="name@example.com"
+                onChange={event => setEmail(event.target.value)}
+              />
+            </div>
+            <div className="dlgField">
+              <label htmlFor="bangumi-password">密码</label>
+              <input
+                id="bangumi-password"
+                className="dlgInput"
+                type="password"
+                value={password}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="密码不会显示或保存"
+                onChange={event => setPassword(event.target.value)}
+                onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void submit(); } }}
+              />
+            </div>
           </div>
-          <div className="modalField">
-            <label htmlFor="bangumi-password">密码</label>
-            <input
-              id="bangumi-password"
-              className="modalInput"
-              type="password"
-              value={password}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="密码不会显示或保存"
-              onChange={event => setPassword(event.target.value)}
-              onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void submit(); } }}
-            />
-          </div>
+          {/* 原先这句占着底部一栏（`.note`）。新骨架的底部只放按钮，说明文字归字段下方。 */}
+          <p className="dlgHint">凭据不经聊天、模型或会话条目。</p>
           {error ? <p className="modalError">{error}</p> : null}
         </>
       )}

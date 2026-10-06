@@ -1,0 +1,314 @@
+/* ============================================================
+ * 跨页面共享的表面原语（`components/common/` 的样式）
+ * ------------------------------------------------------------
+ * 这里放**跨入口共用**的东西：顶栏骨架（只服务调试页与文档页）、品牌组合类、玻璃浮起层、可选中行、空态、
+ * 微标签与胶囊、会话头、逐项错峰入场。
+ *
+ * 为什么单独成文件、而不是并进 frame.css：它同时服务主界面、调试页与组件库
+ * 文档页，而 frame.css 只服务前两者的外壳。引入顺序（main.tsx / library.tsx）：
+ *
+ *   tokens → common → frame → composer → cards → modal → bgm → content → debug
+ *
+ * 全部值来自 `--app-*` / `--bgm-*` 令牌；这一层不新增色值，也不定义形态以外的规则。
+ * ============================================================ */
+
+/* ---------------------------------------------------------------- 顶栏骨架 */
+
+/* **主界面已不再使用顶栏**（[C01](../docs/design/decisions/C01-app-top-bar.md) 决定删除它，
+   品牌 / 折叠 / 新建 / 连接状态 / 设置全部迁进侧栏）。这个骨架保留给两个次要入口
+   ——调试页与组件库文档页，它们各自仍需要一条「品牌 + 栏目 + 动作」的横条。
+   主界面外壳的网格里已经没有 `top` 行。 */
+.appTopBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  height: 46px;
+  padding: 0 var(--app-space-16);
+  background: var(--app-surface-sunken);
+  border-bottom: 1px solid var(--app-hairline);
+}
+
+.appTopBarBrand {
+  /* 字号按本轮收敛档位取 14（原 14.5px，属 15px 以下、必须归位的小字）；
+     行高保持 1.2 的紧贴口径。 */
+  font: 700 14px/1.2 var(--bgm-font);
+  letter-spacing: var(--app-tracking-title);
+  color: var(--bgm-text-strong);
+  white-space: nowrap;
+}
+
+/* 品牌落点的共享组合类：**两个入口共用**——主界面侧栏顶部的品牌行（`.appSidebarBrand`）
+   与调试页顶栏的品牌。只补「这里可点」这一件事（双击进 / 出调试页），
+   品牌自身的字体与颜色归各自的主规则。
+   放在 `common.css` 而不是 `debug.css`：后者只服务调试页，不该持有跨入口的组合类。 */
+.appBrandAction {
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--app-radius-control);
+}
+
+.appBrandAction:hover {
+  color: var(--bgm-primary);
+}
+
+.appBrandAction:focus-visible {
+  outline: 2px solid var(--bgm-primary);
+  outline-offset: 2px;
+}
+
+.appTopBarTab {
+  position: relative;
+  padding: 0 0 var(--app-space-4);
+  border: 0;
+  background: none;
+  font: var(--app-font-sub);
+  color: var(--bgm-text-muted);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-out);
+}
+
+.appTopBarTab:hover { color: var(--bgm-text); }
+
+.appTopBarTab[data-current='true'] { color: var(--bgm-text-strong); }
+
+/* 当前栏目只用一条 2px 主色下划线表态，不做底色块 */
+.appTopBarTab[data-current='true']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bgm-primary);
+}
+
+.appTopBarActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+}
+
+/* ---------------------------------------------------------------- 玻璃浮起层 */
+
+/* 全站玻璃的**唯一来源**：输入卡、命令候选、思考菜单、统计浮层、弹窗、Toast
+   都加这一个类，不再各写一份 rgba + backdrop-filter。
+   玻璃只允许用在浮起层——滚动内容里一律用不透明表面（见方案 §5.2）。 */
+.appGlass {
+  background: var(--app-glass-fill);
+  -webkit-backdrop-filter: var(--app-glass-blur);
+  backdrop-filter: var(--app-glass-blur);
+  border: 1px solid var(--app-glass-stroke);
+  /* 圆角与阴影走局部变量：消费方可以降一档（如玻璃 chip 用胶囊圆角），
+     但**默认值只有这一处**——不需要覆盖时什么都不用写。 */
+  border-radius: var(--glass-radius, var(--app-radius-float));
+  box-shadow: var(--glass-shadow, var(--app-shadow-panel));
+}
+
+/* 这里原有「浮层单独声明 corner-shape」的规则（`@supports (…1.35)` + `.appGlass`）。
+   已移除：超椭圆由 `tokens.css` 的 `*, *::before, *::after` **一处统一下发**
+   （曲率令牌 `--dsw-corner-shape`，值 1.4），浮层再声明一次就是同一属性两个来源——
+   正是外观层硬约定第 1 条禁止的事，而且两处的 `@supports` 阈值还曾经不一致。 */
+
+/* 浮层的展开方向由**结构**决定，所以 `transform-origin` 写在各自的浮层规则里
+   （命令候选与统计浮层是底边中心、思考菜单是右下角、弹窗是中心），不做 JS 坐标计算
+   ——那会让每个浮层都要挂两个 ref，换不来任何效果。 */
+
+/* ---------------------------------------------------------------- 可选中行 */
+
+/* 侧栏会话行、文档页左导航、调试页示例都复用它。
+   「当前项」的两个信号（粉底 + 左侧主色条）只有这一处定义。 */
+.appNavRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  width: 100%;
+  padding: var(--app-space-8) var(--app-space-12);
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-control);
+  background: none;
+  color: var(--bgm-text-muted);
+  font: var(--app-font-sub);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--app-dur-fast) var(--app-ease-out),
+    color var(--app-dur-fast) var(--app-ease-out),
+    border-color var(--app-dur-fast) var(--app-ease-out);
+}
+
+.appNavRow:hover {
+  /* [G10](../../docs/design/decisions/G10-ux.md)：hover 底色 6% → 10%；
+     并补 1px 描边——焦点环换成主色后，粉底（顶栏/侧栏）上的可辨性下降，
+     需要描边兜底。`.appNavRow` 已有 `border: 1px solid transparent`，这里只给颜色。 */
+  background: color-mix(in srgb, var(--bgm-primary) 10%, transparent);
+  border-color: var(--app-hairline);
+  color: var(--bgm-text);
+}
+
+.appNavRow[data-current='true'] {
+  background: var(--bgm-primary-soft);
+  border-color: color-mix(in srgb, var(--bgm-primary) 26%, transparent);
+  color: var(--bgm-primary-text);
+  font-weight: 500;
+}
+
+/* 这里原有「当前态的左侧主色竖条」（`::before` + `scaleY` 弹性展开）。
+   按样张 `web/style-demo-layout.html` 的 L-B 列，当前项只靠
+   **粉底 + 主色描边 + 主色字 + 500 字重** 四件事区分，不加额外装饰——竖条与「素面」方向相反，故移除。 */
+
+.appNavRow:focus-visible {
+  /* 焦点环只有一个来源：`--bgm-focus`（[G10](../../docs/design/decisions/G10-ux.md)
+     把「2px 交互蓝」换成「3px 主色 45%」）。
+     **内描边**（[C04](../../docs/design/decisions/C04-stagger.md)）：`outline-offset: -2px`
+     让环贴在行内侧。外描边会在行与行之间多占 3px，短列表逐项入场时看得出错位。 */
+  outline: 1px solid var(--app-hairline-strong);
+  outline-offset: -2px;
+  box-shadow: var(--bgm-focus);
+}
+
+/* 行尾的次要信息（时间、条数、状态）。
+   **2026-10-06 落地 G04 / G-tokens §三**：`600 10px 等宽` → 常规字体 + 小字令牌。
+   本轮字号收敛后 `--app-font-label`（500 11.5px）已并入 **`--app-font-note`（400 12px）**，
+   等宽字族也一并去掉——与「小字一律不用大写 / 宽字距 / 等宽」的口径一致。 */
+.appNavMeta {
+  margin-left: auto;
+  font: var(--app-font-note);
+  color: var(--bgm-text-weak);
+  /* 侧栏行 hover 时，「时间」与行尾的「···」按钮在同一位置交叉淡入淡出
+     （位移与显隐规则在 `frame.css` 的 `.appNavItem` 段）。 */
+  transition: opacity var(--app-dur-fast) var(--app-ease-out);
+}
+
+/* ---------------------------------------------------------------- 会话头（已删除） */
+
+/* C34 决策：会话头连同它的三种排版类一并删除（会话标题与元信息不再出现在对话区顶部）。
+   文档页页头当年复用这套排版，现已各自独立——不要为「页头」把它加回来。 */
+
+/* ---------------------------------------------------------------- 空态 */
+
+/* 内容库空态、调试页空态、文档页「没有这个组件」共用。
+   Hero 不走这里（它是首屏引导，有自己的亮相动效）。 */
+.appEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-8);
+  padding: var(--app-space-32) var(--app-space-24);
+  border: 1px dashed var(--app-hairline-strong);
+  border-radius: var(--app-radius-panel);
+  background: var(--bgm-surface-alt);
+  text-align: center;
+}
+
+.appEmptyTitle {
+  font: 600 15px/1.5 var(--bgm-font);
+  color: var(--bgm-text-muted);
+}
+
+.appEmptyHint {
+  max-width: 52ch;
+  font: var(--app-font-sub);
+  color: var(--bgm-text-weak);
+}
+
+/* ---------------------------------------------------------------- 微标签与胶囊 */
+
+/* 微标签：11.5/500 弱色。
+   **禁止**给中文套「小号 + 宽字距大写」那套拉丁标签写法（防土规则 5）。 */
+.appMicroLabel {
+  font: var(--app-font-note);
+  color: var(--bgm-text-weak);
+}
+
+/* 胶囊：标签、chip、读数共用 */
+.appPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--app-space-4);
+  padding: 3px 9px;
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-surface-alt);
+  font: var(--app-font-note);
+  color: var(--bgm-text-muted);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 逐项错峰入场 */
+
+/* 短列表用；长列表（会话轮次、长表格）用一次性入场，避免最后一项等太久。
+   只动 opacity / transform，参数全部来自令牌。
+
+   **延迟表 4 档扩到 8 档**（[C04](../../docs/design/decisions/C04-stagger.md) 定稿 B · 尾部不堆叠）：
+   4 档时第 5 项起同时出现，8 行的短列表会在尾部一次冒出 4 行。第 9 项起沿用第 8 档。
+
+   `overflow: clip` 是必需的：入场位移把行往下推 8px，滚动容器会因此短暂多出一条滚动条
+   （实测 `.appSidebarScroll` 高度 371 → 374）。`clip` 不产生滚动容器，比 `hidden` 更准确。 */
+.appStagger {
+  overflow: clip;
+}
+
+.appStagger > * {
+  animation: appStaggerIn var(--app-dur-slow) var(--app-ease-spring) both;
+}
+
+.appStagger > *:nth-child(1) { animation-delay: 0ms; }
+.appStagger > *:nth-child(2) { animation-delay: var(--app-stagger); }
+.appStagger > *:nth-child(3) { animation-delay: calc(var(--app-stagger) * 2); }
+.appStagger > *:nth-child(4) { animation-delay: calc(var(--app-stagger) * 3); }
+.appStagger > *:nth-child(5) { animation-delay: calc(var(--app-stagger) * 4); }
+.appStagger > *:nth-child(6) { animation-delay: calc(var(--app-stagger) * 5); }
+.appStagger > *:nth-child(7) { animation-delay: calc(var(--app-stagger) * 6); }
+.appStagger > *:nth-child(8) { animation-delay: calc(var(--app-stagger) * 7); }
+.appStagger > *:nth-child(n+9) { animation-delay: calc(var(--app-stagger) * 8); }
+
+@keyframes appStaggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--app-shift-row)) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appStagger > * { animation: none; }
+}
+
+/* ---------------------------------------------------------------- 视口驱动入场 */
+
+/* `in` 类由 utils/revealOnScroll.ts 添加。只动 opacity / transform。
+   值取自样张 `web/style-demo-scroll.html` 的视口入场：初始 `translateY(10px)`，
+   **两条属性走两条曲线**——透明度用精确曲线（不做弹性，免得中途「亮一下又暗」），
+   位移用弹性曲线（这才是「浮上来」的手感）。
+   减少动态效果时**直接可见**——绝不允许因为跳过动画而让元素卡在不可见状态。 */
+.appReveal {
+  opacity: 0;
+  /* [G10](../../docs/design/decisions/G10-ux.md) 的视口入场：位移与时长都走令牌
+     ——位移吸附到 `--app-shift-panel`(16px)、时长吸附到 `--app-dur-slow`(360ms)。
+     原先是写死的 10px / 320ms（G10 原文要求 18px / 460ms，本次按「不新增档位」收敛）。 */
+  transform: translateY(var(--app-shift-panel));
+  transition:
+    opacity var(--app-dur-slow) var(--app-ease-out),
+    transform var(--app-dur-slow) var(--app-ease-spring);
+}
+
+.appReveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appReveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

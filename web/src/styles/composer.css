@@ -23,25 +23,24 @@
   display: inline-flex;
 }
 
-/* 常驻标签：与发送键同一行，形态是一枚描边胶囊；置灰表示当前不能切换 */
+/* 常驻标签（C33 决策 B）：**纯文字**，常态无底、无描边，hover 只换字色。
+   思考强度是「设置项」，做成描边胶囊会和同一行旁边的 token / 上下文读数混成同一类东西；
+   置灰态（未选模型 / 模型不支持）仍由不透明度表达。 */
 .thinkingTrigger {
   display: inline-flex;
   align-items: center;
-  height: 24px;
-  padding: 0 9px;
-  font: var(--dsw-font-xxs-12);
+  height: 20px;
+  padding: 0;
+  font: var(--app-font-sub);
   white-space: nowrap;
   cursor: pointer;
-  border: 1px solid var(--app-hairline);
-  border-radius: var(--bgm-r-pill);
-  background: var(--bgm-surface-alt);
+  border: 0;
+  background: transparent;
   color: var(--bgm-text-muted);
-  transition: border-color var(--app-dur-fast) var(--app-ease-out), background var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
+  transition: color var(--app-dur-fast) var(--app-ease-out);
 }
 
 .thinkingTrigger:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--bgm-primary) 45%, transparent);
-  background: var(--bgm-primary-soft);
   color: var(--bgm-primary-text);
 }
 
@@ -57,15 +56,13 @@
   bottom: calc(100% + 6px);
   z-index: 100;
   min-width: 190px;
-  padding: 4px;
-  color: var(--dsw-alias-label-primary);
+  padding: var(--app-space-4);
+  color: var(--bgm-text);
   overflow: hidden;
-  backdrop-filter: none;
-  border: 1px solid var(--app-hairline-strong);
-  border-radius: var(--app-radius-panel);
-  background: var(--app-surface);
-  box-shadow: var(--app-shadow-panel);
-  animation: app-popup-in var(--app-dur-base) var(--app-ease-out) both;
+  /* 浮层本体只负责定位与几何：玻璃、描边、圆角、阴影来自共享类 `.appGlass`。
+     它挂在「思考 · 高」标签上方，所以从右下角长出来；曲线用大面积收敛版 spring。 */
+  transform-origin: bottom right;
+  animation: app-popup-in var(--app-dur-base) var(--app-ease-spring-soft) both;
 }
 
 /* 发送与停止共用同一按钮位（上游 .primary）：34×34 圆形，上抬 2px */
@@ -77,9 +74,12 @@
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: var(--dsw-specific-menu);
-  backdrop-filter: var(--dsw-menu-backdrop-filter);
-  box-shadow: var(--dsw-elevation-stroke);
+  background: var(--bgm-surface);
+  backdrop-filter: var(--app-glass-blur);
+  /* 上游那条 elevation 令牌是**阴影**（`0 0 0 0.5px <色>`），不是一个颜色值——
+     描边色改用 `--app-hairline` 后必须把形状一起写回来，否则 box-shadow 整条作废。
+     （子层在 `Modal` / `ThinkingPicker` 里都处于 `opacity: 0`，这条实际不参与渲染。） */
+  box-shadow: 0 0 0 0.5px var(--app-hairline);
   opacity: 0;
 }
 
@@ -88,15 +88,15 @@
 .menuViewport {
   max-height: min(360px, calc(100vh - 96px));
   overflow-y: auto;
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
-  --dsh-scrollbar-width: 6px;
-  --dsh-scrollbar-track-margin: 12px;
+  /* 抬高的表面只重绑滚动条的**几何**：滑块深浅不再分档（上游 l1/l2 两级取值相同，
+     已合并成一枚 `--app-scrollbar-thumb`，见 `tokens.css`），故这里不再重绑滑块。 */
+  --app-scrollbar-width: 6px;
+  --app-scrollbar-track-margin: 12px;
 }
 
 .menuLabel {
-  padding: 6px 8px;
-  font: 500 11px/15px var(--dsw-font-family);
+  padding: var(--app-space-6) 8px;
+  font: var(--app-font-note);
   color: var(--bgm-text-weak);
 }
 
@@ -113,22 +113,28 @@
   gap: 8px;
   width: 100%;
   min-height: 34px;
-  padding: 6px 8px;
+  padding: var(--app-space-6) 8px;
   border: 0;
   background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font: 13px/20px var(--dsw-font-family);
+  color: var(--bgm-text);
+  font: var(--app-font-sub);
   text-align: left;
   cursor: pointer;
   border-radius: var(--app-radius-control);
   transition: background var(--app-dur-instant) var(--app-ease-out);
 }
 
-.menuItem:hover:not(:disabled),
+/* 悬停与键盘焦点必须分开声明：合在一个块里会让鼠标划过也长出一圈焦点环；
+   而那条 `color: #fff` 落在 `--bgm-primary-soft` 浅粉底上等于把字洗掉（实测对比度不足 1.1:1），
+   它是旧「蓝色实心底」时代的遗留，浅粉底上不成立。
+   悬停只给最浅一档的底（surface-alt < 选中态 18%），字色转主色深档；
+   `:not(.selected)` 是必须的——否则悬停一个已选中项会把它退回悬停底，看起来像被取消选中。 */
+.menuItem:hover:not(:disabled):not(.selected) {
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-primary-text);
+}
+
 .menuItem:focus-visible {
-  background: var(--bgm-interactive);
-  color: #fff;
-  background: var(--bgm-primary-soft);
   outline: none;
   box-shadow: var(--bgm-focus);
 }
@@ -140,9 +146,9 @@
 
 .menuItem .hint {
   margin-left: auto;
-  color: var(--dsw-alias-label-caption);
-  font: var(--dsw-font-xs-13);
-  font-family: var(--ds-font-family-code);
+  color: var(--bgm-text-weak);
+  font: var(--app-font-sub);
+  font-family: var(--bgm-mono);
 }
 
 /* ------------------------------------------------------------ 底栏读数
@@ -160,9 +166,9 @@
   gap: 12px;
   max-width: 100%;
   /* 卡外读数：上方留出与卡片的间距，左右不额外留白（宽度由 .composerStack 决定） */
-  padding: 6px 0 2px;
+  padding: var(--app-space-6) 0 2px;
   /* 读数比正文低一档：辅助信息 12px */
-  font: var(--dsw-font-xxs-12);
+  font: var(--app-font-note);
   line-height: 20px;
   font-variant-numeric: tabular-nums;
   /* 底栏读数落在输入卡之外：透明才不会在白面上多出一条白条，胶囊直接落在页面底色上。 */
@@ -176,18 +182,26 @@
   min-width: 0;
 }
 
-.statsPill {
+/* 触发条（用量胶囊与上下文环）——[C32](../../docs/design/decisions/C32-stats-dock.md) 定稿 **D**：
+   **常态无底、无描边**（纯文字 + 环），只在 hover / 展开时浮起一层浅底。
+   理由：这一行是「附注」不是两个按钮，常态与可点控件抢注意力会让人误以为它是主操作。
+   两处（`.statsPill` / `.contextTrigger`）**合并成一条选择器列表**——它们本来就该长同一副样子，
+   早先各写一份相同形状，属于同一属性两个来源。 */
+.statsPill,
+.contextTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--app-space-6);
   max-width: 100%;
-  padding: 1px 8px;
-  font: inherit;
+  /* 2026-10-06：内距上下 1px → 4px（原先比里面的字还紧，实测高只有 24px）、
+     字号统一走 G04 的微标签档 11.5px（不再各写 12px）。 */
+  padding: 4px 9px;
+  font: var(--app-font-note);
   white-space: nowrap;
   cursor: pointer;
-  border: 1px solid var(--app-hairline);
+  border: 1px solid transparent;
   border-radius: var(--bgm-r-pill);
-  background: var(--bgm-surface-alt);
+  background: none;
   color: var(--bgm-text-muted);
   transition: border-color var(--app-dur-fast) var(--app-ease-out), background var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
 }
@@ -198,11 +212,12 @@
   flex: none;
 }
 
-/* 交互反馈用站点的交互蓝：整行填充 + 白字 */
 .statsPill:hover,
-.statsPill[aria-expanded='true'] {
-  border-color: var(--app-hairline-strong);
-  background: var(--app-surface);
+.statsPill[aria-expanded='true'],
+.contextTrigger:hover,
+.contextTrigger[aria-expanded='true'] {
+  border-color: var(--app-hairline);
+  background: var(--bgm-surface-alt);
   color: var(--bgm-text);
 }
 
@@ -213,7 +228,7 @@
 }
 
 .statsSep {
-  margin: 0 6px;
+  margin: 0 var(--app-space-6);
   opacity: .55;
 }
 
@@ -222,32 +237,15 @@
   flex: none;
 }
 
-.contextTrigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 1px 8px;
-  font: inherit;
-  white-space: nowrap;
-  cursor: pointer;
-  border: 1px solid var(--app-hairline);
-  border-radius: var(--bgm-r-pill);
-  background: var(--bgm-surface-alt);
-  color: var(--bgm-text-muted);
-  transition: border-color var(--app-dur-fast) var(--app-ease-out), background var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
-}
-
-.contextTrigger:hover,
-.contextTrigger[aria-expanded='true'] {
-  border-color: var(--app-hairline-strong);
-  background: var(--app-surface);
-  color: var(--bgm-text);
-}
+/* `.contextTrigger` 的形状已并入上面的选择器列表（C32 定稿 D 要求它与 `.statsPill` 同形）。 */
 
 .contextTrigger[data-warn='true'] {
   color: var(--bgm-warn);
 }
 
+/* 注意坐标系：这里的 `viewBox` 是 16×16，所以描边 2 约等于样张
+   `web/style-demo-data.html` 里 64×64 坐标系下 `stroke-width: 7` 的视觉粗细
+   （7 / 64 ≈ 0.11，2 / 16 ≈ 0.125）。**不要照搬 7**——那是另一个坐标系的值。 */
 .contextTrack {
   fill: none;
   stroke: var(--bgm-border);
@@ -259,6 +257,11 @@
   stroke: var(--bgm-text-muted);
   stroke-width: 2;
   stroke-linecap: round;
+  /* 柔光化（样张 data.html 的 C 列）：给**环形整体**一层主色柔光，而不是给描边加阴影
+     ——`drop-shadow` 跟着圆弧走，观感更接近「发光」。偏移与模糊同样按坐标系缩放
+     （样张 64 单位下的 `0 3px 8px` → 这里 `0 2px 4px`）。
+     样张另有一个 SVG 渐变描边，但本环只有 14px 显示尺寸、渐变不可辨，故不引入。 */
+  filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--bgm-primary) 28%, transparent));
   transition: stroke-dasharray var(--app-dur-slow) var(--app-ease-out);
 }
 
@@ -266,38 +269,35 @@
   stroke: var(--bgm-warn);
 }
 
-/* 浮层：站点卡片形态（1px 淡描边 + 15px 圆角 + 轻投影），不做玻璃模糊，
-   否则下面的对话会透上来，看起来像浮层被写进了输入卡里 */
-
-/* 浮层本体：定位、几何与表面。材质子层（.statsPanelMaterial）只做占位，
-   底色与模糊都不显示——面板自己要干净的白面。 */
+/* 浮层表面 —— [C32](../../docs/design/decisions/C32-stats-dock.md) 定稿 **D**：**去玻璃改素面卡**
+   （`--bgm-surface` + 1px 描边 + `--app-shadow-card`）。
+   这是把 [C21](../../docs/design/decisions/C21-modal.md)/[C30](../../docs/design/decisions/C30-composer.md)
+   那条「浮起层里只有弹窗与输入卡保留玻璃」贯彻到底：读数面板背后是纯色白面，
+   玻璃在它身上只剩「发白的卡片」。
+   `.appGlass` 仍然挂在元素上（共享类不改），这里把它那一组属性**就地覆盖**——
+   表面属性的唯一来源仍是令牌，本规则不引入任何裸值。 */
 .statsPanel {
   position: fixed;
   z-index: 1100;
   box-sizing: border-box;
-  padding: 12px;
-  border: 1px solid var(--app-hairline-strong);
-  border-radius: var(--app-radius-panel);
-  background: var(--app-surface);
-  box-shadow: var(--app-shadow-panel);
-  animation: app-popup-in var(--app-dur-base) var(--app-ease-out) both;
-  font: var(--dsw-font-xxs-12);
+  padding: var(--app-space-12);
+  background: var(--bgm-surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 1px solid var(--bgm-border);
+  box-shadow: var(--app-shadow-card);
+  /* 它从下方触发条的上方长出来，所以 origin 是底边中心。 */
+  transform-origin: bottom center;
+  animation: app-popup-in var(--app-dur-base) var(--app-ease-spring-soft) both;
+  font: var(--app-font-note);
   line-height: 18px;
   color: var(--bgm-text-muted);
   cursor: default;
 }
 
-/* 表面色放在子层：面板本体只负责定位与几何（与命令弹窗、思考菜单同一做法） */
-.statsPanelMaterial {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border: 1px solid var(--bgm-border);
-  border-radius: inherit;
-  background: var(--bgm-surface);
-  box-shadow: var(--bgm-shadow-soft);
-  opacity: 0;
-}
+/* 这里原有 `.statsPanelMaterial`（`opacity: 0` 的表面子层）——它是 DSH 菜单材质的遗留，
+   从来没有视觉贡献，而且会让「面板表面」出现第二个候选来源。已删除；
+   `StatsDock.tsx` 里那个占位 `<div class="statsPanelMaterial" />` 留着无害，不再有样式。 */
 
 .statsPanelBody {
   position: relative;
@@ -317,7 +317,7 @@
 .statsTitleLabel {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--app-space-6);
   min-width: 0;
 }
 
@@ -362,7 +362,7 @@
 .contextHeader {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--app-space-6);
 }
 
 .contextHeadline {
@@ -384,7 +384,7 @@
 .contextBar {
   display: flex;
   height: 4px;
-  margin: 10px 0 2px;
+  margin: var(--app-space-10) 0 2px;
   border-radius: var(--bgm-r-pill);
   overflow: hidden;
   background: var(--bgm-border-soft);
@@ -405,16 +405,12 @@
 /* ---------------------------------------------------------------- 外观层补充
  * 这里集中放基础文件里没有的形状（由原先分散的覆写层合并而来）：与基础同名的选择器
  * 已经并入上面的规则，因此同一元素同一属性只有一个来源。
+ *
+ * 2026-10-06 清掉两条残余：① `.menuItem:hover` 在这里又写了一遍蓝底白字
+ * （`--bgm-interactive` + `#fff`），被上面更高特异性的规则覆盖成「浅粉底 + 白字」，
+ * 等于把菜单项的字洗掉——同一属性两个来源，删；② `.menuItem:hover .meta` 是死规则，
+ * `.menuItem` 里只有 `span` 与 `.hint`，`.meta` 只属于 modal.css 的 `.pickerRow`，删。
  * ---------------------------------------------------------------- */
-
-.menuItem:hover {
-  background: var(--bgm-interactive);
-  color: #fff;
-}
-
-.menuItem:hover .meta {
-  color: rgba(255, 255, 255, .88);
-}
 
 /*
  * 输入区座位：全界面唯一的输入卡挂载点。
@@ -424,7 +420,7 @@
  * 传 `key={sessionId}` 主动重建，草稿按会话存在 store 里，因此重建不丢文字。
  */
 .appSeat {
-  padding: 6px 24px 18px;
+  padding: var(--app-space-6) 24px 18px;
 }
 
 .appCardSeat {
@@ -434,12 +430,40 @@
 .appComposerStack {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--app-space-8);
+  /* [C31](../../docs/design/decisions/C31-composer-seat.md) 定稿 C：输入卡与**内容列同宽**。
+     表达式逐字照抄 `.appStageColumn`（`frame.css`）——两处必须是同一个表达式，
+     否则卡与上面的消息列会错开（实测原先是 143px）。两态共用，不按 `data-phase` 分叉。 */
+  width: 100%;
+  max-width: min(calc(100cqw - 48px), clamp(680px, 64cqw, 900px));
+  margin-inline: auto;
 }
 
+/* 输入卡是**浮起层**，所以用玻璃：底色、模糊、描边与阴影都来自共享令牌。
+   BorderGlow 自己画底色，因此这里通过它的变量层覆盖——玻璃属性仍然只有一处定义
+   （`--app-glass-*`），vendor 规则本身不改。 */
 .appGlow {
   width: 100%;
-  border-radius: var(--app-radius-panel);
+  /* 浮层档 18px。**注意**：这条与 vendor 的 `.border-glow-card { border-radius: var(--border-radius) }`
+     特异度相同，胜负取决于 CSS 加载顺序——dev 下这条胜出（浮层档 18px），
+     生产构建把两者分进不同 chunk（`content.css` → `index.css`）后 vendor 那条胜出（props 的 20px）。
+     2026-10-06 用户裁示**维持现状、仅登记**（见 G03 的例外清单）。 */
+  border-radius: var(--app-radius-float);
+  --card-bg-css: var(--app-glass-fill);
+  -webkit-backdrop-filter: var(--app-glass-blur);
+  backdrop-filter: var(--app-glass-blur);
+}
+
+/* 卡外一行：思考强度 + 读数。L-B 之后输入卡只留「输入 + 发送」，
+   这两样移到卡外同一行；读数浮层仍向上展开。
+   **水平居中**（值取自样张 `web/style-demo-layout.html` 的 L-B 列 `.v-b .dockRow`）：
+   早先写成 space-between，两端被扯开，与「卡外一行附注」的语义相反。 */
+.appComposerDock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-12);
+  padding: 0 var(--app-space-4);
 }
 
 .appGlow .border-glow-inner {
@@ -450,7 +474,9 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  border-radius: var(--app-radius-panel);
+  /* [C30](../../docs/design/decisions/C30-composer.md)：内层卡片圆角由容器档升到**浮层档**，
+     与外壳 `.appGlow` 的圆角一致——两层圆角不同时，玻璃边缘会在内层露一圈「台阶」。 */
+  border-radius: var(--app-radius-float);
 }
 
 .appComposerCard:focus-within {
@@ -472,7 +498,7 @@
   border: 0;
   background: transparent;
   color: var(--bgm-text-strong);
-  font: 14px/22px var(--bgm-font);
+  font: var(--app-font-body);
   resize: none;
   outline: none;
   overflow-y: auto;
@@ -487,20 +513,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 44px;
-  padding: 6px 10px 6px 14px;
+  /* [C30](../../docs/design/decisions/C30-composer.md)：底行高 44 → **48px**，
+     跟着发送键从 34 长到 36 一起放宽（行高不跟着走会让键上下各贴 4px）。 */
+  min-height: 48px;
+  padding: var(--app-space-6) var(--app-space-10) var(--app-space-6) 14px;
 }
 
 .appComposerTools {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--app-space-10);
   min-width: 0;
 }
 
 .appComposerHint {
   color: var(--bgm-text-weak);
-  font: 12px/1.4 var(--bgm-font);
+  font: var(--app-font-note);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -512,7 +540,7 @@
   border-radius: var(--bgm-r-pill);
   background: var(--bgm-danger-soft);
   color: var(--bgm-danger);
-  font: 12px/1.5 var(--bgm-font);
+  font: var(--app-font-note);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -530,19 +558,23 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 34px;
-  height: 34px;
+  /* [C30](../../docs/design/decisions/C30-composer.md)：发送键 34 → **36px**（与纯图标按钮同档）。 */
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 0;
   border-radius: var(--app-radius-control);
-  background: var(--bgm-primary);
-  color: #fff;
+  /* [G01](../../docs/design/decisions/G01-primary.md) 硬约束：白字底用加深一档的 deep
+     （4.66:1），hover 回到主色本身「亮起来」——与 `cards.css` 的 `.button.primary` 同向。
+     原先常态是主色（3.15:1）、hover 再混黑加深，方向正好相反。 */
+  background: var(--bgm-primary-deep);
+  color: var(--bgm-on-accent);
   cursor: pointer;
   transition: background var(--app-dur-fast) var(--app-ease-out), box-shadow var(--app-dur-fast) var(--app-ease-out), transform var(--app-dur-instant) var(--app-ease-out);
 }
 
 .appSendButton:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--bgm-primary) 86%, #000);
+  background: var(--bgm-primary);
   box-shadow: 0 2px 10px color-mix(in srgb, var(--bgm-primary) 45%, transparent);
 }
 
@@ -551,8 +583,11 @@
 }
 
 .appSendButton:disabled {
+  /* 浅粉底（`--bgm-border`）**不能配白字**——实测对比度约 1.1:1，箭头几乎不可见，
+     与 [C33](../../docs/design/decisions/C33-thinking-picker.md) 修掉的那处是同一类问题。
+     按 C33 的取向改成主色深字，禁用态仍然可辨认。 */
   background: var(--bgm-border);
-  color: var(--bgm-surface);
+  color: var(--bgm-primary-text);
   cursor: not-allowed;
 }
 
@@ -574,45 +609,45 @@
   bottom: calc(100% + 8px);
   z-index: 20;
   max-height: min(320px, 46vh);
-  padding: 6px;
-  border: 1px solid var(--app-hairline-strong);
-  border-radius: var(--app-radius-panel);
-  background: var(--app-surface);
-  box-shadow: var(--app-shadow-panel);
+  padding: var(--app-space-4);
   overflow-y: auto;
-  /* 从触发它的输入卡方向展开：位移很小，只是让「从哪来」可读。 */
-  animation: app-popup-in var(--app-dur-base) var(--app-ease-out) both;
+  /* 表面来自共享类 `.appGlass`；从输入卡上方展开，所以 origin 是底边中心。 */
+  transform-origin: bottom center;
+  animation: app-popup-in var(--app-dur-base) var(--app-ease-spring) both;
 }
 
+/* 浮层入场：**从触发点展开**（用户选定的浮层动效方案 B）。
+   形变取自样张：`scale(.92) translateY(6px)` → 无，240ms 走弹性曲线。
+   缩放负责「从这里长出来」，位移负责「贴着触发点」——只写位移会像整块滑入，而不是展开。 */
 @keyframes app-popup-in {
   from {
     opacity: 0;
-    transform: translateY(var(--app-shift-row));
+    transform: scale(.92) translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
 .appPopupSection {
-  padding: 6px 8px;
+  padding: var(--app-space-6) 8px;
   color: var(--bgm-text-weak);
-  font: 500 12px/1.4 var(--bgm-font);
+  font: var(--app-font-note);
   letter-spacing: .04em;
 }
 
 .appPopupItem {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--app-space-10);
   width: 100%;
   padding: 7px 9px;
   border: 0;
   border-radius: var(--app-radius-control);
   background: transparent;
   color: var(--bgm-text);
-  font: 13px/1.5 var(--bgm-font);
+  font: var(--app-font-sub);
   text-align: left;
   cursor: pointer;
   transition: background var(--app-dur-instant) var(--app-ease-out);
@@ -626,7 +661,7 @@
 .appPopupItem .hint {
   margin-left: auto;
   color: var(--bgm-text-weak);
-  font-size: 12px;
+  font: var(--app-font-note);
 }
 
 .thinkingTrigger:focus-visible {
@@ -634,8 +669,11 @@
   box-shadow: var(--bgm-focus);
 }
 
+/* 选中项（C33 决策 A）：底取主色 18% 混白（#fce3e5），比悬停档（surface-alt）明显深一档
+   —— 原来的 `--bgm-primary-soft`（10%）与菜单玻璃面只差 1.07:1，等于没有底色，
+   「选中了哪个」只能靠字色认。18% 是这一档高亮底的唯一来源，不在别处再声明一次。 */
 .menuItem.selected {
-  background: var(--bgm-primary-soft);
+  background: color-mix(in srgb, var(--bgm-primary) 18%, var(--bgm-surface));
   color: var(--bgm-primary-text);
   font-weight: 700;
 }

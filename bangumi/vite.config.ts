@@ -60,8 +60,6 @@ export default defineConfig({
       // 滚动触发与时间线：ReactBits 的 AnimatedContent / TextType 用它。子路径同样在前。
       'gsap/ScrollTrigger': resolve(modules, 'gsap/ScrollTrigger.js'),
       gsap: resolve(modules, 'gsap/index.js'),
-      // 组件库文档页（library.html）的骨架：antd 6。**只有那个入口用它**，主界面 bundle 不含它。
-      antd: resolve(modules, 'antd'),
     },
   },
   build: {

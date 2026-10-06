@@ -8,21 +8,26 @@
 
 上层：[readme.md](readme.md)；跨层规则：[AGENTS.md](../../../AGENTS.md)。
 
-### 三个文件的分工
+### 四个文件的分工
 
 | 文件 | 职责 |
 |---|---|
-| `index.tsx` | 装配：建调试专用 store、解析两个输入框、按字符播放、把结果交给 `<Stage>`；导出 `DebugPage`（内部是 `DebugShell` 与 `DebugHero`） |
+| `index.tsx` | 装配：建调试专用 store、解析两个输入框、按字符播放；外壳**复用主界面的同一套类**——`.appFrame[data-mode='debug']` 上装配共享 `AppTopBar`（品牌双击返回主界面 + 栏目「调试页」+ 动作区「组件库」/「返回主界面」），下面是「输入列 `aside.appSidebar` \| 预览」两列。导出 `DebugPage`（内部是 `DebugShell`） |
 | `simulator.ts` | 纯映射：event（或一个 flush 窗口的 event 数组）→ frame，是宿主 `handleEvent` 加 `server.ts` 合并行为的复刻；不碰 React、不碰 DOM、不读 store。内容块的投影**不在这里实现**，它调宿主侧共享的 `message-blocks.ts` |
-| `DebugInputPanel.tsx` | 左侧输入区：两个 textarea、8 个 mock 用例按钮、预览 / 清空并重置、状态栏；另在顶栏（`SidebarBrand` 的 children）挂了一个「组件库」链接（`./library.html`，新标签）；纯 props 驱动 |
+| `DebugInputPanel.tsx` | 左侧输入区：两个 textarea、8 个 mock 用例按钮、预览 / 清空并重置、状态栏；纯 props 驱动。品牌、顶栏入口与「返回主界面」都**不在**这里了（见 `index.tsx`） |
+| `DebugPreview.tsx` | 右侧预览区：依据提示条（预览 / 通道 / 计数 / 展开过程 / 跳过动画）与 `<Stage>` 接线，渲染 `<main className="appConversation">`；空态 `DebugHero` 也在本文件 |
 
 ### 与主界面的关系
 
 两个页面由 `main.tsx` 的 `Root` 按 hash 互斥挂载（见 [readme.md](readme.md) §规则「新增一个页面时」）。调试页自带一个 store（`createStore(rootReducer, …)`），主 store 完全隔离；调试期间不建立 SSE、不拉目录，全程不需要宿主。
 
+外壳复用主界面那一套类：`.appFrame[data-mode='debug'][data-sidebar='expanded']` + `AppTopBar` + 输入列（`aside.appSidebar`）+ 预览区（`main.appConversation`）；输入列的宽度由 [../styles/debug.md](../styles/debug.md) 的 `.appFrame[data-mode='debug'] { --app-sidebar-width: 400px }` 声明（页面自己声明，不靠 `html[data-debug]` 提特异性）。`html[data-debug]` 属性仍由 `main.tsx` 的 `Root` 维护，但 `debug.css` 已不用它圈定作用域。主界面那套「抽屉锁宽 + 整体左移」只在**没有** `data-mode` 的外壳上生效（见 `frame.css`），所以调试页的输入列不会被锁宽、也不会左移。
+
+> **已知不一致（待裁决）**：`.appFrame` 的网格已按 C01 收敛成 `grid-template-areas: 'side main'` 两格，`frame.css` 里不再有 `top` 行、也没有 `.appFrame > .appTopBar { grid-area: top }`。因此调试页的 `AppTopBar` **不在具名网格区域里**（实测被自动放置到隐式第二行、宽度等于输入列），与「顶栏横跨全宽、下面两列」的意图不符。本文件不按意图描述，等你裁决是补网格还是改结构。
+
 ## 使用说明
 
-- **改这三个文件之前先读 §规则**：数据隔离、必须复用 `<Stage>`、simulator 与宿主的复刻关系、`play` 语义、首帧 `instanceId`、`parseInputs` 的优先级都在那里；违反的后果分别是污染真实会话、预览与真实会话不一致、首帧被 reducer 当成增量帧。
+- **改这几个文件之前先读 §规则**：数据隔离、必须复用 `<Stage>`、simulator 与宿主的复刻关系、`play` 语义、首帧 `instanceId`、`parseInputs` 的优先级都在那里；违反的后果分别是污染真实会话、预览与真实会话不一致、首帧被 reducer 当成增量帧。
 - **想把某条宿主事件加进调试页**：先读 §规则「`simulator.ts` 是宿主 `handleEvent` 的复刻」里的三步，再查 §索引 的「符号一览」。
 - **只想查某个符号在哪、某条 event 映射成什么**：直接查 §索引 的三张表（文件 → 场景、符号一览、章节 → 场景），不必通读 §规则。
 - **只改外观或入口**：外观去 [../styles/debug.md](../styles/debug.md)，入口开关去 [../utils/debugMode.md](../utils/debugMode.md)。
@@ -56,7 +61,7 @@ createStore(rootReducer, {
 
 ### 预览必须复用 `<Stage>`，不得另写一套渲染
 
-右侧预览直接渲染 `components/mainPage/conversation/Stage`，props 与 `Shell` 给的那一组同形：`items` / `liveContent` / `liveThinking` / `busy` / `status` / `cancelling` / `startedAt` / `sessionId` / `reveal` / `hero` / `onConfirm` / `onReject`。左侧「展开过程」按钮自增 `reveal`，等价于会话里的 `/details`。
+右侧预览直接渲染 `components/mainPage/conversation/Stage`，props 与 `Shell` 给的那一组同形：`items` / `liveContent` / `liveThinking` / `busy` / `status` / `cancelling` / `startedAt` / `sessionId` / `reveal` / `hero` / `onConfirm` / `onReject`。与主界面不同的是 `composer` 槽位**不传**——调试页没有输入区（粘性会话头已在 C34 决策中删除，`Stage` 上不再有对应槽位）。左侧「展开过程」按钮自增 `reveal`，等价于会话里的 `/details`。
 
 **为什么**：`Stage` 连同 `Turn` / `Streaming` / `MessageBlocks` / `ContentBlock` / `Markdown` 都是 props 驱动的展示组件（[../components/readme.md](../components/readme.md) §规则「展示组件一律 props 驱动」）。复用它们，调试页才真的在"预览真实渲染"；另写一套渲染，预览只是一张示意图，第一处漂移之后就再也对不上。
 
@@ -158,7 +163,7 @@ const items = switched || frame.full ? frame.items : mergeItems(state.items, fra
 
 ### 顶栏的「组件库」入口是新标签 `<a>`，用组合类 `.debugLink`
 
-`DebugInputPanel.tsx` 把入口作为 `SidebarBrand` 的 children 传入，位置在既有的「返回」按钮**之前**——顶栏顺序因此是「Bangumi 助手 | 组件库 | 返回」（品牌行右侧的两个控件同尺寸，实机测到的紧凑尺寸是 54×24）：
+入口在顶栏的**动作区**（`page/debug/index.tsx` 交给 `AppTopBar` 的 `actions`），与「返回主界面」并排——顶栏顺序因此是「品牌（双击返回）| 调试页 |（右）组件库 | 返回主界面」。它**不在** `DebugInputPanel` 里：输入面板只剩输入区本身，顶栏是装配层的事（见 §简介「四个文件的分工」）。两个控件都带 `data-compact="true"` 复用 `.debugButton` 的紧凑尺寸：
 
 ```tsx
 <a className="debugButton debugLink" data-compact="true" href="./library.html" target="_blank" rel="noreferrer"
@@ -184,7 +189,8 @@ const items = switched || frame.full ? frame.items : mergeItems(state.items, fra
 | 本文件 | 改调试页任何一处之前；想知道"预览为什么等于真实会话"时 |
 | `index.tsx` | 改输入解析、播放节奏、预览装配、重置逻辑时 |
 | `simulator.ts` | 加事件支持、核对宿主映射、确认 `play` 语义时 |
-| `DebugInputPanel.tsx` | 改左侧输入区、加 mock 用例、改状态栏、或改顶栏的「组件库」入口时 |
+| `DebugInputPanel.tsx` | 改左侧输入区、加 mock 用例、改状态栏时（顶栏入口已不在这里） |
+| `DebugPreview.tsx` | 改右侧预览条、空态提示、或预览给 `<Stage>` 传哪些 props 时 |
 | [../utils/debugMode.md](../utils/debugMode.md) | 改调试页入口（hash 开关）时 |
 | [../styles/debug.md](../styles/debug.md) | 改调试页皮肤时 |
 
@@ -193,8 +199,8 @@ const items = switched || frame.full ? frame.items : mergeItems(state.items, fra
 | 符号 | 位置 | 作用 | 什么时候读 |
 |---|---|---|---|
 | `DebugPage` | `index.tsx` | 建独立 store + `Provider`，导出给 `Root` | 改 store 装配、隔离边界时 |
-| `DebugShell` | `index.tsx` | 预览区装配：输入状态、播放、`<Stage>` 接线 | 改播放与预览行为时 |
-| `DebugHero` | `index.tsx` | 空态提示（无条目且无流式文本时） | 改首屏提示文案时 |
+| `DebugShell` | `index.tsx` | 调试页装配：顶栏、输入状态、播放，把受控的流式块交给 `DebugPreview`（`<Stage>` 接线在 `DebugPreview.tsx`） | 改播放与预览行为时 |
+| `DebugHero` | `DebugPreview.tsx` | 空态提示（无条目且无流式文本时） | 改首屏提示文案时 |
 | `createDebugStore` | `index.tsx` | 用 `rootReducer` + 调试初始 `stream` 建 store | 改调试 store 初始值时 |
 | `parseInputs` | `index.tsx` | 解析两个输入框，event 优先，返回帧或错误；event 支持对象或数组（数组逐项校验） | 改输入校验、报错文案时 |
 | `commit` / `resetAll` | `index.tsx` | 提交帧（并回写输入框）/ 停播 + 重置全部；`resetAll` 的 `revision` 接上当前编号 | 改提交与重置语义时 |
@@ -207,7 +213,8 @@ const items = switched || frame.full ? frame.items : mergeItems(state.items, fra
 | `SUPPORTED_EVENTS` | `simulator.ts` | 13 种已知事件名的清单；**当前没有调用方**（`applyEvent` 的 `default` 用的是字面量报错），加事件时按它对齐 | 加事件、核对清单时 |
 | `messageText` / `resultDetail` / `redactText` | `simulator.ts` | 对应宿主同名辅助函数；`redactText` 是简化脱敏 | 核对文本提取与脱敏时 |
 | `blocksFromContent` / `blocksFromMessage` / `customContentBlocks` | `bangumi/src/web/message-blocks.ts`（宿主侧，被 `simulator.ts` 调用） | 内容快照 → `MessageBlock[]` 的投影（含结构共享），以及 custom 消息 → 单块；**宿主与调试页共用这一份** | 加内容来源、核对块投影、调试页内容块不显示或一直停在骨架时 |
-| `DebugInputPanel` / `DebugInputPanelProps` | `DebugInputPanel.tsx` | 左侧输入区组件与它的 props 契约；组件同时负责顶栏的「组件库」链接（`<a href="./library.html" target="_blank">`） | 改 props、加输入控件、改顶栏入口时 |
+| `DebugInputPanel` / `DebugInputPanelProps` | `DebugInputPanel.tsx` | 左侧输入区组件与它的 props 契约（只有输入区：两个框、用例、动作、状态栏，没有顶栏入口） | 改 props、加输入控件时 |
+| `DebugPreview` / `DebugPreviewProps` | `DebugPreview.tsx` | 右侧预览区：提示条 + `<Stage>` 接线 + 空态 `DebugHero`；渲染 `<main className="appConversation">` | 改预览条、空态、或预览的 props 时 |
 | `SAMPLES` | `DebugInputPanel.tsx` | 8 个 mock 用例（用例 2、3 必须按顺序；用例 5 走 frame 通道，会先清空 event；用例 6 是 event 数组，演示一个 flush 窗口；用例 7、8 按顺序点，演示内容块的骨架 → 真实数据 → 落条目） | 加或改用例时 |
 | `MODE_LABEL` | `DebugInputPanel.tsx` | 「当前依据」三态文案（`event` / `frame` / `none`） | 改状态栏措辞时 |
 
@@ -215,7 +222,7 @@ const items = switched || frame.full ? frame.items : mergeItems(state.items, fra
 
 | 章节 | 什么时候读 |
 |---|---|
-| §简介「三个文件的分工」 | 找某个改动该落在哪个文件时 |
+| §简介「四个文件的分工」 | 找某个改动该落在哪个文件时 |
 | §简介「与主界面的关系」 | 疑惑调试期间会不会连宿主、会不会污染主 store 时 |
 | §规则「调试数据不得进入主 store」 | 动 store 装配、想复用主 store 时 |
 | §规则「预览必须复用 `<Stage>`，不得另写一套渲染」 | 想给预览写专门渲染时 |

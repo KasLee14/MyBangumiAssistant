@@ -14,8 +14,14 @@ import { ToolActivity } from './ToolActivity';
  * `MessageBlocks`（助手正文的唯一渲染入口，与流式区同一个）与共享的确认卡。
  *
  * 进入动效：助手正文里的**内容块**数量少、体积大，交给 `MessageBlocks` 用 ReactBits 的
- * `AnimatedContent` 做滚动触发（流式期不挂，见该组件注释）。轮次与普通行仍然**没有**入场
- * 动画——逐行动画要付出 JS 开销与每节点观察器，收益不抵成本。
+ * `AnimatedContent` 做滚动触发（流式期不挂，见该组件注释）。
+ *
+ * 轮次这一层**不做视口入场**（试过，已撤）：会话区开着 `content-visibility: auto` 屏外优化，
+ * 屏外轮次在**挂载那一瞬高度为 0**，于是「是否已在视口内」无法在挂载时判定——判据会把所有轮次
+ * 都算成可见，入场永不触发。要在这里做就得等 Stage 的贴底滚动稳定（约 120ms 之后），
+ * 而那时首屏内容已经显示，反而变成「先可见再淡出」。
+ * 视口入场因此放在布局稳定的列表上（见 `page/library/Overview.tsx` 的卡片网格），
+ * 共享观察器仍然是 `utils/revealOnScroll.ts` 那一个。
  *
  * `memo` 的理由：流式期间 `turns` 引用稳定，只有正在流式的那一轮与
  * `running`/`reveal` 变化的轮次会重渲染。
@@ -33,7 +39,7 @@ const warnedKinds = new Set<string>();
 function Chevron({ className }: { className: string }): ReactNode {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 6.5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 6.5l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

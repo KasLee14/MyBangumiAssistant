@@ -7,36 +7,33 @@
  * 引入顺序：在 main.tsx 里排在 content.css 之后（只消费令牌，不参与重定向）。
  * ============================================================ */
 
-/* 调试页需要更宽的输入区：只提高 .appFrame 那一条规则的特异性，不碰其它布局。 */
-html[data-debug='on'] .appFrame {
-  --app-sidebar-width: 436px;
+/* 调试页的输入列比主界面侧栏宽（`data-mode="debug"`），并且它**保留顶栏**。
+   主界面按 [C01](../docs/design/decisions/C01-app-top-bar.md) 删掉了顶栏、`.appFrame`
+   只剩 `'side main'` 两列一行；而调试页仍需要一条「品牌 + 栏目 + 动作」的横条，
+   所以这里把**三段式网格恢复回来**——只作用于 `[data-mode='debug']`，主界面不受影响。
+   （不恢复的话 `AppTopBar` 会被自动放置到隐式的第二行，宽度只等于侧栏列宽。） */
+.appFrame[data-mode='debug'] {
+  --app-sidebar-width: 400px;
+  grid-template-areas:
+    'top  top'
+    'side main';
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
-/* 品牌区：双击进入/退出调试页的落点，需要一个可点的暗示。
-   用新增的 `appBrandAction` 组合类，而不是给既有组件类 `.appBrand` 加属性——
-   后者会让「同一元素同一属性只有一个来源」这条硬约定在 frame.css 之外多出一个来源。 */
-.appBrandAction {
-  cursor: pointer;
-  user-select: none;
-  border-radius: var(--app-radius-control);
+.appFrame[data-mode='debug'] > .appTopBar {
+  grid-area: top;
 }
 
-.appBrandAction:hover {
-  color: var(--bgm-primary);
-}
-
-.appBrandAction:focus-visible {
-  outline: 2px solid var(--bgm-primary);
-  outline-offset: 2px;
-}
+/* 这里原有 `.appBrandAction`（品牌可点的暗示）。它现在服务**两个**入口——主界面侧栏顶部的
+   品牌行与调试页顶栏的品牌——因此已按「≥ 2 个入口共用」的判据移到 `styles/common.css`。
+   本文件只服务调试页，不该持有跨入口的共享组合类。 */
 
 /* ---------------- 输入区 ---------------- */
 
 .debugPane {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
+  gap: var(--app-space-12);
   min-height: 0;
   flex: 1;
   overflow-y: auto;
@@ -45,7 +42,7 @@ html[data-debug='on'] .appFrame {
 .debugSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--app-space-6);
   min-width: 0;
 }
 
@@ -55,15 +52,15 @@ html[data-debug='on'] .appFrame {
   gap: 8px;
 }
 
+/* 标题里有中文（「event 输入」），所以不加字距——宽字距是拉丁标签的写法（防土规则 5） */
 .debugSectionTitle {
-  font: 600 12px/1.4 var(--bgm-font);
-  letter-spacing: .04em;
+  font: var(--app-font-note);
   color: var(--bgm-text-strong);
   white-space: nowrap;
 }
 
 .debugSectionHint {
-  font: 11px/1.4 var(--bgm-font);
+  font: var(--app-font-note);
   color: var(--bgm-text-weak);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -74,12 +71,13 @@ html[data-debug='on'] .appFrame {
   width: 100%;
   min-height: 132px;
   resize: vertical;
-  padding: 8px 10px;
+  padding: 8px var(--app-space-10);
   border: 1px solid var(--bgm-border);
   border-radius: var(--app-radius-control);
   background: var(--app-surface);
   color: var(--bgm-text);
-  font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font: var(--app-font-note);
+  font-family: var(--bgm-mono);
   tab-size: 2;
 }
 
@@ -104,14 +102,14 @@ html[data-debug='on'] .appFrame {
 .debugButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--app-space-6);
   min-height: 30px;
   padding: 5px 12px;
   border: 1px solid var(--bgm-border);
   border-radius: var(--app-radius-control);
   background: var(--app-surface);
   color: var(--bgm-text);
-  font: 13px/1.4 var(--bgm-font);
+  font: var(--app-font-sub);
   cursor: pointer;
 }
 
@@ -125,9 +123,10 @@ html[data-debug='on'] .appFrame {
 }
 
 .debugButton[data-primary='true'] {
-  background: var(--bgm-primary);
-  border-color: var(--bgm-primary);
-  color: #fff;
+  /* [G01](../../docs/design/decisions/G01-primary.md) 硬约束：白字底用加深一档的 deep。 */
+  background: var(--bgm-primary-deep);
+  border-color: var(--bgm-primary-deep);
+  color: var(--bgm-on-accent);
 }
 
 .debugButton[data-primary='true']:hover:not(:disabled) {
@@ -142,7 +141,7 @@ html[data-debug='on'] .appFrame {
   border: 1px solid var(--app-hairline);
   border-radius: var(--app-radius-control);
   background: var(--app-surface);
-  font: 11.5px/1.6 var(--bgm-font);
+  font: var(--app-font-note);
   color: var(--bgm-text-weak);
 }
 
@@ -154,29 +153,29 @@ html[data-debug='on'] .appFrame {
 .debugError {
   padding: 7px 9px;
   border: 1px solid var(--bgm-border);
-  border-left: 3px solid var(--bgm-danger, #c0453c);
+  border-left: 3px solid var(--bgm-danger);
   border-radius: 0 var(--app-radius-control) var(--app-radius-control) 0;
   background: var(--app-surface);
-  color: var(--bgm-danger, #c0453c);
-  font: 12px/1.6 var(--bgm-font);
+  color: var(--bgm-danger);
+  font: var(--app-font-note);
   word-break: break-word;
 }
 
 .debugNote {
-  font: 11.5px/1.6 var(--bgm-font);
+  font: var(--app-font-note);
   color: var(--bgm-text-weak);
 }
 
 .debugSamples {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--app-space-6);
 }
 
 .debugSamples .debugButton {
   min-height: 24px;
   padding: 2px 9px;
-  font-size: 11.5px;
+  font: var(--app-font-note);
   border-radius: 999px;
 }
 
@@ -186,12 +185,12 @@ html[data-debug='on'] .appFrame {
 .debugPreviewBar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--app-space-10);
   flex-wrap: wrap;
-  padding: 6px 16px;
+  padding: var(--app-space-6) 16px;
   border-bottom: 1px solid var(--app-hairline);
   background: var(--app-surface);
-  font: 12px/1.5 var(--bgm-font);
+  font: var(--app-font-note);
   color: var(--bgm-text-weak);
 }
 
@@ -204,7 +203,7 @@ html[data-debug='on'] .appFrame {
   padding: 1px 8px;
   border: 1px solid var(--bgm-border);
   border-radius: 999px;
-  font-size: 11.5px;
+  font: var(--app-font-note);
   color: var(--bgm-text);
 }
 
@@ -212,7 +211,7 @@ html[data-debug='on'] .appFrame {
 .debugButton[data-compact='true'] {
   min-height: 24px;
   padding: 1px 9px;
-  font-size: 11.5px;
+  font: var(--app-font-note);
 }
 
 /* 顶栏的「组件库」入口是 <a>（新标签打开，调试页的输入只在内存里、同标签跳走会丢），
@@ -228,12 +227,12 @@ html[data-debug='on'] .appFrame {
 .debugHero {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--app-space-6);
   max-width: 52ch;
   margin: 12vh auto 0;
   padding: 0 24px;
   color: var(--bgm-text-weak);
-  font: 13.5px/1.9 var(--bgm-font);
+  font: var(--app-font-body);
 }
 
 .debugHeroTitle {
@@ -247,5 +246,6 @@ html[data-debug='on'] .appFrame {
   border-radius: 4px;
   background: var(--bgm-bg);
   color: var(--bgm-text);
-  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font: var(--app-font-sub);
+  font-family: var(--bgm-mono);
 }

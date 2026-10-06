@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from 'react';
 import type { MessageBlock } from '../../../../bangumi/src/web/protocol';
+import { DURATION, SHIFT } from '../motion/motionTokens';
 import { AnimatedContent } from '../motion/vendor/AnimatedContent';
 import { ContentBlock } from './index';
 import { Markdown } from './markdown';
@@ -45,8 +46,11 @@ const BlockSlot = memo(function BlockSlot({ block, animate }: BlockSlotProps): R
     <AnimatedContent
       // scroller 必须指向真正的滚动容器（理由见 `Turn.tsx` 的同名注释）。
       container="#app-stage-scroll"
-      distance={16}
-      duration={0.35}
+      // [C19](../../docs/design/decisions/C19-message-blocks.md) 定稿：18px / 460ms
+      //（样张 `demo.css:3832-3839` 的 `blkInG10`）。原先硬编码 16px / 0.35s，
+      // 既与定稿不符，也把参数散在组件里——现在统一从 `motionTokens` 取。
+      distance={SHIFT.reveal}
+      duration={DURATION.reveal}
       ease="power2.out"
       threshold={0.05}
     >

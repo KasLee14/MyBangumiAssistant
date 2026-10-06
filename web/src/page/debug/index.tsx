@@ -3,6 +3,7 @@ import { MotionConfig } from 'motion/react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import type { MessageBlock } from '../../../../bangumi/src/web/protocol';
+import { AppTopBar, AppTopBarTab } from '../../components/common/AppTopBar';
 import { INITIAL_ROOT_STATE, rootReducer } from '../../store/reducers';
 import { exitDebug } from '../../utils/debugMode';
 import { DebugInputPanel } from './DebugInputPanel';
@@ -281,7 +282,49 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="appFrame" data-sidebar="expanded">
+      {/* 调试页**保留顶栏**：主界面已按 C01 删除顶栏（`.appFrame` 只剩 'side main' 两列），
+          而这里仍需要一条「品牌 + 栏目 + 动作」的横条。所以 `styles/debug.css` 在
+          `[data-mode='debug']` 作用域内把三段式网格恢复回来——不恢复的话顶栏会被
+          自动放置到隐式的第二行（宽度只等于输入列）。
+          `data-mode="debug"` 同时让输入列拿到更宽的宽度（styles/debug.css），
+          不再靠 `html[data-debug]` 提升某一条规则的特异性。 */}
+      <div className="appFrame" data-mode="debug" data-sidebar="expanded">
+        <AppTopBar
+          brand={(
+            <span
+              className="appBrandAction"
+              data-debug-toggle="true"
+              role="button"
+              tabIndex={0}
+              title="双击返回主界面"
+              onDoubleClick={exitDebug}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') exitDebug();
+              }}
+            >
+              Bangumi 助手
+            </span>
+          )}
+          tabs={<AppTopBarTab current>调试页</AppTopBarTab>}
+          actions={(
+            <>
+              {/* 新标签打开：调试页的输入只在内存里，同标签跳走会丢 */}
+              <a
+                className="debugButton debugLink"
+                data-compact="true"
+                href="./library.html"
+                target="_blank"
+                rel="noreferrer"
+                title="打开内容组件库文档（新标签页，不丢当前输入）"
+              >
+                组件库
+              </a>
+              <button type="button" className="debugButton" data-compact="true" onClick={exitDebug} title="返回主界面">
+                返回主界面
+              </button>
+            </>
+          )}
+        />
         <aside className="appSidebar">
           <DebugInputPanel
             eventText={eventText}
@@ -296,7 +339,6 @@ function DebugShell({ store }: { store: DebugStore }): ReactNode {
             eventCount={eventCount}
             onPreview={() => { void runPreview(); }}
             onReset={resetAll}
-            onExit={exitDebug}
           />
         </aside>
         <DebugPreview

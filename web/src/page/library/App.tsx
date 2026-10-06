@@ -1,34 +1,32 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Button, ConfigProvider, Input, Layout, Menu, Space, Tag, Typography } from 'antd';
+import { AppTopBar, AppTopBarTab } from '../../components/common/AppTopBar';
+import { Pill } from '../../components/common/Pill';
 import type { ContentKind } from '../../components/content/registry';
 import { ComponentPage, PAGE_ANCHORS } from './ComponentPage';
 import { Overview } from './Overview';
 import { LIBRARY_GROUPS, LIBRARY_SECTIONS } from './samples';
 import { filterSections } from './search';
-import { LIBRARY_THEME } from './theme';
 import { OVERVIEW_HREF, componentHref, navigate, useRoute } from './router';
 
 /**
- * 组件库文档页的骨架。
+ * 组件库文档页的骨架（**自绘**）。
  *
- * 形态对齐 ant.design 文档站：顶部工具条（品牌 + 搜索 + 栏目 + 真实入口）、左侧两层分组导航、
- * 中间内容区、右侧页内目录。骨架用 antd 搭（Layout / Menu / Input / Card / Table / Typography），
- * 但**内容渲染一律走项目自己的 `ContentItem`**——antd 不参与内容条目的渲染。
+ * 形态与调试页一致：顶栏横跨全宽（复用共享组件 `AppTopBar`），下面才是
+ * 「左导航 | 内容 | 页内目录」。主界面已按 [C01](../../docs/design/decisions/C01-app-top-bar.md)
+ * 删除顶栏（功能迁进侧栏），本页与调试页仍需要它。工具页不再有「另有一套外观」的例外——
+ * 玻璃、圆角、弹性曲线、导航行都来自同一套令牌与共享类（`.appNavRow` / `.appTopBar*` / `.appEmpty`）。
  *
- * 一处刻意的偏离：右侧目录**没有用 antd 的 `Anchor`**。`Anchor` 的锚点实现依赖写
- * `location.hash`，而本页的「一组件一页」路由也占着 hash（`#/components/<kind>`），
- * 两者会互相覆盖。保路由（前进后退、可直连 URL 是确认过的形态），目录自绘（见 `PageToc`）。
- *
- * 左侧导航**完全从 `samples.ts` 的两张表派生**（`LIBRARY_GROUPS` + `LIBRARY_SECTIONS`），
- * 这里不硬编码任何 kind：新增一种内容条目只改数据，不改这个文件。
+ * 三处刻意的形态决定：
+ * 1. **右目录自绘**：`PAGE_ANCHORS` 的锚点若走 `location.hash`，会与「一组件一页」的
+ *    hash 路由（`#/components/<kind>`）互相覆盖。保路由，目录用 `PageToc` 自己滚动。
+ * 2. **左导航从两张表派生**（`LIBRARY_GROUPS` + `LIBRARY_SECTIONS`），这里不硬编码任何
+ *    kind：新增一种内容条目只改数据，不改这个文件。
+ * 3. **搜索框放在顶栏动作区**（不是居中）：顶栏形态由共享组件定义，本页与调试页共用一份，
+ *    不为了让搜索居中而给文档页开一个顶栏特例。
  */
 
-function sectionOf(kind: ContentKind) {
-  return LIBRARY_SECTIONS.find(section => section.kind === kind);
-}
-
 function titleOf(kind: ContentKind): string {
-  return sectionOf(kind)?.title ?? kind;
+  return LIBRARY_SECTIONS.find(section => section.kind === kind)?.title ?? kind;
 }
 
 /** 右侧页内目录：自绘（理由见文件头注释），滚动时同步高亮。 */
@@ -73,97 +71,118 @@ export function LibraryPage(): ReactNode {
   const sections = useMemo(() => filterSections(query), [query]);
   const visibleKinds = useMemo(() => new Set(sections.map(section => section.kind)), [sections]);
 
-  const menuItems = useMemo(() => [
-    { key: 'overview', label: '组件总览' },
-    ...LIBRARY_GROUPS
+  // 导航完全由数据派生：分组内没有命中的 kind 时，这个分组整体不出现。
+  const groups = useMemo(
+    () => LIBRARY_GROUPS
       .map(group => ({
         key: group.key,
         label: group.label,
-        type: 'group' as const,
-        children: group.kinds
-          .filter(kind => visibleKinds.has(kind))
-          .map(kind => ({ key: kind, label: titleOf(kind) })),
+        kinds: group.kinds.filter(kind => visibleKinds.has(kind)),
       }))
-      .filter(group => group.children.length > 0),
-  ], [visibleKinds]);
+      .filter(group => group.kinds.length > 0),
+    [visibleKinds],
+  );
 
-  const selectedKey = route.name === 'component' ? route.kind : 'overview';
+  const selectedKey: string = route.name === 'component' ? route.kind : 'overview';
 
   const content = useMemo(() => {
     if (route.name === 'overview') return <Overview sections={sections} />;
     if (route.name === 'component') {
-      const section = sectionOf(route.kind);
+      const section = LIBRARY_SECTIONS.find(candidate => candidate.kind === route.kind);
       return section === undefined ? null : <ComponentPage section={section} />;
     }
     return (
       <>
-        <Typography.Title level={2} className="libPageTitle">没有这个组件</Typography.Title>
-        <Typography.Paragraph type="secondary">
-          路径「{route.path}」不在 12 个内容 kind 里。
+        <h2 className="libPageTitle">没有这个组件</h2>
+        <p className="libPageSummary">
+          路径「{route.path}」不在 {LIBRARY_SECTIONS.length} 个内容 kind 里。
           {' '}
-          <Typography.Link onClick={() => { navigate(OVERVIEW_HREF); }}>回到组件总览</Typography.Link>
-        </Typography.Paragraph>
+          <button type="button" className="libInlineLink" onClick={() => { navigate(OVERVIEW_HREF); }}>
+            回到组件总览
+          </button>
+        </p>
       </>
     );
   }, [route, sections]);
 
   return (
-    <ConfigProvider theme={LIBRARY_THEME}>
-      <Layout className="libFrame">
-        <Layout.Header className="libHeader">
-          <div className="libBrand">
+    <div className="libFrame">
+      <AppTopBar
+        brand={(
+          <span className="libBrand">
             <span className="libBrandMark">Bangumi</span>
             <span className="libBrandTitle">内容组件库</span>
-          </div>
-          <Menu
-            className="libTopMenu"
-            mode="horizontal"
-            selectedKeys={['components']}
-            items={[{ key: 'components', label: '组件' }]}
-          />
-          <Input.Search
-            className="libSearch"
-            placeholder="搜索组件名 / 字段名，回车跳到第一个"
-            allowClear
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-            onSearch={() => {
-              const first = sections[0];
-              if (first !== undefined) navigate(componentHref(first.kind));
-            }}
-          />
-          <Space className="libHeaderActions" size={4}>
-            <Button type="link" href="./index.html">主界面</Button>
-            <Button type="link" href="./index.html#debug">调试页</Button>
-            <Tag color="#f09199">v1.0.0</Tag>
-          </Space>
-        </Layout.Header>
-
-        <Layout className="libBody">
-          <Layout.Sider width={252} theme="light" className="libSider">
-            <Menu
-              mode="inline"
-              className="libNavMenu"
-              selectedKeys={[selectedKey]}
-              items={menuItems}
-              onClick={({ key }) => {
-                navigate(key === 'overview' ? OVERVIEW_HREF : componentHref(key as ContentKind));
+          </span>
+        )}
+        tabs={<AppTopBarTab current>组件</AppTopBarTab>}
+        actions={(
+          <>
+            <input
+              className="libSearch"
+              type="search"
+              value={query}
+              placeholder="搜索组件名 / 字段名"
+              aria-label="搜索组件"
+              onChange={event => setQuery(event.target.value)}
+              onKeyDown={event => {
+                if (event.key !== 'Enter') return;
+                const first = sections[0];
+                if (first !== undefined) navigate(componentHref(first.kind));
               }}
             />
-          </Layout.Sider>
+            <a className="libHeaderLink" href="./index.html">主界面</a>
+            <a className="libHeaderLink" href="./index.html#debug">调试页</a>
+            <Pill>v1.0.0</Pill>
+          </>
+        )}
+      />
 
-          <Layout.Content className="libContent">
-            <div className="libContentInner">{content}</div>
-          </Layout.Content>
-
-          {/* 右侧页内目录只在详情页出现：总览页没有四块可导航，留一列空白反而像坏了 */}
-          {route.name === 'component' ? (
-            <Layout.Sider width={180} theme="light" className="libTocSider">
-              <PageToc />
-            </Layout.Sider>
+      <div className="libBody">
+        <nav className="libNav" aria-label="组件导航">
+          <button
+            type="button"
+            className="appNavRow"
+            data-current={selectedKey === 'overview'}
+            onClick={() => { navigate(OVERVIEW_HREF); }}
+          >
+            组件总览
+          </button>
+          {groups.map(group => (
+            <div key={group.key} className="libNavGroup">
+              <div className="libNavGroupLabel">{group.label}</div>
+              {group.kinds.map(kind => (
+                <button
+                  key={kind}
+                  type="button"
+                  className="appNavRow"
+                  data-current={selectedKey === kind}
+                  onClick={() => { navigate(componentHref(kind)); }}
+                >
+                  <span className="appNavTitle">{titleOf(kind)}</span>
+                  <span className="appNavMeta">{kind}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+          {sections.length === 0 ? (
+            <div className="appEmpty">
+              <div className="appEmptyTitle">没有匹配的组件</div>
+              <div className="appEmptyHint">清空搜索框试试。</div>
+            </div>
           ) : null}
-        </Layout>
-      </Layout>
-    </ConfigProvider>
+        </nav>
+
+        <main className="libContent">
+          <div className="libContentInner">{content}</div>
+        </main>
+
+        {/* 右侧页内目录只在详情页出现：总览页没有这四块可导航，留一列空白反而像坏了 */}
+        {route.name === 'component' ? (
+          <aside className="libTocSider">
+            <PageToc />
+          </aside>
+        ) : null}
+      </div>
+    </div>
   );
 }

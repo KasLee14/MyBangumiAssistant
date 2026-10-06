@@ -28,3 +28,4 @@ bangumi/tsconfig.test.json
 **/auth.json
 **/models.json
 **/settings.json
+web/docs/design/*

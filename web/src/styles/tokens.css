@@ -1,19 +1,19 @@
 /*
  * 设计 token 层。
  *
- * 移植自 deepseek-harness 客户端主题包（MIT 许可）：
- *   packages/client/ui-theme/src/styles/design-platform.css（色板与语义 token）
- *   packages/client/ui-theme/src/styles/base.css（字体栈、缓动、圆角刻度）
- *   packages/client/ui-theme/src/styles/focus.css（焦点环）
- *   packages/client/ui-theme/src/styles/scrollbar.css（滚动条皮肤）
- *   packages/client/ui-theme/src/styles/corner-shape.css（超椭圆圆角）
- *   packages/client/ui-theme/src/styles/brand-font.css（Montserrat，OFL，见 fonts/Montserrat-OFL.txt）
- * 上游项目：https://github.com/deepseek-ai/deepseek-harness
+ * 上游：deepseek-harness 客户端主题包（MIT 许可）
+ *   https://github.com/deepseek-ai/deepseek-harness
+ *   packages/client/ui-theme/src/styles/{design-platform,base,focus,scrollbar,corner-shape}.css
  *
- * 变量名保持上游的 --dsw-* / --dsh-* 命名，便于与上游逐项核对。
- * 本应用只有浅色一套外观，因此只保留上游的浅色语义 alias：没有
- * body[data-ds-dark-theme] 覆盖块，也没有任何主题切换机制。
- * 上游在两处重复声明了完全相同的 static 色板，这里只声明一次，语义不变。
+ * **第七轮令牌层清理（2026-10-06）已把上游 DSH 令牌整体删除**（平台色板、语义别名、
+ * markdown 字体令牌、滚动条皮肤、elevation、焦点环宽度），消费点改指 `--app-*` /
+ * `--bgm-*` 或就地 `color-mix()`。因此本文件只定义 `--app-*`；唯一保留的上游令牌是
+ * `--dsw-corner-shape`（超椭圆曲率，见下面的 @supports 块）。
+ *
+ * Montserrat 的 @font-face 仍在（OFL，见 fonts/Montserrat-OFL.txt），但 `--bgm-font` 改走
+ * 系统 UI 字体栈之后界面已不再使用这份字体（原先靠上游字体栈令牌的重定向接入）。
+ *
+ * 本应用只有浅色一套外观：没有 body[data-ds-dark-theme] 覆盖块，也没有任何主题切换机制。
  */
 
 @font-face {
@@ -40,251 +40,28 @@
   src: url(./fonts/montserrat-medium.woff2) format('woff2');
 }
 
-:root {
-  --dsw-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --dsw-font-family-brand: 'Montserrat', var(--dsw-font-family);
-  /* 代码字体栈有意不写裸 monospace：Windows 中文会退回到宋体。 */
-  --ds-font-family-code: 'SF Mono', 'JetBrains Mono', 'Fira Code', Consolas,
-    'Liberation Mono', Menlo, Courier, 'PingFang SC', 'Microsoft YaHei';
-  --ds-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --ds-transition-duration: 0.2s;
-  --ds-transition-duration-fast: 0.1s;
-  --ds-transition-duration-slow: 0.3s;
-  --dsw-radius-xs: 4px;
-  --dsw-radius-sm: 8px;
-  --dsw-radius-md: 12px;
-  --dsw-radius-lg: 16px;
-  --dsw-radius-xl: 20px;
-  --dsw-radius-panel: 28px;
-  --dsw-focus-ring-width: 2px;
-  /* 上游由 JS 写入的布局轴：composer 卡宽度、左右留白、文本滚动上限。 */
-  --dsh-composer-side-clearance: 16px;
-  --dsh-composer-dock-inset: 8px;
-  --dsh-composer-text-max-height: 336px;
-  /* 上游由 JS 注入用户可选的内容字号；这里给出同样的默认值。 */
-  --dsh-content-font-size: 14px;
-}
+/* ---------------------------------------------------------------- 焦点环 */
 
-/* 平台色板：上游浅色与深色取值完全相同，这里只保留一份。 */
-body {
-  --dsw-static-amber-100: rgb(254, 245, 231);
-  --dsw-static-amber-400: rgb(247, 173, 49);
-  --dsw-static-amber-500: rgb(245, 158, 11);
-  --dsw-static-amber-600: rgb(221, 134, 41);
-  --dsw-static-amber-900: rgb(39, 36, 31);
-  --dsw-static-blue-100: rgb(219, 234, 254);
-  --dsw-static-blue-300: rgb(147, 197, 253);
-  --dsw-static-blue-400: rgb(96, 165, 250);
-  --dsw-static-blue-450: rgb(77, 147, 248);
-  --dsw-static-blue-500: rgb(59, 130, 246);
-  --dsw-static-blue-50: rgb(239, 246, 255);
-  --dsw-static-blue-50p: rgb(234, 243, 255);
-  --dsw-static-blue-600: rgb(37, 99, 235);
-  --dsw-static-blue-75: rgb(229, 240, 255);
-  --dsw-static-blue-800: rgb(30, 64, 175);
-  --dsw-static-blue-900: rgb(14, 48, 116);
-  --dsw-static-blue-950: rgb(23, 37, 84);
-  --dsw-static-deepseek-100: rgb(228, 237, 253);
-  --dsw-static-deepseek-200: rgb(211, 226, 255);
-  --dsw-static-deepseek-300: rgb(183, 200, 254);
-  --dsw-static-deepseek-400: rgb(122, 170, 255);
-  --dsw-static-deepseek-450: rgb(86, 134, 254);
-  --dsw-static-deepseek-500: rgb(65, 118, 230);
-  --dsw-static-deepseek-50: rgb(237, 243, 254);
-  --dsw-static-deepseek-600: rgb(72, 104, 178);
-  --dsw-static-deepseek-700-delete: rgb(47, 76, 143);
-  --dsw-static-deepseek-800: rgb(52, 65, 91);
-  --dsw-static-deepseek-900: rgb(40, 49, 66);
-  --dsw-static-green-100: rgb(230, 250, 237);
-  --dsw-static-green-400: rgb(78, 209, 126);
-  --dsw-static-green-500: rgb(34, 197, 94);
-  --dsw-static-green-500-a08: rgb(34 197 94 / 8%);
-  --dsw-static-green-500-a12: rgb(34 197 94 / 12%);
-  --dsw-static-green-900: rgb(35, 60, 44);
-  --dsw-static-neutral-00: rgb(255, 255, 255);
-  --dsw-static-neutral-1000: rgb(0, 0, 0);
-  --dsw-static-neutral-100: rgb(245, 245, 245);
-  --dsw-static-neutral-150: rgb(237, 237, 237);
-  --dsw-static-neutral-200: rgb(229, 229, 229);
-  --dsw-static-neutral-250: rgb(220, 220, 220);
-  --dsw-static-neutral-300: rgb(212, 212, 212);
-  --dsw-static-neutral-400: rgb(162, 164, 166);
-  --dsw-static-neutral-500: rgb(127, 130, 135);
-  --dsw-static-neutral-50: rgb(250, 250, 250);
-  --dsw-static-neutral-550: rgb(101, 103, 107);
-  --dsw-static-neutral-600: rgb(84, 85, 87);
-  --dsw-static-neutral-700: rgb(60, 60, 61);
-  --dsw-static-neutral-800: rgb(41, 41, 41);
-  --dsw-static-neutral-850: rgb(33, 33, 35);
-  --dsw-static-neutral-900: rgb(15, 15, 15);
-  --dsw-static-neutral-bluish-00: rgb(255, 255, 255);
-  --dsw-static-neutral-bluish-1000: rgb(15, 17, 21);
-  --dsw-static-neutral-bluish-100: rgb(235, 238, 242);
-  --dsw-static-neutral-bluish-150: rgb(233, 236, 242);
-  --dsw-static-neutral-bluish-200: rgb(225, 229, 238);
-  --dsw-static-neutral-bluish-300: rgb(207, 211, 214);
-  --dsw-static-neutral-bluish-400: rgb(173, 178, 184);
-  --dsw-static-neutral-bluish-500: rgb(151, 157, 166);
-  --dsw-static-neutral-bluish-50: rgb(249, 250, 251);
-  --dsw-static-neutral-bluish-600: rgb(129, 133, 140);
-  --dsw-static-neutral-bluish-60: rgb(245, 246, 247);
-  --dsw-static-neutral-bluish-700: rgb(97, 102, 107);
-  --dsw-static-neutral-bluish-750: rgb(67, 69, 74);
-  --dsw-static-neutral-bluish-75: rgb(241, 243, 245);
-  --dsw-static-neutral-bluish-800: rgb(53, 54, 56);
-  --dsw-static-neutral-bluish-850: rgb(44, 44, 46);
-  --dsw-static-neutral-bluish-875: rgb(35, 35, 36);
-  --dsw-static-neutral-bluish-900: rgb(27, 27, 28);
-  --dsw-static-neutral-bluish-950: rgb(21, 21, 23);
-  --dsw-static-red-100: rgb(254, 226, 226);
-  --dsw-static-red-400: rgb(242, 90, 90);
-  --dsw-static-red-400-a12: rgb(242 90 90 / 12%);
-  --dsw-static-red-500: rgb(239, 68, 68);
-  --dsw-static-red-50: rgb(254, 242, 242);
-  --dsw-static-red-600: rgb(236, 19, 19);
-  --dsw-static-red-600-a08: rgb(236 19 19 / 8%);
-  --dsw-static-red-900: rgb(87, 12, 12);
-}
-
-/* 语义 alias：浅色（默认）。 */
-body {
-  --dsw-alias-bg-base: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-bg-document-preview: var(--dsw-static-neutral-bluish-100);
-  --dsw-alias-bg-document-selection: color-mix(in srgb, var(--dsw-static-blue-500) 40%, transparent);
-  --dsw-alias-label-document-preview: var(--dsw-static-neutral-bluish-700);
-  --dsw-alias-bg-layer-1: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-bg-layer-2: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-bg-layer-3: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-bg-mask-1: rgba(0, 0, 0, 0.24);
-  --dsw-alias-bg-mask-2: rgba(0, 0, 0, 0.12);
-  --dsw-alias-bg-mask-3: rgba(0, 0, 0, 0.48);
-  --dsw-alias-bg-mask-photo: rgba(0, 0, 0, 0.88);
-  --dsw-alias-bg-mask-drop: rgba(255, 255, 255, 0.7);
-  --dsw-alias-bg-module-platform: var(--dsw-static-neutral-bluish-60);
-  --dsw-alias-bg-multi-select: var(--dsw-static-neutral-bluish-60);
-  --dsw-alias-bg-overlay: var(--dsw-static-neutral-bluish-150);
-  --dsw-alias-bg-skeleton: rgba(0, 0, 0, 0.04);
-  --dsw-alias-border-inverted2: rgba(0, 0, 0, 0);
-  --dsw-alias-border-inverted: rgba(0, 0, 0, 0);
-  --dsw-alias-border-l1: rgba(0, 0, 0, 0.04);
-  --dsw-alias-border-l2-darkmode-thin: rgba(0, 0, 0, 0.1);
-  --dsw-alias-border-l2: rgba(0, 0, 0, 0.1);
-  --dsw-alias-border-l3: rgba(0, 0, 0, 0.12);
-  --dsw-alias-border-l4: rgba(0, 0, 0, 0.16);
-  --dsw-alias-brand-primary-invert: var(--dsw-static-neutral-bluish-1000);
-  --dsw-alias-brand-primary-new-colorprimary-new-color: rgb(65, 118, 230);
-  --dsw-alias-brand-primary: var(--dsw-static-neutral-bluish-1000);
-  --dsw-alias-brand-text: var(--dsw-static-neutral-bluish-1000);
-  --dsw-alias-button-contrast-fill: var(--dsw-static-neutral-bluish-700);
-  --dsw-alias-button-elevated-fill: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-button-floating-fill: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-button-floating-hover: var(--dsw-static-neutral-bluish-75);
-  --dsw-alias-button-ghost-active-border: var(--dsw-static-neutral-bluish-500);
-  --dsw-alias-button-ghost-active-fill: var(--dsw-static-neutral-bluish-100);
-  --dsw-alias-button-ghost-active-hover: var(--dsw-static-neutral-bluish-150);
-  --dsw-alias-button-info-fill: var(--dsw-static-deepseek-500);
-  --dsw-alias-button-info-hover: var(--dsw-static-deepseek-400);
-  --dsw-alias-button-primary-dimmed: var(--dsw-static-neutral-bluish-100);
-  --dsw-alias-button-primary-fill: var(--dsw-alias-brand-primary);
-  --dsw-alias-button-primary-hover: var(--dsw-static-neutral-bluish-750);
-  --dsw-alias-button-tool-bar-fill-invisible: rgba(31, 31, 31, 0.36);
-  --dsw-alias-button-tool-bar-fill: rgba(84, 85, 87, 0.5);
-  --dsw-alias-button-tool-bar-hover: rgba(84, 85, 87, 0.6);
-  --dsw-alias-interactive-bg-active: rgba(38, 49, 72, 0.1);
-  --dsw-alias-interactive-bg-hover-accent: rgba(38, 49, 72, 0.14);
-  --dsw-alias-interactive-bg-hover-danger: rgba(236, 19, 19, 0.05);
-  --dsw-alias-interactive-bg-hover-solid: var(--dsw-static-neutral-bluish-75);
-  --dsw-alias-interactive-bg-hover: rgba(38, 49, 72, 0.06);
-  --dsw-alias-label-caption: var(--dsw-static-neutral-bluish-400);
-  --dsw-alias-label-deep-diving: color-mix(in srgb, var(--dsw-static-deepseek-500) 70%, var(--dsw-static-blue-950));
-  --dsw-alias-label-deep-diving-shimmer: color-mix(in srgb, var(--dsw-static-deepseek-500) 30%, var(--dsw-static-blue-950));
-  --dsw-alias-label-dimmed: var(--dsw-static-neutral-bluish-200);
-  --dsw-alias-label-primary-bluish: var(--dsw-static-blue-900);
-  --dsw-alias-label-primary-dimmed: var(--dsw-static-neutral-bluish-950);
-  --dsw-alias-label-primary-foreground: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-label-primary-inverted: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-label-primary: var(--dsw-static-neutral-bluish-1000);
-  --dsw-alias-label-secondary: var(--dsw-static-neutral-bluish-700);
-  --dsw-alias-label-shimmer: color-mix(in srgb, var(--dsw-static-neutral-1000) 30%, transparent);
-  --dsw-alias-label-tertiary: var(--dsw-static-neutral-bluish-600);
-  --dsw-alias-menu-icon: var(--dsw-static-neutral-bluish-800);
-  --dsw-alias-link: var(--dsw-static-deepseek-500);
-  --dsw-alias-markdown-citation: var(--dsw-static-neutral-bluish-100);
-  --dsw-alias-markdown-code-block-banner: var(--dsw-static-neutral-bluish-50);
-  --dsw-alias-markdown-code-block: var(--dsw-static-neutral-bluish-50);
-  --dsw-alias-markdown-code-segment-selected: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-markdown-code-segment-unselected: var(--dsw-static-neutral-bluish-75);
-  --dsw-alias-markdown-inline-code: var(--dsw-static-neutral-50);
-  --dsw-alias-markdown-placeholder: var(--dsw-static-neutral-bluish-60);
-  --dsw-alias-markdown-tag: var(--dsw-static-neutral-bluish-75);
-  --dsw-alias-scrollbar-bg-l1: var(--dsw-static-neutral-200);
-  --dsw-alias-scrollbar-bg-l2: var(--dsw-static-neutral-200);
-  --dsw-alias-scrollbar-hover-l1: var(--dsw-static-neutral-300);
-  --dsw-alias-scrollbar-hover-l2: var(--dsw-static-neutral-300);
-  --dsw-alias-state-business-primary: var(--dsw-static-deepseek-500);
-  --dsw-alias-state-business-tertiary: var(--dsw-static-deepseek-100);
-  --dsw-alias-code-diff-added: var(--dsw-static-green-500-a08);
-  --dsw-alias-code-diff-deleted: var(--dsw-static-red-600-a08);
-  --dsw-alias-state-error-primary: var(--dsw-static-red-600);
-  --dsw-alias-state-error-secondary: var(--dsw-static-red-400);
-  --dsw-alias-state-idle-primary: var(--dsw-static-neutral-300);
-  --dsw-alias-state-success-primary: var(--dsw-static-green-500);
-  --dsw-alias-state-success-secondary: var(--dsw-static-green-400);
-  --dsw-alias-state-success-tertiary: var(--dsw-static-green-100);
-  --dsw-alias-state-warn-label: var(--dsw-static-amber-600);
-  --dsw-alias-state-warn-primary: var(--dsw-static-amber-500);
-  --dsw-alias-state-warn-secondary: var(--dsw-static-amber-400);
-  --dsw-alias-state-warn-tertiary: var(--dsw-static-amber-100);
-  --dsw-alias-switch-thumb: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-toast-bg: var(--dsw-static-neutral-bluish-800);
-  --dsw-alias-toast-label: var(--dsw-static-neutral-bluish-00);
-  --dsw-alias-tooltip-bg: var(--dsw-static-neutral-bluish-850);
-  --dsw-alias-tooltip-key-bg: color-mix(in srgb, var(--dsw-alias-tooltip-bg), white 18%);
-  --dsw-alias-turn-trigger-bg: var(--dsw-alias-markdown-code-block);
-  --dsw-alias-turn-trigger-bg-hover: var(--dsw-alias-interactive-bg-hover);
-  --dsw-specific-bubble-highlight: var(--dsw-static-deepseek-200);
-  --dsw-specific-bubble: var(--dsw-static-deepseek-50);
-  --dsw-specific-input-major: var(--dsw-static-neutral-bluish-00);
-  --dsw-specific-login-input: var(--dsw-static-neutral-bluish-50);
-  --dsw-menu-surface-fill: rgba(248, 249, 250, 0.58);
-  --dsw-alias-menu-group-header-fill: rgba(248, 249, 250, 0.94);
-  --dsw-specific-menu: var(--dsw-menu-surface-fill);
-  --dsw-specific-selector: var(--dsw-static-neutral-bluish-60);
-  --dsw-specific-sidebar-fill: var(--dsw-static-neutral-bluish-50);
-  --dsw-specific-sidebar-nav-item-active-accent: var(--dsw-static-deepseek-100);
-  --dsw-specific-sidebar-nav-item-active: var(--dsw-static-neutral-bluish-100);
-  --dsw-specific-sidebar-nav-item-hover: var(--dsw-static-neutral-bluish-75);
-  --dsw-specific-tip: var(--dsw-static-neutral-bluish-60);
-  --dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);
-  --dsw-alias-settings-card-stroke: var(--dsw-alias-border-l4);
-
-  background-color: var(--dsw-alias-bg-base);
-}
-
-
-/* 焦点环：声明颜色与标准宽度，样式留给控件自己（禁用 outline 的控件保持 none）。 */
+/* 焦点环：声明颜色与标准宽度，样式留给控件自己（禁用 outline 的控件保持 none）。
+   上游的焦点环颜色 / 宽度两枚令牌已删除：环色直接用项目主色，
+   组件要改环色就在自己的规则里覆写 `outline-color`，不要再引入一层间接令牌。
+   （按钮等控件的另一条焦点通道是 `--bgm-focus` 的 box-shadow 环，见 `bgm.css`。） */
 :focus-visible {
-  outline-color: var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
-  outline-width: var(--dsw-focus-ring-width);
+  outline-color: var(--bgm-primary);
+  outline-width: 2px;
 }
 
 /* 指针操作时不显示焦点环；可编辑控件在点击时仍保留自己的焦点反馈。 */
 html[data-input-modality='pointer'] body :focus-visible:not(:read-write) {
-  --dsw-focus-ring-color: transparent;
   outline-color: transparent;
 }
 
-/* 滚动条皮肤：四枚 --dsw-alias-scrollbar-* token 的唯一消费方。
-   规则挂在 body 上，因为 alias token 声明在 body（自定义属性只向下继承）。
-   抬高表面（菜单、弹层）在自己的容器上改绑到 l2 一对变量。 */
-body {
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l1);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l1);
-  --dsh-scrollbar-thumb-border: 0px;
-  --dsh-scrollbar-track-margin: 0px;
-  --dsh-scrollbar-width: 5px;
-}
+/* ---------------------------------------------------------------- 滚动条皮肤 */
+
+/* 四枚 `--app-scrollbar-*` 令牌定义在文件末尾的 `--app-*` 段（滑块 = 主色 22% 混白，
+   悬停 38%），这里只负责把它们接到滚动条上。抬高的表面（菜单、弹层）在自己的容器上
+   重绑宽度与边距（`.menuViewport` 用 6px / 12px）——**滑块深浅不再分档**：上游那套
+   l1 / l2 两级别名已删除，两级原值本来就完全相同。 */
 
 /* 两条路径互斥：非 auto 的 scrollbar-width/color 会让 Chromium 丢弃全部
    ::-webkit-scrollbar 规则（含 hover），因此只在没有该伪元素的引擎上用标准属性。 */
@@ -292,41 +69,46 @@ body {
   body,
   body * {
     scrollbar-width: thin;
-    scrollbar-color: var(--dsh-scrollbar-thumb) transparent;
+    scrollbar-color: var(--app-scrollbar-thumb) transparent;
   }
 }
 
 ::-webkit-scrollbar {
-  width: var(--dsh-scrollbar-width);
-  height: var(--dsh-scrollbar-width);
+  width: var(--app-scrollbar-width);
+  height: var(--app-scrollbar-width);
 }
 
 ::-webkit-scrollbar-track {
-  margin-block: var(--dsh-scrollbar-track-margin);
+  margin-block: var(--app-scrollbar-track-margin);
   background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  border: var(--dsh-scrollbar-thumb-border) solid transparent;
+  /* 上游那枚滑块描边宽度令牌（值 0px）已就地写：它只为配合下面的
+     `background-clip: content-box` 给滑块做内缩，要调内缩就改这里。 */
+  border: 0 solid transparent;
   border-radius: 999px;
   corner-shape: round;
-  background: var(--dsh-scrollbar-thumb);
+  background: var(--app-scrollbar-thumb);
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--dsh-scrollbar-thumb-hover);
+  background-color: var(--app-scrollbar-thumb-hover);
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-/* 圆角曲率：支持时所有圆角走 superellipse(1.5)，介于圆弧与方圆形之间。
+/* 圆角曲率：支持时所有圆角走 superellipse(1.4)——值取自样张 `web/style-demo-type.html`
+   的 C 列（用户选定的「柔和 + 超椭圆」：样张把 `corner-shape: superellipse(1.4)`
+   写在列容器上、由内部全部元素继承）。1.4 比上游默认的 1.5 略圆，
+   观感是「柔而不圆」，不是方圆形。
    全圆形状（胶囊、圆形）在各自组件里用 corner-shape: round opt out。 */
-@supports (corner-shape: superellipse(1.5)) {
+@supports (corner-shape: superellipse(1.4)) {
   :root {
-    --dsw-corner-shape: superellipse(1.5);
+    --dsw-corner-shape: superellipse(1.4);
   }
 
   *,
@@ -337,100 +119,122 @@ body {
 }
 
 /* ------------------------------------------------------------------ *
- * 以下移植自 gradient-shadow-text.css：阴影、elevation、排版阶梯。
- * 本次未使用上游的思考文本渐变（--dsw-linear-gradient-think 等），故不移植。
+ * 上游 `gradient-shadow-text.css` 那一批令牌（elevation / mask-blur /
+ * menu-backdrop-filter / markdown 字体轴）已在第七轮令牌层清理中删除，消费点改指：
+ *   · 发丝描边 → `--app-hairline`（`composer.css` 的 `.menuMaterial` 就地把上游那条
+ *     「0 0 0 0.5px <色>」的 box-shadow 形状写回去——它是阴影，不是一个颜色值）；
+ *   · 浮层模糊 → `--app-glass-blur`（玻璃三枚 `--app-glass-*` 是浮起层的唯一来源）；
+ *   · markdown 四档标题 → 本文件 `--app-font-md-h1..h4`，正文 / 表格 / 代码走字号阶梯四档。
+ * 上游思考文本的渐变令牌本次同样未移植。
  * ------------------------------------------------------------------ */
-
-body {
-  /* 阴影 */
-  --dsw-shadow-lv1: 0 2px 4px 0 rgba(0, 0, 0, 0.05);
-  --dsw-shadow-lv1-blur: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
-  --dsw-shadow-lv2: 0 4px 12px 0 rgba(0, 0, 0, 0.02), 0 2px 8px 0 rgba(0, 0, 0, 0.04);
-  --dsw-shadow-lv3:
-    0 0 1px 0 rgba(0, 0, 0, 0.2), 0 0 4px 0 rgba(0, 0, 0, 0.02), 0 12px 32px 0 rgba(0, 0, 0, 0.08);
-
-  /* Elevation：0.5px 发丝描边画在 box-shadow 里（组件配 border: 0，不占布局），
-     叠两层极淡柔光；浅色下描边承担主要分离作用。
-     描边颜色经 --dsw-elevation-stroke-color 间接，组件可重绑。 */
-  --dsw-elevation-stroke-color: var(--dsw-alias-border-l4);
-  --dsw-mask-blur: none;
-  --dsw-menu-backdrop-filter: blur(40px) saturate(150%);
-
-  /* 字体轴：正文尺寸由 --dsh-content-font-size（10–22px，默认 14px）驱动，
-     标题与正文变体共享它的像素差；次级文本取 size−1 到 14px，之后取 size−2。 */
-  --dsh-content-font-delta: calc(var(--dsh-content-font-size, 14px) - 14px);
-  --dsh-content-font-size-secondary: min(calc(var(--dsh-content-font-size, 14px) - 1px), max(13px, calc(var(--dsh-content-font-size, 14px) - 2px)));
-  --dsh-content-font-delta-secondary: calc(var(--dsh-content-font-size-secondary) - 13px);
-
-  --dsw-font-markdown-h1: 700 calc(21px + var(--dsh-content-font-delta)) / calc(30px + var(--dsh-content-font-delta)) var(--dsw-font-family);
-  --dsw-font-markdown-h2: 700 calc(19px + var(--dsh-content-font-delta)) / calc(28px + var(--dsh-content-font-delta)) var(--dsw-font-family);
-  --dsw-font-markdown-h3: 700 calc(18px + var(--dsh-content-font-delta)) / calc(26px + var(--dsh-content-font-delta)) var(--dsw-font-family);
-  --dsw-font-markdown-h4: 600 var(--dsh-content-font-size, 14px) / calc(24px + var(--dsh-content-font-delta)) var(--dsw-font-family);
-  --dsw-font-markdown-base: var(--dsh-content-font-size, 14px) / calc(24px + var(--dsh-content-font-delta)) var(--dsw-font-family);
-  --dsw-font-markdown-base-strong: 600 var(--dsh-content-font-size, 14px) / calc(24px + var(--dsh-content-font-delta)) var(--dsw-font-family);
-  --dsw-font-markdown-table: var(--dsh-content-font-size-secondary, 13px) / calc(22px + var(--dsh-content-font-delta-secondary, 0px)) var(--dsw-font-family);
-  --dsw-font-markdown-table-head: 500 var(--dsh-content-font-size-secondary, 13px) / calc(22px + var(--dsh-content-font-delta-secondary, 0px)) var(--dsw-font-family);
-  --dsw-font-markdown-small: 12px/20px var(--dsw-font-family);
-  --dsw-font-markdown-small-strong: 600 12px/20px var(--dsw-font-family);
-  --dsw-font-markdown-code: 12px/19px var(--ds-font-family-code);
-  --dsw-font-markdown-code-block: 11px/19px var(--ds-font-family-code);
-
-  --dsw-font-xl-24: 600 24px/32px var(--dsw-font-family);
-  --dsw-font-l-20: 500 20px/28px var(--dsw-font-family);
-  --dsw-font-m-18: 500 16px/28px var(--dsw-font-family);
-  --dsw-font-base-16: 16px/24px var(--dsw-font-family);
-  --dsw-font-base-strong-16: 500 16px/24px var(--dsw-font-family);
-  --dsw-font-s-14: 14px/22px var(--dsw-font-family);
-  --dsw-font-s-strong-14: 500 14px/22px var(--dsw-font-family);
-  --dsw-font-xs-13: 13px/20px var(--dsw-font-family);
-  --dsw-font-xs-strong-13: 500 13px/20px var(--dsw-font-family);
-  --dsw-font-xxs-12: 12px/18px var(--dsw-font-family);
-  --dsw-font-xxs-strong-12: 500 12px/18px var(--dsw-font-family);
-  --dsw-font-xxxs-11: 11px/14px var(--dsw-font-family);
-  --dsw-font-xxxs-strong-11: 500 11px/14px var(--dsw-font-family);
-}
-
-/* 派生 elevation 逐元素声明而非从 body 继承：继承会把 body 上已替换完的值传下去，
-   组件重绑 --dsw-elevation-stroke-color 就无法进入 var(--dsw-elevation-*)。
-   （与 scrollbar.css 对 --dsh-scrollbar-thumb 的处理同理。） */
-body,
-body * {
-  --dsw-elevation-stroke: 0 0 0 0.5px var(--dsw-elevation-stroke-color);
-  --dsw-elevation-panel:
-    var(--dsw-elevation-stroke), 0 3px 8px 0 rgba(0, 0, 0, 0.03), 0 0 16px 0 rgba(0, 0, 0, 0.02);
-  --dsw-elevation-prominent:
-    var(--dsw-elevation-stroke), 0 3px 8px 0 rgba(0, 0, 0, 0.04), 0 0 20px 0 rgba(0, 0, 0, 0.05);
-  --dsw-elevation-soft:
-    var(--dsw-elevation-stroke), 0 4px 16px 0 rgba(0, 0, 0, 0.03), 0 0 24px 0 rgba(0, 0, 0, 0.03);
-}
 
 /* ---------------------------------------------------------------- 外观层令牌
  *
- * 时长、缓动与位移刻度与 components/motion/motionTokens.ts 一一对应：
+ * 时长、缓动、位移与 spring 与 components/motion/motionTokens.ts 一一对应：
  * 改一处必须同时改另一处，否则同一个界面会出现两条缓动曲线。
  *
- * 层次、表面与圆角全部由 `--bgm-*` 派生，不新增色值。
+ * 层次、表面、圆角与字体阶梯全部由 `--bgm-*` 派生，不新增色值
+ * （上游色板与语义别名已删，全站色值只有 `bgm.css` 一份来源）。
+ * 这一层同时是**沉淀层**：全站重复出现的形态先在这里定义一次，组件样式只消费、
+ * 不再各写一份（清单见 docs/ui-restyle-plan.md §四）。
  * ---------------------------------------------------------------- */
 :root {
   /* ---- 时长阶梯：与 motionTokens.ts 的 DURATION 一一对应 ---- */
   --app-dur-instant: 100ms;
   --app-dur-fast: 150ms;
-  --app-dur-base: 200ms;
-  --app-dur-slow: 300ms;
+  --app-dur-base: 240ms;
+  --app-dur-slow: 360ms;
   --app-dur-slower: 450ms;
 
-  /* ---- 缓动：与 motionTokens.ts 的 EASE_* 一一对应 ---- */
+  /* ---- 缓动：与 motionTokens.ts 的 EASE_* 一一对应 ----
+     spring 用于悬停抬升、浮层进出与列表入场；`-soft` 是它的**大面积收敛版**
+     ——浮层与弹窗这类大面只允许极小的过冲，否则整块会显得弹跳。 */
   --app-ease-out: cubic-bezier(.22, 1, .36, 1);
   --app-ease-in-out: cubic-bezier(.4, 0, .2, 1);
+  --app-ease-spring: cubic-bezier(.34, 1.9, .64, 1);
+  --app-ease-spring-soft: cubic-bezier(.34, 1.22, .64, 1);
 
   /* ---- 位移刻度：入场位移只有两级，避免每处各写一个距离 ---- */
   --app-shift-row: 8px;
   --app-shift-panel: 16px;
 
-  /* ---- 层次：用两级阴影表达浮起，不做单层柔光 ---- */
-  --app-shadow-card: 0 1px 2px rgba(60, 60, 60, .05), 0 8px 24px rgba(60, 60, 60, .05);
-  --app-shadow-raised: 0 1px 1px rgba(60, 60, 60, .04), 0 4px 14px rgba(60, 60, 60, .07);
-  --app-shadow-panel: 0 2px 8px rgba(60, 60, 60, .08), 0 20px 48px rgba(60, 60, 60, .12);
+  /* ---- 逐项错峰间隔（与 motionTokens.ts 的 STAGGER 对应）----
+     只给短列表；长列表用一次性入场，避免最后一项等太久。 */
+  --app-stagger: 55ms;
+
+  /* ---- 间距刻度：4px 网格，**按 px 值命名**，全站间距只从这八档里取 ----
+     2026-10-06 令牌收敛：补入实测最常用的 6px 与 10px 两档（原先是裸值，
+     合计 76 处卡在 8px 与 12px 之间）；40px 与 48px 两档零消费者，一并删除。 */
+  --app-space-4: 4px;
+  --app-space-6: 6px;
+  --app-space-8: 8px;
+  --app-space-10: 10px;
+  --app-space-12: 12px;
+  --app-space-16: 16px;
+  --app-space-24: 24px;
+  --app-space-32: 32px;
+
+  /* ---- 侧栏：展开宽与抽屉内容宽（[C44](../docs/design/decisions/C44-sidebar.md)）----
+     `--app-sidebar-full` 是全站**唯一**那份 264px：`.appFrame` 把它绑给 `--app-sidebar-width`，
+     收起态再把后者重绑成 0，于是「位移量」仍能从 `--app-sidebar-full` 取到。
+     内容宽写成字面值而不是 `calc(var(--app-sidebar-width) - …)`：后者在收起态会解析成 0，
+     把内容一起压扁——抽屉的全部意义就是内容宽度在收起全程恒定。 */
+  --app-sidebar-full: 264px;
+  --app-sidebar-content: 248px;
+
+  /* ---- 行高节奏（值取自样张 `web/style-demo-type.html` 的 C · 强对比阶梯）----
+     样张只给了两档：1.5（标题 / 次级 / 微标签 / 数值）与 1.72（正文）。
+     2026-10-06 令牌收敛：`tight` / `loose` 两个零消费者别名删除，只留 base 一档。 */
+  --app-line-base: 1.72;
+
+  /* ---- 字号阶梯：**四档**（字号 + 字重 + 行高打包）----
+     本表定于 2026-10-06 的字号收敛：**15px 及以上的展示型大字明确豁免令牌化**
+     （标题 17 / 区块 16 / 页面 20 / 数值 21 / 首屏 26 / 统计 28 一律直接写 px），
+     小字只保留下面四档，避免「十几个档位谁也不管谁」。
+     字距单独成对令牌，因为 font 简写装不下 letter-spacing。 */
+  --app-font-body: 400 14px/1.72 var(--bgm-font);
+  --app-font-sub: 400 13px/1.5 var(--bgm-font);
+  --app-font-note: 400 12px/1.5 var(--bgm-font);
+  --app-font-tiny: 500 10px/1.5 var(--bgm-font);
+  --app-tracking-title: -0.02em;
+  --app-tracking-num: -0.02em;
+
+  /* ---- Markdown 标题四档：值照搬上游 markdown 标题令牌（21 / 19 / 18 / 14px），字体栈换成
+     `--bgm-font`。上游把正文尺寸做成可变轴（JS 往根上注入一个 10–22px 的正文字号，标题与
+     正文共享那段像素差）；本应用固定正文 14px，因此这里直接写定值，不再有 calc 链。
+     h4 与正文同号、只加粗——它与 `--app-font-body` 的差别只在字重与行高。 ---- */
+  --app-font-md-h1: 700 21px/30px var(--bgm-font);
+  --app-font-md-h2: 700 19px/28px var(--bgm-font);
+  --app-font-md-h3: 700 18px/26px var(--bgm-font);
+  --app-font-md-h4: 600 14px/24px var(--bgm-font);
+
+  /* ---- 玻璃：浮起层的**唯一来源**（输入卡 / 命令候选 / 思考菜单 /
+     统计浮层 / 弹窗 / Toast 都只引用这三个，不各写一份 rgba + blur）---- */
+  --app-glass-fill: rgba(255, 255, 255, .74);   /* 0.74 取自样张 web/style-demo-glass.html 的输入卡 */
+  --app-glass-stroke: rgba(255, 255, 255, .88);
+  --app-glass-blur: blur(20px) saturate(160%);
+
+  /* ---- 底光：**已删除**（[G07](docs/design/decisions/G07-glow.md) 定「底光与环境光全部去掉」，
+     G-tokens §五 把 `--app-glow-ambient` 记为**删除**）。
+     表面只用纯色：页面底 / 白面 / 内嵌块 / 卡片浅面四档，不再叠加任何装饰性径向渐变。
+     因此 `--bgm-primary-warm` 与 `--app-glow-ambient` 都已移除；`frame.css` 里两处消费点同步删掉。
+     **任何地方都不得再新增装饰性径向渐变底光**——这是本决策的硬约束。 */
+
+  /* ---- 层次：阴影大而柔，色相由深粉棕派生（不用中性灰）----
+     五档语义：raised 给内嵌元素、chip 给胶囊与标签、card 给浮起卡片、
+     panel 给浮层、float 给弹窗的深扩散（最大模糊 72px，是 panel 的两倍多）。 */
+  --app-shadow-card: 0 2px 4px color-mix(in srgb, var(--bgm-primary-text) 8%, transparent), 0 6px 14px color-mix(in srgb, var(--bgm-primary-text) 12%, transparent);
+  --app-shadow-raised: 0 1px 2px color-mix(in srgb, var(--bgm-primary-text) 8%, transparent), 0 3px 8px color-mix(in srgb, var(--bgm-primary-text) 10%, transparent);
+  --app-shadow-panel: 0 3px 10px color-mix(in srgb, var(--bgm-primary-text) 14%, transparent), 0 12px 28px color-mix(in srgb, var(--bgm-primary-text) 18%, transparent);
+  /* 胶囊微投影（标签云）：单层 6px，落在 raised 与 card 之间——换成任一个都会明显变重/变双。 */
+  --app-shadow-chip: 0 2px 6px color-mix(in srgb, var(--bgm-primary-text) 7%, transparent);
+  /* 弹窗深扩散（[C21](../docs/design/decisions/C21-modal.md)：无蒙层、靠扩散阴影表达层次）。
+     只给 `.modalSurface` 用，经 `.appGlass` 的 `--glass-shadow` 钩子注入。 */
+  --app-shadow-float: 0 2px 8px color-mix(in srgb, var(--bgm-primary-text) 10%, transparent), 0 32px 72px -20px color-mix(in srgb, var(--bgm-primary-text) 34%, transparent);
+  /* 侧栏向右的发散阴影（[C44](../docs/design/decisions/C44-sidebar.md) 的表面 D）。
+     侧栏与对话区**同为白面**（落差 1.000:1），分层完全由这一条承担，因此它的横向偏移最大、
+     模糊最远——它是全站唯一一条单向扩散的阴影。色相仍由深粉棕派生，不引入中性灰。 */
+  --app-shadow-edge: 26px 0 60px -24px color-mix(in srgb, var(--bgm-primary-text) 36%, transparent);
 
   /* ---- 表面与描边：全部由 --bgm-* 派生，不新增色值 ---- */
   --app-surface: var(--bgm-surface);
@@ -441,8 +245,21 @@ body * {
   --app-primary-veil: color-mix(in srgb, var(--bgm-primary) 14%, transparent);
   --app-accent-veil: color-mix(in srgb, var(--bgm-interactive) 12%, transparent);
 
-  /* ---- 圆角：Bangumi 的 5/10/15/20 阶梯里取中段，只用「控件 / 容器」两档 ---- */
+  /* ---- 滚动条：滑块由主色派生（22% 混白 = 浅粉），悬停加深到 38%。
+     宽度与轨道边距只给「全局默认」，抬高的浮层可在自己的容器上重绑
+     （`.menuViewport` 用 6px / 12px）；滑块深浅**不再分档**——上游的
+     上游那套滑块 / 悬停两级别名（共四枚）取值完全相同，已随别名层删除。 */
+  --app-scrollbar-thumb: color-mix(in srgb, var(--bgm-primary) 22%, var(--bgm-surface));
+  --app-scrollbar-thumb-hover: color-mix(in srgb, var(--bgm-primary) 38%, var(--bgm-surface));
+  --app-scrollbar-width: 5px;
+  --app-scrollbar-track-margin: 0px;
+
+  /* ---- 圆角四档：**元素越小圆角越小**，避免小控件吃大圆角产生果冻感 ----
+     单元格（表头格 / 单元格 / 小徽章）→ 控件（按钮 / 输入框 / 标签）
+     → 容器（卡片 / 区块）→ 浮层（弹窗 / 浮层 / 输入卡）。 */
+  --app-radius-cell: var(--bgm-r-sm);
   --app-radius-control: var(--bgm-r-md);
   --app-radius-panel: var(--bgm-r-lg);
+  --app-radius-float: var(--bgm-r-tag);
 
 }

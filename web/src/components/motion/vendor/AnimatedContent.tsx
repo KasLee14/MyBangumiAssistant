@@ -30,7 +30,8 @@ export function AnimatedContent({
   distance = 100,
   direction = 'vertical',
   reverse = false,
-  duration = 0.8,
+  // 450ms = `--app-dur-slower`：内容条目是「整块进来」，比行级入场慢一点、比骨架切换快。
+  duration = 0.45,
   ease = 'power3.out',
   initialOpacity = 0,
   animateOpacity = true,

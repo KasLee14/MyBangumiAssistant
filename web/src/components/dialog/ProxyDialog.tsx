@@ -44,16 +44,15 @@ export function ProxyDialog(): ReactNode {
 
   return (
     <Modal
-      eyebrow="设置"
       title="网络线路"
+      eyebrow="只影响本次运行，不写入磁盘；切换会立刻作用于模型与 Bangumi 请求。"
       onClose={actions.closePane}
       footer={(
         <>
-          <span className="note">只影响本次运行，不写入磁盘。</span>
-          <button type="button" className="button ghost" disabled={busy} onClick={actions.closePane}>取消</button>
+          <button type="button" className="dlgBtn dlgBtnGhost" disabled={busy} onClick={actions.closePane}>取消</button>
           <button
             type="button"
-            className="button primary"
+            className="dlgBtn dlgBtnPrimary"
             disabled={busy || (mode === 'manual' && url.trim() === '')}
             onClick={() => void submit()}
           >
@@ -62,9 +61,9 @@ export function ProxyDialog(): ReactNode {
         </>
       )}
     >
-      <div className="modalChoiceRow">
+      <div className="dlgChoices" role="radiogroup" aria-label="线路">
         {MODES.map(option => (
-          <label key={option.value} className="modalCheck">
+          <label key={option.value} className="dlgChoice">
             <input
               type="radio"
               name="proxy-mode"
@@ -77,14 +76,15 @@ export function ProxyDialog(): ReactNode {
         ))}
       </div>
 
-      <div className="modalField">
+      <div className="dlgField">
         <label htmlFor="proxy-url">代理地址</label>
         <input
           id="proxy-url"
           name="proxy-url"
-          className="modalInput"
+          className="dlgInput"
           type="text"
           value={url}
+          // 非手动模式禁用而不是隐藏：位置稳定，用户能看到「选了手动才要填」。
           disabled={mode !== 'manual'}
           autoComplete="off"
           spellCheck={false}

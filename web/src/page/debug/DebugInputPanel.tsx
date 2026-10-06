@@ -1,5 +1,4 @@
 import { memo, type ReactNode } from 'react';
-import { SidebarBrand } from '../../components/mainPage/shell/SidebarBrand';
 
 /**
  * 调试页左侧的输入区。
@@ -29,8 +28,6 @@ export interface DebugInputPanelProps {
   eventCount: number;
   onPreview(): void;
   onReset(): void;
-  /** 从品牌区关闭调试页（与双击等价）。 */
-  onExit(): void;
 }
 
 /** 八个 mock 用例与说明；按验收标准的顺序排列。 */
@@ -284,27 +281,12 @@ const MODE_LABEL: Record<DebugInputPanelProps['source'], string> = {
 
 export const DebugInputPanel = memo(function DebugInputPanel({
   eventText, onEventChange, frameText, onFrameChange, frameAuto, error, playing,
-  source, frameCount, eventCount, onPreview, onReset, onExit,
+  source, frameCount, eventCount, onPreview, onReset,
 }: DebugInputPanelProps): ReactNode {
   return (
     <>
-      <SidebarBrand title="双击返回主界面" onDoubleClick={onExit}>
-        {/* 新标签打开：调试页的输入只在内存里，同标签跳走会丢 */}
-        <a
-          className="debugButton debugLink"
-          data-compact="true"
-          href="./library.html"
-          target="_blank"
-          rel="noreferrer"
-          title="打开内容组件库文档（新标签页，不丢当前输入）"
-        >
-          组件库
-        </a>
-        <button type="button" className="debugButton" data-compact="true" onClick={onExit} title="返回主界面">
-          返回
-        </button>
-      </SidebarBrand>
-
+      {/* 品牌、组件库入口与「返回主界面」都搬去了顶栏
+          （调试页与主界面同构，见 page/debug/index.tsx）。这里只剩输入区本身。 */}
       <div className="debugPane">
         <div className="debugSection">
           <div className="debugSectionHead">

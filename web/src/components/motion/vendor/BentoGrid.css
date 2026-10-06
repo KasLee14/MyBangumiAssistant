@@ -1,0 +1,152 @@
+/*
+ * magicui BentoGrid 的样式（形态依据样张 `web/docs/design/demo.css:3530-3643`，
+ * 那是「用项目 CSS 重写原件」的定稿版本）。随组件走：由 `BentoGrid.tsx` 顶部 import。
+ *
+ * 与原件的关系、四处改造与一处修正，见 `BentoGrid.tsx` 的文件头注释。
+ * 本文件只消费 `--bgm-*` / `--app-*` 令牌，不写裸色值。
+ */
+
+.bentoGrid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, 1fr);
+  /* 与原件唯一的尺寸偏差：`auto-rows-[22rem]`(352px) → 118px（弹窗里装得下两行）。 */
+  grid-auto-rows: 118px;
+  gap: 10px;
+}
+
+.bentoCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  grid-column: span 1;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-panel);
+  background: var(--bgm-surface);
+  text-align: left;
+  cursor: pointer;
+  /* 原件是三层：1px 的 3% 环 + 0 2px 4px 5% + 0 12px 24px 5%；
+     阴影色由深粉棕派生（不引入中性灰）。 */
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--bgm-primary-text) 3%, transparent),
+    0 2px 4px color-mix(in srgb, var(--bgm-primary-text) 5%, transparent),
+    0 12px 24px color-mix(in srgb, var(--bgm-primary-text) 5%, transparent);
+  transition: box-shadow var(--app-dur-base) var(--app-ease-out);
+}
+
+/* 键盘可达（整卡是一个 button）：焦点环写在 outline 上，不去覆盖那三层阴影。 */
+.bentoCard:focus-visible {
+  outline: 2px solid var(--bgm-primary);
+  outline-offset: -2px;
+}
+
+.bentoCard:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* 高卡跨两行；内容贴底的那两张照效果图（大卡内容在下）。 */
+.bentoCardTall {
+  grid-row: span 2;
+}
+
+.bentoCardBottom {
+  justify-content: flex-end;
+}
+
+.bentoBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  padding: 14px;
+  transition: transform var(--app-dur-base) var(--app-ease-out);
+}
+
+.bentoIcon {
+  display: block;
+  width: 30px;
+  height: 30px;
+  color: var(--bgm-text-strong);
+  transition: transform var(--app-dur-base) var(--app-ease-out);
+}
+
+/* 图标本身由调用方传入（24×24 的 svg），尺寸统一由这一层约束。 */
+.bentoIcon > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.bentoName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--bgm-text-strong);
+}
+
+.bentoDesc {
+  font: var(--app-font-note);
+  color: var(--bgm-text-muted);
+}
+
+/* CTA：原件是 `absolute bottom-0 translate-y-10 opacity-0`，hover 时浮出。 */
+.bentoCta {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 14px;
+  font: var(--app-font-sub);
+  font-weight: 500;
+  color: var(--bgm-primary-text);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    transform var(--app-dur-base) var(--app-ease-out),
+    opacity var(--app-dur-base) var(--app-ease-out);
+}
+
+/* 小卡的 CTA 定位到右下角（大卡仍是整条贴底）。 */
+.bentoCard:not(.bentoCardTall) .bentoCta {
+  left: auto;
+  right: 12px;
+  bottom: 12px;
+  width: auto;
+  padding: 0;
+}
+
+/* 整卡暗化层：原件 `group-hover:bg-black/3`。 */
+.bentoVeil {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+  transition: background var(--app-dur-base) var(--app-ease-out);
+}
+
+/* hover 分两档：
+   **大卡**（跨 2 行）照原件——内容上移 + CTA 从底部浮出；
+   **小卡**（1 行）内容**一动不动**，只浮出右下角箭头：小卡已被图标 + 标题 + 描述占满，
+   再上移就会顶出卡片、被 `overflow: hidden` 裁掉。 */
+@media (hover: hover) {
+  .bentoCardTall:hover .bentoBody { transform: translateY(-22px); }
+
+  .bentoCardTall:hover .bentoCta,
+  .bentoCard:not(.bentoCardTall):hover .bentoCta { opacity: 1; transform: translateY(0); }
+
+  .bentoCard:hover .bentoIcon { transform: scale(.75); }
+
+  .bentoCard:hover .bentoVeil { background: color-mix(in srgb, var(--bgm-primary-text) 3%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bentoCard,
+  .bentoBody,
+  .bentoIcon,
+  .bentoCta,
+  .bentoVeil { transition: none; }
+}
