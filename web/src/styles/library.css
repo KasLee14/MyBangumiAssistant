@@ -224,6 +224,16 @@
   color: var(--bgm-text-muted);
 }
 
+/* 形态变体卡标题旁的一句话说明（例：紧凑行不渲染封面）。
+   与 `.libCardTitle` 同排：标题吃剩余宽度，它自己最多占六成、允许换行、右对齐。 */
+.libVariantNote {
+  flex: 0 1 auto;
+  max-width: 60%;
+  font: var(--app-font-tiny);
+  color: var(--bgm-text-weak);
+  text-align: right;
+}
+
 .libCardBody { padding: var(--app-space-16); }
 
 /* 行内代码（字段名、取值）：等宽 + 淡粉底。与 .contentLabel 的分工是「代码 vs 标签」 */

@@ -25,6 +25,23 @@ export interface Reference {
   usage: string;
 }
 
+/**
+ * 主载荷之外的**另一种形态**。
+ *
+ * 一个组件可以靠载荷里的判别字段切换外观（`SubjectCards` 的 `layout`、`StatsCard` 的
+ * `mode`、`ProgressView` 的数值/章节网格…）。主载荷只演得出其中一种，剩下的放这里，
+ * 于是「这一类组件一共有几种长相」在同一页可见——变体卡与主载荷卡渲染方式完全相同
+ * （同一份 `ContentBlock`、同一套接收侧校验），只是换了一份数据。
+ */
+export interface LibraryVariant {
+  /** 预览卡标题，例如 `紧凑行（layout: "list"）`。 */
+  label: string;
+  /** 与 `payload` 同形；只换判别字段，其余数据尽量与主载荷保持一致以便对照。 */
+  payload: unknown;
+  /** 贴在标题旁的一句话说明（可选）：这一形态与主载荷差在哪、有什么坑。 */
+  note?: string;
+}
+
 export interface LibrarySection {
   kind: ContentKind;
   title: string;
@@ -37,6 +54,13 @@ export interface LibrarySection {
    * 逐 kind 收窄。
    */
   payload: unknown;
+  /**
+   * 该 kind 的其它形态（可选）。
+   *
+   * 属于**第 1 块「UI 预览」内部**，不占第五块：详情页的结构契约仍是四块，这里只是让
+   * 同一块里多出几张同构的预览卡（见 `docs/agents/page/library.md` §规则）。
+   */
+  variants?: readonly LibraryVariant[];
   /** 空数据形态，用来验证每个组件的空态；与 `payload` 同形。 */
   empty: unknown;
   params: ParamRow[];
@@ -51,7 +75,7 @@ const SUBJECT_ITEM: ParamRow[] = [
   { field: 'name', type: 'string', required: '必填', note: '原名' },
   { field: 'kind', type: 'string', required: '必填', values: 'book / anime / music / game / real', note: '条目类型，决定角标' },
   { field: 'nameCn', type: 'string', required: '可选', note: '中文名；与原名相同时界面不重复显示' },
-  { field: 'image', type: 'string', required: '可选', values: 'http(s) 绝对地址', note: '封面；缺失或加载失败时回落为等尺寸占位块' },
+  { field: 'image', type: 'string', required: '可选', values: 'http(s) 绝对地址', note: '封面；只有 grid 排布渲染它（list 紧凑行不使用该字段），缺失或加载失败时回落为等尺寸占位块' },
   { field: 'score', type: 'number', required: '可选', note: '全站评分，保留一位小数' },
   { field: 'scoreCount', type: 'number', required: '可选', note: '评分人数' },
   { field: 'rank', type: 'number', required: '可选', note: '站内排名' },
@@ -61,36 +85,53 @@ const SUBJECT_ITEM: ParamRow[] = [
   { field: 'url', type: 'string', required: '可选', values: 'http(s) 绝对地址', note: '条目页；给了才渲染成可点链接' },
 ];
 
+/**
+ * `SubjectCards` 的示例条目。
+ *
+ * grid 与 list 两个排布**共用同一份数据**（连 `image` 都一模一样），只换 `layout`——
+ * 于是「紧凑行不渲染封面」这件事在页面上是看得见的对照，而不是一句说明。
+ *
+ * `image` **必须是真实存在的地址**（从条目页「复制图片地址」取）：Bangumi 的封面路径是
+ * `pic/cover/l/{xx}/{yy}/{id}_{5位随机串}.jpg`，随机串编不出来——写错了不会报错，只会静默
+ * 回落成「无封面」占位，看起来和「图片功能坏了」一模一样（本项目真实踩过：这三条地址里
+ * 曾有两条是手编的 `1424_x.jpg` / `876_x.jpg`，页面长期没有封面）。
+ */
+const SUBJECT_SAMPLE_ITEMS = [
+  {
+    id: 1424, name: 'けいおん!', nameCn: '轻音少女', kind: 'anime',
+    image: 'https://lain.bgm.tv/pic/cover/l/48/9d/1424_q8FMQ.jpg',
+    score: 8.2, scoreCount: 12480, rank: 128, date: '2009-04-03',
+    summary: '樱丘高中轻音部的日常。', tags: ['音乐', '日常', '京都动画'],
+    url: 'https://bgm.tv/subject/1424',
+  },
+  {
+    id: 876, name: 'CLANNAD', nameCn: '团子大家族', kind: 'anime',
+    image: 'https://lain.bgm.tv/pic/cover/l/67/d1/876_dCfrd.jpg',
+    score: 8.7, scoreCount: 15320, rank: 42, date: '2007-10-04',
+    url: 'https://bgm.tv/subject/876',
+  },
+  {
+    id: 2747, name: '涼宮ハルヒの憂鬱', nameCn: '凉宫春日的忧郁', kind: 'anime',
+    score: 8, date: '2006-04-02', url: 'https://bgm.tv/subject/2747',
+  },
+];
+
+/** 两个排布共用的区块级字段，与 `items` 一起构成完整载荷。 */
+const SUBJECT_SAMPLE_META = { title: '搜索结果', total: 24, hint: '按匹配度排序' } as const;
+
 export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   {
     kind: 'SubjectCards',
     title: '条目集合 SubjectCards',
     summary: '封面墙（grid）与紧凑行（list）两种密度，共用同一份元信息。总数多于本帧条目时显式提示还有多少条未展示。',
-    payload: {
-      layout: 'grid',
-      title: '搜索结果',
-      total: 24,
-      hint: '按匹配度排序',
-      items: [
-        {
-          id: 1424, name: 'けいおん!', nameCn: '轻音少女', kind: 'anime',
-          image: 'https://lain.bgm.tv/pic/cover/l/1f/6b/1424_x.jpg',
-          score: 8.2, scoreCount: 12480, rank: 128, date: '2009-04-03',
-          summary: '樱丘高中轻音部的日常。', tags: ['音乐', '日常', '京都动画'],
-          url: 'https://bgm.tv/subject/1424',
-        },
-        {
-          id: 876, name: 'CLANNAD', nameCn: '团子大家族', kind: 'anime',
-          image: 'https://lain.bgm.tv/pic/cover/l/0e/83/876_x.jpg',
-          score: 8.7, scoreCount: 15320, rank: 42, date: '2007-10-04',
-          url: 'https://bgm.tv/subject/876',
-        },
-        {
-          id: 2747, name: '涼宮ハルヒの憂鬱', nameCn: '凉宫春日的忧郁', kind: 'anime',
-          score: 8, date: '2006-04-02', url: 'https://bgm.tv/subject/2747',
-        },
-      ],
-    },
+    payload: { layout: 'grid', ...SUBJECT_SAMPLE_META, items: SUBJECT_SAMPLE_ITEMS },
+    variants: [
+      {
+        label: '紧凑行（layout: "list"）',
+        note: '与主载荷同一份数据、只换 layout：紧凑行不渲染封面，载荷里的 image 在这里被忽略。',
+        payload: { layout: 'list', ...SUBJECT_SAMPLE_META, items: SUBJECT_SAMPLE_ITEMS },
+      },
+    ],
     empty: { layout: 'grid', items: [] },
     params: [
       { field: 'layout', type: 'string', required: '必填', values: 'grid / list', note: 'grid 封面墙、list 紧凑行' },

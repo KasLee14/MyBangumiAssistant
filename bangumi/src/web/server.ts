@@ -120,7 +120,15 @@ export function takeLiveDelta(
 }
 
 const SECURITY_HEADERS: Record<string, string> = {
-  'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+  // `img-src` 只放行 **Bangumi 图床**这一个域名，而不是整个 `https:`。
+  // 内容组件的封面按协议确实必须是外域绝对地址（`web/src/components/content/validate.ts` 的
+  // `checkUrl`），但图片请求是一条**无需脚本、无需点击**的单向外发通道：载荷里的 `image`
+  // 由模型输出决定，敞开 `https:` 就等于让任意第三方域名拿到用户的出口 IP / UA，还可以被
+  // 间接提示注入当成数据出口（把内容编码进图片 URL 即可外发）。收成单一域名后
+  // `SubjectCards` / `Gallery` 的 Bangumi 封面照常显示，其它图床会静默回落成「无封面」。
+  // 更早的 `'self' data:` 则连 Bangumi 封面都拦（浏览器在发起请求之前就拦掉，宿主侧无任何
+  // 报错，只有浏览器控制台有 CSP violation）。
+  'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lain.bgm.tv; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',
   'cross-origin-opener-policy': 'same-origin',
@@ -393,9 +401,14 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
     try { info = await stat(target); }
     catch { sendText(res, 404, '未找到静态资源；请先运行 npm run build:web。'); return; }
     if (!info.isFile()) { sendText(res, 404, '未找到资源。'); return; }
+    // **两个 HTML 入口都不能缓存**：它们引用带内容哈希的 assets，HTML 一旦进缓存（哪怕只有
+    // 原来的 1 小时），改完前端后刷新拿到的仍是旧 HTML + 旧 assets，看起来就像「改动没生效」。
+    // 实测踩过：只豁免 `index.html` 时，`library.html` 落进下面的 `max-age` 分支，组件库文档页
+    // 长时间显示旧的示例数据（封面地址改了、页面上还是旧地址），排查方向会被完全带偏。
+    const html = extname(target).toLowerCase() === '.html';
     res.writeHead(200, {
       'content-type': type, 'content-length': info.size, ...SECURITY_HEADERS,
-      'cache-control': relative === 'index.html' ? 'no-store' : 'public, max-age=3600',
+      'cache-control': html ? 'no-store' : 'public, max-age=3600',
     });
     await new Promise<void>((finish, fail) => {
       const stream = createReadStream(target);
