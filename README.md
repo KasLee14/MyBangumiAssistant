@@ -12,7 +12,7 @@ MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然�
 
 ### 准备环境与安装
 
-当前以 Windows 为使用环境，需要 **Node.js `>=24.14.0 <25` 和 npm**。下文命令均在 PowerShell 中执行。
+当前以 Windows 为使用环境，需要 **Node.js `>=24.14.0 <25` 和 npm**。
 
 在项目根目录执行一次初始化：
 
