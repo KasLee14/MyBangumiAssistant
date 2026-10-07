@@ -1,0 +1,46 @@
+[
+  {
+    "id": "call_00_eVF8nDWJxwKB6yeEntPe0530",
+    "name": "get_subject_details",
+    "arguments": {
+      "subject_id": 253
+    }
+  },
+  {
+    "id": "call_00_sxaphaPSXLuZJi6Q39OA0825",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_64b025270735a5441e9afb1ff1093534",
+      "fields": [
+        "name",
+        "nameCn",
+        "score",
+        "rank",
+        "ratingCount",
+        "image",
+        "url",
+        "summary"
+      ],
+      "keys": [
+        253
+      ]
+    }
+  },
+  {
+    "id": "call_00_ysupO4ylSSp9zBwcBIFg3136",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_64b025270735a5441e9afb1ff1093534",
+      "fields": [
+        "name",
+        "nameCn",
+        "score",
+        "rank",
+        "ratingCount",
+        "image",
+        "url",
+        "summary"
+      ]
+    }
+  }
+]

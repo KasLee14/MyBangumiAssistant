@@ -418,3 +418,17 @@ test('非法NSFW标志属于结构错误，不能当作未知过滤或通过', a
   await assert.rejects(f.service.call('get_person_characters', { person_id: 71, include: [] }), error => error.code === 'INVALID_RESPONSE');
   assert.equal(f.checks.nsfw, 0);
 });
+
+test('隐藏include后普通出演API的camel fields仍能请求事实及本人收藏分组',async()=>{
+ const {createReadTools}=await import('../dist/src/mcp/pi-tools.js');
+ const f=fixture({groups:[group(11,[relation(101,1)])],details:[subject(101,'TV',{interest:interest(2)})],uncheckedNsfw:true});
+ const tool=createReadTools(f.service).find(tool=>tool.name==='get_person_characters');
+ const args=tool.prepareArguments({person_id:71,subject_type:2,fields:['subjectFacts','ownCollection'],limit:20});
+ assert.equal(args.include,undefined);
+ const result=await tool.execute('plain-fields',args,undefined,undefined,{});
+ assert.notEqual(result.isError,true,JSON.stringify(result.content));
+ const model=JSON.parse(result.content[0].text).value;
+ assert.equal(model.data[0].subjectFacts.form,'tv');
+ assert.equal(model.data[0].ownCollection.collectionStatus,2);
+ assert.ok(f.calls.some(call=>call.path==='/p1/subjects/101'));
+});

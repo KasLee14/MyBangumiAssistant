@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "nextType": "Gallery",
+      "text": "已按只读方式核实 Bangumi 人物 1 与角色 1 的公开详情，并用字段读取取得名称、图片与链接（匿名 v0 来源，未改动任何账户数据）。"
+    },
+    {
+      "type": "Gallery",
+      "pending": false,
+      "props": {
+        "title": "人物 1：水樹奈々",
+        "items": [
+          {
+            "id": 1,
+            "name": "水樹奈々",
+            "image": "https://lain.bgm.tv/r/400/pic/crt/l/a6/e8/1_prsn_k7wpt.jpg?r=1723962294",
+            "url": "https://bgm.tv/person/1"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Gallery",
+      "pending": false,
+      "props": {
+        "title": "角色 1：ルルーシュ・ランペルージ",
+        "items": [
+          {
+            "id": 1,
+            "name": "ルルーシュ・ランペルージ",
+            "image": "https://lain.bgm.tv/r/400/pic/crt/l/7b/3a/1_crt_FEkJM.jpg",
+            "url": "https://bgm.tv/character/1"
+          }
+        ]
+      }
+    },
+    {
+      "type": "text",
+      "nextType": null,
+      "text": "身份区别说明：\n\n- 人物 1 是 **person** 实体：水樹奈々，实体类型 `person`，职业类型 `personType=1`，职业标签为 artist / seiyu（歌手、声优），链接 https://bgm.tv/person/1 。\n- 角色 1 是 **character** 实体：ルルーシュ・ランペルージ（鲁路修·兰佩洛基），实体类型 `character`，角色类型 `characterType=1`，链接 https://bgm.tv/character/1 。\n\n两者只是编号恰好都为 1，属于不同实体类别：`person` 指现实中的真实人物（此处为声优兼歌手），`character` 指作品内虚构角色。两个 ID 空间相互独立，不能互相代用；人物与角色之间的出演关系（如某人配音某角色）是独立的关系数据，本轮的详情读取不包含该关系，需另行查询。"
+    }
+  ]
+}

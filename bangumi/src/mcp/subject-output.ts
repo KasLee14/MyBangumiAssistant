@@ -12,6 +12,7 @@ import { checkRelationResponse, checkCandidateLineageResponse } from './relation
 import { checkCandidateContinuationResponse } from './continuation-contract.js';
 import { checkCandidateOutputResponse } from './candidate-output-contract.js';
 import { checkPersonCandidateResponse } from './person-candidates.js';
+import { normalizeResourceImages, resourceImagesSchema, resourceImageSchema, type ResourceImages } from './resource-images.js';
 
 export const SUBJECT_INCLUDES = ['summary', 'infobox', 'tagStats', 'ratingDistribution'] as const;
 export type SubjectInclude = typeof SUBJECT_INCLUDES[number];
@@ -21,6 +22,8 @@ export interface SubjectSummary {
   score: number | null; rank: number | null; ratingCount: number | null;
   totalEpisodes: number | null; totalVolumes: number | null;
   tags: string[] | null; metaTags: string[] | null; url: string;
+  images?: ResourceImages | null; image?: string | null;
+  resourceFieldStates?: Partial<Record<SubjectInclude, 'known' | 'unknown' | 'failed'>>;
   relation?: string | null; staff?: string | null;
   series?: boolean | null;
   characters?: { id: number; name: string; nameCn: string | null; url: string }[];
@@ -44,12 +47,14 @@ const properties = {
   nsfw: nullable({ type: 'boolean' }),
   rank: nullable(integer(1)), ratingCount: nullable(integer()), totalEpisodes: nullable(integer()), totalVolumes: nullable(integer()),
   tags: stringList, metaTags: stringList, url: { ...string(100), pattern: '^https://bgm\\.tv/subject/[1-9]\\d*$' },
+  images: resourceImagesSchema, image: resourceImageSchema,
+  resourceFieldStates: closed(Object.fromEntries(SUBJECT_INCLUDES.map(field => [field, { enum: ['known', 'unknown', 'failed'] }])), []),
   relation: nullable(string(300)), staff: nullable(string(300)),
   series: nullable({ type: 'boolean' }),
   characters: { type: 'array', maxItems: 100, items: closed({ id: integer(1), name: string(300), nameCn: nullable(string(300)),
     url: { ...string(100), pattern: '^https://bgm\\.tv/character/[1-9]\\d*$' } }) },
 };
-const required = Object.keys(properties).filter(key => !['relation', 'staff', 'characters', 'series'].includes(key));
+const required = Object.keys(properties).filter(key => !['relation', 'staff', 'characters', 'series', 'images', 'image', 'resourceFieldStates'].includes(key));
 export const subjectSummarySchema = closed(properties, required);
 const browseSummarySchema = closed({ ...properties, dateEvidence: browseDateEvidenceSchema }, [...required, 'dateEvidence']);
 const browseFilterCoverageSchema = closed({
@@ -68,6 +73,9 @@ export const subjectDetailsSchema = closed({ ...properties,
   tagStats: nullable({ type: 'array', maxItems: 100, items: closed({ name: string(100), count: nullable(integer()), totalCount: nullable(integer()) }) }),
   ratingDistribution: nullable(closed(Object.fromEntries(Array.from({ length: 10 }, (_, index) => [String(index + 1), nullable(integer())])))),
 }, [...required, 'included']);
+// 已取得的列表可选详情事实也可按fields投影，普通列表适配仍不默认附带正文。
+for (const schema of [subjectSummarySchema, browseSummarySchema]) Object.assign(schema.properties as Record<string, JsonSchema>,
+  Object.fromEntries(SUBJECT_INCLUDES.map(field => [field, (subjectDetailsSchema.properties as Record<string, JsonSchema>)[field]])));
 export const paginationExtraProperties: Record<string, JsonSchema> = {
   totalKind: { enum: ['estimated', 'exact', 'unknown'] }, sourceNextOffset: nullable(integer()), sourceHasMore: { type: 'boolean' },
   excludedNsfwCount: integer(), unknownNsfwCount: integer(),
@@ -259,7 +267,7 @@ export function subjectSummary(value: unknown): SubjectSummary {
     platform: text(raw.platform), nsfw: typeof raw.nsfw === 'boolean' ? raw.nsfw : null, score: typeof score === 'number' && score >= 0 && score <= 10 ? score : null,
     rank: rank === 0 ? null : count(rank, 1), ratingCount: count(Object.hasOwn(raw, 'ratingCount') ? raw.ratingCount : rating.total),
     totalEpisodes: count(raw.total_episodes ?? raw.eps ?? raw.totalEpisodes), totalVolumes: count(raw.volumes ?? raw.totalVolumes),
-    tags: names(raw.tags), metaTags: names(raw.meta_tags ?? raw.metaTags), url: `https://bgm.tv/subject/${id}`,
+    tags: names(raw.tags), metaTags: names(raw.meta_tags ?? raw.metaTags), url: `https://bgm.tv/subject/${id}`, ...normalizeResourceImages(raw),
     ...(raw.relation === undefined ? {} : { relation: text(raw.relation) }), ...(raw.staff === undefined ? {} : { staff: text(raw.staff) }),
     ...(raw.series === undefined ? {} : { series: raw.series === null || typeof raw.series === 'boolean' ? raw.series : (() => { throw new AppError('INVALID_RESPONSE', '作品系列标志无效。'); })() }),
     ...(raw.characters === undefined ? {} : { characters: (() => {
@@ -292,6 +300,63 @@ export function subjectDetails(value: unknown, include: readonly SubjectInclude[
     }
   }
   checkOutput(subjectDetailsSchema, result); return result;
+}
+/** 完整已读资源的规范化视图；未请求的坏详情组只记失败，不污染已核实基础字段。 */
+export function completeSubjectResource(value: unknown, expectedId: number): {
+  value: SubjectDetails; fieldStates: Record<string, 'known' | 'unknown' | 'failed'>;
+} {
+  const result = subjectDetails(value, [], expectedId), fieldStates: Record<string, 'known' | 'unknown' | 'failed'> = {};
+  for (const field of SUBJECT_INCLUDES) {
+    try {
+      const part = subjectDetails(value, [field], expectedId);
+      Object.assign(result, { [field]: part[field] }); result.included.push(field);
+      fieldStates[field] = part[field] == null ? 'unknown' : 'known';
+    } catch { fieldStates[field] = 'failed'; }
+  }
+  return { value: result, fieldStates };
+}
+/** 仅补同一来源页已经取得的可选字段，不覆盖已核实基础事实或日期证据。 */
+export function completeSubjectPageResource(value: unknown, normalized: Record<string, unknown>): Record<string, unknown> {
+  if (normalized.kind === 'weekly_schedule' && Array.isArray(normalized.data)) {
+    const days = Array.isArray(value) ? value : value && typeof value === 'object' && Array.isArray((value as Record<string, unknown>).data)
+      ? (value as Record<string, unknown>).data as unknown[] : [];
+    return { ...normalized, data: normalized.data.map(input => {
+      if (!input || typeof input !== 'object' || Array.isArray(input)) return input;
+      const day = input as Record<string, unknown>, weekday = day.weekday as Record<string, unknown> | undefined;
+      const source = days.find(item => item && typeof item === 'object' && !Array.isArray(item)
+        && (item as Record<string, unknown>).weekday && ((item as Record<string, unknown>).weekday as Record<string, unknown>).id === weekday?.id) as Record<string, unknown> | undefined;
+      if (!source || !day.subjects || typeof day.subjects !== 'object') return input;
+      return { ...day, subjects: completeSubjectPageResource(source.items ?? source.subjects, day.subjects as Record<string, unknown>) };
+    }) };
+  }
+  const raw = Array.isArray(value) ? value : value && typeof value === 'object' && Array.isArray((value as Record<string, unknown>).data)
+    ? (value as Record<string, unknown>).data as unknown[] : undefined;
+  if (!raw || !Array.isArray(normalized.data)) return normalized;
+  const sourceSubject = (input: unknown): Record<string, unknown> | undefined => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+    const row = input as Record<string, unknown>;
+    return row.subject && typeof row.subject === 'object' && !Array.isArray(row.subject) ? row.subject as Record<string, unknown> : row;
+  };
+  const data = normalized.data.map(input => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) return input;
+    const row = input as Record<string, unknown>, subject = sourceSubject(row)!;
+    const matches = raw.map(sourceSubject).filter(item => item && item.id === subject.id);
+    if (matches.length !== 1 || !subject.subjectType || !subject.name) return input;
+    const source = matches[0]!, result = { ...subject };
+    const available = SUBJECT_INCLUDES.filter(field => field === 'tagStats' ? Object.hasOwn(source, 'tags')
+      : field === 'ratingDistribution' ? !!source.rating && typeof source.rating === 'object' && Object.hasOwn(source.rating, 'count')
+        : Object.hasOwn(source, field));
+    const states: Record<string, string> = {};
+    for (const field of available) {
+      try {
+        const detail = subjectDetails({ ...source, id: subject.id, type: subject.subjectType, name: subject.name }, [field], Number(subject.id));
+        result[field] = detail[field]; states[field] = detail[field] == null ? 'unknown' : 'known';
+      } catch { delete result[field]; states[field] = 'failed'; }
+    }
+    if (Object.keys(states).length) result.resourceFieldStates = states;
+    return row.subject ? { ...row, subject: result } : result;
+  });
+  return { ...normalized, data };
 }
 export function subjectPage(value: unknown, args: Record<string, unknown>, relation = false) {
   const raw = object(value); const data = raw.data;

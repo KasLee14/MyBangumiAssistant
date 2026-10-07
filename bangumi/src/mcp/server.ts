@@ -1,3 +1,5 @@
+import * as z from 'zod/v4';
+import { RequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -16,15 +18,17 @@ import { checkOutput } from './subject-output.js';
 import { checkAccessResponse } from './access-context.js';
 import { readContext } from './read-context.js';
 import { diagnoseReadError } from './read-recovery.js';
-
+import { RESOURCE_REF_PATTERN, cachedResourceSelection, checkCachedResourceRpcResult } from './resource-contract.js';
 function writeGuard(value: unknown): McpWriteGuard {
   if (value === undefined) throw new AppError('AUTHORIZATION_REQUIRED', 'MCP 写入必须由宿主授权链路提交。');
   const raw = object(value, '写入保护');
   if (Object.keys(raw).some(key => !['accountId', 'subjectId', 'expectedStatus', 'prepared', 'batchPreparation'].includes(key))) throw new AppError('INVALID_INPUT', '写入保护元数据无效。');
   if (raw.expectedStatus !== undefined && (typeof raw.expectedStatus !== 'number' || ![0, 1, 2, 3].includes(raw.expectedStatus))) throw new AppError('INVALID_INPUT', '章节保护状态无效。');
-  return { accountId: positiveId(raw.accountId), ...(raw.subjectId === undefined ? {} : { subjectId: positiveId(raw.subjectId) }),
+  return {
+    accountId: positiveId(raw.accountId), ...(raw.subjectId === undefined ? {} : { subjectId: positiveId(raw.subjectId) }),
     ...(raw.expectedStatus === undefined ? {} : { expectedStatus: raw.expectedStatus as number }), ...(raw.prepared === undefined ? {} : { prepared: preparedBaseline(raw.prepared) }),
-    ...(raw.batchPreparation === undefined ? {} : { batchPreparation: batchPreparation(raw.batchPreparation) }) };
+    ...(raw.batchPreparation === undefined ? {} : { batchPreparation: batchPreparation(raw.batchPreparation) })
+  };
 }
 /** 单机固定目录服务；stdout 只输出 MCP JSON-RPC，不接受模型提供的URL或执行命令。 */
 export function createBangumiMcpServer(service: BangumiMcpService): Server {
@@ -35,12 +39,35 @@ export function createBangumiMcpServer(service: BangumiMcpService): Server {
     try { service.endReadContext(readContext(notification.params).turnId); }
     catch { /* 无效或迟到清理通知不能使业务连接失败。 */ }
   };
+  server.setRequestHandler(RequestSchema.extend({ method: z.literal('bangumi/readCachedResource'), params: z.looseObject({ resourceRef: z.unknown(), readContext: z.unknown().optional(), selection: z.unknown().optional() }) }), async (request, extra) => {
+    try {
+      const params = request.params;
+      if (Object.keys(params).some(key => !['resourceRef', 'readContext', 'selection'].includes(key))
+        || typeof params.resourceRef !== 'string' || !new RegExp(RESOURCE_REF_PATTERN).test(params.resourceRef))
+        throw new AppError('INVALID_INPUT', '缓存读取引用或参数无效。');
+      const context = params.readContext === undefined ? undefined : readContext(params.readContext);
+      const selection = params.selection === undefined ? undefined : cachedResourceSelection(params.selection);
+      const result = { resource: await service.readCachedResource(params.resourceRef, context, extra.signal, selection) };
+      checkCachedResourceRpcResult(result);
+      checkAccessResponse(result.resource.sourceTool, result.resource.value);
+      if (Buffer.byteLength(JSON.stringify(result)) > 1_900_000) throw new AppError('MCP_OUTPUT_LIMIT', '缓存展示结果过大，请缩小成员范围。');
+      return result;
+    } catch (error) {
+      try {
+        const result = { error: safeError(error) };
+        checkCachedResourceRpcResult(result); return result;
+      }
+      catch { return { error: safeError(new AppError('MCP_INVALID_RESULT', '缓存错误不符合固定输出契约。')) }; }
+    }
+  });
   server.setRequestHandler(ListToolsRequestSchema, async request => {
     const raw = request.params?.cursor;
     const offset = raw === undefined ? 0 : /^\d+$/.test(raw) ? Number(raw) : NaN;
     if (!Number.isSafeInteger(offset) || offset < 0 || offset >= TOOL_DEFINITIONS.length && offset !== 0 || offset % 20 !== 0) throw new AppError('INVALID_INPUT', '工具分页游标无效。');
-    const tools = TOOL_DEFINITIONS.slice(offset, offset + 20).map(tool => ({ name: tool.name, description: tool.description, inputSchema: structuredClone(tool.inputSchema),
-      ...(tool.outputSchema ? { outputSchema: structuredClone(tool.outputSchema) } : {}) }));
+    const tools = TOOL_DEFINITIONS.slice(offset, offset + 20).map(tool => ({
+      name: tool.name, description: tool.description, inputSchema: structuredClone(tool.inputSchema),
+      ...(tool.outputSchema ? { outputSchema: structuredClone(tool.outputSchema) } : {})
+    }));
     return { tools, ...(offset + tools.length < TOOL_DEFINITIONS.length ? { nextCursor: String(offset + tools.length) } : {}) };
   });
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
@@ -71,7 +98,6 @@ export function createBangumiMcpServer(service: BangumiMcpService): Server {
   });
   return server;
 }
-
 async function main(): Promise<void> {
   const authDir = process.env.BANGUMI_AUTH_DIRECTORY;
   if (!authDir || !isAbsolute(authDir)) throw new AppError('INVALID_INPUT', 'MCP 认证目录必须显式指定为绝对路径。');

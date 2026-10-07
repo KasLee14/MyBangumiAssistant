@@ -7,13 +7,13 @@ import { accessContextSchema, withAccessContext, type AccessContext } from './ac
 
 export const CANDIDATE_FIELDS = ['id', 'name', 'nameCn', 'subjectType', 'date', 'platform', 'subjectForm', 'nsfw', 'score', 'rank', 'ratingCount',
   'tags', 'metaTags', 'url', 'personalRating', 'personalTags', 'personalComment', 'collectionStatus', 'collectionState', 'summary', 'infobox', 'relations',
-  'durationMinutes'] as const;
+  'durationMinutes', 'image'] as const;
 export type CandidateField = typeof CANDIDATE_FIELDS[number];
 export const CANDIDATE_INCLUDES = ['summary', 'infobox', 'relations', 'own_collection', 'subject_facts'] as const;
 export const CANDIDATE_SUBJECT_FORMS = ['tv', 'ova', 'movie', 'web', 'other'] as const;
 export type CandidateInclude = typeof CANDIDATE_INCLUDES[number];
 export type CandidateFieldState = 'known' | 'unknown' | 'failed';
-export const DEFAULT_CANDIDATE_FIELDS: CandidateField[] = ['id', 'name', 'nameCn', 'subjectType'];
+export const DEFAULT_CANDIDATE_FIELDS: CandidateField[] = ['id'];
 export const PERSONAL_CANDIDATE_FIELDS: CandidateField[] = ['personalRating', 'personalTags', 'personalComment', 'collectionStatus', 'collectionState'];
 export const CANDIDATE_SUBJECT_FACT_FIELDS: CandidateField[] = ['id', 'name', 'nameCn', 'subjectType', 'platform', 'subjectForm', 'date', 'nsfw',
   'score', 'rank', 'ratingCount', 'tags', 'metaTags', 'url'];
@@ -168,6 +168,7 @@ export const candidateFieldSchemas: Record<CandidateField, JsonSchema> = {
   relations: nullable({ type: 'array', maxItems: 100, items: closed({ id: count(1), relation: nullable(text(300)), name: nullable(text()), nameCn: nullable(text()),
     subjectType: nullable({ enum: [1, 2, 3, 4, 6] }), url: { ...text(100), pattern: '^https://bgm\\.tv/subject/[1-9]\\d*$' } }, ['id', 'relation']) }),
   durationMinutes: nullable({ type: 'number', minimum: 0 }),
+  image: nullable({ type: 'string', minLength: 1, maxLength: 2048, pattern: '^https://[^\\s]+$' }),
 };
 const stateProperties = Object.fromEntries(CANDIDATE_FIELDS.filter(field => field !== 'id').map(field => [field, { enum: ['unknown', 'failed'] }]));
 const view = closed({ ...candidateFieldSchemas, fieldStates: closed(stateProperties, []) }, ['id']);

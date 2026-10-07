@@ -1,0 +1,74 @@
+[
+  {
+    "name": "search_subjects",
+    "toolCallId": "call_00_zncNirrupgD7spNZFrbf3359",
+    "isError": true,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"error\":{\"code\":\"INVALID_RESPONSE\",\"message\":\"Bangumi 返回的数据结构或对象不符合预期。\",\"accessContext\":{\"mode\":\"anonymous\",\"account\":null,\"nsfw\":{\"preference\":null,\"allowed\":null,\"state\":\"not_checked\"},\"source\":\"v0\",\"nsfwApplied\":false,\"checkedAt\":\"2026-10-07T13:45:19.631Z\",\"queryCoverage\":{\"requested\":\"exclude\",\"actual\":\"sfw_only\",\"nsfw\":\"excluded\",\"totalKind\":\"estimated\",\"limitations\":[\"v0_anonymous_source\",\"estimated_search_total\"]}},\"sourceTool\":\"search_subjects\",\"diagnosis\":{\"category\":\"contract\",\"stage\":\"response_contract\",\"effect\":\"read\",\"blockedFields\":[],\"allowedValues\":[],\"capabilitySuggestions\":[\"read_alternate_source\",\"report_gap\"],\"replanAllowed\":true,\"retryable\":false},\"diagnostic\":{\"schemaVersion\":1,\"errorId\":\"376ca735-38ba-4408-a2c9-0e3ca8103184\",\"reason\":\"operation_failed\",\"certainty\":\"confirmed\",\"recovery\":\"replan_read\",\"issues\":[],\"evidence\":{},\"causes\":[{\"name\":\"AppError\",\"code\":\"INVALID_RESPONSE\"}],\"code\":\"INVALID_RESPONSE\",\"origin\":\"http\",\"stage\":\"decode\",\"operation\":\"search_subjects\"}}}"
+      }
+    ],
+    "full": {
+      "error": {
+        "code": "INVALID_RESPONSE",
+        "message": "Bangumi 返回的数据结构或对象不符合预期。",
+        "accessContext": {
+          "mode": "anonymous",
+          "account": null,
+          "nsfw": {
+            "preference": null,
+            "allowed": null,
+            "state": "not_checked"
+          },
+          "source": "v0",
+          "nsfwApplied": false,
+          "checkedAt": "2026-10-07T13:45:19.631Z",
+          "queryCoverage": {
+            "requested": "exclude",
+            "actual": "sfw_only",
+            "nsfw": "excluded",
+            "totalKind": "estimated",
+            "limitations": [
+              "v0_anonymous_source",
+              "estimated_search_total"
+            ]
+          }
+        },
+        "sourceTool": "search_subjects",
+        "diagnosis": {
+          "category": "contract",
+          "stage": "response_contract",
+          "effect": "read",
+          "blockedFields": [],
+          "allowedValues": [],
+          "capabilitySuggestions": [
+            "read_alternate_source",
+            "report_gap"
+          ],
+          "replanAllowed": true,
+          "retryable": false
+        },
+        "diagnostic": {
+          "schemaVersion": 1,
+          "errorId": "376ca735-38ba-4408-a2c9-0e3ca8103184",
+          "reason": "operation_failed",
+          "certainty": "confirmed",
+          "recovery": "replan_read",
+          "issues": [],
+          "evidence": {},
+          "causes": [
+            {
+              "name": "AppError",
+              "code": "INVALID_RESPONSE"
+            }
+          ],
+          "code": "INVALID_RESPONSE",
+          "origin": "http",
+          "stage": "decode",
+          "operation": "search_subjects"
+        }
+      }
+    }
+  }
+]

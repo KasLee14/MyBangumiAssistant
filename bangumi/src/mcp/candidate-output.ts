@@ -41,6 +41,8 @@ function card(row: CandidateRow, fields: CandidateCardField[]): { item: Candidat
   if (!kind) throw new AppError('CANDIDATE_REQUIRED_FACTS_MISSING', '卡片kind需要已核实subjectType；在原候选范围按ID补必要事实，不能猜媒体或缩小集合。');
   const name = nonblank(row.facts.name) ? row.facts.name : nonblank(row.facts.nameCn) ? row.facts.nameCn : `#${row.id}`;
   const item: CandidateCardItem = { id: row.id, name, kind, url: `https://bgm.tv/subject/${row.id}` };
+  // 封面属于宿主基础卡片展示；只附加本成员同一缓存里已经核实的地址。
+  if (row.fieldStates.image === 'known' && typeof row.facts.image === 'string') item.image = row.facts.image;
   let unknown = nonblank(row.facts.name) || nonblank(row.facts.nameCn) ? 0 : 1;
   for (const field of fields) {
     const value = row.facts[field === 'scoreCount' ? 'ratingCount' : field];

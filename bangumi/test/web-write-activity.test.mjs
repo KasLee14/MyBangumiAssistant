@@ -55,19 +55,19 @@ test('真实Pi工具更新经Web增量帧显示额度等待与最终部分完成
   const gate = await f.begin('batch-tab', sessionId, '离线批反馈');
   gate.update(result({ state: 'running', phase: 'rate_limit_wait', summary: { submitted: 1 },
     waiting: { action: 'Subject', nextAllowedAt: Date.parse('2026-10-04T12:05:00Z') } }));
-  await eventually(() => stream.frames.some(frame => frame.type === 'state' && frame.items.some(item => item.kind === 'activity' && item.state === 'waiting')));
-  const waiting = (await f.state('batch-tab')).items.find(item => item.kind === 'activity');
-  assert.match(waiting.detail, /作品收藏额度等待/u);
+  await eventually(() => stream.frames.some(frame => frame.type === 'state' && frame.items.some(item => item.kind === 'tool' && item.state === 'waiting')));
+  const waiting = (await f.state('batch-tab')).items.find(item => item.kind === 'tool');
+  assert.match(waiting.result.text, /作品收藏额度等待/u);
   assert.ok(waiting.version > 1);
   gate.result = mixed(); gate.release.resolve();
   await f.initial.session.waitForIdle();
-  const completed = (await f.state('batch-tab')).items.find(item => item.kind === 'activity');
+  const completed = (await f.state('batch-tab')).items.find(item => item.kind === 'tool');
   assert.equal(completed.state, 'partial'); assert.ok(completed.version > waiting.version);
-  assert.match(completed.detail, /第 2 步 《不可见作品》/u);
+  assert.match(completed.result.text, /第 2 步 《不可见作品》/u);
   const history = SessionManager.create(f.root, f.sessionDir);
   for (const entry of f.initial.session.sessionManager.buildContextEntries()) {
     if (entry.type === 'message') history.appendMessage(entry.message);
   }
   await f.manager.select('restored-batch', 'resume', { path: history.getSessionFile() });
-  assert.equal(f.manager.selected('restored-batch').snapshot().items.find(item => item.kind === 'activity').state, 'partial');
+  assert.equal(f.manager.selected('restored-batch').snapshot().items.find(item => item.kind === 'tool').state, 'partial');
 });

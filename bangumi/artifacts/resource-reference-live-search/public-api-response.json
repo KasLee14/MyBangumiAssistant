@@ -1,0 +1,2347 @@
+[
+  {
+    "path": "/v0/search/subjects",
+    "value": {
+      "data": [
+        {
+          "date": "1998-10-23",
+          "platform": "TV",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/c2/4c/253_jJJj9.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/c2/4c/253_jJJj9.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/c2/4c/253_jJJj9.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/c2/4c/253_jJJj9.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/c2/4c/253_jJJj9.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/c2/4c/253_jJJj9.jpg",
+          "summary": "       2021年，随着超光速航行技术的实现，人类得以在太阳系范围内方便的自由移动，但是由于设计上的失误，这种技术引发了月球的爆炸，无数的月球碎片被吸引向地球，造成了空前绝后的大灾难。存活下来的人类逃离地球，并开始在太阳系各地建立家园。由于这次灾难，国家、政府等权利机构都极为不稳定、治安问题也成为了一个难题。为了在人力资源不足的情况下抓捕罪犯，有些组织开始允许个人抓捕通缉的罪犯并换取奖金，“赏金猎人”这个职业也就由此诞生了。\r\n       史派克（Spike）和杰特（Jet）是驾驶飞船Bebop号在宇宙中以捉拿逃犯获取奖金为生的赏金猎人。两人在星际间的旅程中，结识了身负巨债、嗜财如命的美女菲（Faye）和电脑神童艾德（Ed），并收养了拥有高智商的数据狗爱因（Ein）。从此，四人一狗游荡在广阔之宇宙之中，在自己与他人的生活中经历著种种悲欢离合，也寻找著各自的过去。",
+          "name": "カウボーイビバップ",
+          "name_cn": "星际牛仔",
+          "tags": [
+            {
+              "name": "渡边信一郎",
+              "count": 5739,
+              "total_count": 20457
+            },
+            {
+              "name": "菅野洋子",
+              "count": 4534,
+              "total_count": 17687
+            },
+            {
+              "name": "星际牛仔",
+              "count": 4119,
+              "total_count": 5312
+            },
+            {
+              "name": "科幻",
+              "count": 3852,
+              "total_count": 258072
+            },
+            {
+              "name": "经典",
+              "count": 3331,
+              "total_count": 23248
+            },
+            {
+              "name": "SUNRISE",
+              "count": 2520,
+              "total_count": 93399
+            },
+            {
+              "name": "神作",
+              "count": 2428,
+              "total_count": 48235
+            },
+            {
+              "name": "神配乐",
+              "count": 2074,
+              "total_count": 6434
+            },
+            {
+              "name": "TV",
+              "count": 1944,
+              "total_count": 1433220
+            },
+            {
+              "name": "1998",
+              "count": 1725,
+              "total_count": 13394
+            },
+            {
+              "name": "原创",
+              "count": 1641,
+              "total_count": 631623
+            },
+            {
+              "name": "CowboyBebop",
+              "count": 1127,
+              "total_count": 1182
+            },
+            {
+              "name": "林原惠",
+              "count": 606,
+              "total_count": 2708
+            },
+            {
+              "name": "cowboy",
+              "count": 596,
+              "total_count": 806
+            },
+            {
+              "name": "日本",
+              "count": 331,
+              "total_count": 308744
+            },
+            {
+              "name": "山寺宏一",
+              "count": 234,
+              "total_count": 854
+            },
+            {
+              "name": "公路片",
+              "count": 217,
+              "total_count": 22907
+            },
+            {
+              "name": "1998年10月",
+              "count": 145,
+              "total_count": 254
+            },
+            {
+              "name": "浪漫",
+              "count": 117,
+              "total_count": 1459
+            },
+            {
+              "name": "战斗",
+              "count": 85,
+              "total_count": 484014
+            },
+            {
+              "name": "渡辺信一郎",
+              "count": 75,
+              "total_count": 2351
+            },
+            {
+              "name": "BONES",
+              "count": 65,
+              "total_count": 80707
+            },
+            {
+              "name": "信本敬子",
+              "count": 55,
+              "total_count": 344
+            },
+            {
+              "name": "单元剧",
+              "count": 49,
+              "total_count": 2156
+            },
+            {
+              "name": "音乐",
+              "count": 48,
+              "total_count": 105056
+            },
+            {
+              "name": "1998年",
+              "count": 44,
+              "total_count": 635
+            },
+            {
+              "name": "菅野よう子",
+              "count": 43,
+              "total_count": 1978
+            },
+            {
+              "name": "公路",
+              "count": 40,
+              "total_count": 1535
+            },
+            {
+              "name": "川元利浩",
+              "count": 35,
+              "total_count": 454
+            },
+            {
+              "name": "90年代",
+              "count": 35,
+              "total_count": 4082
+            }
+          ],
+          "infobox": [
+            {
+              "key": "中文名",
+              "value": "星际牛仔"
+            },
+            {
+              "key": "别名",
+              "value": [
+                {
+                  "v": "Cowboy Bebop"
+                },
+                {
+                  "v": "宇宙牛仔"
+                },
+                {
+                  "v": "赏金猎人"
+                },
+                {
+                  "v": "太空牛仔"
+                },
+                {
+                  "v": "恶男杰特"
+                }
+              ]
+            },
+            {
+              "key": "话数",
+              "value": "26"
+            },
+            {
+              "key": "放送开始",
+              "value": "1998年10月23日"
+            },
+            {
+              "key": "放送星期",
+              "value": "星期五"
+            },
+            {
+              "key": "官方网站",
+              "value": [
+                {
+                  "v": "http://www.cowboybebop.org/"
+                },
+                {
+                  "v": "http://www.cowboy-bebop.net/index.html"
+                }
+              ]
+            },
+            {
+              "key": "播放电视台",
+              "value": "WOWOW、テレビ東京"
+            },
+            {
+              "key": "播放结束",
+              "value": "1999年4月23日"
+            },
+            {
+              "key": "导演",
+              "value": "渡辺信一郎"
+            },
+            {
+              "key": "音乐",
+              "value": "菅野よう子"
+            },
+            {
+              "key": "Copyright",
+              "value": "©️サンライズ"
+            },
+            {
+              "key": "企画",
+              "value": "サンライズ"
+            },
+            {
+              "key": "原作",
+              "value": "矢立肇"
+            },
+            {
+              "key": "系列构成",
+              "value": "信本敬子"
+            },
+            {
+              "key": "人物设定",
+              "value": "川元利浩"
+            },
+            {
+              "key": "机械设定",
+              "value": "山根公利"
+            },
+            {
+              "key": "设定",
+              "value": "セットデザイン：今掛勇、舞台設定協力：河森正治、佐藤大"
+            },
+            {
+              "key": "3DCG",
+              "value": "モニターCG：佐山善則"
+            },
+            {
+              "key": "标题设计",
+              "value": "主标题：マツモト･デザインセンター"
+            },
+            {
+              "key": "美术监督",
+              "value": "東潤一"
+            },
+            {
+              "key": "色彩设计",
+              "value": "中山しほ子"
+            },
+            {
+              "key": "摄影监督",
+              "value": "大神洋一"
+            },
+            {
+              "key": "剪辑",
+              "value": "鶴渕友彰 / ビデオ編集：キュー・テック、今塚誠、菅原慎一"
+            },
+            {
+              "key": "コンピュータ処理",
+              "value": "レアトリック、チャッピィ"
+            },
+            {
+              "key": "現像",
+              "value": "東京現像所"
+            },
+            {
+              "key": "音响监督",
+              "value": "小林克良"
+            },
+            {
+              "key": "音效",
+              "value": "倉橋静男（サウンドボックス）"
+            },
+            {
+              "key": "录音",
+              "value": "APUスタジオ[AUDIO PLANNING U] / 整音：田中章喜、内山敬章"
+            },
+            {
+              "key": "录音助理",
+              "value": "整音助手：田口信孝"
+            },
+            {
+              "key": "音响",
+              "value": "音響制作：AUDIO PLANNING U / 担当：飯草良花、小澤恵"
+            },
+            {
+              "key": "主题歌编曲",
+              "value": "菅野よう子"
+            },
+            {
+              "key": "主题歌作曲",
+              "value": "菅野よう子"
+            },
+            {
+              "key": "主题歌作词",
+              "value": "岩里祐穂、Tim Jensen"
+            },
+            {
+              "key": "主题歌演出",
+              "value": "シートベルツ（THE SEATBELTS）、山根麻以"
+            },
+            {
+              "key": "音乐制作人",
+              "value": "太田敏明"
+            },
+            {
+              "key": "音乐制作",
+              "value": "ビクターエンタテインメント"
+            },
+            {
+              "key": "宣传",
+              "value": "番宣：佐伯真美 (テレビ東京)（テレビ東京放送版でクレジット）"
+            },
+            {
+              "key": "連載",
+              "value": "｢ファンタジーDX｣ (角川書店)"
+            },
+            {
+              "key": "制片人",
+              "value": "南雅彦、池口和彦、担当：小林教子 (テレビ東京)（テレビ東京放送版でクレジット）、山崎立士（テレビ東京放送版でクレジット）"
+            },
+            {
+              "key": "助理制片人",
+              "value": "小池経利、梅澤勝路"
+            },
+            {
+              "key": "制作管理",
+              "value": "制作デスク：松村圭一"
+            },
+            {
+              "key": "设定制作",
+              "value": "鳥羽聡"
+            },
+            {
+              "key": "制作进行",
+              "value": "村田央（進行チーフ）"
+            },
+            {
+              "key": "制作进行协力",
+              "value": "制作助手：喜多幡咲子"
+            },
+            {
+              "key": "配給",
+              "value": "旭通信社（テレビ東京放送版でクレジット）"
+            },
+            {
+              "key": "製作",
+              "value": "サンライズ、バンダイビジュアル"
+            },
+            {
+              "key": "脚本",
+              "value": "信本敬子(1,3,6,12,13,15,22,25,26)、横手美智子(2,5,7,8,11,16,17,24)、山口亮太(3)、村井さだゆき(4,20,21)、佐藤大(9,14,23)、稲荷昭彦(10,18,19)、渡辺信一郎(17,21)"
+            },
+            {
+              "key": "分镜",
+              "value": "渡辺信一郎(1,2,5,9,17,25,26)、赤根和樹(3)、武井良幸(4,8,20,23)、岡村天斎(6,7,12,13,15,22,24)、山口祐司(10)、森邦宏(11)、都留稔幸(14)、山内重保(16)、佐藤順一(18)、飯田馬之介(19)、潮乱太[本郷みつる](21)"
+            },
+            {
+              "key": "OP・ED 演出",
+              "value": "渡辺信一郎(OP,ED)"
+            },
+            {
+              "key": "演出",
+              "value": "武井良幸(1,4,8,12,18,20,23,26)、佐藤育郎(2,6,9,13,16,21,25)、森邦宏(3,7,11,15,17,22)、渡邊哲哉(5)、山田弘和(10,14,19,24)"
+            },
+            {
+              "key": "总作画监督",
+              "value": "川元利浩(25)"
+            },
+            {
+              "key": "作画监督",
+              "value": "川元利浩(1,5,12,22,26,OP,ED)、竹内浩志(2,6,16,21,23)、本橋秀之(3,7)、しんぼたくろう(4,8,11,14,17)、小森高博(9,13,20,25)、逢坂浩司(10,15,19)、中田栄治(17)、菅野宏紀(18,24)、後藤雅巳(OP,ED)"
+            },
+            {
+              "key": "机械作画监督",
+              "value": "佐野浩敏(1)、後藤雅巳(3-26)"
+            },
+            {
+              "key": "构图",
+              "value": "入江泰浩"
+            },
+            {
+              "key": "原画",
+              "value": "逢坂浩司、中田栄治、後藤雅巳、小森高博、杉浦幸次、中村豊、伊藤嘉之、斎藤恒徳、鴨川浩、伊藤岳史、横山彰利、星和伸、大塚健、宮田忠明、吉田徹、川元利浩、菅野宏紀、橋本誠一、富岡隆司、井上英紀、岡真里子、津野田勝敏、入江泰浩、佐藤千春、高橋しんや、伊東伸高、高山朋浩、吉田大輔、オープニング原画：そえたかずひろ、小森高博、後藤雅巳、今掛勇、エンディング原画：逢坂浩司"
+            },
+            {
+              "key": "特效",
+              "value": "長谷川敏生"
+            },
+            {
+              "key": "动画制作",
+              "value": "サンライズ"
+            },
+            {
+              "key": "テレビ東京版",
+              "value": "1998年4月3日 - 1998年6月26日（全12话+总集篇）"
+            },
+            {
+              "key": "文艺制作",
+              "value": "鳥羽聡"
+            },
+            {
+              "key": "音乐监督",
+              "value": "佐々木史朗、井上裕香子"
+            },
+            {
+              "key": "脚本协力",
+              "value": "河森正治(18)、吉永亜矢(18)、山根公利(19)"
+            }
+          ],
+          "rating": {
+            "rank": 4,
+            "total": 19859,
+            "count": {
+              "1": 61,
+              "2": 13,
+              "3": 16,
+              "4": 30,
+              "5": 114,
+              "6": 306,
+              "7": 964,
+              "8": 2959,
+              "9": 6374,
+              "10": 9022
+            },
+            "score": 9.1
+          },
+          "collection": {
+            "on_hold": 1894,
+            "dropped": 366,
+            "wish": 12193,
+            "collect": 27200,
+            "doing": 4196
+          },
+          "id": 253,
+          "eps": 26,
+          "total_episodes": 26,
+          "meta_tags": [
+            "科幻",
+            "TV",
+            "日本",
+            "原创"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": "2001-09-01",
+          "platform": "剧场版",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/fc/49/860_gtiyS.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/fc/49/860_gtiyS.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/fc/49/860_gtiyS.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/fc/49/860_gtiyS.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/fc/49/860_gtiyS.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/fc/49/860_gtiyS.jpg",
+          "summary": "2071年，即将迎接万圣节的火星都市阿尔帕城。在高速道路上一辆油罐车突然发生了爆炸，而在案发现场周边的人们，却也出现了原因不明的症状相继倒地，造成相关死伤者高达400人以上的惨案。警方认为这可能是使用不明生化武器的恐怖活动，火星政府也发出3亿乌隆的高额赏金缉凶。而在追查另一件盗刷货币卡案件的骇客嫌犯李‧山森的菲，却意外拍到了案发当时，现场所出现的一名手掌上有刺青的男子。为了3亿乌隆的赏金，于是BEBOP号上的四人＋一犬搭档，开始找寻这名男子的下落……",
+          "name": "カウボーイビバップ 天国の扉",
+          "name_cn": "星际牛仔 天国之扉",
+          "tags": [
+            {
+              "name": "剧场版",
+              "count": 2020,
+              "total_count": 734042
+            },
+            {
+              "name": "渡边信一郎",
+              "count": 1906,
+              "total_count": 20457
+            },
+            {
+              "name": "星际牛仔",
+              "count": 1169,
+              "total_count": 5312
+            },
+            {
+              "name": "SUNRISE",
+              "count": 874,
+              "total_count": 93399
+            },
+            {
+              "name": "菅野よう子",
+              "count": 864,
+              "total_count": 1978
+            },
+            {
+              "name": "BONES",
+              "count": 785,
+              "total_count": 80707
+            },
+            {
+              "name": "2001",
+              "count": 756,
+              "total_count": 15879
+            },
+            {
+              "name": "原创",
+              "count": 635,
+              "total_count": 631623
+            },
+            {
+              "name": "科幻",
+              "count": 566,
+              "total_count": 258072
+            },
+            {
+              "name": "菅野洋子",
+              "count": 553,
+              "total_count": 17687
+            },
+            {
+              "name": "cowboy",
+              "count": 210,
+              "total_count": 806
+            },
+            {
+              "name": "Cowboy_Bebop",
+              "count": 179,
+              "total_count": 181
+            },
+            {
+              "name": "山寺宏一",
+              "count": 154,
+              "total_count": 854
+            },
+            {
+              "name": "日本",
+              "count": 81,
+              "total_count": 308744
+            },
+            {
+              "name": "天国之门",
+              "count": 73,
+              "total_count": 73
+            },
+            {
+              "name": "战斗",
+              "count": 65,
+              "total_count": 484014
+            },
+            {
+              "name": "渡辺信一郎",
+              "count": 52,
+              "total_count": 2351
+            },
+            {
+              "name": "CowboyBebop",
+              "count": 50,
+              "total_count": 1182
+            },
+            {
+              "name": "神作",
+              "count": 37,
+              "total_count": 48235
+            },
+            {
+              "name": "经典",
+              "count": 37,
+              "total_count": 23248
+            },
+            {
+              "name": "信本敬子",
+              "count": 35,
+              "total_count": 344
+            },
+            {
+              "name": "林原めぐみ",
+              "count": 32,
+              "total_count": 2356
+            },
+            {
+              "name": "2001年",
+              "count": 22,
+              "total_count": 839
+            },
+            {
+              "name": "川元利浩",
+              "count": 20,
+              "total_count": 454
+            },
+            {
+              "name": "林原惠美",
+              "count": 15,
+              "total_count": 679
+            },
+            {
+              "name": "2001年9月",
+              "count": 15,
+              "total_count": 31
+            },
+            {
+              "name": "中村丰",
+              "count": 15,
+              "total_count": 213
+            },
+            {
+              "name": "电影",
+              "count": 13,
+              "total_count": 13689
+            },
+            {
+              "name": "映画",
+              "count": 12,
+              "total_count": 6325
+            },
+            {
+              "name": "SF",
+              "count": 11,
+              "total_count": 7276
+            }
+          ],
+          "infobox": [
+            {
+              "key": "中文名",
+              "value": "星际牛仔 天国之扉"
+            },
+            {
+              "key": "别名",
+              "value": [
+                {
+                  "v": "星际牛仔：天国之门"
+                },
+                {
+                  "v": "赏金猎人：天国之扉"
+                },
+                {
+                  "v": "宇宙牛仔：天国之扉"
+                },
+                {
+                  "v": "Cowboy Bebop: The Movie"
+                },
+                {
+                  "v": "Cowboy Bebop: Tengoku no Tobira"
+                },
+                {
+                  "v": "Cowboy Bebop the Movie: Knockin' on Heaven's Door"
+                }
+              ]
+            },
+            {
+              "key": "上映年度",
+              "value": "2001年9月1日"
+            },
+            {
+              "key": "片长",
+              "value": "116分钟"
+            },
+            {
+              "key": "官方网站",
+              "value": "http://www.sonypictures.com/cthe/cowboybebop/"
+            },
+            {
+              "key": "原作",
+              "value": "矢立肇"
+            },
+            {
+              "key": "导演",
+              "value": "渡辺信一郎"
+            },
+            {
+              "key": "人物设定",
+              "value": "川元利浩"
+            },
+            {
+              "key": "脚本",
+              "value": "信本敬子"
+            },
+            {
+              "key": "分镜",
+              "value": "渡辺信一郎；动作分镜：中村豊、後藤雅巳、出渕裕；西部片分镜：岡村天斎；协力：小森高博、川元利浩、入江泰浩"
+            },
+            {
+              "key": "演出助理",
+              "value": "鳥羽聡、佐藤育郎、福本潔、森邦宏"
+            },
+            {
+              "key": "作画监督助理",
+              "value": "逢坂浩司、富岡隆司、伊藤嘉之、吉田健一、斎藤恒徳、伊藤岳史；作画监督协力：横山彰利、岡村天斎、安藤真裕、鈴木典光、豊健秋、宮田忠明、長谷部敦志"
+            },
+            {
+              "key": "作画监督",
+              "value": "川元利浩"
+            },
+            {
+              "key": "设定",
+              "value": "竹内志保（セットデザイン）、佐山善則（ディスプレイデザイン）设定协力：金子隆一、小林伸光、今掛勇、河森正治"
+            },
+            {
+              "key": "话数",
+              "value": "1"
+            },
+            {
+              "key": "原画",
+              "value": "伊藤岳史、村木靖、吉田健一、斎藤恒徳、富岡隆司、伊藤嘉之、宮田忠明、横山彰利、鈴木典光、岡村天斎、豊健秋、安藤真裕、長谷部敦志、後藤雅巳、今掛勇、馬越嘉彦、高橋英樹、新井浩一、増永計介、佐藤雅将、阿保孝雄、江本正弘、大塚健、斎藤久、福世孝明、山岸徹一、竹内浩志、工藤誉寿治、神戸洋行、玉川達文[伊藤達文]、都留稔幸、江口寿志、板野一郎、村瀬修功、佐野浩敏、竹内志保、川口隆、水野知己、森下博光、河野利幸、小松英司、外崎春雄、伊藤良太"
+            },
+            {
+              "key": "构图",
+              "value": "竹内志保、武半慎吾、鈴木博文（协力）、佐山善則（协力）"
+            },
+            {
+              "key": "美术监督",
+              "value": "森川篤、浅井和久（補佐）"
+            },
+            {
+              "key": "背景美术",
+              "value": "本間匠、磯部泰久、土師勝弘、澁谷麗子、吉崎正樹[吉﨑正樹]、板倉佐賀子、太田清美、若松英司、柴田正人、長嶋哲彦、松本浩樹、岡田和夫、斉藤雅己、管野孝信、岩崎清宏、大橋則子、芳野満雄、鳴海博光、申玉澈、浅井和久、森川篤、GREEN（青井孝、中村典史、佐々揚子、酒井達也、杉山理絵、菱沼由典）、ビックスタジオ（中山恭子）、TEAM'S ART（泰夏權、李容相、李惠娟、辛賢美、金美京[김미경]）、木下和宏（デジタルワークス）"
+            },
+            {
+              "key": "补间动画",
+              "value": "島田悌三、阿武恵子、山本みどり、渡辺妙子、高橋祐子、平出差知予、大塚美穂、守屋保子、竹ノ内節子、鈴木富美子、橋本純一、神山富美江、山口旭、柳生智寿、横田和彦、楠知津子、吉玉理子、伊藤幸子、増井泉 、岡村隆、田中嘉、畑明日香、吉田綾、高森富子、高柳久美子、楊佩純、吉川友美子、スタジオたくらんけ（蜷川貴弘、小池智史、菅原正朋、二羽雄大、川田栄三）、GAINAX（丸山友、田中春香、榎本花子）、スタジオ アド（山崎敦子、亦野賢治、田辺謙司、小野田貴之、阿部千恵子、山田義和、加藤愛、柴田恵実、池田弦司、小峰正頼）、スタジオ ウォンバット（小野木三斉、磯崎有紀美、杉田葉子、大山伸吾、鴨志田奈緒、井上健太郎）、スタジオ コクピット（杉山典子、相川真理子、甲斐紀子、鈴木洋美、上野千夏、村松さつき、船本優美、香川美智子、本舘耐）、スタジオライブ（石渡清美、倉狩真吾、小野田将人）、すたじお ガッシュ（高橋暁史、新井達郎）、スタジオディーン（村田睦明、中川雅文、中野圭哉、熊田明子、金原廣子、田畑壽之）、RADIX MOBANIMATION（尾山景子、坂本千代子、添田直子、鈴木聡志、岡本綾子）、ゼロジー-ROOM名古屋スタジオ（竹内直美、長谷川友香、山田博之、高橋亮、前田英範、鈴木恵）、アニメワールド大阪（桂仁志、山本浩代、小梶慎也、大下知之、木村都彦、大梶博之）、アクセル（北島愛）、アニメTOROTORO（谷平久美子、山浦由加里）、スタジオライン（櫻井司、桑原智也）、XEBEC（松村拓哉、高橋陽子）、BeeTrain（佐々木睦美、榊原智康、加藤久美子、城田美香、玉本幸太郎、原田美由紀）、アングル（見崎仁美、福島憲子、酒井利行、重松鉄兵）、シナジージャパン（野口博善、萩原祥子[萩原しょう子]、吹野太郎）、ラジカル・パーティー（寺田眞佐子）、スタジオ・ファンタジア（大村英巨）、ラストハウス（山本智代、三輪和宏、酒井強至、岡本恭江、奥真由美、猪俣利枝）、動画工房（茉田哲明、林田薫、満仲勧）、ティー・エヌ・ケー（西橋直子、人見由紀子）、アニメ浪漫（藤田聖）、アニメハウス（八代紀美子、可知進一、白石順子）、マーサ（MULYON、PASEK、FIRMANTO、ARIMBAWA、SYAIFUDDIN）、DR MOVIE（尹明姫、黄順阿、鄭蓮希、趙鉉美、金成愛、徐金淑、鄭炫守、安美京、朴英淑）、北京写乐美术艺术品有限公司（韓穎、王立明、趙香春、陳永峰、田咏梅、牛文伶、周紅武、周鵬程、関若玉、巌怡、白川）、スタジオ九魔（前田清明、川崎浩充、内田眞樹）、TASK（TOMOYUKI FUJIWARA、PRASERT TONGKHOM、VENIT MITRSANTHEA、BADINTR MUDLA、WANDEE WIJITTHAMASAM、JIRAPORN ROJANAPHANICH）、星山企画（朴珖模、石吉燮、洪晨兒、孔珍、梁聖珍、金蘭英）、JEM（朴文姫、李銀兒、朴美英、崔眞姫、李性珍、李賢美）、C & S（朴鐘烈、朴惠年、金正勳、朴相佑、全惠眞、朴敬順、廉訓植）"
+            },
+            {
+              "key": "色彩指定",
+              "value": "中山しほ子、岸好子、松本貴子、村上芳枝、長尾朱美、堀川直子"
+            },
+            {
+              "key": "特效",
+              "value": "マリックス（干場豊、長谷川敏生）、谷口久美子、鈴木さち、榊原豊彦"
+            },
+            {
+              "key": "摄影",
+              "value": "アニメフィルム（杉澤義雄、大神麻美、市川智、丸橋勢津子、熊谷正弘、山田廣明、鈴木浩司、倉田佳美、木次美則、福田寛、手塚智鶴子、小川滋見、羽原久美子、伊藤修一）"
+            },
+            {
+              "key": "摄影监督",
+              "value": "大神洋一、須貝克俊（数码摄影监督）"
+            },
+            {
+              "key": "音乐制作人",
+              "value": "佐々木史朗、太田敏明、井上裕香子"
+            },
+            {
+              "key": "音乐制作",
+              "value": "ビクターエンタテインメント、ボーダーライン（协力）"
+            },
+            {
+              "key": "制作进行",
+              "value": "天野直樹、安川勝、阿部貴、加川大地、津村米紀"
+            },
+            {
+              "key": "执行制片人",
+              "value": "吉井孝幸、角田良平"
+            },
+            {
+              "key": "制片人",
+              "value": "植田益朗、南雅彦、高梨実"
+            },
+            {
+              "key": "助理制片人",
+              "value": "湯川淳、植木奈緒子"
+            },
+            {
+              "key": "监制",
+              "value": "佐々木新、望月克己"
+            },
+            {
+              "key": "协力",
+              "value": "谷謙一、イク・モハメッド（ジャパンデジタルエンターテインメント）、MOHAMAD、EL-DESOUQI、TAO ZHEN YAN、降旗剛、今村大祐、ジェイ・フィルム、バンダイ ホビー事業部（现：BANDAI SPIRITS）、CLUB M、大日本技研、フロッグネーション"
+            },
+            {
+              "key": "发行",
+              "value": "ソニー・ピクチャーズ エンタテインメント"
+            }
+          ],
+          "rating": {
+            "rank": 140,
+            "total": 7244,
+            "count": {
+              "1": 7,
+              "2": 4,
+              "3": 8,
+              "4": 16,
+              "5": 51,
+              "6": 283,
+              "7": 1133,
+              "8": 3094,
+              "9": 1926,
+              "10": 722
+            },
+            "score": 8.2
+          },
+          "collection": {
+            "on_hold": 189,
+            "dropped": 67,
+            "wish": 2799,
+            "collect": 11173,
+            "doing": 321
+          },
+          "id": 860,
+          "eps": 1,
+          "total_episodes": 1,
+          "meta_tags": [
+            "科幻",
+            "剧场版",
+            "日本",
+            "原创"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": null,
+          "platform": "TV",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/41/35/146215_Uf0zb.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/41/35/146215_Uf0zb.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/41/35/146215_Uf0zb.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/41/35/146215_Uf0zb.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/41/35/146215_Uf0zb.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/41/35/146215_Uf0zb.jpg",
+          "summary": "《星际飚车王》（1－52集，每集22分钟），浙江中南卡通数字娱乐有限公司制作。该片讲述了在未来的宇宙空间中，来自不同星球的天才少年为争夺飞车王头衔，展开一场场精彩的飞车大赛的故事。该片成功塑造了拥有天才潜质、正直善良的赛车手阿雷的形象，并通过阿雷和他的朋友们参加赛车的故事，体现出正义、勇敢和团队的强大力量。\r\n",
+          "name": "星际飚车王",
+          "name_cn": "",
+          "tags": [
+            {
+              "name": "国产",
+              "count": 34,
+              "total_count": 163022
+            },
+            {
+              "name": "TV",
+              "count": 22,
+              "total_count": 1432686
+            },
+            {
+              "name": "童年",
+              "count": 17,
+              "total_count": 93733
+            },
+            {
+              "name": "原创",
+              "count": 16,
+              "total_count": 631763
+            },
+            {
+              "name": "赛车",
+              "count": 12,
+              "total_count": 3323
+            },
+            {
+              "name": "竞技",
+              "count": 7,
+              "total_count": 12991
+            },
+            {
+              "name": "中国",
+              "count": 7,
+              "total_count": 32351
+            },
+            {
+              "name": "2006",
+              "count": 6,
+              "total_count": 34700
+            },
+            {
+              "name": "运动",
+              "count": 3,
+              "total_count": 62049
+            },
+            {
+              "name": "2000-2009",
+              "count": 3,
+              "total_count": 1246
+            },
+            {
+              "name": "子供向",
+              "count": 2,
+              "total_count": 13522
+            },
+            {
+              "name": "童年补完计划",
+              "count": 2,
+              "total_count": 280
+            },
+            {
+              "name": "⊘中国",
+              "count": 1,
+              "total_count": 175
+            },
+            {
+              "name": "中南卡通",
+              "count": 1,
+              "total_count": 4
+            },
+            {
+              "name": "2008",
+              "count": 1,
+              "total_count": 36155
+            },
+            {
+              "name": "动画",
+              "count": 1,
+              "total_count": 35768
+            },
+            {
+              "name": "科幻",
+              "count": 1,
+              "total_count": 257942
+            },
+            {
+              "name": "6分",
+              "count": 1,
+              "total_count": 2682
+            },
+            {
+              "name": "热血",
+              "count": 1,
+              "total_count": 217020
+            },
+            {
+              "name": "5分",
+              "count": 1,
+              "total_count": 1855
+            },
+            {
+              "name": "国漫",
+              "count": 1,
+              "total_count": 16215
+            }
+          ],
+          "infobox": [
+            {
+              "key": "别名",
+              "value": [
+                {
+                  "v": "Motorcity in china"
+                },
+                {
+                  "v": "Galaxy Racers"
+                }
+              ]
+            },
+            {
+              "key": "话数",
+              "value": "52"
+            },
+            {
+              "key": "放送开始",
+              "value": "2008年6月"
+            },
+            {
+              "key": "在线播放平台",
+              "value": "乐视视频"
+            },
+            {
+              "key": "播放电视台",
+              "value": "中央电视台少儿频道"
+            },
+            {
+              "key": "导演",
+              "value": "吴建荣"
+            },
+            {
+              "key": "编剧",
+              "value": "常有、吴潋楠"
+            },
+            {
+              "key": "配音",
+              "value": "张璐、伍凤春、郝幽玥、王博、杨莹、贾小军、李云鹏、王涛、状元、清晨"
+            },
+            {
+              "key": "制作",
+              "value": "浙江中南集团卡通影视有限公司"
+            }
+          ],
+          "rating": {
+            "rank": 8086,
+            "total": 79,
+            "count": {
+              "1": 1,
+              "2": 4,
+              "3": 4,
+              "4": 9,
+              "5": 27,
+              "6": 25,
+              "7": 6,
+              "8": 1,
+              "9": 0,
+              "10": 2
+            },
+            "score": 5.2
+          },
+          "collection": {
+            "on_hold": 7,
+            "dropped": 16,
+            "wish": 6,
+            "collect": 142,
+            "doing": 2
+          },
+          "id": 146215,
+          "eps": 52,
+          "total_episodes": 52,
+          "meta_tags": [
+            "TV",
+            "中国"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": "2019-06-07",
+          "platform": "剧场版",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/66/c2/333887_QbDry.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/66/c2/333887_QbDry.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/66/c2/333887_QbDry.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/66/c2/333887_QbDry.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/66/c2/333887_QbDry.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/66/c2/333887_QbDry.jpg",
+          "summary": "有些自大的星际侦探小贝在追捕宇宙强盗黑洞的激战过程中，意外坠入地球。在地球上，小贝遇到了人类女孩小依和星际赏金猎人极光。同时，以黑洞为首的星际逃犯组织，正准备开启星际隧道摧毁地球。在小依和极光同心协力的帮助下，小贝也逐渐克服自己的缺点，成长为一名真正的星际侠探。正当黑洞即将开启毁灭地球的星际隧道时，小贝和小伙伴们和黑洞展开了一场保卫地球的生死之战……",
+          "name": "星际侠探",
+          "name_cn": "",
+          "tags": [
+            {
+              "name": "中国",
+              "count": 1,
+              "total_count": 32114
+            },
+            {
+              "name": "国产",
+              "count": 1,
+              "total_count": 162202
+            },
+            {
+              "name": "剧场版",
+              "count": 1,
+              "total_count": 730392
+            }
+          ],
+          "infobox": [
+            {
+              "key": "别名",
+              "value": [
+                {
+                  "v": "Space Detective"
+                }
+              ]
+            },
+            {
+              "key": "上映年度",
+              "value": "2019年6月7日"
+            },
+            {
+              "key": "片长",
+              "value": "90分钟"
+            },
+            {
+              "key": "话数",
+              "value": "1"
+            },
+            {
+              "key": "导演",
+              "value": "江南"
+            },
+            {
+              "key": "出品",
+              "value": "苏州珙桐文化发展有限公司"
+            },
+            {
+              "key": "发行",
+              "value": "北京基点影视文化传媒有限公司"
+            }
+          ],
+          "rating": {
+            "rank": 0,
+            "total": 1,
+            "count": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 1,
+              "8": 0,
+              "9": 0,
+              "10": 0
+            },
+            "score": 7
+          },
+          "collection": {
+            "on_hold": 1,
+            "dropped": 5,
+            "wish": 3,
+            "collect": 3,
+            "doing": 0
+          },
+          "id": 333887,
+          "eps": 1,
+          "total_episodes": 1,
+          "meta_tags": [
+            "剧场版"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": "2022-04-18",
+          "platform": "WEB",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/22/d2/376670_d39b8.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/22/d2/376670_d39b8.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/22/d2/376670_d39b8.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/22/d2/376670_d39b8.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/22/d2/376670_d39b8.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/22/d2/376670_d39b8.jpg",
+          "summary": "安置星土著唐月亮，觉醒了自己的能力，背负上了探寻宇宙的重任。全人类善念那一面幻化出来的形态“天启”告诉唐月亮，她是降魔一族的第110代传人。自从人类离开地球后，天熵祸乱宇宙，宇宙渐渐失序，充斥着混乱与暴力，只有找到宇宙尽头的法器，才能净化宇宙。唐月亮结识了孙大棒，朱连连和沙本本，他们带着各自的目的组成了临时小分队。他们经历磨难，每次的阻挠不仅没让他们放弃，反而使他们想回到地球这个伊甸园的念头更加坚固。",
+          "name": "星际一游",
+          "name_cn": "星际一游",
+          "tags": [
+            {
+              "name": "中国",
+              "count": 5,
+              "total_count": 24309
+            },
+            {
+              "name": "WEB",
+              "count": 4,
+              "total_count": 60936
+            },
+            {
+              "name": "国产",
+              "count": 4,
+              "total_count": 147479
+            },
+            {
+              "name": "2022年4月",
+              "count": 3,
+              "total_count": 27986
+            },
+            {
+              "name": "奇幻",
+              "count": 1,
+              "total_count": 376132
+            },
+            {
+              "name": "动画",
+              "count": 1,
+              "total_count": 31577
+            },
+            {
+              "name": "搞笑",
+              "count": 1,
+              "total_count": 559497
+            },
+            {
+              "name": "原创",
+              "count": 1,
+              "total_count": 549658
+            }
+          ],
+          "infobox": [
+            {
+              "key": "中文名",
+              "value": "星际一游"
+            },
+            {
+              "key": "话数",
+              "value": "12"
+            },
+            {
+              "key": "放送开始",
+              "value": "2022年4月18日"
+            },
+            {
+              "key": "放送星期",
+              "value": "星期一"
+            },
+            {
+              "key": "导演",
+              "value": "唐少、王斌"
+            },
+            {
+              "key": "Copyright",
+              "value": "北京万合互娱文化传媒有限公司"
+            },
+            {
+              "key": "製作",
+              "value": "bilibili；出品人：范钧、李旎"
+            },
+            {
+              "key": "总制片人",
+              "value": "周琴、张圣晏、徐蓓、骆艳艳"
+            },
+            {
+              "key": "制片人",
+              "value": "王梦、娄婷、王蓉"
+            },
+            {
+              "key": "监制",
+              "value": "朱贝宁（总监制），陈晓璐（联合监制）"
+            },
+            {
+              "key": "脚本",
+              "value": "余进、李亚"
+            },
+            {
+              "key": "监修",
+              "value": "艺术顾问：蔡斯迪"
+            },
+            {
+              "key": "分镜",
+              "value": "唐少、魏尧、张天宇"
+            },
+            {
+              "key": "美术设计",
+              "value": "张天宇、唐少、魏尧、史嘉欣、张萌萌"
+            }
+          ],
+          "rating": {
+            "rank": 0,
+            "total": 3,
+            "count": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 1,
+              "5": 1,
+              "6": 1,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0
+            },
+            "score": 5
+          },
+          "collection": {
+            "on_hold": 2,
+            "dropped": 6,
+            "wish": 2,
+            "collect": 10,
+            "doing": 2
+          },
+          "id": 376670,
+          "eps": 12,
+          "total_episodes": 12,
+          "meta_tags": [
+            "奇幻",
+            "原创",
+            "中国",
+            "WEB"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": "2020-06-01",
+          "platform": "剧场版",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/ac/d0/427132_nhliN.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/ac/d0/427132_nhliN.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/ac/d0/427132_nhliN.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/ac/d0/427132_nhliN.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/ac/d0/427132_nhliN.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/ac/d0/427132_nhliN.jpg",
+          "summary": "未来，地球水源枯竭。争夺水源的核战爆发，人类丧失生育能力。幸存者纷纷逃离地球。人类最后一个孩子龙翼和单身父亲龙克在荒漠靠着搜集残存的水艰难度日。 \r\n外星物种的到来宣告了地球毁灭的倒计时。面临绝境，父女两人将如何找到生存下去的希望……",
+          "name": "星际大逃亡",
+          "name_cn": "",
+          "tags": [
+            {
+              "name": "中国",
+              "count": 2,
+              "total_count": 23747
+            },
+            {
+              "name": "国产",
+              "count": 1,
+              "total_count": 146923
+            },
+            {
+              "name": "动画",
+              "count": 1,
+              "total_count": 31190
+            },
+            {
+              "name": "剧场版",
+              "count": 1,
+              "total_count": 647854
+            }
+          ],
+          "infobox": [
+            {
+              "key": "上映年度",
+              "value": "2020年6月1日"
+            },
+            {
+              "key": "片长",
+              "value": "90 分钟"
+            },
+            {
+              "key": "话数",
+              "value": "1"
+            }
+          ],
+          "rating": {
+            "rank": 0,
+            "total": 0,
+            "count": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0
+            },
+            "score": 0
+          },
+          "collection": {
+            "on_hold": 1,
+            "dropped": 2,
+            "wish": 0,
+            "collect": 2,
+            "doing": 0
+          },
+          "id": 427132,
+          "eps": 1,
+          "total_episodes": 1,
+          "meta_tags": [
+            "剧场版",
+            "中国"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": null,
+          "platform": "剧场版",
+          "images": {
+            "small": "",
+            "grid": "",
+            "large": "",
+            "medium": "",
+            "common": ""
+          },
+          "image": "",
+          "summary": "暗能量体「吞噬者」撕裂维度入侵苍蓝星，六名少年觉醒能量战甲对抗，在冒险中成长并以勇气粉碎吞噬者的阴谋。",
+          "name": "星际护卫队",
+          "name_cn": "星际护卫队",
+          "tags": [
+            {
+              "name": "中国",
+              "count": 2,
+              "total_count": 25100
+            },
+            {
+              "name": "影动备字2025第054号",
+              "count": 1,
+              "total_count": 1
+            },
+            {
+              "name": "剧场版",
+              "count": 1,
+              "total_count": 660886
+            },
+            {
+              "name": "赵丹",
+              "count": 1,
+              "total_count": 2
+            },
+            {
+              "name": "一千零一映画（厦门）影业有限公司",
+              "count": 1,
+              "total_count": 2
+            },
+            {
+              "name": "动画片",
+              "count": 1,
+              "total_count": 1341
+            },
+            {
+              "name": "福建省",
+              "count": 1,
+              "total_count": 10
+            }
+          ],
+          "infobox": [
+            {
+              "key": "中文名",
+              "value": "星际护卫队"
+            },
+            {
+              "key": "上映年度",
+              "value": "*"
+            },
+            {
+              "key": "脚本",
+              "value": "赵丹"
+            }
+          ],
+          "rating": {
+            "rank": 0,
+            "total": 0,
+            "count": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0
+            },
+            "score": 0
+          },
+          "collection": {
+            "on_hold": 1,
+            "dropped": 1,
+            "wish": 0,
+            "collect": 0,
+            "doing": 0
+          },
+          "id": 569767,
+          "eps": 0,
+          "total_episodes": 0,
+          "meta_tags": [
+            "剧场版",
+            "中国"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": "2006-07-03",
+          "platform": "TV",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/f9/38/1307_d1z71.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/f9/38/1307_d1z71.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/f9/38/1307_d1z71.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/f9/38/1307_d1z71.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/f9/38/1307_d1z71.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/f9/38/1307_d1z71.jpg",
+          "summary": "开拓宇宙的时代，人类向外太空进军，在银河统合政府持续与殖民地解放军进行战争的行星克雷斯兰德上，据说沉睡着传说中的海盗王布鲁斯所遗留下的100亿宇宙元。而在被统合政府通称为COYOTE(郊狼)的非法海盗中，有一位恶名远扬的、通称密斯特(Mister)的COYOTE和他的同伴们、以及身为布鲁斯的女儿的少女弗兰卡一起向回收布鲁斯的遗产发起了挑战。\r\n与此同时，犯罪组织克里密吉尔多的成员玛尔切亚诺率领的杀手集团，也以布鲁斯的遗产为目标开始行动。然而，统合政府为了结束战争，宣布将向克雷斯兰德投下光子炸弹爆破整个星球。\r\n时间限制正在临近，打算回收布鲁斯的遗产的密斯特一行人，同样以布鲁斯的遗产为目标的玛尔切亚诺，还有为了逮捕密斯特而前往同一目的地的银河联邦警察，三路追踪正在逐步展开。",
+          "name": "コヨーテ ラグタイムショー",
+          "name_cn": "星际海盗",
+          "tags": [
+            {
+              "name": "星际海盗",
+              "count": 26,
+              "total_count": 26
+            },
+            {
+              "name": "大叔",
+              "count": 18,
+              "total_count": 360
+            },
+            {
+              "name": "TV",
+              "count": 18,
+              "total_count": 1431968
+            },
+            {
+              "name": "coyote",
+              "count": 16,
+              "total_count": 16
+            },
+            {
+              "name": "ufotable",
+              "count": 14,
+              "total_count": 55793
+            },
+            {
+              "name": "2006",
+              "count": 13,
+              "total_count": 34688
+            },
+            {
+              "name": "原创",
+              "count": 13,
+              "total_count": 631493
+            },
+            {
+              "name": "第一话神片",
+              "count": 12,
+              "total_count": 12
+            },
+            {
+              "name": "科幻",
+              "count": 10,
+              "total_count": 257806
+            },
+            {
+              "name": "2006年07月",
+              "count": 8,
+              "total_count": 23
+            },
+            {
+              "name": "佐藤利奈",
+              "count": 5,
+              "total_count": 1605
+            },
+            {
+              "name": "萝莉",
+              "count": 5,
+              "total_count": 46638
+            },
+            {
+              "name": "日本",
+              "count": 3,
+              "total_count": 307683
+            },
+            {
+              "name": "单剧情",
+              "count": 2,
+              "total_count": 2
+            },
+            {
+              "name": "动画",
+              "count": 2,
+              "total_count": 35766
+            },
+            {
+              "name": "近藤光",
+              "count": 2,
+              "total_count": 490
+            },
+            {
+              "name": "下屋则子",
+              "count": 2,
+              "total_count": 49
+            },
+            {
+              "name": "日本动画",
+              "count": 2,
+              "total_count": 35417
+            },
+            {
+              "name": "补番",
+              "count": 2,
+              "total_count": 10542
+            },
+            {
+              "name": "野中卓也",
+              "count": 2,
+              "total_count": 163
+            },
+            {
+              "name": "下屋則子",
+              "count": 1,
+              "total_count": 37
+            },
+            {
+              "name": "已看",
+              "count": 1,
+              "total_count": 496
+            },
+            {
+              "name": "堀内贤雄",
+              "count": 1,
+              "total_count": 54
+            },
+            {
+              "name": "2006-07",
+              "count": 1,
+              "total_count": 44
+            },
+            {
+              "name": "2009",
+              "count": 1,
+              "total_count": 39733
+            },
+            {
+              "name": "生天目仁美",
+              "count": 1,
+              "total_count": 441
+            },
+            {
+              "name": "新井里美",
+              "count": 1,
+              "total_count": 554
+            },
+            {
+              "name": "UFO",
+              "count": 1,
+              "total_count": 109
+            },
+            {
+              "name": "大塚明夫",
+              "count": 1,
+              "total_count": 226
+            },
+            {
+              "name": "SF",
+              "count": 1,
+              "total_count": 7273
+            }
+          ],
+          "infobox": [
+            {
+              "key": "中文名",
+              "value": "星际海盗"
+            },
+            {
+              "key": "别名",
+              "value": [
+                {
+                  "v": "COYOTE RAGTIME SHOW"
+                },
+                {
+                  "v": "如狼共舞"
+                }
+              ]
+            },
+            {
+              "key": "话数",
+              "value": "12"
+            },
+            {
+              "key": "放送开始",
+              "value": "2006年7月3日"
+            },
+            {
+              "key": "放送星期",
+              "value": "星期一"
+            },
+            {
+              "key": "官方网站",
+              "value": "http://www.ufotable.com/coyote"
+            },
+            {
+              "key": "播放电视台",
+              "value": "テレビ埼玉 / チバテレビ /サンテレビ"
+            },
+            {
+              "key": "播放结束",
+              "value": "2006年9月18日"
+            },
+            {
+              "key": "导演",
+              "value": "野中卓也"
+            },
+            {
+              "key": "音乐",
+              "value": "亀山耕一郎、籠島裕昌（9話）"
+            },
+            {
+              "key": "Copyright",
+              "value": "(C)2006 ufotable・coyote project"
+            },
+            {
+              "key": "原作",
+              "value": "ufotable"
+            },
+            {
+              "key": "人物设定",
+              "value": "須藤友徳、柴田淳"
+            },
+            {
+              "key": "製作",
+              "value": "coyote project（東芝エンタテインメント、Amuse Soft Entertainment、クロックワークス、葵プロモーション、スタジオマウス、ufotable）"
+            },
+            {
+              "key": "设定制作",
+              "value": "中澤匡佐"
+            },
+            {
+              "key": "宣传",
+              "value": "小倉尊行、小島秀次、久保田憲"
+            },
+            {
+              "key": "企画",
+              "value": "臼井久人、橘田寿宏、酒匂暢彦、大村正一郎、小野光枝、近藤光"
+            },
+            {
+              "key": "制片人",
+              "value": "日高功、中林太、武智恒雄、浅岡直人、納谷僚介"
+            },
+            {
+              "key": "特效",
+              "value": "寺尾優一、中江亮平"
+            },
+            {
+              "key": "设定",
+              "value": "笹嶋啓一"
+            },
+            {
+              "key": "主动画师",
+              "value": "小船井充、下司晃生、小島大和"
+            },
+            {
+              "key": "美术监督",
+              "value": "東潤一"
+            },
+            {
+              "key": "美术设计",
+              "value": "金平和茂、草薙"
+            },
+            {
+              "key": "选曲",
+              "value": "野崎博樹"
+            },
+            {
+              "key": "剪辑",
+              "value": "ルナパルク；助手：加藤ひとみ"
+            },
+            {
+              "key": "音效",
+              "value": "倉橋静男（サウンドボックス）"
+            },
+            {
+              "key": "录音",
+              "value": "兼子芳博、堀内唯史"
+            },
+            {
+              "key": "音响制作担当",
+              "value": "上田恵美香"
+            },
+            {
+              "key": "音乐制作人",
+              "value": "植村俊一"
+            }
+          ],
+          "rating": {
+            "rank": 6513,
+            "total": 103,
+            "count": {
+              "1": 1,
+              "2": 1,
+              "3": 2,
+              "4": 7,
+              "5": 15,
+              "6": 47,
+              "7": 23,
+              "8": 5,
+              "9": 2,
+              "10": 0
+            },
+            "score": 6
+          },
+          "collection": {
+            "on_hold": 21,
+            "dropped": 32,
+            "wish": 118,
+            "collect": 153,
+            "doing": 9
+          },
+          "id": 1307,
+          "eps": 12,
+          "total_episodes": 12,
+          "meta_tags": [
+            "科幻",
+            "TV",
+            "日本",
+            "原创"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": "1999-06-25",
+          "platform": "OVA",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/93/75/8281_4r64r.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/93/75/8281_4r64r.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/93/75/8281_4r64r.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/93/75/8281_4r64r.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/93/75/8281_4r64r.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/93/75/8281_4r64r.jpg",
+          "summary": "      女子の就職超氷河期、教職志望の花菱アヤコは地球での就職を諦め、宇宙の果ての高校に就職することになった。しかし、赴任早々経営難により学校は閉鎖。 路頭に迷ったアヤコは、同じく地球からの留学生である七宮若菜と地球に戻る旅を始めることを決意する。そこにヤクザ組織の元大幹部のパライラも加え、3人での旅が始まるが……",
+          "name": "てなもんやボイジャーズ",
+          "name_cn": "星际迷航俏女郎",
+          "tags": [
+            {
+              "name": "OVA",
+              "count": 121,
+              "total_count": 369708
+            },
+            {
+              "name": "新房昭之",
+              "count": 92,
+              "total_count": 102723
+            },
+            {
+              "name": "1999",
+              "count": 67,
+              "total_count": 13659
+            },
+            {
+              "name": "StudioPierrot",
+              "count": 47,
+              "total_count": 12249
+            },
+            {
+              "name": "原创",
+              "count": 39,
+              "total_count": 631555
+            },
+            {
+              "name": "萝卜",
+              "count": 35,
+              "total_count": 53003
+            },
+            {
+              "name": "Studio·Pierrot",
+              "count": 17,
+              "total_count": 212
+            },
+            {
+              "name": "小丑社",
+              "count": 15,
+              "total_count": 1459
+            },
+            {
+              "name": "石滨真史",
+              "count": 13,
+              "total_count": 192
+            },
+            {
+              "name": "川上伦子",
+              "count": 11,
+              "total_count": 106
+            },
+            {
+              "name": "石浜真史",
+              "count": 8,
+              "total_count": 673
+            },
+            {
+              "name": "科幻",
+              "count": 8,
+              "total_count": 257825
+            },
+            {
+              "name": "高桥美纪",
+              "count": 6,
+              "total_count": 7
+            },
+            {
+              "name": "独立ova",
+              "count": 5,
+              "total_count": 3023
+            },
+            {
+              "name": "水木一郎",
+              "count": 4,
+              "total_count": 22
+            },
+            {
+              "name": "机战",
+              "count": 4,
+              "total_count": 51480
+            },
+            {
+              "name": "90年代",
+              "count": 3,
+              "total_count": 4081
+            },
+            {
+              "name": "搞笑",
+              "count": 3,
+              "total_count": 651422
+            },
+            {
+              "name": "百合",
+              "count": 3,
+              "total_count": 410651
+            },
+            {
+              "name": "ぴえろ",
+              "count": 3,
+              "total_count": 1414
+            },
+            {
+              "name": "1999summer",
+              "count": 2,
+              "total_count": 2
+            },
+            {
+              "name": "土井美加",
+              "count": 2,
+              "total_count": 33
+            },
+            {
+              "name": "日本",
+              "count": 2,
+              "total_count": 307765
+            },
+            {
+              "name": "旧物",
+              "count": 2,
+              "total_count": 3605
+            },
+            {
+              "name": "月村了衛",
+              "count": 2,
+              "total_count": 34
+            },
+            {
+              "name": "robo",
+              "count": 2,
+              "total_count": 1569
+            },
+            {
+              "name": "日本动画",
+              "count": 2,
+              "total_count": 35418
+            },
+            {
+              "name": "90s",
+              "count": 2,
+              "total_count": 767
+            },
+            {
+              "name": "公路片",
+              "count": 2,
+              "total_count": 22888
+            },
+            {
+              "name": "补番计划",
+              "count": 2,
+              "total_count": 289
+            }
+          ],
+          "infobox": [
+            {
+              "key": "中文名",
+              "value": "星际迷航俏女郎"
+            },
+            {
+              "key": "别名",
+              "value": [
+                {
+                  "v": "Tenamonya Voyagers"
+                },
+                {
+                  "v": "Tenamon`ya Voyagers"
+                }
+              ]
+            },
+            {
+              "key": "话数",
+              "value": "4"
+            },
+            {
+              "key": "发售日",
+              "value": "1999年6月25日"
+            },
+            {
+              "key": "导演",
+              "value": "新房昭之"
+            },
+            {
+              "key": "音乐",
+              "value": "天野正道"
+            },
+            {
+              "key": "企画",
+              "value": "池口和彦、本間道幸"
+            },
+            {
+              "key": "原作",
+              "value": "月村了衛 / てなもんやプロジェクト"
+            },
+            {
+              "key": "人物设定",
+              "value": "石浜真史"
+            },
+            {
+              "key": "机械设定",
+              "value": "鉄羅紀明、紺野直幸 / 岡田有章(第4话)"
+            },
+            {
+              "key": "美术监督",
+              "value": "東潤一"
+            },
+            {
+              "key": "色彩设计",
+              "value": "佐藤裕子"
+            },
+            {
+              "key": "摄影监督",
+              "value": "安津畑隆"
+            },
+            {
+              "key": "剪辑",
+              "value": "関一彦"
+            },
+            {
+              "key": "音响监督",
+              "value": "三間雅文"
+            },
+            {
+              "key": "音乐制作",
+              "value": "日本コロムビア"
+            },
+            {
+              "key": "制片人",
+              "value": "鈴木重裕"
+            },
+            {
+              "key": "动画制作",
+              "value": "スタジオぴえろ"
+            },
+            {
+              "key": "脚本",
+              "value": "月村了衛(1-2)、久保田雅史(3-4)"
+            },
+            {
+              "key": "分镜",
+              "value": "新房昭之(1-2,4)、阿部記之(3)"
+            },
+            {
+              "key": "演出",
+              "value": "新房昭之(1-2,4)、阿部記之(3)、渡辺健一郎(3)"
+            },
+            {
+              "key": "作画监督",
+              "value": "石浜真史(1-2,4)、もりやまゆうじ [ 森山雄治 ] (3)"
+            },
+            {
+              "key": "机械作画监督",
+              "value": "城前龍治・鉄羅紀明・紺野直幸(第1话)"
+            },
+            {
+              "key": "制作",
+              "value": "渡辺繁、布川ゆうじ"
+            },
+            {
+              "key": "製作",
+              "value": "バンダイビジュアル、スタジオぴえろ"
+            },
+            {
+              "key": "构图作画监督",
+              "value": "崔ふみひで(3)"
+            }
+          ],
+          "rating": {
+            "rank": 3365,
+            "total": 162,
+            "count": {
+              "1": 0,
+              "2": 0,
+              "3": 1,
+              "4": 4,
+              "5": 10,
+              "6": 42,
+              "7": 75,
+              "8": 22,
+              "9": 6,
+              "10": 2
+            },
+            "score": 6.8
+          },
+          "collection": {
+            "on_hold": 16,
+            "dropped": 14,
+            "wish": 254,
+            "collect": 202,
+            "doing": 12
+          },
+          "id": 8281,
+          "eps": 4,
+          "total_episodes": 4,
+          "meta_tags": [
+            "日本",
+            "OVA",
+            "原创"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        },
+        {
+          "date": "2003-04-01",
+          "platform": "TV",
+          "images": {
+            "small": "https://lain.bgm.tv/r/200/pic/cover/l/95/80/35382_4b8j0.jpg",
+            "grid": "https://lain.bgm.tv/r/100/pic/cover/l/95/80/35382_4b8j0.jpg",
+            "large": "https://lain.bgm.tv/pic/cover/l/95/80/35382_4b8j0.jpg",
+            "medium": "https://lain.bgm.tv/r/800/pic/cover/l/95/80/35382_4b8j0.jpg",
+            "common": "https://lain.bgm.tv/r/400/pic/cover/l/95/80/35382_4b8j0.jpg"
+          },
+          "image": "https://lain.bgm.tv/pic/cover/l/95/80/35382_4b8j0.jpg",
+          "summary": "　　旧世纪末期，以各民族间的纷争为开端，各国之间大规模的恶性竞争，使得全世界遭受了前所未有的灾难，结果造成国家组织结构的力量减弱。人类失去对「国家」的归属感，而「都市」和「企业」形成了新的架构。表面上是一个平稳世纪的来临，事实上却产生了和以往经济纷争、民族纷争等不同情况的新的纷争。\r\n　　戒=玖堂，一个十五岁的少年，本是隶属于Ashurum超能力者部队的一员。在执行歼灭G地区（伽鲁多）游击队的作战中，因为救助一个普通小女孩而连带身边的同伴意外身亡，接连引发了伙伴之间的内讧，从而导致自己身负重伤，被居住于G的笃川兄妹收留。之后一直滞留在G。\r\n　　在G地区逗留的这段日子里，戒经历了许多事情——许多情况与在他原本最信任的Ashurum所教导的完全不同。无论是教会、还是游击队，都在寻找一个名为 “卡鲁瓦利亚的秘迹”的东西，而这个东西又与超能力、超能力者有着某种密切关系……面对残酷的黑暗和现实，自己在“是否回去”的问题上变得摇摆不定，尘封的记忆又不断地冲击着他的脑海，使他对自己的生存产生了疑问。随着身边的人都卷入到这场纷争中，更大的真相接连浮出水面，在惨烈的战斗中，他坚定了自己的信念，并且做出了重大的决定……",
+          "name": "E'S OTHERWISE",
+          "name_cn": "星际少年队",
+          "tags": [
+            {
+              "name": "TV",
+              "count": 11,
+              "total_count": 1426807
+            },
+            {
+              "name": "2003年4月",
+              "count": 7,
+              "total_count": 680
+            },
+            {
+              "name": "漫画改",
+              "count": 6,
+              "total_count": 879056
+            },
+            {
+              "name": "补旧番",
+              "count": 5,
+              "total_count": 5348
+            },
+            {
+              "name": "下田正美",
+              "count": 5,
+              "total_count": 196
+            },
+            {
+              "name": "2003",
+              "count": 5,
+              "total_count": 17061
+            },
+            {
+              "name": "SF",
+              "count": 5,
+              "total_count": 7259
+            },
+            {
+              "name": "结贺悟",
+              "count": 4,
+              "total_count": 4
+            },
+            {
+              "name": "泰勇気",
+              "count": 3,
+              "total_count": 12
+            },
+            {
+              "name": "千葉克彦",
+              "count": 3,
+              "total_count": 40
+            },
+            {
+              "name": "TVA",
+              "count": 1,
+              "total_count": 15451
+            },
+            {
+              "name": "松本保典",
+              "count": 1,
+              "total_count": 100
+            },
+            {
+              "name": "欧美",
+              "count": 1,
+              "total_count": 87733
+            },
+            {
+              "name": "ぴえろ",
+              "count": 1,
+              "total_count": 1412
+            },
+            {
+              "name": "日本动画",
+              "count": 1,
+              "total_count": 35365
+            },
+            {
+              "name": "8+",
+              "count": 1,
+              "total_count": 640
+            },
+            {
+              "name": "小林沙苗",
+              "count": 1,
+              "total_count": 342
+            },
+            {
+              "name": "日本",
+              "count": 1,
+              "total_count": 305607
+            }
+          ],
+          "infobox": [
+            {
+              "key": "中文名",
+              "value": "星际少年队"
+            },
+            {
+              "key": "别名",
+              "value": [
+                {
+                  "v": "エス·アザーワイズ"
+                }
+              ]
+            },
+            {
+              "key": "话数",
+              "value": "26"
+            },
+            {
+              "key": "放送开始",
+              "value": "2003年4月1日"
+            },
+            {
+              "key": "放送星期",
+              "value": "星期二"
+            },
+            {
+              "key": "播放结束",
+              "value": "2003年9月23日"
+            },
+            {
+              "key": "导演",
+              "value": "下田正美"
+            },
+            {
+              "key": "音乐",
+              "value": "百石元、三宅一徳"
+            },
+            {
+              "key": "原作",
+              "value": "結賀さとる"
+            },
+            {
+              "key": "系列构成",
+              "value": "千葉克彦"
+            },
+            {
+              "key": "人物设定",
+              "value": "浜津武広"
+            },
+            {
+              "key": "美术监督",
+              "value": "二嶋隆文"
+            },
+            {
+              "key": "摄影监督",
+              "value": "松本敦穂"
+            },
+            {
+              "key": "音响监督",
+              "value": "田中英行"
+            },
+            {
+              "key": "製作",
+              "value": "テレビ東京、創通映像、ぴえろ"
+            }
+          ],
+          "rating": {
+            "rank": 0,
+            "total": 24,
+            "count": {
+              "1": 1,
+              "2": 0,
+              "3": 0,
+              "4": 5,
+              "5": 6,
+              "6": 9,
+              "7": 2,
+              "8": 1,
+              "9": 0,
+              "10": 0
+            },
+            "score": 5.3
+          },
+          "collection": {
+            "on_hold": 13,
+            "dropped": 11,
+            "wish": 32,
+            "collect": 46,
+            "doing": 5
+          },
+          "id": 35382,
+          "eps": 26,
+          "total_episodes": 26,
+          "meta_tags": [
+            "TV",
+            "日本",
+            "漫画改"
+          ],
+          "volumes": 0,
+          "series": false,
+          "locked": false,
+          "nsfw": false,
+          "type": 2
+        }
+      ],
+      "total": 62,
+      "limit": 10,
+      "offset": 0
+    }
+  }
+]

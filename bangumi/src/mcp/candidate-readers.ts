@@ -7,6 +7,7 @@ export interface CandidateNativeReads {
   details(id: number, include: string[], signal?: AbortSignal): Promise<Data>;
   collection(id: number, signal?: AbortSignal): Promise<Data>;
   relations(id: number, signal?: AbortSignal): Promise<Data>;
+  image?(id: number, signal?: AbortSignal): Promise<Data>;
 }
 const personal = new Set(['collectionState', 'collectionStatus', 'personalRating', 'personalTags', 'personalComment']);
 /** 只由规范化平台/元标签判断形式；标题不作为证据。 */
@@ -60,7 +61,7 @@ export class CandidateReaders {
       if (requested.has('durationMinutes') && !groups.includes('infobox')) groups.push('infobox');
       const value = await this.reads.details(row.id, groups, signal);
       const supplementOnly = value.candidateCacheSupplementOnly === true;
-      for (const field of ['name', 'nameCn', 'subjectType', 'date', 'platform', 'nsfw', 'score', 'rank', 'ratingCount', 'tags', 'metaTags', 'url', 'summary', 'infobox']) {
+      for (const field of ['name', 'nameCn', 'subjectType', 'date', 'platform', 'nsfw', 'score', 'rank', 'ratingCount', 'tags', 'metaTags', 'url', 'summary', 'infobox', 'image']) {
         if (Object.hasOwn(value, field) && (!supplementOnly || groups.includes(field) || row.fieldStates[field as CandidateField] !== 'known')) facts[field] = field === 'date' ? normalizeCandidateDate(value[field]) : value[field];
       }
       // 原生body缓存只补缺：较新的宿主已知基础事实和派生事实不能被旧body回写。
@@ -68,6 +69,16 @@ export class CandidateReaders {
         .filter(field => row.fieldStates[field as CandidateField] === 'known').map(field => [field, row.facts[field as CandidateField]])) } : value;
       if (!supplementOnly || row.fieldStates.subjectForm !== 'known') facts.subjectForm = candidateSubjectForm(formInput);
       if (Object.hasOwn(value, 'infobox') && (!supplementOnly || row.fieldStates.durationMinutes !== 'known')) Object.assign(facts, durationFacts(value));
+      if (requested.has('image') && !Object.hasOwn(facts, 'image')) {
+        if (this.reads.image) {
+          const picture = await this.reads.image(row.id, signal);
+          if (picture.target === null || typeof picture.target !== 'object' || (picture.target as Data).kind !== 'subject'
+            || (picture.target as Data).id !== row.id || picture.url !== null && typeof picture.url !== 'string')
+            throw new AppError('MCP_INVALID_RESULT', '图片结果与候选作品不一致。');
+          facts.image = picture.url;
+          sources.push(...evidence(picture, 'get_subject_image', { subject_id: row.id }));
+        } else facts.image = null;
+      }
       requiresNsfw ||= value.nsfw === true || value.candidateRequiresNsfw === true;
       sources.push(...evidence(value, 'get_subject_details', { subject_id: row.id, include: groups }));
       });

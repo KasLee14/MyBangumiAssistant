@@ -1,0 +1,21 @@
+[
+  {
+    "id": "call_00_ZgUjXJEKDddMxOpffDzO8938",
+    "name": "get_subject_details",
+    "arguments": {
+      "subject_id": 253
+    }
+  },
+  {
+    "id": "call_00_AaXWD2SdQPLYq00Z13Nm4073",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_1fbf75384869fadd99446690dde60579",
+      "fields": [
+        "name",
+        "nameCn",
+        "score"
+      ]
+    }
+  }
+]

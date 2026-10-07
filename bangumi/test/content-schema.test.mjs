@@ -9,6 +9,7 @@ import {
 } from '../dist/src/output/content-schema.js';
 import { registry, sectionsModule, validateMessageBlock, providerPart } from './frontend-content-fixture.mjs';
 import { contentView } from '../dist/src/output/content-view.js';
+import { resourceReferenceSchema } from '../dist/src/output/resource-content.js';
 
 test('12 种展示库主/空示例原样作为 props，TagCloud 直接使用数组且 InfoBox 不再多套一层', () => {
   assert.equal(sectionsModule.LIBRARY_SECTIONS.length, 12);
@@ -46,7 +47,8 @@ test('生成与内部契约分离，13分支复用严格载荷，状态由宿主
   for (const branch of branches.slice(1)) {
     assert.deepEqual(Object.keys(branch.properties), ['type', 'props']);
     assert.deepEqual(branch.required, ['type', 'props']);
-    assert.deepEqual(branch.properties.props, CONTENT_OUTPUT_SCHEMA.properties.content.items.anyOf.find(item => item.properties.type.enum[0] === branch.properties.type.enum[0]).properties.props);
+    assert.deepEqual(branch.properties.props.anyOf[0], CONTENT_OUTPUT_SCHEMA.properties.content.items.anyOf.find(item => item.properties.type.enum[0] === branch.properties.type.enum[0]).properties.props);
+    assert.deepEqual(branch.properties.props.anyOf[1], resourceReferenceSchema(branch.properties.type.enum[0]));
   }
   const visit = schema => {
     if (schema.type === 'object') {
@@ -58,7 +60,11 @@ test('生成与内部契约分离，13分支复用严格载荷，状态由宿主
     if (schema.items) visit(schema.items);
   };
   visit(PROVIDER_CONTENT_SCHEMA);
-  assert.equal(branches.find(branch => branch.properties.type.enum[0] === 'DataTable').properties.props.properties.rows.items.type, 'object');
+  assert.equal(branches.find(branch => branch.properties.type.enum[0] === 'DataTable').properties.props.anyOf[0].properties.rows.items.type, 'object');
+  assert.equal(resourceReferenceSchema('Gallery').properties.layout, undefined);
+  assert.equal(resourceReferenceSchema('Gallery').properties.items.maxItems, 50);
+  assert.equal(resourceReferenceSchema('SubjectCards').properties.items.maxItems, 50);
+  assert.equal(resourceReferenceSchema('DataTable').properties.items.maxItems, 200);
   assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes(JSON.stringify(PROVIDER_CONTENT_SCHEMA)));
 });
 

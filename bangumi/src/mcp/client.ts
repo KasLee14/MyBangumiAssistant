@@ -1,3 +1,5 @@
+import * as z from 'zod/v4';
+import { stripResourceRef, checkCachedResourceRpcResult, cachedResourceSelection, RESOURCE_REF_PATTERN, CACHED_RESOURCE_RPC_OPERATION, type CachedResource, type CachedResourceSelection } from './resource-contract.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { isDeepStrictEqual } from 'node:util';
@@ -19,10 +21,10 @@ import { batchPreparation, batchScope, type BatchPreparation, type McpBatchScope
 import { checkSubmission } from './submission.js';
 import { readContext, type McpReadContext } from './read-context.js';
 import { checkReadDiagnosis, diagnoseReadError, executeReadRecovery, clearReadRecoveryScope } from './read-recovery.js';
-
 export interface McpWriteGuard { accountId: number; subjectId?: number; expectedStatus?: number; prepared?: PreparedBaseline; batchPreparation?: BatchPreparation }
 export interface McpCallClient {
   call(name: string, args: Record<string, unknown>, signal?: AbortSignal, guard?: McpWriteGuard, batch?: McpBatchScope, read?: McpReadContext): Promise<unknown>;
+  readCachedResource?(ref: string, signal?: AbortSignal, read?: McpReadContext, selection?: CachedResourceSelection): Promise<CachedResource>;
   endReadContext?(turnId: string): Promise<void>;
   close(): Promise<void>;
 }
@@ -57,6 +59,19 @@ const TOOL_ERROR_MESSAGES: Record<string, string> = {
   FIELD_LIMIT: '返回字段超过固定上限，请缩小详情或分页范围。',
   INCOMPLETE_DATA: '来源分页、资源归属或完整性不一致，不能将其解释为空结果。',
 };
+const CACHED_RESOURCE_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_INPUT: '缓存读取引用、任务上下文或展示成员范围无效。',
+  RESOURCE_EXPIRED: '缓存资源引用已过期，请在原范围重新读取必要来源。',
+  RESOURCE_SCOPE_MISMATCH: '缓存资源引用不属于当前读取轮次。',
+  RESOURCE_VERSION_CHANGED: '缓存候选事实已刷新，请按原成员和条件重新准备展示。',
+  CANDIDATE_REF_EXPIRED: '候选引用已失效，请在原范围恢复必要来源。',
+  CANDIDATE_SCOPE_MISMATCH: '候选引用与当前轮次、账户或可见范围不一致。',
+  CANDIDATE_STAGE_INCOMPLETE: '候选阶段尚未完成，请核实所选作品或完成原阶段后再展示。',
+  CANDIDATE_REQUIRED_FACTS_MISSING: '所选作品缺少可验证的筛选或展示事实，请补齐必要字段。',
+  CANDIDATE_ID_MISMATCH: '所选作品不属于当前候选引用的已核实成员。',
+  CANCELLED: '缓存读取已取消。',
+  INTERNAL_ERROR: '缓存读取内部执行失败；诊断保留了底层原因。',
+};
 function childEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
   const result: Record<string, string> = {};
   for (const key of SAFE_ENVIRONMENT) {
@@ -81,7 +96,6 @@ async function awaitWithCancellation<T>(promise: Promise<T>, signal?: AbortSigna
     promise.then(value => signal.aborted ? abort() : resolve(value), reject).finally(() => signal.removeEventListener('abort', abort));
   });
 }
-
 /** 一次连接、长期复用；任何请求均不自动重连或重发，取消只发送 MCP 单次请求取消。 */
 export class LocalMcpClient implements McpCallClient {
   private readonly client = new Client({ name: 'MyBangumiAssistant', version: '0.1.0' }, { capabilities: {} });
@@ -89,8 +103,10 @@ export class LocalMcpClient implements McpCallClient {
   private initialization: Promise<void> | undefined;
   private closed = false;
   private broken = false;
-  constructor(private readonly options: { authDir: string; proxy: ProxyOptions; timeoutMs: number; entry?: string; env?: NodeJS.ProcessEnv;
-    onTrace?: (event: 'initializing' | 'initialized' | 'dispatch') => void }) {
+  constructor(private readonly options: {
+    authDir: string; proxy: ProxyOptions; timeoutMs: number; entry?: string; env?: NodeJS.ProcessEnv;
+    onTrace?: (event: 'initializing' | 'initialized' | 'dispatch') => void
+  }) {
     if (!Number.isInteger(options.timeoutMs) || options.timeoutMs < 1000 || options.timeoutMs > 300000) throw new AppError('INVALID_INPUT', 'MCP 超时须为1000～300000毫秒。');
     const entry = options.entry ?? fileURLToPath(new URL('./server.js', import.meta.url));
     if (!isAbsolute(entry) || !isAbsolute(options.authDir)) throw new AppError('INVALID_INPUT', 'MCP 服务及认证目录须使用绝对路径。');
@@ -147,9 +163,11 @@ export class LocalMcpClient implements McpCallClient {
       this.broken = true; await this.transport.close();
       if (error instanceof AppError) throw error;
       throw diagnosedError(new AppError('MCP_START_FAILED', '本地 MCP 初始化失败；返回的诊断包含具体原因。'),
-        createErrorDiagnostic({ code: 'MCP_START_FAILED', reason: errorCauses(error).some(cause => cause.code === '-32001') ? 'initialization_deadline_exhausted' : 'initialization_failed',
+        createErrorDiagnostic({
+          code: 'MCP_START_FAILED', reason: errorCauses(error).some(cause => cause.code === '-32001') ? 'initialization_deadline_exhausted' : 'initialization_failed',
           origin: 'mcp', stage: 'connect', causes: errorCauses(error),
-          ...(errorCauses(error).some(cause => cause.code === '-32001') ? { evidence: { rpcCode: -32001 } } : {}) }), error);
+          ...(errorCauses(error).some(cause => cause.code === '-32001') ? { evidence: { rpcCode: -32001 } } : {})
+        }), error);
     }
   }
   async listTools(signal?: AbortSignal) {
@@ -184,14 +202,18 @@ export class LocalMcpClient implements McpCallClient {
       raw = await this.client.callTool({ name, arguments: parameters, ...(metadata || scope || reading ? { _meta: { ...(metadata ? { 'bangumi/guard': metadata } : {}), ...(scope ? { 'bangumi/batch': scope } : {}), ...(reading ? { 'bangumi/readContext': reading } : {}) } } : {}) }, undefined,
         // read允许两次HTTP预算及有界退避；多请求operation仍受此MCP总期限与取消约束。
         // write保持原等待期限，超时只报告提交未知，绝不自动重发。
-        { timeout: definition.effect === 'read' ? 2 * this.options.timeoutMs + 1000 : this.options.timeoutMs,
-          ...(signal === undefined ? {} : { signal }) });
+        {
+          timeout: definition.effect === 'read' ? 2 * this.options.timeoutMs + 1000 : this.options.timeoutMs,
+          ...(signal === undefined ? {} : { signal })
+        });
     } catch (error) {
       if (signal?.aborted) throw new AppError('CANCELLED', '操作已取消；已提交写入须独立核实结果。');
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === -32001) {
         const timeout = diagnosedError(new AppError('BGM_TIMEOUT', 'MCP 请求总期限耗尽；已提交写入须独立核实结果。'),
-          createErrorDiagnostic({ code: 'BGM_TIMEOUT', reason: 'mcp_deadline_exhausted', origin: 'mcp', stage: 'request', operation: name,
-            recovery: definition.effect === 'write' ? 'verify_write' : 'none', evidence: { rpcCode: -32001 }, causes: errorCauses(error) }), error);
+          createErrorDiagnostic({
+            code: 'BGM_TIMEOUT', reason: 'mcp_deadline_exhausted', origin: 'mcp', stage: 'request', operation: name,
+            recovery: definition.effect === 'write' ? 'verify_write' : 'none', evidence: { rpcCode: -32001 }, causes: errorCauses(error)
+          }), error);
         if (definition.effect === 'read') {
           diagnoseReadError(name, parameters, timeout);
           Object.defineProperty(timeout, 'diagnosis', { value: { ...timeout.diagnosis!, retryable: false }, configurable: true });
@@ -199,12 +221,16 @@ export class LocalMcpClient implements McpCallClient {
         throw timeout;
       }
       if (typeof error === 'object' && error !== null && 'code' in error && [-32600, -32602].includes(Number(error.code))) throw diagnosedError(
-        new AppError('MCP_INVALID_RESULT', 'MCP 请求被协议参数校验拒绝。'), createErrorDiagnostic({ code: 'MCP_INVALID_RESULT', reason: 'rpc_parameters_rejected', origin: 'mcp', stage: 'request', operation: name,
-          evidence: { rpcCode: Number(error.code) }, causes: errorCauses(error) }), error);
+        new AppError('MCP_INVALID_RESULT', 'MCP 请求被协议参数校验拒绝。'), createErrorDiagnostic({
+          code: 'MCP_INVALID_RESULT', reason: 'rpc_parameters_rejected', origin: 'mcp', stage: 'request', operation: name,
+          evidence: { rpcCode: Number(error.code) }, causes: errorCauses(error)
+        }), error);
       const code = this.broken ? 'MCP_TRANSPORT_ERROR' : 'MCP_PROTOCOL_ERROR';
       throw diagnosedError(new AppError(code, '本地 MCP 请求失败；已提交写入须独立核实结果。'),
-        createErrorDiagnostic({ code, reason: this.broken ? 'transport_closed' : 'rpc_failed', origin: 'mcp', stage: 'request', operation: name,
-          recovery: definition.effect === 'write' ? 'verify_write' : 'none', causes: errorCauses(error) }), error);
+        createErrorDiagnostic({
+          code, reason: this.broken ? 'transport_closed' : 'rpc_failed', origin: 'mcp', stage: 'request', operation: name,
+          recovery: definition.effect === 'write' ? 'verify_write' : 'none', causes: errorCauses(error)
+        }), error);
     }
     const result = object(raw);
     if (!result.structuredContent || typeof result.structuredContent !== 'object' || Array.isArray(result.structuredContent)) throw new AppError('MCP_INVALID_RESULT', 'MCP 未返回结构化结果，不能解析展示文本。');
@@ -253,11 +279,60 @@ export class LocalMcpClient implements McpCallClient {
     }
     if (!Object.hasOwn(structured, 'value')) throw new AppError('MCP_INVALID_RESULT', 'MCP 返回缺少结构化 value，不能将展示文本作为业务结果。');
     checkAccessResponse(name, structured.value);
-    checkSubjectResponse(name, structured.value, parameters, definition.inputSchema);
-    if (isCommunityTool(name)) checkCommunityResponse(name, structured.value, parameters);
-    if (definition.effect === 'write') checkSubmission(name, structured.value, parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
+    checkSubjectResponse(name, stripResourceRef(structured.value), parameters, definition.inputSchema);
+    if (isCommunityTool(name)) checkCommunityResponse(name, stripResourceRef(structured.value), parameters,definition.outputSchema);
+    if (definition.effect === 'write') checkSubmission(name, stripResourceRef(structured.value), parameters, guard!.accountId, guard?.subjectId, guard?.prepared);
     else if (resourceOutputSchema(name)) checkResourceResponse(name, structured.value, parameters, definition.outputSchema!);
     return structured.value;
+  }
+  async readCachedResource(ref: string, signal?: AbortSignal, read?: McpReadContext, selection?: CachedResourceSelection): Promise<CachedResource> {
+    interrupted(signal);
+    if (typeof ref !== 'string' || !new RegExp(RESOURCE_REF_PATTERN).test(ref)) throw new AppError('INVALID_INPUT', '缓存资源引用格式无效。');
+    const reading = read === undefined ? undefined : readContext(read);
+    const selected = selection === undefined ? undefined : cachedResourceSelection(selection);
+    await awaitWithCancellation(this.ready(), signal);
+    interrupted(signal); this.usable();
+    let result: unknown;
+    try {
+      this.diagnostic('dispatch');
+      // 返回未知值以便本地严格检查整个互斥信封，不能由 SDK 静默剔除额外字段。
+      result = await this.client.request({ method: 'bangumi/readCachedResource', params: { resourceRef: ref,
+        ...(reading ? { readContext: reading } : {}), ...(selected ? { selection: selected } : {}) } }, z.unknown(),
+      { timeout: this.options.timeoutMs, ...(signal ? { signal } : {}) });
+    } catch (error) {
+      if (signal?.aborted || error instanceof Error && error.name === 'AbortError') throw new AppError('CANCELLED', '缓存读取已取消。');
+      const rpcCode = typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'number' ? error.code : undefined;
+      if (rpcCode === -32001) throw diagnosedError(new AppError('BGM_TIMEOUT', '缓存读取的 MCP 请求总期限耗尽。'),
+        createErrorDiagnostic({ code: 'BGM_TIMEOUT', reason: 'mcp_deadline_exhausted', origin: 'mcp', stage: 'request',
+          operation: CACHED_RESOURCE_RPC_OPERATION, evidence: { rpcCode }, causes: errorCauses(error) }), error);
+      const rejected = rpcCode !== undefined && [-32600, -32602].includes(rpcCode);
+      const code = rejected ? 'MCP_INVALID_RESULT' : this.broken ? 'MCP_TRANSPORT_ERROR' : 'MCP_PROTOCOL_ERROR';
+      throw diagnosedError(new AppError(code, rejected ? '缓存读取被 MCP 协议参数校验拒绝。' : '缓存读取的本地 MCP 请求失败。'),
+        createErrorDiagnostic({ code, reason: rejected ? 'rpc_parameters_rejected' : this.broken ? 'transport_closed' : 'rpc_failed',
+          origin: 'mcp', stage: 'request', operation: CACHED_RESOURCE_RPC_OPERATION,
+          ...(rpcCode === undefined ? {} : { evidence: { rpcCode } }), causes: errorCauses(error) }), error);
+    }
+    interrupted(signal);
+    checkCachedResourceRpcResult(result);
+    if (Buffer.byteLength(JSON.stringify(result)) > 2_000_000) throw new AppError('MCP_OUTPUT_LIMIT', '缓存读取结果过大，请缩小成员范围。');
+    if ('error' in result) {
+      const remote = result.error;
+      if (remote.sourceTool !== undefined && !TOOL_DEFINITIONS.some(tool => tool.name === remote.sourceTool)
+        || remote.diagnostic?.operation !== undefined && remote.diagnostic.operation !== CACHED_RESOURCE_RPC_OPERATION
+          && !TOOL_DEFINITIONS.some(tool => tool.name === remote.diagnostic!.operation))
+        throw new AppError('MCP_INVALID_RESULT', '缓存错误包含固定目录之外的来源工具或诊断操作。');
+      const message = remote.contractIssue ? contractIssueMessage(remote.contractIssue)
+        : CACHED_RESOURCE_ERROR_MESSAGES[remote.code] ?? TOOL_ERROR_MESSAGES[remote.code] ?? '缓存读取未完成，请查看错误码和诊断后恢复原范围。';
+      const error = new AppError(remote.code, message, remote.accessContext === undefined ? undefined : structuredClone(remote.accessContext));
+      if (remote.diagnostic) diagnosedError(error, structuredClone(remote.diagnostic));
+      for (const key of ['sourceTool', 'recovery', 'diagnosis', 'contractIssue', 'networkAttempted'] as const)
+        if (remote[key] !== undefined) Object.defineProperty(error, key, { value: structuredClone(remote[key]) });
+      throw error;
+    }
+    if (result.resource.resourceRef !== ref) throw new AppError('MCP_INVALID_RESULT', '缓存响应引用与请求不一致。');
+    if (!TOOL_DEFINITIONS.some(tool => tool.name === result.resource.sourceTool)) throw new AppError('MCP_INVALID_RESULT', '缓存资源来源不属于固定工具目录。');
+    checkAccessResponse(result.resource.sourceTool, result.resource.value);
+    return result.resource;
   }
   async endReadContext(turnId: string): Promise<void> {
     const context = readContext({ turnId });

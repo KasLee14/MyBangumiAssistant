@@ -119,7 +119,7 @@ test('未知投影与未请求字段明确区分，include只补事实不隐式�
 test('召回精简视图未知名称字段仅投影，不能为了nameCn=null逐项补详情', async () => {
   const store = new CandidateStore(); const set = create(store, [1, 2].map(id => ({ id, facts: { name: '作品', nameCn: null, subjectType: 2 } })));
   const query = new CandidateQuery(store, { loadFacts: async () => { throw Error('召回不应补读详情'); } });
-  const args = { candidate_ref: set.ref };
+  const args = { candidate_ref: set.ref,fields:['id','nameCn'] };
   const result = await query.execute(args, binding, undefined, undefined, { filterAlreadyApplied: true, hydrateProjection: false });
   assert.equal(result.data.length, 2); assert.deepEqual(result.data[0].fieldStates, { nameCn: 'unknown' }); checkCandidateResponse(result, args);
 });
@@ -379,7 +379,7 @@ test('reference扫描917候选而不被展示limit=1提前结束，模型只见�
   assert.ok(JSON.stringify(result).length < 2000); assert.equal(JSON.stringify(result).includes('父作品'), false);
   const defaultArgs = { candidate_ref: origin.ref, filter: { rating: { min: 7 } }, response_view: 'reference', limit: 1 };
   const defaultFields = await query.execute(defaultArgs, binding); checkCandidateResponse(defaultFields, defaultArgs);
-  assert.deepEqual(defaultFields.fields, ['id', 'name', 'nameCn', 'subjectType']); assert.equal(defaultFields.stage.processedCount, 917);
+  assert.deepEqual(defaultFields.fields, ['id']); assert.equal(defaultFields.stage.processedCount, 917);
   assert.equal(defaultFields.coverage.complete, true); assert.equal(defaultFields.coverage.unknownFieldCount, 0); assert.equal(reads, 0);
 });
 
@@ -575,7 +575,9 @@ test('cached page100投影缺失时长和中文名0读取，选中ID再hydrate�
     { sources: [relationSource], scopeCoverage: { complete: false, pendingCount: 0, remainingCount: 0, unknownCount: 0, failedCount: 1 } });
   const loads = [], query = new CandidateQuery(store, { loadFacts: async (row, fields) => { loads.push([row.id, fields]);
     return { facts: { nameCn: `中文${row.id}`, durationMinutes: 4 } }; } });
-  const fields = ['id', 'name', 'nameCn', 'durationMinutes'], args = { candidate_ref: origin.ref, fields, hydrate_fields: false, limit: 100 };
+  const qualified = await query.execute({ candidate_ref: origin.ref, fields: ['id'], response_view: 'reference' }, binding);
+  const qualifiedSet = store.get(qualified.resultRef, binding);
+  const fields = ['id', 'name', 'nameCn', 'durationMinutes'], args = { candidate_ref: qualified.resultRef, fields, hydrate_fields: false, limit: 100 };
   const cached = await query.execute(args, binding, undefined, undefined, { hydrateProjection: true }); checkCandidateResponse(cached, args);
   assert.equal(cached.data.length, 100); assert.deepEqual(loads, []); assert.equal(cached.coverage.unknownFieldCount, 0);
   assert.deepEqual(cached.data[0].fieldStates, { nameCn: 'unknown', durationMinutes: 'unknown' });
@@ -587,7 +589,7 @@ test('cached page100投影缺失时长和中文名0读取，选中ID再hydrate�
   assert.equal(selected.coverage.unknownFieldCount, 0); assert.equal(selected.coverage.dependencyFailedCount, 1);
   const selectedSet = store.get(selected.resultRef, binding); assert.deepEqual(selectedSet.sources, [relationSource]);
   assert.equal(store.get(selected.candidateRef, binding).parentRef, cached.resultRef);
-  assert.equal(cached.candidateRef, origin.ref); assert.equal(store.get(cached.candidateRef, binding).parentRef, origin.parentRef);
+  assert.equal(cached.candidateRef, qualified.resultRef); assert.equal(store.get(cached.candidateRef, binding).parentRef, qualifiedSet.parentRef);
   assert.equal(selectedSet.coverageDependencies[0].coverageRef, origin.coverageRef);
 });
 
@@ -681,7 +683,7 @@ test('宿主续查规范默认值/源subject_type，错误cursor、owner和任�
   const args = { candidate_ref: origin.ref, subject_type: 2, response_view: 'reference' };
   const first = await query.execute(args, owned, own);
   const restored = store.continuationArgs(first.resultRef, first.page.nextCursor, owned);
-  assert.deepEqual(restored.filter, { subject_type: 2 }); assert.deepEqual(restored.fields, ['id', 'name', 'nameCn', 'subjectType']);
+  assert.deepEqual(restored.filter, { subject_type: 2 }); assert.deepEqual(restored.fields, ['id']);
   assert.equal(restored.include, undefined); assert.equal(restored.limit, 50); assert.equal(restored.hydrate_fields, undefined);
   for (const wrong of [{ ...owned, accountId: 8 }, { ...owned, scopeKey: 'other' }, { ...owned, turnId: 'other' }])
     assert.throws(() => store.continuationArgs(first.resultRef, first.page.nextCursor, wrong), error => error.code === 'CANDIDATE_SCOPE_MISMATCH');
@@ -739,23 +741,24 @@ test('10000候选字段分页沿原引用补缓存且仅保存紧凑覆盖，过
   const origin = create(store, Array.from({ length: size }, (_, index) => ({ id: index + 1, facts: { name: `作品${index + 1}` } })), { sources: [complete] });
   let loads = 0;
   const query = new CandidateQuery(store, { loadFacts: async row => { loads++; return { facts: { summary: `简介${row.id}`, score: 8 } }; } });
-  let args = { candidate_ref: origin.ref, fields: ['id', 'summary'], limit: 50 }, response;
+  const qualified = await query.execute({ candidate_ref: origin.ref, fields: ['id'], response_view: 'reference' }, binding);
+  let args = { candidate_ref: qualified.resultRef, fields: ['id', 'summary'], limit: 50 }, response;
   const ids = []; let oldArgs, oldCoverage;
   do {
     response = await query.execute(args, binding); checkCandidateResponse(response, args);
-    assert.equal(response.candidateRef, origin.ref); assert.equal(response.resultRef, origin.ref);
+    assert.equal(response.candidateRef, qualified.resultRef); assert.equal(response.resultRef, qualified.resultRef);
     ids.push(...response.data.map(row => row.id));
     if (!oldCoverage) oldCoverage = response.coverage.coverageRef;
     if (ids.length === 50) oldArgs = { ...args, cursor: response.page.nextCursor };
     args = { ...args, cursor: response.page.nextCursor };
   } while (response.page.nextCursor);
   assert.equal(loads, size); assert.equal(new Set(ids).size, size); assert.equal(response.stage.processedCount, size);
-  assert.equal(store.sets.size, 1); assert.equal(store.resultViews.size, 0); assert.equal(store.projectionWindows.size, 0);
+  assert.equal(store.sets.size, 2); assert.equal(store.resultViews.size, 1); assert.equal(store.projectionWindows.size, 0);
   assert.equal(store.getCoverage(oldCoverage, binding).qualification.remainingCount, size - 50);
   assert.ok(store.bytes < 12 * 1024 * 1024, `字段分页缓存为${store.bytes}字节`);
   await assert.rejects(query.execute(oldArgs, binding), error => error.code === 'CANDIDATE_CURSOR_MISMATCH');
-  const projected = await query.execute({ candidate_ref: origin.ref, fields: ['id', 'summary'], response_view: 'reference' }, binding);
-  assert.equal(projected.candidateRef, origin.ref); assert.equal(loads, size);
+  const projected = await query.execute({ candidate_ref: qualified.resultRef, fields: ['id', 'summary'], response_view: 'reference' }, binding);
+  assert.equal(projected.candidateRef, qualified.resultRef); assert.equal(loads, size);
   store.endReadContext(binding.turnId); assert.equal(store.bytes, 0);
 });
 
@@ -769,7 +772,8 @@ test('4300候选附带逐项详情来源时历史覆盖共享证据，字段分�
     return { facts: { summary: `完整简介${row.id}`, score: 8 }, sources: [{ ...complete, tool: 'get_subject_details',
       scope: JSON.stringify({ subject_id: row.id }), total: 1, scannedCount: 1 }] };
   } });
-  let args = { candidate_ref: origin.ref, fields: ['id', 'summary'], limit: 50 }, response;
+  const qualified = await query.execute({ candidate_ref: origin.ref, fields: ['id'], response_view: 'reference' }, binding);
+  let args = { candidate_ref: qualified.resultRef, fields: ['id', 'summary'], limit: 50 }, response;
   let firstCoverage;
   do {
     response = await query.execute(args, binding); checkCandidateResponse(response, args);
@@ -777,11 +781,11 @@ test('4300候选附带逐项详情来源时历史覆盖共享证据，字段分�
     args = { ...args, cursor: response.page.nextCursor };
   } while (response.page.nextCursor);
   assert.equal(loads, size); assert.equal(response.coverage.complete, true); assert.equal(response.coverage.sourceCount, size + 1);
-  assert.equal(store.sets.size, 1); assert.ok(store.bytes < 12 * 1024 * 1024);
+  assert.equal(store.sets.size, 2); assert.equal(store.resultViews.size, 1); assert.ok(store.bytes < 12 * 1024 * 1024);
   assert.equal(store.getCoverage(firstCoverage, binding).sources.length, 51);
   assert.equal(store.getCoverage(response.coverage.coverageRef, binding).sources.length, size + 1);
-  const cached = await query.execute({ candidate_ref: origin.ref, fields: ['id', 'summary'] }, binding);
-  assert.equal(cached.candidateRef, origin.ref); assert.equal(loads, size);
+  const cached = await query.execute({ candidate_ref: qualified.resultRef, fields: ['id', 'summary'] }, binding);
+  assert.equal(cached.candidateRef, qualified.resultRef); assert.equal(loads, size);
   store.endReadContext(binding.turnId); assert.equal(store.bytes, 0); assert.equal(store.projectionSources.size, 0);
 });
 

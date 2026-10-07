@@ -1,0 +1,88 @@
+{
+  "captureBytes": 700739,
+  "wire": [
+    {
+      "file": "provider-response-1.json",
+      "bytes": 140032,
+      "calls": [
+        {
+          "name": "get_subject_details",
+          "arguments": "{\"subject_id\": 253}"
+        }
+      ],
+      "hasResourceReference": false
+    },
+    {
+      "file": "provider-response-2.json",
+      "bytes": 16168,
+      "calls": [
+        {
+          "name": "get_subject_details",
+          "arguments": "{\"subject_id\": 253}"
+        }
+      ],
+      "hasResourceReference": false
+    },
+    {
+      "file": "provider-response-3.json",
+      "bytes": 100437,
+      "calls": [
+        {
+          "name": "get_subject_details",
+          "arguments": "{\"subject_id\": 253, \"fields\": [\"id\", \"name\", \"nameCn\", \"kind\", \"image\", \"score\", \"rank\", \"summary\", \"url\", \"tags\", \"date\", \"ratingCount\"]}"
+        }
+      ],
+      "hasResourceReference": false
+    },
+    {
+      "file": "provider-response-4.json",
+      "bytes": 62885,
+      "calls": [
+        {
+          "name": "get_subject_image",
+          "arguments": "{\"subject_id\": 253, \"image_type\": \"large\"}"
+        }
+      ],
+      "hasResourceReference": false
+    },
+    {
+      "file": "provider-response-5.json",
+      "bytes": 177363,
+      "calls": [
+        {
+          "name": "refine_subject_candidates",
+          "arguments": "{\"subject_ids\": [253], \"fields\": [\"id\", \"name\", \"nameCn\", \"kind\", \"image\", \"score\", \"rank\", \"summary\", \"url\", \"tags\", \"date\"]}"
+        }
+      ],
+      "hasResourceReference": false
+    },
+    {
+      "file": "provider-response-6.json",
+      "bytes": 203854,
+      "calls": [],
+      "hasResourceReference": true
+    }
+  ],
+  "toolErrors": [
+    {
+      "name": "get_subject_details",
+      "errorText": "Validation failed for tool \"get_subject_details\":\n  - include: schema is false\n  - root: must not have additional properties\n\nReceived arguments:\n{\n  \"subject_id\": 253,\n  \"include\": [\n    \"summary\"\n  ]\n}"
+    },
+    {
+      "name": "get_subject_details",
+      "errorText": "Validation failed for tool \"get_subject_details\":\n  - include: schema is false\n  - root: must not have additional properties\n\nReceived arguments:\n{\n  \"subject_id\": 253,\n  \"include\": [\n    \"summary\"\n  ]\n}"
+    },
+    {
+      "name": "get_subject_details",
+      "errorText": "Validation failed for tool \"get_subject_details\":\n  - include: schema is false\n  - root: must not have additional properties\n\nReceived arguments:\n{\n  \"subject_id\": 253,\n  \"fields\": [\n    \"id\",\n    \"name\",\n    \"nameCn\",\n    \"kind\",\n    \"image\",\n    \"score\",\n    \"rank\",\n    \"summary\",\n    \"url\",\n    \"tags\",\n    \"date\",\n    \"ratingCount\"\n  ],\n  \"include\": [\n    \"summary\"\n  ]\n}"
+    },
+    {
+      "name": "get_subject_image",
+      "errorText": "MCP返回不符合固定输出契约。"
+    },
+    {
+      "name": "refine_subject_candidates",
+      "errorText": "{\"error\":{\"code\":\"MCP_CONNECTION_CLOSED\",\"message\":\"本地 MCP 连接已关闭，请重新启动本助手；未自动重发任何操作。\",\"diagnosis\":{\"category\":\"other\",\"stage\":\"execution\",\"effect\":\"read\",\"blockedFields\":[],\"allowedValues\":[],\"capabilitySuggestions\":[\"report_gap\"],\"replanAllowed\":true,\"retryable\":false},\"diagnostic\":{\"schemaVersion\":1,\"errorId\":\"8a5520b7-0119-40af-9728-951a914dc640\",\"reason\":\"operation_failed\",\"certainty\":\"confirmed\",\"recovery\":\"none\",\"issues\":[],\"evidence\":{},\"causes\":[{\"name\":\"AppError\",\"code\":\"MCP_CONNECTION_CLOSED\"}],\"code\":\"MCP_CONNECTION_CLOSED\",\"origin\":\"domain\",\"stage\":\"execution\",\"operation\":\"refine_subject_candidates\"}}}"
+    }
+  ]
+}

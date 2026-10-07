@@ -1,5 +1,5 @@
 import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
-import { AppError, READ_DIAGNOSIS_SCHEMA, CONTRACT_ISSUE_SCHEMA } from '../support/errors.js';
+import { AppError, READ_DIAGNOSIS_SCHEMA, CONTRACT_ISSUE_SCHEMA, INPUT_ISSUES_SCHEMA } from '../support/errors.js';
 import { ERROR_DIAGNOSTIC_SCHEMA } from '../support/error-diagnostic.js';
 import { isDeepStrictEqual } from 'node:util';
 import { SEARCH_LIMITATIONS, type QueryCoverage } from './search-capabilities.js';
@@ -106,6 +106,7 @@ export function withAccessContext(schema: JsonSchema): JsonSchema {
     if (node.properties) { const properties = node.properties as Record<string, JsonSchema>; properties.accessContext = accessContextSchema;
       if (properties.code && properties.message) {
         properties.networkAttempted = { type: 'boolean', const: false };
+        properties.issues ??= INPUT_ISSUES_SCHEMA;
         properties.rejection = submissionRejectionSchema;
         properties.sourceTool = { type: 'string', minLength: 1, maxLength: 100 };
         properties.diagnosis = READ_DIAGNOSIS_SCHEMA;

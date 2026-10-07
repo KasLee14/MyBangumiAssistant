@@ -47,7 +47,37 @@ export function validateBatchArguments(raw: unknown): { operations: BatchOperati
   });
   return { operations };
 }
-function output(value: Data): AgentToolResult<unknown> { return { content: [{ type: 'text', text: JSON.stringify({ value }) }], details: { value } }; }
+const batchIdentity = new Set(['kind', 'id', 'subjectId', 'episodeId', 'episodeIds', 'indexId', 'relationId', 'personId', 'characterId', 'accountId', 'indexFrom']);
+/** 模型读取执行与核实状态；完整基线、正文和逐阶段证据留在宿主回执。 */
+export function projectBatchResult(value: Data): Data {
+  const project = (raw: unknown, role = ''): unknown => {
+    if (Array.isArray(raw)) return raw.map(item => project(item, role));
+    if (!raw || typeof raw !== 'object') return raw;
+    const row = raw as Data, result: Data = {};
+    const allowed = role === 'target' ? batchIdentity : role === 'actual'
+      ? new Set([...batchIdentity, 'state', 'collectionStatus', 'collectionType', 'status', 'episodeStatus', 'rating', 'personalRating', 'chapters', 'volumes', 'collected', 'private'])
+      : new Set(['state', 'phase', 'step', 'tool', 'target', 'items', 'stageResults', 'summary', 'partial', 'confirmation',
+        'submitted', 'verification', 'verified', 'actual', 'requestedFields', 'reason', 'blockedBy', 'error', 'submissionError',
+        'verificationError', 'failures', 'failure', 'sourceTool', 'code', 'message', 'networkAttempted', 'writeNetworkAttempted',
+        'completedSteps', 'totalSteps', 'requestId', 'batchId', 'operationId', 'resourceRef', 'accessContext', 'recoveredCreates',
+        'createdId', 'retryable', 'rejection', 'submission', 'affectedEpisodeIds', 'waiting']);
+    if (role === 'verification') {
+      for (const key of ['state', 'scope', 'readbackCompleted', 'requestedStateMatched', 'protectedFieldsMatched', 'mismatchedFields', 'superseded'])
+        if (Object.hasOwn(row, key)) result[key] = structuredClone(row[key]);
+      return result;
+    }
+    if (role === 'confirmation') {
+      for (const key of ['required', 'reasons']) if (Object.hasOwn(row, key)) result[key] = structuredClone(row[key]);
+      return result;
+    }
+    if (role === 'waiting') return structuredClone(row);
+    if (role === 'summary' || role === 'accessContext' || role === 'rejection') return structuredClone(row);
+    for (const [key, item] of Object.entries(row)) if (allowed.has(key)) result[key] = project(item, key);
+    return result;
+  };
+  return project(value) as Data;
+}
+function output(value: Data): AgentToolResult<unknown> { return { content: [{ type: 'text', text: JSON.stringify({ value: projectBatchResult(value) }) }], details: { value }, structuredContent: JSON.parse(JSON.stringify({ value })) }; }
 function visibleTarget(target: Data): Data {
   const value = structuredClone(target);
   const key = value.kind === 'index' ? 'id' : 'indexId';

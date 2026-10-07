@@ -1,0 +1,194 @@
+{
+  "scenario": "subject",
+  "prompt": "这是只读验收。查询 Bangumi 作品 253 的详情，先用默认字段查询，再从本轮资源缓存按需读取名称和评分（至少调用一次 read_cached_resource）。最后用 SubjectCards 的资源引用 props 展示它，卡片要有缓存中的封面、简介、评分与链接；不要在最终模型 JSON 中抄写缓存展示字段。请简要说明作品名称和评分，不修改账户数据。",
+  "configuration": {
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "thinking": "high"
+  },
+  "configurationSource": "C:\\Users\\Kas\\AppData\\Local\\MyBangumiAssistant-Pi\\pi\\settings.json",
+  "durationMs": 18916,
+  "stopReason": "stop",
+  "schemaValid": true,
+  "readOnly": true,
+  "cachedReadExecuted": true,
+  "imagePresent": true,
+  "componentTypes": [
+    "SubjectCards"
+  ],
+  "allComponentsComplete": true,
+  "providerVisibleThinkingParts": 4,
+  "wireReferencePresent": true,
+  "finalWireReferencePresent": true,
+  "finalWireComponents": [
+    {
+      "response": 4,
+      "type": "SubjectCards",
+      "propsKeys": [
+        "resourceRef",
+        "items",
+        "layout",
+        "title"
+      ],
+      "resourceRef": "rr_64b025270735a5441e9afb1ff1093534",
+      "itemKeys": [
+        [
+          "id",
+          "entity"
+        ]
+      ]
+    }
+  ],
+  "providerWireComponents": [
+    {
+      "response": 4,
+      "type": "SubjectCards",
+      "propsKeys": [
+        "resourceRef",
+        "items",
+        "layout",
+        "title"
+      ],
+      "resourceRef": "rr_64b025270735a5441e9afb1ff1093534",
+      "itemKeys": [
+        [
+          "id",
+          "entity"
+        ]
+      ]
+    }
+  ],
+  "providerWireToolCalls": [
+    {
+      "response": 1,
+      "name": "get_subject_details",
+      "arguments": {
+        "subject_id": 253
+      }
+    },
+    {
+      "response": 2,
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_64b025270735a5441e9afb1ff1093534",
+        "fields": [
+          "name",
+          "nameCn",
+          "score",
+          "rank",
+          "ratingCount",
+          "image",
+          "url",
+          "summary"
+        ],
+        "keys": [
+          253
+        ]
+      }
+    },
+    {
+      "response": 3,
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_64b025270735a5441e9afb1ff1093534",
+        "fields": [
+          "name",
+          "nameCn",
+          "score",
+          "rank",
+          "ratingCount",
+          "image",
+          "url",
+          "summary"
+        ]
+      }
+    }
+  ],
+  "responseCaptureBytes": 211093,
+  "toolErrorCount": 1,
+  "strictPrimaryKeyProof": true,
+  "requestCount": 4,
+  "toolCalls": [
+    "get_subject_details",
+    "read_cached_resource",
+    "read_cached_resource"
+  ],
+  "errors": [],
+  "tokenUsage": {
+    "input": 2339,
+    "output": 775,
+    "cacheRead": 177152,
+    "cacheWrite": 0,
+    "reasoning": 329,
+    "totalTokens": 180266
+  },
+  "cumulativeInputTokens": 179491,
+  "peakRequestInputTokens": 45948,
+  "perMessageUsage": [
+    {
+      "input": 240,
+      "output": 52,
+      "cacheRead": 43904,
+      "cacheWrite": 0,
+      "reasoning": 11,
+      "totalTokens": 44196,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    {
+      "input": 223,
+      "output": 185,
+      "cacheRead": 44160,
+      "cacheWrite": 0,
+      "reasoning": 67,
+      "totalTokens": 44568,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    {
+      "input": 1112,
+      "output": 250,
+      "cacheRead": 43904,
+      "cacheWrite": 0,
+      "reasoning": 150,
+      "totalTokens": 45266,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    {
+      "input": 764,
+      "output": 288,
+      "cacheRead": 45184,
+      "cacheWrite": 0,
+      "reasoning": 101,
+      "totalTokens": 46236,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    }
+  ],
+  "endToEndValid": true,
+  "defaultProjectionLeakCount": 0,
+  "defaultProjectionLeaks": [],
+  "realHttpCountEvidence": "现有 trace 未记录 HTTP 请求次数；cache-only 零请求由独立可计数 transport 测试证明",
+  "valid": false
+}

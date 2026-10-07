@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "nextType": "Callout",
+      "text": "**本轮只读检索未取得可用结果。**"
+    },
+    {
+      "type": "Callout",
+      "pending": false,
+      "props": {
+        "tone": "warning",
+        "text": "动画搜索“星际牛仔”未返回数据",
+        "detail": "search_subjects 返回 INVALID_RESPONSE（origin: http，stage: decode，recovery: replan_read，retryable: false）。Bangumi 返回的数据结构不符合预期，因此没有任何候选作品被召回，也就没有可用的 resourceRef 供 read_cached_resource 读取名称、评分或详情。"
+      }
+    },
+    {
+      "type": "text",
+      "nextType": null,
+      "text": "由于本轮无任何已核实事实，我不展示 SubjectCards，也不给出选择理由——在没有候选与已读字段的情况下给出“最符合标题的结果”只能靠编造，因此不做。\n\n- 覆盖情况：本次来源为公共 v0 匿名接口（source: v0，实际范围 sfw_only，NSFW 已排除）、搜索总数为估计值；即使成功也只能说明该来源窗口内的结果，不代表全站穷尽。\n- 账户数据：本轮未做任何写入，收藏、评分、进度等均未改动。\n\n需要的话请在下一轮重新发起同样的检索（可原样使用“星际牛仔”+动画筛选），成功召回后我会按“默认主键投影 → 缓存字段补取名称与评分 → 按需取详情”的顺序补齐，并用资源引用展示封面、简介、链接与评分。"
+    }
+  ]
+}

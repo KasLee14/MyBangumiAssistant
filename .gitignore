@@ -11,6 +11,7 @@
 /.github/
 bangumi/tests/
 bangumi/scripts/
+bangumi/benchmarks/
 !bangumi/scripts/
 bangumi/scripts/*
 !bangumi/scripts/copy-strategy-skills.mjs

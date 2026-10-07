@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "trace_id": "5baa3eed4ac5a41d0a5cee791c245cc2",
+  "root_span_id": "a08bf940f4a2513c",
+  "purpose": "agent",
+  "parent_trace": null,
+  "session": {
+    "session_id": "01a11698-4022-746b-809c-084c8c592e73",
+    "session_file": null,
+    "branch_start_id": "4afb3595",
+    "branch_end_id": "6174e076"
+  },
+  "started_at": "2026-10-07T13:40:40.129Z",
+  "execution_status": "completed",
+  "duration_ms": 16096.4898,
+  "inputs": [
+    {
+      "text": "这是默认主键投影的只读验收，请严格按顺序完成。第一次调用 get_subject_details 时 arguments 必须且只能是 {\"subject_id\":253}，不得添加 fields 或 include。取得本轮 resourceRef 后，用 read_cached_resource 读取 name、nameCn、score，至少成功执行一次该缓存工具。最后使用 SubjectCards 的引用 props，只提供 resourceRef、items 中的 id 253 及 layout grid；卡片封面、简介、评分、名称和链接交由宿主从缓存补齐，不要为这些展示字段再调用详情或图片工具。用一句话说明实际读取的名称与评分。禁止任何账户写入。",
+      "source": "interactive",
+      "streamingBehavior": null
+    }
+  ],
+  "final_output": {
+    "text": "已读取条目 253：名称为《星际牛仔》（カウボーイビバップ），评分 9.1。",
+    "status": "final",
+    "message_ref": {
+      "path": "payloads/75f0a613389ea8103484b371c60d1a0bc3731e3a57e0abbaf55ca64d459c8782.json",
+      "sha256": "75f0a613389ea8103484b371c60d1a0bc3731e3a57e0abbaf55ca64d459c8782",
+      "bytes": 2701
+    }
+  },
+  "capture": {
+    "complete": true,
+    "issues": [],
+    "dropped_events": 0,
+    "provider_payloads": "redacted_when_available",
+    "provider_payload_count": 3,
+    "reasoning": "provider_visible_only",
+    "http_request_tracing": "not_instrumented",
+    "compaction_model_requests": "not_instrumented",
+    "cache_warming_requests": "not_instrumented"
+  },
+  "analysis": {
+    "schema_version": 1,
+    "metrics": {
+      "llm_requests": 3,
+      "usage_unavailable_requests": 0,
+      "llm_duration_ms": 3602.8013000000046,
+      "prompt_bytes_max": 169670,
+      "tokens": {
+        "input": 904,
+        "output": 296,
+        "cache_read": 137344,
+        "cache_write": 0,
+        "total": 138544
+      },
+      "proposed_tool_calls": 2,
+      "executed_tools": 2,
+      "tool_errors": 0,
+      "mcp_client_calls": 2,
+      "mcp_rpc_attempts": 2,
+      "mcp_initialization_ms": 11897.756100000002,
+      "rpc_attempt_unknown_calls": 0,
+      "mcp_result_bytes": 3633,
+      "model_tool_result_bytes": 1748,
+      "search_candidate_rows": 0,
+      "search_unique_candidates": 0,
+      "search_overlap_ratio": null,
+      "mcp_by_tool": {
+        "get_subject_details": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 12363.8081,
+          "result_bytes": 2480
+        },
+        "read_cached_resource": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 5.770700000000943,
+          "result_bytes": 1153
+        }
+      },
+      "mcp_by_phase": {
+        "query": {
+          "calls": 2,
+          "duration_ms": 12369.578800000001
+        }
+      },
+      "host_duration_ms": {
+        "account_queue": 0,
+        "confirmation": 0,
+        "preflight": 0,
+        "submit": 0,
+        "verify": 0
+      }
+    },
+    "findings": []
+  },
+  "evaluation": null
+}

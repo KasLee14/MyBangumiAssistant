@@ -7,7 +7,7 @@ import { candidateCoverageSchema, type CandidateCoverage } from './candidate-con
 import { CANDIDATE_PRESENTATION_FIELDS, MAX_CANDIDATE_TABLE_WIRE_BYTES, MAX_CANDIDATE_TABLE_PARTS,
   type CandidatePresentationField, type CandidateProjectionOption, type CandidateTablePart } from './candidate-presentation-contract.js';
 
-export const CANDIDATE_CARD_FIELDS = ['nameCn', 'score', 'scoreCount', 'rank', 'date', 'summary', 'tags'] as const;
+export const CANDIDATE_CARD_FIELDS = ['nameCn', 'score', 'scoreCount', 'rank', 'date', 'summary', 'tags', 'image'] as const;
 export type CandidateCardField = typeof CANDIDATE_CARD_FIELDS[number];
 export interface CandidateOutputReason { subject_id: number; reason: string }
 interface CandidateOutputCommonArgs { candidate_ref: string; offset?: number; limit?: number; completion_scope?: 'selected' | 'exhaustive'; title?: string; introduction?: string; conclusion?: string }
@@ -28,7 +28,7 @@ export interface CandidateOutputText { type: 'text'; nextType: 'DataTable' | 'Su
 export interface CandidateCardItem {
   id: number; name: string; kind: 'book' | 'anime' | 'music' | 'game' | 'real'; url: string;
   nameCn?: string; score?: number; scoreCount?: number; rank?: number;
-  date?: string; summary?: string; tags?: string[];
+  date?: string; summary?: string; tags?: string[]; image?: string;
 }
 export interface CandidateCardPart {
   type: 'SubjectCards'; pending: false; props: { title?: string; layout: 'list' | 'grid'; total: number; items: CandidateCardItem[] };
@@ -63,8 +63,9 @@ const ref: JsonSchema = { type: 'string', minLength: 1, maxLength: 100 };
 const fields: JsonSchema = { type: 'array', minItems: 1, maxItems: CANDIDATE_PRESENTATION_FIELDS.length, uniqueItems: true,
   items: { enum: [...CANDIDATE_PRESENTATION_FIELDS] }, default: ['displayName', 'url'] };
 const cardFields: JsonSchema = { type: 'array', maxItems: CANDIDATE_CARD_FIELDS.length, uniqueItems: true,
-  items: { enum: [...CANDIDATE_CARD_FIELDS] }, default: ['nameCn'] };
-const commonArgs: Record<string, JsonSchema> = { candidate_ref: { ...ref, description: '已完成本层选择的resultRef；仅展示已选成员，无网络、不判断类别，权限与当前必要条件仍须有效。' },
+  items: { enum: [...CANDIDATE_CARD_FIELDS] }, default: ['nameCn'],
+  description: '额外卡片事实字段；同一候选缓存中已核实的封面由宿主自动附加。显式image可按原范围补齐缺失封面，不猜测地址。' };
+const commonArgs: Record<string, JsonSchema> = { candidate_ref: { ...ref, description: '已完成本层选择的resultRef；只展示此引用成员，默认只读缓存。显式image缺失时仅在原成员范围补图；权限与当前必要条件仍须有效。' },
   offset: { ...count(), description: '同一结果引用的交付起点；指定offset或limit启用分页，不改变集合及覆盖。' },
   limit: { ...count(1, 100), description: '单次交付最多成员数；实际数量也受内容容量约束，按page.nextOffset继续。' },
   title: { type: 'string', maxLength: 300 }, introduction: { type: 'string', maxLength: 4000 }, conclusion: { type: 'string', maxLength: 4000 } };
@@ -197,8 +198,7 @@ export function checkCandidateOutputResponse(value: unknown, input: Record<strin
       if (part.props.title !== args.title || part.props.layout !== args.layout || part.props.total !== response.counts.memberCount) invalid();
       for (const item of part.props.items) {
         if (!Number.isSafeInteger(item.id) || item.id < 1 || item.url !== `https://bgm.tv/subject/${item.id}`
-          || Object.hasOwn(item, 'image')
-          || CANDIDATE_CARD_FIELDS.some(field => !args.card_fields.includes(field) && Object.hasOwn(item, field))) invalid();
+          || CANDIDATE_CARD_FIELDS.some(field => field !== 'image' && !args.card_fields.includes(field) && Object.hasOwn(item, field))) invalid();
         subjects.push({ id: item.id, name: item.name });
       }
       members += part.props.items.length;

@@ -294,7 +294,8 @@ export class CandidateQuery {
     }
     const stage = { inputCount: sourceRows.length, processedCount: nextOffset, matchedCount: matchedIds.length, excludedCount,
       pendingCount: pendingIds.length, remainingCount: sourceRows.length - nextOffset };
-    const projectionOnly = !options.forceStage && !Object.keys(effectiveFilter).length && !preserveInput && !filterAlreadyApplied && options.processIds === undefined
+    // 输入集合不能把一次字段读取冒充已核结果；首次扫描先生成真实资格与结果引用。
+    const projectionOnly = input.refRole === 'result' && !options.forceStage && !Object.keys(effectiveFilter).length && !preserveInput && !filterAlreadyApplied && options.processIds === undefined
       && (!args.cursor || args.cursor.startsWith('cp_')) && isDeepStrictEqual(input.binding, binding) && input.visibility === visibility
       && excludedCount === 0 && pendingIds.length === 0;
     const cursor = projectionOnly && nextCursor ? `cp_${randomUUID()}` : nextCursor;

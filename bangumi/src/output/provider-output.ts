@@ -8,11 +8,14 @@ import { ContentOutputError, MAX_CONTENT_BYTES, MAX_CONTENT_PARTS, validateMixed
 import { shouldUseMixedContent } from './provider-options.js';
 import { attachOutputCheckpoint } from './recovery-checkpoint.js';
 import { deriveNextTypes } from './content-normalize.js';
-import { createErrorDiagnostic, rememberErrorDebug, withAssistantDiagnostic, type ErrorDiagnostic } from '../support/error-diagnostic.js';
+import { createErrorDiagnostic, errorCauses, rememberErrorDebug, withAssistantDiagnostic, type ErrorDiagnostic } from '../support/error-diagnostic.js';
+import { sanitizeErrorDiagnostic } from '../support/errors.js';
+import { expandResourceContent, type ResourceContentResolver } from './resource-content.js';
 
 type TextSlot = {
   kind: 'mixed'; sourceIndex: number; decoder: ContentDecoder; final?: MixedContent;
   signature?: string; started: Set<number>; ended: Set<number>;
+  resolved: Map<number, MixedContent['content'][number]>;
 };
 type NativeSlot = { kind: 'native'; sourceIndex: number; part: ThinkingContent | ToolCall };
 type Slot = TextSlot | NativeSlot;
@@ -21,6 +24,7 @@ type Slot = TextSlot | NativeSlot;
 export function decodeProviderOutput(
   model: Model<Api>, context: TranscriptContext, options: StreamOptions | undefined,
   start: (observePayload: (payload: unknown) => void) => AssistantMessageEventStream,
+  resolver?: ResourceContentResolver,
 ): AssistantMessageEventStream {
   return lazyStream(model, async () => {
     const enabled = shouldUseMixedContent(model, context);
@@ -69,13 +73,22 @@ export function decodeProviderOutput(
           if (requestMaxTokens !== null) evidence.requestBelowConfigured = requestMaxTokens < model.maxTokens;
           evidence.contextClamped = null;
           if (error?.location) Object.assign(evidence, error.location);
-          const diagnostic = createErrorDiagnostic({ code, reason: detail, origin: code.startsWith('LLM_') ? 'llm' : 'content',
+          const sourceDiagnostic = error?.diagnostic ? sanitizeErrorDiagnostic(error.diagnostic) : undefined;
+          const operation = error?.sourceTool ?? sourceDiagnostic?.operation;
+          const causes = [...errorCauses(error ?? cause), ...(sourceDiagnostic ? [{ name: 'ResourceReadError', code: sourceDiagnostic.code }, ...sourceDiagnostic.causes] : [])]
+            .filter((item, index, values) => values.findIndex(other => other.name === item.name && other.code === item.code) === index).slice(0, 4);
+          const referenceFailure = detail.startsWith('resource_reference_') && detail !== 'resource_reference_invalid';
+          const diagnostic = sanitizeErrorDiagnostic(createErrorDiagnostic({ code, reason: detail, origin: code.startsWith('LLM_') ? 'llm' : 'content',
             stage: code.startsWith('LLM_') ? 'stream' : code === 'CONTENT_SCHEMA_INVALID' || code === 'CONTENT_LIMIT_EXCEEDED' ? 'validate' : 'decode',
-            certainty, recovery: code === 'CONTENT_SCHEMA_INVALID' || code === 'CONTENT_JSON_SYNTAX' ? 'repair_component'
-              : code === 'CONTENT_LIMIT_EXCEEDED' ? 'correct_parameters' : 'continue_output', evidence,
+            certainty: referenceFailure ? sourceDiagnostic?.certainty ?? certainty : certainty,
+            recovery: referenceFailure ? detail === 'resource_reference_refresh_required' ? 'replan_read' : 'none'
+              : code === 'CONTENT_SCHEMA_INVALID' || code === 'CONTENT_JSON_SYNTAX' ? 'repair_component'
+                : code === 'CONTENT_LIMIT_EXCEEDED' ? 'correct_parameters' : 'continue_output',
+            evidence: { ...(sourceDiagnostic?.evidence ?? {}), ...evidence },
+            ...(operation && /^[a-zA-Z0-9_.-]{1,100}$/.test(operation) ? { operation } : {}),
             issues: error ? error.issueDetails.slice(0, 8).map(issue => ({ ...issue, path: issue.path.replace(/^\/content\/(\d+)(?=\/|$)/,
               (_match, index) => `/content/${precedingParts() + Number(index)}`) })) : [],
-            causes: error ? [{ name: error.name, code: error.code }] : [] });
+            causes }));
           rememberErrorDebug(diagnostic, error ?? cause, message.content.filter(part => part.type === 'text').map(part => part.text).join(''));
           const summaries: Record<string, string> = { LLM_OUTPUT_TRUNCATED: '模型输出被长度限制截断，已完成组件保留。',
             LLM_STREAM_INTERRUPTED: '模型流未正常结束，已完成内容保留。', CONTENT_JSON_SYNTAX: '模型输出不是合法 JSON。',
@@ -83,21 +96,26 @@ export function decodeProviderOutput(
           // 解码器只记录错误；会话宿主根据结构化诊断决定恢复，独立流保留错误标记。
           const legacy = reason === 'incomplete' ? 'CONTENT_OUTPUT_INCOMPLETE' : 'CONTENT_OUTPUT_INVALID';
           const failed = withAssistantDiagnostic({ ...visible(message), stopReason: 'error', rawStopReason: message.rawStopReason ?? reason,
-            errorMessage: `${legacy}：${summaries[code]}${error ? ` ${error.message}` : ''}` }, diagnostic);
+            errorMessage: `${legacy}：${referenceFailure ? '缓存引用未能展开，已完成内容保留。' : summaries[code]}${error ? ` ${error.message}` : ''}` }, diagnostic);
           return checkpoint(failed);
         };
         const checkpoint = (message: AssistantMessage): AssistantMessage => {
           const states = slots.filter((slot): slot is TextSlot => slot.kind === 'mixed').map(slot => slot.decoder.recoveryCheckpoint());
           const localBadIndex = parseError instanceof ContentOutputError ? Number(parseError.issueDetails[0]?.path.match(/^\/content\/(\d+)(?:\/|$)/)?.[1]) : NaN;
           const badIndex = Number.isInteger(localBadIndex) ? precedingParts() + localBadIndex : NaN;
-          const prefix = states.flatMap(item => item.prefix);
+          const prefix = slots.filter((slot): slot is TextSlot => slot.kind === 'mixed').flatMap(slot => {
+            const parts = slot.decoder.recoveryCheckpoint().prefix.map((part, index) => slot.resolved.get(index) ?? part);
+            const firstPending = parts.findIndex(part => part.type !== 'text' && part.pending);
+            return firstPending < 0 ? parts : parts.slice(0, firstPending);
+          });
           // 错误块之前的真实完成前缀才可保留；预测占位不属于断点。
           const kept = Number.isInteger(badIndex) && badIndex < prefix.length ? prefix.slice(0, badIndex) : prefix;
+          const failedReference = Number.isInteger(localBadIndex) ? parseErrorSlot?.decoder.resourceReferences().find(([index]) => index === localBadIndex)?.[1] : undefined;
           return attachOutputCheckpoint(message, { prefix: kept, jsonComplete: states.length > 0 && states.every(item => item.jsonComplete),
             failureScope: parseError instanceof ContentOutputError ? states.find(item => item.failedPartIndex !== undefined)?.failureScope
               ?? states.find(item => item.failureScope !== 'host')?.failureScope ?? 'host' : 'transport',
             ...(Number.isInteger(badIndex) ? { failedPartIndex: badIndex } : {}),
-            ...(kept.length < prefix.length ? { draft: prefix[kept.length] } : states.find(item => item.draft !== undefined)?.draft === undefined ? {}
+            ...(failedReference ? { draft: { type: failedReference.kind, props: failedReference.props } } : kept.length < prefix.length ? { draft: prefix[kept.length] } : states.find(item => item.draft !== undefined)?.draft === undefined ? {}
               : { draft: states.find(item => item.draft !== undefined)!.draft }) });
         };
         const beginText = (index: number): TextSlot => {
@@ -105,7 +123,7 @@ export function decodeProviderOutput(
           if (previous?.kind === 'mixed' && !previous.final && !parseError) {
             try { previous.final = previous.decoder.finish(); } catch (error) { parseError = error; parseErrorSlot = previous; }
           }
-          const slot: TextSlot = { kind: 'mixed', sourceIndex: index, decoder: new ContentDecoder(), started: new Set(), ended: new Set() };
+          const slot: TextSlot = { kind: 'mixed', sourceIndex: index, decoder: new ContentDecoder(), started: new Set(), ended: new Set(), resolved: new Map() };
           active.set(index, slot);
           slots.push(slot);
           return slot;
@@ -131,8 +149,9 @@ export function decodeProviderOutput(
         const visible = (message: AssistantMessage): AssistantMessage => {
           const content: AssistantContent[] = slots.flatMap<AssistantContent>(slot => {
             if (slot.kind === 'native') return [structuredClone(slot.part)];
-            return slot.decoder.snapshot().content.map(part => part.type === 'text' && slot.signature
-              ? { ...part, textSignature: slot.signature } : structuredClone(part));
+            return slot.decoder.snapshot().content.map((input, index) => { const part = slot.resolved.get(index) ?? input; return part.type === 'text' && slot.signature
+              ? { ...part, textSignature: slot.signature } : structuredClone(part);
+            });
           });
           const adjustments = slots.flatMap(slot => slot.kind === 'mixed' ? slot.decoder.normalizationAdjustments() : []).slice(0, 8);
           return { ...message, content, ...(adjustments.length ? { diagnostics: [...(message.diagnostics ?? []).filter(item => item.type !== 'bangumi_output_normalized'),
@@ -156,6 +175,17 @@ export function decodeProviderOutput(
             } else yield { type: 'content_update', contentIndex: index, partial: visible(message) };
           }
         };
+        const resolveReferences = async function* (slot: TextSlot, message: AssistantMessage): AsyncGenerator<AssistantMessageEvent> {
+          for (const [index, reference] of slot.decoder.resourceReferences()) {
+            if (slot.resolved.has(index)) continue;
+            try {
+              const canonical = await expandResourceContent(reference.kind, reference.props, resolver, options?.signal);
+              slot.resolved.set(index, canonical);
+              // 只有缓存读取及完整契约验证完成后才发布 pending:false。
+              yield { type: 'content_update', contentIndex: offset(slot) + index, partial: visible(message) };
+            } catch (error) { if (error instanceof ContentOutputError) throw error.at(`/content/${index}`); throw error; }
+          }
+        };
         for await (const event of source) {
           lastSource = event.type === 'done' ? event.message : event.type === 'error' ? event.error : event.partial;
           if (options?.signal?.aborted && event.type !== 'error') {
@@ -169,7 +199,7 @@ export function decodeProviderOutput(
           } else if (event.type === 'text_delta') {
             const slot = textAt(event.contentIndex);
             if (!parseError) {
-              try { yield* updates(slot, slot.decoder.feed(event.delta), event.partial); }
+              try { yield* updates(slot, slot.decoder.feed(event.delta), event.partial); yield* resolveReferences(slot, event.partial); }
               catch (error) { parseError = error; parseErrorSlot = slot; }
             }
           } else if (event.type === 'text_end') {
@@ -188,7 +218,7 @@ export function decodeProviderOutput(
               else if (part.type === 'text' && !active.has(index) && !parseError) {
                 const slot = beginText(index);
                 if (part.textSignature) slot.signature = part.textSignature;
-                try { yield* updates(slot, slot.decoder.feed(part.text), event.message); slot.final = slot.decoder.finish(); }
+                try { yield* updates(slot, slot.decoder.feed(part.text), event.message); yield* resolveReferences(slot, event.message); slot.final = slot.decoder.finish(); }
                 catch (error) { parseError = error; parseErrorSlot = slot; }
               }
             }
@@ -199,7 +229,7 @@ export function decodeProviderOutput(
             if (event.reason === 'deferred') { yield { ...event, message: visible(event.message) }; return; }
             try {
               if (parseError) throw parseError;
-              const content = deriveNextTypes(slots.flatMap(slot => slot.kind === 'mixed' ? (slot.final ?? slot.decoder.finish()).content : []));
+              const content = deriveNextTypes(slots.flatMap(slot => slot.kind === 'mixed' ? (slot.final ?? slot.decoder.finish()).content.map((part, index) => slot.resolved.get(index) ?? part) : []));
               validateMixedContent({ content });
               if (event.reason !== 'stop' && event.reason !== 'length') throw new ContentOutputError('模型输出未正常结束。', 'truncated');
               const final = visible(event.message);

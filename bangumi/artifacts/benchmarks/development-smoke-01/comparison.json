@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "protocolHash": "4ddf06284772d947d1c2329783a3ba417f640f52f7b404ac468690690b6b8539",
+  "summary": {
+    "runs": 1,
+    "outcomes": {
+      "incomplete_capture": 1
+    },
+    "passRate": 0,
+    "macroFamilyPassRate": 0,
+    "semanticPending": 0,
+    "totals": {
+      "mcpCalls": {
+        "availableRuns": 1,
+        "total": 0
+      },
+      "upstreamRequests": {
+        "availableRuns": 1,
+        "total": 0
+      },
+      "contextInputTokensMax": {
+        "availableRuns": 0,
+        "total": null
+      },
+      "contextInputTokensSum": {
+        "availableRuns": 0,
+        "total": null
+      },
+      "inputTokensSum": {
+        "availableRuns": 0,
+        "total": null
+      },
+      "outputTokensSum": {
+        "availableRuns": 0,
+        "total": null
+      },
+      "cacheReadTokensSum": {
+        "availableRuns": 0,
+        "total": null
+      },
+      "modelToolResultBytes": {
+        "availableRuns": 1,
+        "total": 0
+      },
+      "totalMs": {
+        "availableRuns": 1,
+        "total": 1441.7509
+      },
+      "modelMs": {
+        "availableRuns": 1,
+        "total": 0
+      },
+      "estimatedCost": {
+        "availableRuns": 0,
+        "total": null
+      }
+    }
+  },
+  "comparison": null
+}

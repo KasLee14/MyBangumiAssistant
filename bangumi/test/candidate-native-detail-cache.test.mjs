@@ -152,7 +152,7 @@ test('新turn和endReadContext都使原生body失效，相同ID需重读真实�
   f.service.endReadContext('native-detail-one'); f.bump();
   const reusedTurn = await read(f.service, 'refine_subject_candidates', { subject_ids: [1], fields: ['id', 'durationMinutes'] }, 'native-detail-one');
   assert.deepEqual(reusedTurn.data, [{ id: 1, durationMinutes: 18 }]); assert.equal(f.calls.length, 3);
-  await f.service.close(); assert.equal(f.service.nativeCandidateDetails.size, 0); assert.equal(f.service.nativeCandidateDetailBytes, 0);
+  await f.service.close(); assert.equal(f.service.resources.rawEntries.size, 0); assert.equal(f.service.resources.bytes, 0);
 });
 
 test('endReadContext期间迟到详情promise不能重新填入原生body缓存', async t => {
@@ -162,7 +162,7 @@ test('endReadContext期间迟到详情promise不能重新填入原生body缓存'
   const pending = read(f.service, 'refine_subject_candidates', basicArgs);
   const rejected = assert.rejects(pending, error => error.code === 'CANDIDATE_REF_EXPIRED');
   await started; f.service.endReadContext('native-detail-cache'); release(); await rejected;
-  assert.equal(f.service.nativeCandidateDetails.size, 0); assert.equal(f.service.nativeCandidateDetailBytes, 0);
+  assert.equal(f.service.resources.rawEntries.size, 0); assert.equal(f.service.resources.bytes, 0);
 });
 
 test('source/account marker匹配成功fallback才复用p1 body，关闭权限先拒绝受保护引用', async t => {

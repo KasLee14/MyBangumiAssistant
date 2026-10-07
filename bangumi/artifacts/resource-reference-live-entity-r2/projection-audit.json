@@ -1,0 +1,571 @@
+{
+  "toolProjectionAudit": [
+    {
+      "name": "get_person_details",
+      "arguments": {
+        "person_id": 1,
+        "fields": [
+          "id",
+          "name",
+          "entity",
+          "career",
+          "personType",
+          "url"
+        ]
+      },
+      "error": false,
+      "modelBytes": 650,
+      "fullBytes": 14755,
+      "resourceRefs": [
+        "rr_cce38cc0d6f51253db89e1b0aa205d4c"
+      ],
+      "visibleDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 23
+        }
+      ],
+      "fullDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 23
+        },
+        {
+          "path": "/value/image",
+          "bytes": 71
+        },
+        {
+          "path": "/value/summary",
+          "bytes": 13696
+        }
+      ],
+      "displayFieldsExplicitlyRequested": [
+        "id",
+        "name",
+        "entity",
+        "career",
+        "personType",
+        "url"
+      ]
+    },
+    {
+      "name": "get_character_details",
+      "arguments": {
+        "character_id": 1,
+        "fields": [
+          "id",
+          "name",
+          "entity",
+          "characterType",
+          "url"
+        ]
+      },
+      "error": false,
+      "modelBytes": 643,
+      "fullBytes": 1581,
+      "resourceRefs": [
+        "rr_eb49d70ea0325837e1ad33825b098427"
+      ],
+      "visibleDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 26
+        }
+      ],
+      "fullDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 26
+        },
+        {
+          "path": "/value/image",
+          "bytes": 57
+        },
+        {
+          "path": "/value/summary",
+          "bytes": 752
+        }
+      ],
+      "displayFieldsExplicitlyRequested": [
+        "id",
+        "name",
+        "entity",
+        "characterType",
+        "url"
+      ]
+    },
+    {
+      "name": "get_person_image",
+      "arguments": {
+        "person_id": 1,
+        "fields": [
+          "id",
+          "url",
+          "kind",
+          "imageType"
+        ]
+      },
+      "error": false,
+      "modelBytes": 520,
+      "fullBytes": 413,
+      "resourceRefs": [
+        "rr_b811bc6ddd5ec137d085bd794df5c50d"
+      ],
+      "visibleDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 65
+        }
+      ],
+      "fullDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 65
+        }
+      ],
+      "displayFieldsExplicitlyRequested": [
+        "id",
+        "url",
+        "kind",
+        "imageType"
+      ]
+    },
+    {
+      "name": "get_character_image",
+      "arguments": {
+        "character_id": 1,
+        "fields": [
+          "id",
+          "url",
+          "kind",
+          "imageType"
+        ]
+      },
+      "error": false,
+      "modelBytes": 509,
+      "fullBytes": 402,
+      "resourceRefs": [
+        "rr_f186990c4e275540f86772e562f90adc"
+      ],
+      "visibleDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 51
+        }
+      ],
+      "fullDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 51
+        }
+      ],
+      "displayFieldsExplicitlyRequested": [
+        "id",
+        "url",
+        "kind",
+        "imageType"
+      ]
+    },
+    {
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_cce38cc0d6f51253db89e1b0aa205d4c",
+        "fields": [
+          "entity",
+          "id",
+          "name",
+          "personType",
+          "career",
+          "url"
+        ],
+        "keys": [
+          {
+            "personId": 1
+          },
+          {
+            "characterId": 1
+          }
+        ]
+      },
+      "error": true,
+      "modelBytes": 673,
+      "fullBytes": 673,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": [
+        "entity",
+        "id",
+        "name",
+        "personType",
+        "career",
+        "url"
+      ]
+    },
+    {
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_eb49d70ea0325837e1ad33825b098427",
+        "fields": [
+          "entity",
+          "id",
+          "name",
+          "characterType",
+          "url"
+        ]
+      },
+      "error": false,
+      "modelBytes": 1123,
+      "fullBytes": 1123,
+      "resourceRefs": [
+        "rr_eb49d70ea0325837e1ad33825b098427"
+      ],
+      "visibleDisplayFields": [
+        {
+          "path": "/value/value/url",
+          "bytes": 26
+        },
+        {
+          "path": "/value/fieldStates/url",
+          "bytes": 5
+        }
+      ],
+      "fullDisplayFields": [
+        {
+          "path": "/value/value/url",
+          "bytes": 26
+        },
+        {
+          "path": "/value/fieldStates/url",
+          "bytes": 5
+        }
+      ],
+      "displayFieldsExplicitlyRequested": [
+        "entity",
+        "id",
+        "name",
+        "characterType",
+        "url"
+      ]
+    },
+    {
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_f186990c4e275540f86772e562f90adc",
+        "fields": [
+          "url",
+          "imageType",
+          "kind"
+        ]
+      },
+      "error": false,
+      "modelBytes": 882,
+      "fullBytes": 882,
+      "resourceRefs": [
+        "rr_f186990c4e275540f86772e562f90adc"
+      ],
+      "visibleDisplayFields": [
+        {
+          "path": "/value/value/url",
+          "bytes": 51
+        },
+        {
+          "path": "/value/fieldStates/url",
+          "bytes": 5
+        }
+      ],
+      "fullDisplayFields": [
+        {
+          "path": "/value/value/url",
+          "bytes": 51
+        },
+        {
+          "path": "/value/fieldStates/url",
+          "bytes": 5
+        }
+      ],
+      "displayFieldsExplicitlyRequested": [
+        "url",
+        "imageType",
+        "kind"
+      ]
+    },
+    {
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_b811bc6ddd5ec137d085bd794df5c50d",
+        "fields": [
+          "url",
+          "imageType",
+          "kind"
+        ]
+      },
+      "error": false,
+      "modelBytes": 890,
+      "fullBytes": 890,
+      "resourceRefs": [
+        "rr_b811bc6ddd5ec137d085bd794df5c50d"
+      ],
+      "visibleDisplayFields": [
+        {
+          "path": "/value/value/url",
+          "bytes": 65
+        },
+        {
+          "path": "/value/fieldStates/url",
+          "bytes": 5
+        }
+      ],
+      "fullDisplayFields": [
+        {
+          "path": "/value/value/url",
+          "bytes": 65
+        },
+        {
+          "path": "/value/fieldStates/url",
+          "bytes": 5
+        }
+      ],
+      "displayFieldsExplicitlyRequested": [
+        "url",
+        "imageType",
+        "kind"
+      ]
+    }
+  ],
+  "providerPayloadAudit": [
+    {
+      "request": 1,
+      "tools": []
+    },
+    {
+      "request": 2,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 650,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 23
+            }
+          ]
+        },
+        {
+          "item": 1,
+          "bytes": 643,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 26
+            }
+          ]
+        },
+        {
+          "item": 2,
+          "bytes": 520,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 65
+            }
+          ]
+        },
+        {
+          "item": 3,
+          "bytes": 509,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 51
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "request": 3,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 650,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 23
+            }
+          ]
+        },
+        {
+          "item": 1,
+          "bytes": 643,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 26
+            }
+          ]
+        },
+        {
+          "item": 2,
+          "bytes": 520,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 65
+            }
+          ]
+        },
+        {
+          "item": 3,
+          "bytes": 509,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 51
+            }
+          ]
+        },
+        {
+          "item": 4,
+          "bytes": 673,
+          "displayFields": []
+        },
+        {
+          "item": 5,
+          "bytes": 1123,
+          "displayFields": [
+            {
+              "path": "/value/value/url",
+              "bytes": 26
+            },
+            {
+              "path": "/value/fieldStates/url",
+              "bytes": 5
+            }
+          ]
+        },
+        {
+          "item": 6,
+          "bytes": 882,
+          "displayFields": [
+            {
+              "path": "/value/value/url",
+              "bytes": 51
+            },
+            {
+              "path": "/value/fieldStates/url",
+              "bytes": 5
+            }
+          ]
+        },
+        {
+          "item": 7,
+          "bytes": 890,
+          "displayFields": [
+            {
+              "path": "/value/value/url",
+              "bytes": 65
+            },
+            {
+              "path": "/value/fieldStates/url",
+              "bytes": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "request": 4,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 650,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 23
+            }
+          ]
+        },
+        {
+          "item": 1,
+          "bytes": 643,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 26
+            }
+          ]
+        },
+        {
+          "item": 2,
+          "bytes": 520,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 65
+            }
+          ]
+        },
+        {
+          "item": 3,
+          "bytes": 509,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 51
+            }
+          ]
+        },
+        {
+          "item": 4,
+          "bytes": 673,
+          "displayFields": []
+        },
+        {
+          "item": 5,
+          "bytes": 1123,
+          "displayFields": [
+            {
+              "path": "/value/value/url",
+              "bytes": 26
+            },
+            {
+              "path": "/value/fieldStates/url",
+              "bytes": 5
+            }
+          ]
+        },
+        {
+          "item": 6,
+          "bytes": 882,
+          "displayFields": [
+            {
+              "path": "/value/value/url",
+              "bytes": 51
+            },
+            {
+              "path": "/value/fieldStates/url",
+              "bytes": 5
+            }
+          ]
+        },
+        {
+          "item": 7,
+          "bytes": 890,
+          "displayFields": [
+            {
+              "path": "/value/value/url",
+              "bytes": 65
+            },
+            {
+              "path": "/value/fieldStates/url",
+              "bytes": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

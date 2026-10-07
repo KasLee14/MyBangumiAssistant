@@ -1,6 +1,6 @@
 import { Ajv, type ErrorObject, type ValidateFunction } from 'ajv';
 import { COMPONENT_KINDS, type ComponentKind, type MixedContent, type MixedPart } from './content-types.js';
-import type { DiagnosticIssue } from '../support/error-diagnostic.js';
+import type { DiagnosticIssue, ErrorDiagnostic } from '../support/error-diagnostic.js';
 export * from './content-types.js';
 
 export const MAX_CONTENT_BYTES = 128 * 1024;
@@ -8,14 +8,23 @@ export const MAX_CONTENT_PARTS = 16;
 
 export class ContentOutputError extends Error {
   location?: { offset: number; line: number; column: number };
+  readonly diagnostic?: ErrorDiagnostic;
+  readonly sourceTool?: string;
   constructor(message: string, readonly code: 'schema' | 'size' | 'syntax' | 'truncated' | 'unsupported' = 'schema', readonly issues: readonly string[] = [],
-    readonly issueDetails: readonly DiagnosticIssue[] = [], readonly reason: string = `${code}_invalid`) {
-    super(message);
+    readonly issueDetails: readonly DiagnosticIssue[] = [], readonly reason: string = `${code}_invalid`,
+    options?: ErrorOptions & { diagnostic?: ErrorDiagnostic; sourceTool?: string }) {
+    super(message, options);
     this.name = 'ContentOutputError';
+    if (options?.diagnostic) this.diagnostic = options.diagnostic;
+    if (options?.sourceTool) this.sourceTool = options.sourceTool;
   }
   at(prefix: string): ContentOutputError {
     const details = this.issueDetails.map(issue => ({ ...issue, path: `${prefix}${issue.path}` }));
-    const error = new ContentOutputError(this.message, this.code, this.issues, details, this.reason);
+    const error = new ContentOutputError(this.message, this.code, this.issues, details, this.reason, {
+      ...(this.cause === undefined ? {} : { cause: this.cause }),
+      ...(this.diagnostic === undefined ? {} : { diagnostic: this.diagnostic }),
+      ...(this.sourceTool === undefined ? {} : { sourceTool: this.sourceTool }),
+    });
     if (this.location) error.location = this.location;
     return error;
   }
@@ -67,7 +76,7 @@ export const COMPONENT_PAYLOAD_SCHEMAS: Record<ComponentKind, Schema> = {
   DataTable: object({
     title: str,
     columns: array(object({ key: str, label: str, align: choice('left', 'right') }, ['key', 'label'])),
-    rows: array({ type: 'object', additionalProperties: str }, 200), note: str,
+    rows: array({ type: 'object', additionalProperties: str }, 200), keyColumn: str, currentRow: str, note: str,
   }, ['columns', 'rows']),
   Timeline: object({
     title: str, entries: array(object({ time: str, text: str, actor: str }, ['time', 'text']), 100),

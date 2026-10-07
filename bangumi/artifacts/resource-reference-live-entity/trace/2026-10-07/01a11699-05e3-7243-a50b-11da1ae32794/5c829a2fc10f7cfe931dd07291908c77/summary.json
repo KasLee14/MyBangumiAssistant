@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "trace_id": "5c829a2fc10f7cfe931dd07291908c77",
+  "root_span_id": "5556bffb6d37a30a",
+  "purpose": "session_title",
+  "parent_trace": {
+    "trace_id": "f7e1f948ef191467226c0065cdfdc2fd",
+    "session_id": "01a11699-05e3-7243-a50b-11da1ae32794"
+  },
+  "session": {
+    "session_id": "01a11699-05e3-7243-a50b-11da1ae32794",
+    "session_file": null,
+    "branch_start_id": "ce127027",
+    "branch_end_id": "891b5fcd"
+  },
+  "started_at": "2026-10-07T13:42:10.134Z",
+  "execution_status": "completed",
+  "duration_ms": 12.215100000001257,
+  "inputs": [
+    {
+      "question": "这是只读验收。查询 Bangumi 人物 1 和角色 1 的公开详情，使用字段读取取得名称，至少对一个资源调用 read_cached_resource，然后用 Gallery 的资源引用 props 展示两者的图片、名称和链接。最后说明各自实体类型，保持人物与角色的身份区别。不修改账户数据。",
+      "answer": "本轮为匿名（未登录）公开读取，数据源 `v0`，NSFW 状态为 `not_checked`（未检查、未应用），未对任何账户数据做修改。 按要求分别读取了**人物 1** 与**角色 1** 的公开详情： - 人物 1：名称 `水樹奈々`，链接 https://bgm.tv/person/1 - 角色 1：名称 `ルルーシュ・ランペルージ`，链接 https://bgm.tv/character/1 `read_cached_resource` 缓存续读结果：角色资源 `rr_d2ca1c0c41c6670c2ed8d85f1ca6c54e` 读取成功（id/name/entity/url/image/characterType 均为 `known`）；人物资源 `rr_84b73b5fea2541cee13dc37349e10b8b` 的续读返回 `INVALID_RESPONSE`（解码阶段失败，`replan_read`），因此人物侧名称与图片仅来自首次 `get_person_details` 读取，未经第二次缓存续读独立核实。两者的实体类型不同：**人物 1** 是声优/艺人水樹奈々，属于人物（person）实体；**角色 1** 是ルルーシュ・ランペルージ，属于角色（character）实体。二者在 Bangumi 上是彼此独立的实体，只是以不同 ID 命名空间各自编号为 1，并非同一对象。",
+      "source": "session_title"
+    }
+  ],
+  "final_output": {
+    "text": "资源引用只读验收",
+    "status": "final",
+    "message_ref": {
+      "path": "payloads/86f6bcf7e2973e9812a1ac7d9d192a4ccd59808bd1cae0f6d13ec84e1dea8248.json",
+      "sha256": "86f6bcf7e2973e9812a1ac7d9d192a4ccd59808bd1cae0f6d13ec84e1dea8248",
+      "bytes": 35
+    }
+  },
+  "capture": {
+    "complete": true,
+    "issues": [],
+    "dropped_events": 0,
+    "provider_payloads": "redacted_when_available",
+    "provider_payload_count": 0,
+    "reasoning": "provider_visible_only",
+    "http_request_tracing": "not_instrumented",
+    "compaction_model_requests": "not_instrumented",
+    "cache_warming_requests": "not_instrumented"
+  },
+  "analysis": {
+    "schema_version": 1,
+    "metrics": {
+      "llm_requests": 0,
+      "usage_unavailable_requests": 0,
+      "llm_duration_ms": 0,
+      "prompt_bytes_max": 0,
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "total": 0
+      },
+      "proposed_tool_calls": 0,
+      "executed_tools": 0,
+      "tool_errors": 0,
+      "mcp_client_calls": 0,
+      "mcp_rpc_attempts": 0,
+      "mcp_initialization_ms": 0,
+      "rpc_attempt_unknown_calls": 0,
+      "mcp_result_bytes": 0,
+      "model_tool_result_bytes": 0,
+      "search_candidate_rows": 0,
+      "search_unique_candidates": 0,
+      "search_overlap_ratio": null,
+      "mcp_by_tool": {},
+      "mcp_by_phase": {},
+      "host_duration_ms": {
+        "account_queue": 0,
+        "confirmation": 0,
+        "preflight": 0,
+        "submit": 0,
+        "verify": 0
+      }
+    },
+    "findings": []
+  },
+  "evaluation": null
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "call_00_kYkqOa23HP99veVyAj6L7486",
+    "name": "search_subjects",
+    "arguments": {
+      "keyword": "星际牛仔",
+      "subject_type": 2,
+      "limit": 30,
+      "fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "id": "call_00_GougfsxaosRLCkuO79vv7068",
+    "name": "refine_subject_candidates",
+    "arguments": {
+      "candidate_ref": "rr_c416673a6e6157f92a2d44331fdc3335",
+      "fields": [
+        "id",
+        "name",
+        "nameCn",
+        "score",
+        "rank"
+      ],
+      "limit": 30
+    }
+  },
+  {
+    "id": "call_01_xqRHnXu5CG9dvGtzKQr40670",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_c416673a6e6157f92a2d44331fdc3335",
+      "fields": [
+        "id",
+        "name",
+        "nameCn",
+        "score"
+      ]
+    }
+  },
+  {
+    "id": "call_00_gXfaHuHRBhSdC6LRfYC03874",
+    "name": "get_subject_details",
+    "arguments": {
+      "subject_id": 253,
+      "fields": [
+        "id",
+        "name",
+        "nameCn",
+        "score",
+        "rank",
+        "ratingCount",
+        "date",
+        "summary",
+        "url",
+        "image",
+        "tags"
+      ]
+    }
+  }
+]

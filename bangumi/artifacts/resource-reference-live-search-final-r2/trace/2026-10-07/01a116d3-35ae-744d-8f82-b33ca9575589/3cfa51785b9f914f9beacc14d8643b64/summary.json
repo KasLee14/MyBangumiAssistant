@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "trace_id": "3cfa51785b9f914f9beacc14d8643b64",
+  "root_span_id": "67f0f1249c0ef52b",
+  "purpose": "agent",
+  "parent_trace": null,
+  "session": {
+    "session_id": "01a116d3-35ae-744d-8f82-b33ca9575589",
+    "session_file": null,
+    "branch_start_id": "041692fe",
+    "branch_end_id": "7e3b0b1f"
+  },
+  "started_at": "2026-10-07T14:45:04.677Z",
+  "execution_status": "completed",
+  "duration_ms": 37075.4578,
+  "inputs": [
+    {
+      "text": "这是只读验收。搜索动画“星际牛仔”，只处理搜索得到的第一页；先读取默认主键投影，再用本轮缓存字段读取获取名称和评分，核实匹配对象后按需取得详情。至少调用一次 read_cached_resource。选择最符合标题的一个结果，用 SubjectCards 的资源引用 props 展示封面、简介、链接、评分，并根据已读取的事实给一句选择理由。不要声称全站穷尽，不修改账户数据。",
+      "source": "interactive",
+      "streamingBehavior": null
+    }
+  ],
+  "final_output": {
+    "text": "在“星际牛仔”的动画搜索结果第一页（本页 30 条，来源估计总数约 62，匿名公共 SFW 来源，未覆盖全站）中，标题与中文名完全对应的条目是 **#253 星际牛仔**（原名 カウボーイビバップ，1998-10-23 开播）。其后续关联作 #860 为剧场版「天国之扉」，中文名带副标题，属同一系列而非本词条的原始 TV 版。选择理由：该条目中文名与检索词“星际牛仔”完全一致，是全页中唯一同名结果，且读取到的事实显示评分 9.1、排名第 4、评分人数 19859、全 31 集，简介内容正是史派克与杰特等赏金猎人的宇宙故事，与查询目标吻合度最高。以上仅为该页范围的核实结果，不代表全站穷尽。",
+    "status": "final",
+    "message_ref": {
+      "path": "payloads/1497e683a046555db9284505c5463525d14e3015b24fa4a14615e0df8153dc89.json",
+      "sha256": "1497e683a046555db9284505c5463525d14e3015b24fa4a14615e0df8153dc89",
+      "bytes": 3665
+    }
+  },
+  "capture": {
+    "complete": true,
+    "issues": [],
+    "dropped_events": 0,
+    "provider_payloads": "redacted_when_available",
+    "provider_payload_count": 5,
+    "reasoning": "provider_visible_only",
+    "http_request_tracing": "not_instrumented",
+    "compaction_model_requests": "not_instrumented",
+    "cache_warming_requests": "not_instrumented"
+  },
+  "analysis": {
+    "schema_version": 1,
+    "metrics": {
+      "llm_requests": 5,
+      "usage_unavailable_requests": 0,
+      "llm_duration_ms": 14154.439300000005,
+      "prompt_bytes_max": 195736,
+      "tokens": {
+        "input": 31961,
+        "output": 2095,
+        "cache_read": 200192,
+        "cache_write": 0,
+        "total": 234248
+      },
+      "proposed_tool_calls": 5,
+      "executed_tools": 5,
+      "tool_errors": 0,
+      "mcp_client_calls": 5,
+      "mcp_rpc_attempts": 5,
+      "mcp_initialization_ms": 17607.2105,
+      "rpc_attempt_unknown_calls": 0,
+      "mcp_result_bytes": 15651,
+      "model_tool_result_bytes": 15721,
+      "search_candidate_rows": 0,
+      "search_unique_candidates": 0,
+      "search_overlap_ratio": null,
+      "mcp_by_tool": {
+        "search_subjects": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 20015.664999999997,
+          "result_bytes": 2024
+        },
+        "read_cached_resource": {
+          "calls": 2,
+          "errors": 0,
+          "duration_ms": 16.236100000001898,
+          "result_bytes": 5385
+        },
+        "refine_subject_candidates": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 1730.3782999999967,
+          "result_bytes": 5762
+        },
+        "get_subject_details": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 449.6768000000011,
+          "result_bytes": 2480
+        }
+      },
+      "mcp_by_phase": {
+        "query": {
+          "calls": 5,
+          "duration_ms": 22211.956199999997
+        }
+      },
+      "host_duration_ms": {
+        "account_queue": 0,
+        "confirmation": 0,
+        "preflight": 0,
+        "submit": 0,
+        "verify": 0
+      }
+    },
+    "findings": []
+  },
+  "evaluation": null
+}

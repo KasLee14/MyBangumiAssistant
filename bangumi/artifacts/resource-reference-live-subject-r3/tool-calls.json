@@ -1,0 +1,61 @@
+[
+  {
+    "id": "call_00_EVmzAi9WS16WKyap65Ah6923",
+    "name": "get_subject_details",
+    "arguments": {
+      "subject_id": 253,
+      "fields": [
+        "id",
+        "name",
+        "nameCn",
+        "score",
+        "image",
+        "summary",
+        "url",
+        "rank",
+        "ratingCount"
+      ]
+    }
+  },
+  {
+    "id": "call_00_Xa5im3oUowLEEAGqz7BJ1757",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_a9633fee9247ea5750dfb69b4d0d4b39",
+      "fields": [
+        "name",
+        "score"
+      ]
+    }
+  },
+  {
+    "id": "call_00_Us7vWOwRbAlNGU8qcRJ95601",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_a9633fee9247ea5750dfb69b4d0d4b39",
+      "keys": [
+        {
+          "id": 253
+        }
+      ],
+      "range": {
+        "offset": 0,
+        "limit": 5
+      }
+    }
+  },
+  {
+    "id": "call_00_PfcwgbZglUXbXhrfU6C96971",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_a9633fee9247ea5750dfb69b4d0d4b39",
+      "keys": [
+        253
+      ],
+      "fields": [
+        "name",
+        "score"
+      ]
+    }
+  }
+]

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "call_00_Wgeg1HfkmrcOedkz1Rw80555",
+    "name": "get_subject_details",
+    "arguments": {
+      "subject_id": 253,
+      "fields": [
+        "id",
+        "name",
+        "nameCn",
+        "score",
+        "summary",
+        "image",
+        "url",
+        "rank",
+        "ratingCount",
+        "date",
+        "kind",
+        "platform",
+        "totalEpisodes"
+      ]
+    }
+  }
+]

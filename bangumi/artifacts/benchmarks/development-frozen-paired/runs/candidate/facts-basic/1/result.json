@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "caseId": "facts-basic",
+  "family": "facts",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "122598e55be9dc01029fce625d6b983b9ed9644d8528f1a1ba5a5f3a92eaba0d",
+  "versionHash": "d33526884c16a510004aa52779c951d2a634c8ea85c3e39d4fa6206ce0c6fe95",
+  "model": "faux/faux-1",
+  "thinking": "off",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的名称、评分、首播日期和集数，给出条目链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "nextType": null,
+            "text": "星港追踪，评分8.4，首播2024-01-08，共12集。https://bgm.tv/subject/1001"
+          }
+        ]
+      },
+      "text": "星港追踪，评分8.4，首播2024-01-08，共12集。https://bgm.tv/subject/1001",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "nameCn",
+              "score",
+              "date",
+              "totalEpisodes"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "score": 8.4,
+              "totalEpisodes": 12,
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-07T16:01:42.028Z"
+              },
+              "resourceRef": "rr_c4dd623b6b9e1df7d70337e973738c83",
+              "fields": [
+                "nameCn",
+                "score",
+                "date",
+                "totalEpisodes"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 12632.8603
+    }
+  ],
+  "metrics": {
+    "totalMs": 12713.188100000001,
+    "startupMs": 9686.055,
+    "modelRequests": 2,
+    "providerHttpRequests": 0,
+    "proposedToolCalls": 1,
+    "toolExecutions": 1,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 12462.0067,
+    "mcpInitializationMs": 12379.941799999999,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 1,
+    "upstreamRequests": 1,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.526400000000649,
+    "modelMs": 13.155400000001464,
+    "providerPayloadBytesMax": 165445,
+    "inputTokensMax": 31646,
+    "inputTokensSum": 31851,
+    "contextInputTokensMax": 63292,
+    "contextInputTokensSum": 95348,
+    "reasoningTokensSum": null,
+    "outputTokensSum": 51,
+    "cacheReadTokensSum": 31646,
+    "cacheWriteTokensSum": 31851,
+    "totalTokensSum": 95399,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 832,
+    "firstTextMs": 12612.5047,
+    "firstCompleteResultMs": 12614.853700000001,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 31646,
+        "contextInputTokens": 63292,
+        "reasoningTokens": null,
+        "outputTokens": 23,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 31646,
+        "totalTokens": 63315,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 163967,
+        "durationMs": 7.136199999999008,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": "faux-1"
+      },
+      {
+        "inputTokens": 205,
+        "contextInputTokens": 32056,
+        "reasoningTokens": null,
+        "outputTokens": 28,
+        "cacheReadTokens": 31646,
+        "cacheWriteTokens": 205,
+        "totalTokens": 32084,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 165445,
+        "durationMs": 6.019200000002456,
+        "firstTextMs": 3.653200000000652,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": "faux-1"
+      }
+    ]
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "8\\.4"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "2024[-年/]0?1[-月/]0?8"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "12"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date",
+            "totalEpisodes"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\",\"totalEpisodes\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791388902029.924,
+      "elapsedMs": 4002.0908999999992,
+      "durationMs": 1.526400000000649,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\development-frozen-paired\\runs\\candidate\\facts-basic\\1\\tracelog\\2026-10-08\\01a11719-2f7e-7423-bd37-9bf3143ae88a\\86dc8a72bbdbcccedbe88d739a681011"
+  ],
+  "captureIssues": []
+}

@@ -1,0 +1,151 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bangumi benchmark</title><style>body{max-width:1100px;margin:32px auto;padding:0 20px;font:15px/1.65 system-ui;color:#172033;background:#f8fafc}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #dbe2eb;text-align:left}details.run{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:12px;margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:12px;border-radius:6px}input{width:100%;padding:10px;box-sizing:border-box}a{color:#2563eb}strong{color:#334155}</style><h1>Bangumi benchmark</h1><p>自动硬判通过不等于语义评审通过。失败、超时和资料缺失均保留；性能差值只比较双方通过且指标可用的配对。API未返回的思考与token保持不可用。</p><pre>{
+  &quot;runs&quot;: 1,
+  &quot;outcomes&quot;: {
+    &quot;incomplete_capture&quot;: 1
+  },
+  &quot;passRate&quot;: 0,
+  &quot;macroFamilyPassRate&quot;: 0,
+  &quot;semanticPending&quot;: 0,
+  &quot;totals&quot;: {
+    &quot;mcpCalls&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;upstreamRequests&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;contextInputTokensMax&quot;: {
+      &quot;availableRuns&quot;: 0,
+      &quot;total&quot;: null
+    },
+    &quot;contextInputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 0,
+      &quot;total&quot;: null
+    },
+    &quot;inputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 0,
+      &quot;total&quot;: null
+    },
+    &quot;outputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 0,
+      &quot;total&quot;: null
+    },
+    &quot;cacheReadTokensSum&quot;: {
+      &quot;availableRuns&quot;: 0,
+      &quot;total&quot;: null
+    },
+    &quot;modelToolResultBytes&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;totalMs&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 1441.7509
+    },
+    &quot;modelMs&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;estimatedCost&quot;: {
+      &quot;availableRuns&quot;: 0,
+      &quot;total&quot;: null
+    }
+  }
+}</pre><h2>逐例证据</h2><input id="filter" placeholder="筛选案例、场景、版本或结果状态" aria-label="筛选运行记录"><details class="run" data-search="facts-basic facts incomplete_capture candidate"><summary>facts-basic · candidate #1 <strong>incomplete_capture</strong></summary><p><a href="runs/candidate/facts-basic/1/result.json">原始结果</a> </p><p>总耗时 1442ms；模型请求 0；MCP 0；上游 0；输入token 不可用</p><p>每轮provider请求字节数</p><span>不可用</span><p>语义评审：not_required </p><pre>subjects：交付作品ID：
+text：文本断言未通过
+text：文本断言未通过
+text：文本断言未通过
+evidence：实际模型可见字段：[]</pre><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 1441.7509,
+    &quot;startupMs&quot;: 0,
+    &quot;modelRequests&quot;: 0,
+    &quot;providerHttpRequests&quot;: null,
+    &quot;proposedToolCalls&quot;: 0,
+    &quot;toolExecutions&quot;: 0,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 0,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 0,
+    &quot;upstreamRequests&quot;: 0,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 0,
+    &quot;modelMs&quot;: 0,
+    &quot;providerPayloadBytesMax&quot;: null,
+    &quot;inputTokensMax&quot;: null,
+    &quot;inputTokensSum&quot;: null,
+    &quot;contextInputTokensMax&quot;: null,
+    &quot;contextInputTokensSum&quot;: null,
+    &quot;reasoningTokensSum&quot;: null,
+    &quot;outputTokensSum&quot;: null,
+    &quot;cacheReadTokensSum&quot;: null,
+    &quot;cacheWriteTokensSum&quot;: null,
+    &quot;totalTokensSum&quot;: null,
+    &quot;estimatedCost&quot;: null,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 0,
+    &quot;firstTextMs&quot;: null,
+    &quot;firstCompleteResultMs&quot;: null,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: []
+  },
+  &quot;network&quot;: [],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: false,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: [
+            1001
+          ]
+        },
+        &quot;passed&quot;: false,
+        &quot;detail&quot;: &quot;交付作品ID：&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;8\\.4&quot;
+        },
+        &quot;passed&quot;: false,
+        &quot;detail&quot;: &quot;文本断言未通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;2024[-年/]0?1[-月/]0?8&quot;
+        },
+        &quot;passed&quot;: false,
+        &quot;detail&quot;: &quot;文本断言未通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;12&quot;
+        },
+        &quot;passed&quot;: false,
+        &quot;detail&quot;: &quot;文本断言未通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;evidence&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ],
+          &quot;fields&quot;: [
+            &quot;score&quot;,
+            &quot;date&quot;,
+            &quot;totalEpisodes&quot;
+          ]
+        },
+        &quot;passed&quot;: false,
+        &quot;detail&quot;: &quot;实际模型可见字段：[]&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details><script>document.getElementById("filter").addEventListener("input",function(){const q=this.value.toLowerCase();document.querySelectorAll(".run").forEach(function(el){el.hidden=!el.dataset.search.toLowerCase().includes(q)})});</script></html>

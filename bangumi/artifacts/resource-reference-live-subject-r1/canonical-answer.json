@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "nextType": "Callout",
+      "text": "本次只读验收未能取得 Bangumi 作品 253 的任何数据，因此无法给出名称与评分，也无法用资源引用生成 SubjectCards。以下为如实说明，未编造 ID、名称、评分、封面或链接。"
+    },
+    {
+      "type": "Callout",
+      "pending": false,
+      "props": {
+        "tone": "error",
+        "text": "读取链路中断，作品 253 详情未取得",
+        "detail": "get_subject_details 三次调用均因请求参数被附加 include 字段而不符合工具契约被拒绝；get_subject_image 返回“不符合固定输出契约”；试图改用 refine_subject_candidates 直接按 ID 253 补取字段时，本地 MCP 连接关闭（MCP_CONNECTION_CLOSED，read 操作，retryable=false）。因此本轮没有任何缓存资源，read_cached_resource 也无可用 resourceRef 可读。"
+      }
+    },
+    {
+      "type": "text",
+      "nextType": null,
+      "text": "恢复建议：重新启动本地 MCP 助手后重新执行一次「查询作品 253 详情」，并在同一轮读取缓存后生成卡片。需要说明的是，本轮未对账户数据做任何修改（无写入操作）。"
+    }
+  ]
+}

@@ -9,7 +9,6 @@ import { object, positiveId } from '../support/bangumi.js';
 import type { ProxyOptions } from '../support/proxy.js';
 import { anonymousContext, type AccessContext } from './access-context.js';
 import { readContext, type McpReadContext } from './read-context.js';
-
 export interface McpRequestOptions { method?: string; query?: Record<string, unknown>; body?: unknown; expectedAccountId?: number }
 /** 一次只读查询的独立连接与不可变登录绑定；不可用于提交或写入回读。 */
 export interface McpReadScope {
@@ -24,6 +23,8 @@ export interface McpTransport {
   account(path: string, options?: McpRequestOptions, signal?: AbortSignal): Promise<unknown>;
   currentUser(signal?: AbortSignal, fresh?: boolean): Promise<{ id: number; username: string }>;
   identity?(signal?: AbortSignal): Promise<AccessContext>;
+  cachedContextKey?(context: AccessContext): string | undefined;
+  validateCachedContext?(context: AccessContext, signal?: AbortSignal, bindingKey?: string): Promise<void>;
   ensureNsfw?(context: AccessContext, signal?: AbortSignal, scope?: string, options?: { fresh?: boolean }): Promise<AccessContext>;
   withReadContext?<T>(context: McpReadContext, operation: () => Promise<T>): Promise<T>;
   clearReadContext?(turnId?: string): void;
@@ -39,7 +40,6 @@ export interface McpTransportOptions {
   loadSession?: () => Promise<AccountSession | null>;
   fakeFetch?: LoginFetch;
 }
-
 function userFrom(value: unknown): { id: number; username: string } {
   const user = object(value, '账户');
   if (typeof user.username !== 'string' || !user.username.trim() || user.username.length > 200) throw new AppError('INVALID_RESPONSE', '账户响应缺少有效用户名。');
@@ -47,7 +47,6 @@ function userFrom(value: unknown): { id: number; username: string } {
 }
 interface AccountBinding { session: AccountSession; api: AccountTransport; user?: { id: number; username: string } }
 interface ReadCacheState { active: boolean }
-
 /** 公共请求完全匿名；账户会话每次重新加载，不缓存登录或自动换线路。 */
 class FixedMcpTransport implements McpTransport {
   private readonly dispatchers: ProxyDispatchers;
@@ -85,8 +84,10 @@ class FixedMcpTransport implements McpTransport {
       for (const item of Array.isArray(value) ? value : [value]) url.searchParams.append(key, String(item));
     }
     const active = this.requestSignal(signal);
-    const headers = { Accept: 'application/json', 'User-Agent': 'MyBangumiAssistant/0.1.0 (https://github.com/KasLee14/MyBangumiAssistant)',
-      ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }) };
+    const headers = {
+      Accept: 'application/json', 'User-Agent': 'MyBangumiAssistant/0.1.0 (https://github.com/KasLee14/MyBangumiAssistant)',
+      ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' })
+    };
     const init = { method, headers, signal: active, redirect: 'manual' as const, ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }) };
     const response = await awaitResponse(Promise.resolve().then(() => this.options.fakeFetch ? this.options.fakeFetch(url.href, init) : fetch(url.href, { ...init, dispatcher: this.dispatchers.forUrl(url.href) }) as unknown as Promise<Response>), active, signal);
     if ([301, 302, 303, 307, 308].includes(response.status)) {
@@ -132,7 +133,7 @@ class FixedMcpTransport implements McpTransport {
         active.addEventListener('abort', onAbort, { once: true });
         if (active.aborted) onAbort();
         pending.then(value => {
-          if (active.aborted) { void value.body?.cancel().catch(() => {}); reject(aborted()); }
+          if (active.aborted) { void value.body?.cancel().catch(() => { }); reject(aborted()); }
           else resolve(value);
         }, reject).finally(() => active.removeEventListener('abort', onAbort));
       });
@@ -154,7 +155,7 @@ class FixedMcpTransport implements McpTransport {
     }
     const reader = response.body?.getReader();
     if (!reader) throw new AppError('INVALID_RESPONSE', 'Bangumi 社区响应为空。');
-    const onAbort = () => { void reader.cancel().catch(() => {}); };
+    const onAbort = () => { void reader.cancel().catch(() => { }); };
     active.addEventListener('abort', onAbort, { once: true });
     let bytes = 0; const chunks: Uint8Array[] = [];
     try {
@@ -283,21 +284,33 @@ class FixedMcpTransport implements McpTransport {
       return structuredClone(user);
     }, signal);
   }
+  /** 缓存读取只核对本机已验证登录绑定，不发起HTTP。 */
+  cachedContextKey(context: AccessContext): string | undefined {
+    return context.account && this.activeAccount?.user?.id === context.account.id ? this.sessionKey(this.activeAccount.session) : undefined;
+  }
+  async validateCachedContext(context: AccessContext, signal?: AbortSignal, bindingKey?: string): Promise<void> {
+    this.ensureOpen(signal);
+    if (!context.account) return;
+    const session = await this.loadSession();
+    if (!session || session.expiresAt <= Date.now() || bindingKey !== undefined && this.sessionKey(session) !== bindingKey || session.accountId !== context.account.id || !this.activeAccount || !this.sameSession(this.activeAccount.session, session)) throw new AppError('ACCOUNT_CHANGED', '缓存读取的本机登录会话已经改变，请重新读取来源。');
+  }
   async identity(signal?: AbortSignal): Promise<AccessContext> {
     this.ensureOpen(signal);
     const saved = await this.loadSession();
     this.ensureOpen(signal);
     if (!saved) return anonymousContext();
     return this.withAccount(async (api, session, binding) => {
-    delete binding.user;
-    const account = userFrom(await api.json('/p1/me', { auth: true }, signal));
-    if (account.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED', '网站账户与本机保存登录不一致。');
-    await this.verifySession(session, signal);
-    binding.user = account;
-    const context: AccessContext = { mode: 'account', account, nsfw: { preference: null, allowed: null, state: 'not_checked' },
-      source: 'p1', nsfwApplied: false, checkedAt: new Date().toISOString() };
-    this.identitySessions.set(context, this.sessionKey(session));
-    return context;
+      delete binding.user;
+      const account = userFrom(await api.json('/p1/me', { auth: true }, signal));
+      if (account.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED', '网站账户与本机保存登录不一致。');
+      await this.verifySession(session, signal);
+      binding.user = account;
+      const context: AccessContext = {
+        mode: 'account', account, nsfw: { preference: null, allowed: null, state: 'not_checked' },
+        source: 'p1', nsfwApplied: false, checkedAt: new Date().toISOString()
+      };
+      this.identitySessions.set(context, this.sessionKey(session));
+      return context;
     }, signal);
   }
   async ensureNsfw(context: AccessContext, signal?: AbortSignal, scope?: string, options: { fresh?: boolean } = {}): Promise<AccessContext> {
@@ -371,18 +384,18 @@ class FixedMcpTransport implements McpTransport {
   async account(path: string, options: McpRequestOptions = {}, signal?: AbortSignal): Promise<unknown> {
     let dispatched = false;
     try {
-    return await this.withAccount(async (api, session, binding) => {
-      if (!/^\/p1\/[A-Za-z0-9_./%-]+$/.test(path) || path.includes('..') || /^\/p1\/(?:login|logout)(?:\/|$)/.test(path)) throw new AppError('INVALID_INPUT', '账户请求超出固定业务路径。');
-      const before = binding.user ?? userFrom(await api.json('/p1/me', { auth: true }, signal));
-      if (before.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED', '账户请求前登录身份发生变化。');
-      if (options.expectedAccountId !== undefined && before.id !== positiveId(options.expectedAccountId)) throw new AppError('ACCOUNT_CHANGED', '当前登录账户与宿主授权账户不一致，未提交。');
-      binding.user = before;
-      await this.verifySession(session, signal);
-      const { expectedAccountId: _expectedAccountId, ...request } = options;
-      dispatched = true;
-      const data = await api.json(path, { ...request, auth: true }, signal);
-      return data;
-    }, signal);
+      return await this.withAccount(async (api, session, binding) => {
+        if (!/^\/p1\/[A-Za-z0-9_./%-]+$/.test(path) || path.includes('..') || /^\/p1\/(?:login|logout)(?:\/|$)/.test(path)) throw new AppError('INVALID_INPUT', '账户请求超出固定业务路径。');
+        const before = binding.user ?? userFrom(await api.json('/p1/me', { auth: true }, signal));
+        if (before.id !== session.accountId) throw new AppError('ACCOUNT_CHANGED', '账户请求前登录身份发生变化。');
+        if (options.expectedAccountId !== undefined && before.id !== positiveId(options.expectedAccountId)) throw new AppError('ACCOUNT_CHANGED', '当前登录账户与宿主授权账户不一致，未提交。');
+        binding.user = before;
+        await this.verifySession(session, signal);
+        const { expectedAccountId: _expectedAccountId, ...request } = options;
+        dispatched = true;
+        const data = await api.json(path, { ...request, auth: true }, signal);
+        return data;
+      }, signal);
     } catch (error) { throw dispatched ? error : withoutNetworkAttempt(error); }
   }
   async bindReadScope(context: AccessContext, signal?: AbortSignal): Promise<McpReadScope> {
@@ -427,24 +440,26 @@ class FixedMcpTransport implements McpTransport {
     };
     const close = async () => { if (!closed) { closed = true; this.readScopeClosers.delete(close); await api.close(); } };
     this.readScopeClosers.add(close);
-    return { key, account: read, verify: async (options = {}) => {
-      const user = userFrom(await read('/p1/me'));
-      if (user.id !== context.account!.id || user.username !== context.account!.username) throw new AppError('ACCOUNT_CHANGED', '关系查询结束时网站账户改变。');
-      if (!options.usedNsfw) return;
-      const expected = options.context ?? context;
-      if (expected.mode !== 'account' || expected.account?.id !== user.id || expected.account.username !== user.username
-        || expected.source !== 'p1' || !expected.nsfwApplied || expected.nsfw.allowed !== true) throw new AppError('NSFW_SCOPE_CHANGED', 'NSFW 关系读取缺少已核实的授权范围。');
-      let preference: boolean | null = null, allowed: boolean | null = null;
-      try {
-        const privacy = object(await read('/p1/privacy'));
-        const preferences = privacy.preferences == null ? {} : object(privacy.preferences);
-        preference = typeof preferences.showNsfwSubject === 'boolean' ? preferences.showNsfwSubject : null;
-        allowed = typeof preferences.allowNsfw === 'boolean' ? preferences.allowNsfw : null;
-      } catch (error) {
-        if (!(error instanceof AppError) || !['BGM_HTTP_403', 'BGM_HTTP_404'].includes(error.code)) throw error;
-      }
-      if (preference !== expected.nsfw.preference || allowed !== expected.nsfw.allowed) throw new AppError('NSFW_SCOPE_CHANGED', '关系读取期间 NSFW 权限改变，请重新查询。');
-    }, close };
+    return {
+      key, account: read, verify: async (options = {}) => {
+        const user = userFrom(await read('/p1/me'));
+        if (user.id !== context.account!.id || user.username !== context.account!.username) throw new AppError('ACCOUNT_CHANGED', '关系查询结束时网站账户改变。');
+        if (!options.usedNsfw) return;
+        const expected = options.context ?? context;
+        if (expected.mode !== 'account' || expected.account?.id !== user.id || expected.account.username !== user.username
+          || expected.source !== 'p1' || !expected.nsfwApplied || expected.nsfw.allowed !== true) throw new AppError('NSFW_SCOPE_CHANGED', 'NSFW 关系读取缺少已核实的授权范围。');
+        let preference: boolean | null = null, allowed: boolean | null = null;
+        try {
+          const privacy = object(await read('/p1/privacy'));
+          const preferences = privacy.preferences == null ? {} : object(privacy.preferences);
+          preference = typeof preferences.showNsfwSubject === 'boolean' ? preferences.showNsfwSubject : null;
+          allowed = typeof preferences.allowNsfw === 'boolean' ? preferences.allowNsfw : null;
+        } catch (error) {
+          if (!(error instanceof AppError) || !['BGM_HTTP_403', 'BGM_HTTP_404'].includes(error.code)) throw error;
+        }
+        if (preference !== expected.nsfw.preference || allowed !== expected.nsfw.allowed) throw new AppError('NSFW_SCOPE_CHANGED', '关系读取期间 NSFW 权限改变，请重新查询。');
+      }, close
+    };
   }
   async close(): Promise<void> {
     if (this.closed) return;
@@ -452,5 +467,4 @@ class FixedMcpTransport implements McpTransport {
     await Promise.all([this.activeAccount?.api.close(), ...[...this.readScopeClosers].map(close => close()), this.dispatchers.close()]);
   }
 }
-
 export function createMcpTransport(options: McpTransportOptions): McpTransport { return new FixedMcpTransport(options); }

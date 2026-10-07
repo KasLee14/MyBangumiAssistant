@@ -1,0 +1,51 @@
+[
+  {
+    "elapsedMs": 16890,
+    "parts": []
+  },
+  {
+    "elapsedMs": 17035,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 17035,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 17130,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 17133,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": false
+      }
+    ]
+  },
+  {
+    "elapsedMs": 17140,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": false
+      }
+    ]
+  }
+]

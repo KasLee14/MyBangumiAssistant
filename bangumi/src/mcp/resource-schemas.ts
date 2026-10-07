@@ -1,6 +1,7 @@
 import type { JsonSchema } from '../support/tool-schema.js';
 import { subjectSummarySchema, paginationExtraProperties } from './subject-output.js';
 import { withAccessContext, submissionRejectionSchema } from './access-context.js';
+import { resourceImagesSchema, resourceImageSchema } from './resource-images.js';
 
 // 固定生产契约；应用不读取本地设计文档。每个工具只发布其实际引用的定义。
 const definitions: Record<string, JsonSchema> = {
@@ -129,8 +130,10 @@ for (const name of ['CharacterSummary', 'PersonSummary', 'CharacterDetails', 'Pe
   const schema = definitions[name]!;
   (schema.properties as Record<string, JsonSchema>).nsfw = appearanceNullable({ type: 'boolean' });
   (schema.required as string[]).push('nsfw');
+  Object.assign(schema.properties as Record<string, JsonSchema>, { images: resourceImagesSchema, image: resourceImageSchema });
 }
 const bio = definitions.Bio!.properties as Record<string, JsonSchema>;
+Object.assign(definitions.UserDetails!.properties as Record<string, JsonSchema>, { images: resourceImagesSchema, image: resourceImageSchema });
 bio.bloodType = appearanceNullable({ type: 'integer', minimum: 1, maximum: 4 });
 bio.birthYear = appearanceNullable({ type: 'integer', minimum: 1, maximum: 9999 });
 (definitions.PublicSubjectCollection!.properties as Record<string, JsonSchema>).private = { type: 'boolean', const: false };

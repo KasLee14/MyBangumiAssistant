@@ -1,0 +1,112 @@
+{
+  "toolProjectionAudit": [
+    {
+      "name": "read",
+      "arguments": {
+        "path": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\dist\\src\\strategies\\skills\\bangumi-query\\SKILL.md"
+      },
+      "error": false,
+      "modelBytes": 2,
+      "fullBytes": 2,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": []
+    },
+    {
+      "name": "search_subjects",
+      "arguments": {
+        "keyword": "星际牛仔",
+        "subject_type": 2,
+        "result_mode": "candidates",
+        "limit": 30
+      },
+      "error": false,
+      "modelBytes": 2474,
+      "fullBytes": 2399,
+      "resourceRefs": [
+        "rr_b0dc63dfa70e132d719764ca12656b83"
+      ],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": []
+    },
+    {
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_b0dc63dfa70e132d719764ca12656b83",
+        "fields": [
+          "name",
+          "nameCn",
+          "score",
+          "date",
+          "subjectType"
+        ]
+      },
+      "error": true,
+      "modelBytes": 1372,
+      "fullBytes": 1372,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": [
+        "name",
+        "nameCn",
+        "score",
+        "date",
+        "subjectType"
+      ]
+    }
+  ],
+  "providerPayloadAudit": [
+    {
+      "request": 1,
+      "tools": []
+    },
+    {
+      "request": 2,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 4385,
+          "displayFields": []
+        }
+      ]
+    },
+    {
+      "request": 3,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 4385,
+          "displayFields": []
+        },
+        {
+          "item": 1,
+          "bytes": 2474,
+          "displayFields": []
+        }
+      ]
+    },
+    {
+      "request": 4,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 4385,
+          "displayFields": []
+        },
+        {
+          "item": 1,
+          "bytes": 2474,
+          "displayFields": []
+        },
+        {
+          "item": 2,
+          "bytes": 1372,
+          "displayFields": []
+        }
+      ]
+    }
+  ]
+}

@@ -8,9 +8,9 @@ import { CandidateQuery } from '../dist/src/mcp/candidate-query.js';
 import { findToolDefinition } from '../dist/src/mcp/catalog.js';
 const binding = { turnId: 'turn', accountId: null, scopeKey: 'public:sfw' };
 
-test('固定Schema拒绝任意字段、表达式与双入口，默认只有4个基本字段', () => {
+test('固定Schema拒绝任意字段、表达式与双入口，默认只投影主键', () => {
   const args = schemaArguments(refineCandidateInputSchema, { subject_ids: [1] });
-  assert.deepEqual(args.fields, ['id', 'name', 'nameCn', 'subjectType']); assert.equal(args.limit, 50);
+  assert.deepEqual(args.fields, ['id']); assert.equal(args.limit, 50);
   assert.equal(args.response_view, 'page');
   for (const retired of [{ include: ['summary'] }, { hydrate_fields: false }, { coverage_mode: 'full' }])
     assert.throws(() => schemaArguments(refineCandidateInputSchema, { subject_ids: [1], ...retired }));

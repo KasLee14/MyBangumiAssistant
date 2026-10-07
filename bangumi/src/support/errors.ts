@@ -46,6 +46,12 @@ export function sanitizeErrorDiagnostic(diagnostic: ErrorDiagnostic): ErrorDiagn
   return safe;
 }
 export interface InputIssue { path: string; rule: string; hint: string; allowed?: readonly unknown[] }
+export const INPUT_ISSUES_SCHEMA: Record<string, unknown> = { type: 'array', maxItems: 200, items: {
+  type: 'object', additionalProperties: false, properties: {
+    path: { type: 'string', maxLength: 300 }, rule: { type: 'string', maxLength: 100 }, hint: { type: 'string', maxLength: 3000 },
+    allowed: { type: 'array', maxItems: 100, items: { anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }, { type: 'null' }] } },
+  }, required: ['path', 'rule', 'hint'],
+} };
 const contractPaths = {
   browse_date_mismatch: '/data/dateEvidence', browse_date_evidence_invalid: '/data/dateEvidence',
   browse_filter_coverage_invalid: '/filterCoverage',
@@ -109,6 +115,12 @@ export interface SubmissionReceipt {
 export class SubmissionError extends AppError {
   constructor(code: string, message: string, readonly submission: SubmissionReceipt) {
     super(code, message);
+    // 工具资源引用是外层缓存元数据，不属于固定逐阶段提交回执。
+    const metadata = submission as unknown as Record<string, unknown>;
+    if (typeof metadata.resourceRef === 'string' && /^rr_[a-f0-9]{32}$/.test(metadata.resourceRef)) {
+      const { resourceRef: _ref, ...receipt } = metadata;
+      this.submission = receipt as unknown as SubmissionReceipt;
+    }
     const rejection = submission.items.find(item => item.submissionState === 'rejected')?.rejection;
     if (isSubmissionRejection(rejection)) Object.defineProperty(this, 'rejection', { value: structuredClone(rejection) });
   }

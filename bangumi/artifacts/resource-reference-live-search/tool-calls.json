@@ -1,0 +1,11 @@
+[
+  {
+    "id": "call_00_zncNirrupgD7spNZFrbf3359",
+    "name": "search_subjects",
+    "arguments": {
+      "keyword": "星际牛仔",
+      "subject_type": 2,
+      "limit": 10
+    }
+  }
+]

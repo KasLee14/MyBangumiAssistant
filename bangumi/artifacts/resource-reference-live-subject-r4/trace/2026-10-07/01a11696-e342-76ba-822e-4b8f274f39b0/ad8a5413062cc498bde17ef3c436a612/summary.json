@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "trace_id": "ad8a5413062cc498bde17ef3c436a612",
+  "root_span_id": "49d82a8b27ffe3a7",
+  "purpose": "agent",
+  "parent_trace": null,
+  "session": {
+    "session_id": "01a11696-e342-76ba-822e-4b8f274f39b0",
+    "session_file": null,
+    "branch_start_id": "15f1c469",
+    "branch_end_id": "0476249d"
+  },
+  "started_at": "2026-10-07T13:39:13.099Z",
+  "execution_status": "completed",
+  "duration_ms": 37548.883299999994,
+  "inputs": [
+    {
+      "text": "这是只读验收。查询 Bangumi 作品 253 的详情，先用默认字段查询，再从本轮资源缓存按需读取名称和评分（至少调用一次 read_cached_resource）。最后用 SubjectCards 的资源引用 props 展示它，卡片要有缓存中的封面、简介、评分与链接；不要在最终模型 JSON 中抄写缓存展示字段。请简要说明作品名称和评分，不修改账户数据。",
+      "source": "interactive",
+      "streamingBehavior": null
+    }
+  ],
+  "final_output": {
+    "text": "已按只读方式核实 Bangumi 作品 253，未修改任何账户数据。缓存读取结果：名称为《星际牛仔》（原名 カウボーイビバップ），评分 9.1。封面、简介与条目链接均由宿主从本轮资源缓存展开，未在模型 JSON 中抄写。",
+    "status": "final",
+    "message_ref": {
+      "path": "payloads/b8c2d890053cf9a5763aba633270741d822f007ff487c0b9faacd33846a1a829.json",
+      "sha256": "b8c2d890053cf9a5763aba633270741d822f007ff487c0b9faacd33846a1a829",
+      "bytes": 3067
+    }
+  },
+  "capture": {
+    "complete": true,
+    "issues": [],
+    "dropped_events": 0,
+    "provider_payloads": "redacted_when_available",
+    "provider_payload_count": 3,
+    "reasoning": "provider_visible_only",
+    "http_request_tracing": "not_instrumented",
+    "compaction_model_requests": "not_instrumented",
+    "cache_warming_requests": "not_instrumented"
+  },
+  "analysis": {
+    "schema_version": 1,
+    "metrics": {
+      "llm_requests": 3,
+      "usage_unavailable_requests": 0,
+      "llm_duration_ms": 5399.6823,
+      "prompt_bytes_max": 172070,
+      "tokens": {
+        "input": 42540,
+        "output": 383,
+        "cache_read": 95872,
+        "cache_write": 0,
+        "total": 138795
+      },
+      "proposed_tool_calls": 2,
+      "executed_tools": 2,
+      "tool_errors": 0,
+      "mcp_client_calls": 2,
+      "mcp_rpc_attempts": 2,
+      "mcp_initialization_ms": 30893.26810000001,
+      "rpc_attempt_unknown_calls": 0,
+      "mcp_result_bytes": 4933,
+      "model_tool_result_bytes": 3048,
+      "search_candidate_rows": 0,
+      "search_unique_candidates": 0,
+      "search_overlap_ratio": null,
+      "mcp_by_tool": {
+        "get_subject_details": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 31873.873499999994,
+          "result_bytes": 2480
+        },
+        "read_cached_resource": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 34.010699999998906,
+          "result_bytes": 2453
+        }
+      },
+      "mcp_by_phase": {
+        "query": {
+          "calls": 2,
+          "duration_ms": 31907.884199999993
+        }
+      },
+      "host_duration_ms": {
+        "account_queue": 0,
+        "confirmation": 0,
+        "preflight": 0,
+        "submit": 0,
+        "verify": 0
+      }
+    },
+    "findings": []
+  },
+  "evaluation": null
+}

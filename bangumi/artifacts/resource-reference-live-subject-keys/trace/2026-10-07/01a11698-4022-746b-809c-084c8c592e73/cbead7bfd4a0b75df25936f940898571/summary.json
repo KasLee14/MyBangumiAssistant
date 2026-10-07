@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "trace_id": "cbead7bfd4a0b75df25936f940898571",
+  "root_span_id": "61f80ea8e2886ad5",
+  "purpose": "session_title",
+  "parent_trace": {
+    "trace_id": "5baa3eed4ac5a41d0a5cee791c245cc2",
+    "session_id": "01a11698-4022-746b-809c-084c8c592e73"
+  },
+  "session": {
+    "session_id": "01a11698-4022-746b-809c-084c8c592e73",
+    "session_file": null,
+    "branch_start_id": "6174e076",
+    "branch_end_id": "0739e8a6"
+  },
+  "started_at": "2026-10-07T13:40:56.218Z",
+  "execution_status": "completed",
+  "duration_ms": 9.87960000000021,
+  "inputs": [
+    {
+      "question": "这是默认主键投影的只读验收，请严格按顺序完成。第一次调用 get_subject_details 时 arguments 必须且只能是 {\"subject_id\":253}，不得添加 fields 或 include。取得本轮 resourceRef 后，用 read_cached_resource 读取 name、nameCn、score，至少成功执行一次该缓存工具。最后使用 SubjectCards 的引用 props，只提供 resourceRef、items 中的 id 253 及 layout grid；卡片封面、简介、评分、名称和链接交由宿主从缓存补齐，不要为这些展示字段再调用详情或图片工具。用一句话说明实际读取的名称与评分。禁止任何账户写入。",
+      "answer": "已读取条目 253：名称为《星际牛仔》（カウボーイビバップ），评分 9.1。",
+      "source": "session_title"
+    }
+  ],
+  "final_output": {
+    "text": "资源引用只读验收",
+    "status": "final",
+    "message_ref": {
+      "path": "payloads/86f6bcf7e2973e9812a1ac7d9d192a4ccd59808bd1cae0f6d13ec84e1dea8248.json",
+      "sha256": "86f6bcf7e2973e9812a1ac7d9d192a4ccd59808bd1cae0f6d13ec84e1dea8248",
+      "bytes": 35
+    }
+  },
+  "capture": {
+    "complete": true,
+    "issues": [],
+    "dropped_events": 0,
+    "provider_payloads": "redacted_when_available",
+    "provider_payload_count": 0,
+    "reasoning": "provider_visible_only",
+    "http_request_tracing": "not_instrumented",
+    "compaction_model_requests": "not_instrumented",
+    "cache_warming_requests": "not_instrumented"
+  },
+  "analysis": {
+    "schema_version": 1,
+    "metrics": {
+      "llm_requests": 0,
+      "usage_unavailable_requests": 0,
+      "llm_duration_ms": 0,
+      "prompt_bytes_max": 0,
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "total": 0
+      },
+      "proposed_tool_calls": 0,
+      "executed_tools": 0,
+      "tool_errors": 0,
+      "mcp_client_calls": 0,
+      "mcp_rpc_attempts": 0,
+      "mcp_initialization_ms": 0,
+      "rpc_attempt_unknown_calls": 0,
+      "mcp_result_bytes": 0,
+      "model_tool_result_bytes": 0,
+      "search_candidate_rows": 0,
+      "search_unique_candidates": 0,
+      "search_overlap_ratio": null,
+      "mcp_by_tool": {},
+      "mcp_by_phase": {},
+      "host_duration_ms": {
+        "account_queue": 0,
+        "confirmation": 0,
+        "preflight": 0,
+        "submit": 0,
+        "verify": 0
+      }
+    },
+    "findings": []
+  },
+  "evaluation": null
+}

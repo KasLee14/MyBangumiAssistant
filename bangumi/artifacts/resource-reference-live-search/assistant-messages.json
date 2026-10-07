@@ -1,0 +1,123 @@
+[
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "thinking",
+        "thinking": "Let me start by searching for the anime \"星际牛仔\".\n\nI'll call search_subjects with keyword \"星际牛仔\", subject_type 2, limit maybe 10 (default 30). Let me use fields for default primary key projection - \"先读取默认主键投影\" means default fields (id). Then use read_cached_resource to get name and score.\n\nLet me do the search first.",
+        "thinkingSignature": "[REDACTED]"
+      },
+      {
+        "type": "toolCall",
+        "id": "call_00_zncNirrupgD7spNZFrbf3359",
+        "name": "search_subjects",
+        "arguments": {
+          "keyword": "星际牛仔",
+          "subject_type": 2,
+          "limit": 10
+        }
+      }
+    ],
+    "api": "openai-completions",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "usage": {
+      "input": 138,
+      "output": 154,
+      "cacheRead": 45568,
+      "cacheWrite": 0,
+      "reasoning": 81,
+      "totalTokens": 45860,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1791380707205,
+    "responseId": "c2d3df49-364d-4677-be17-6655fc9d609f",
+    "rawStopReason": "tool_calls",
+    "thinkingLevel": "high"
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "thinking",
+        "thinking": "The search returned an error INVALID_RESPONSE. I have no tool permissions now (\"展示续接/修复阶段没有工具权限\"). Hmm — the recovery feedback says I should replan read operations... but the system prompt for this stage says no tool permissions, only output content JSON. Actually the message says \"当前处于宿主定向恢复...展示续接/修复阶段没有工具权限，仍输出独立的合法content JSON\".\n\nSo I must output content JSON explaining that the search failed. I should not fabricate data.\n\nI'll output text explaining the search failed with INVALID_RESPONSE, no data obtained, no fabricated results, read-only nothing modified. Perhaps a Callout with warning tone. Keep it honest.\n\nNote the rule: batches... nothing. Let me produce content: one text and maybe a Callout.\n\nI should be careful: the task asked to at least call read_cached_resource, but I cannot due to no tool permission and no resource. Be honest.\n\nOutput single JSON object with content array.",
+        "thinkingSignature": "[REDACTED]"
+      },
+      {
+        "type": "text",
+        "nextType": "Callout",
+        "text": "**本轮只读检索未取得可用结果。**"
+      },
+      {
+        "type": "Callout",
+        "pending": false,
+        "props": {
+          "tone": "warning",
+          "text": "动画搜索“星际牛仔”未返回数据",
+          "detail": "search_subjects 返回 INVALID_RESPONSE（origin: http，stage: decode，recovery: replan_read，retryable: false）。Bangumi 返回的数据结构不符合预期，因此没有任何候选作品被召回，也就没有可用的 resourceRef 供 read_cached_resource 读取名称、评分或详情。"
+        }
+      },
+      {
+        "type": "text",
+        "nextType": null,
+        "text": "由于本轮无任何已核实事实，我不展示 SubjectCards，也不给出选择理由——在没有候选与已读字段的情况下给出“最符合标题的结果”只能靠编造，因此不做。\n\n- 覆盖情况：本次来源为公共 v0 匿名接口（source: v0，实际范围 sfw_only，NSFW 已排除）、搜索总数为估计值；即使成功也只能说明该来源窗口内的结果，不代表全站穷尽。\n- 账户数据：本轮未做任何写入，收藏、评分、进度等均未改动。\n\n需要的话请在下一轮重新发起同样的检索（可原样使用“星际牛仔”+动画筛选），成功召回后我会按“默认主键投影 → 缓存字段补取名称与评分 → 按需取详情”的顺序补齐，并用资源引用展示封面、简介、链接与评分。"
+      }
+    ],
+    "api": "openai-completions",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "usage": {
+      "input": 973,
+      "output": 521,
+      "cacheRead": 45440,
+      "cacheWrite": 0,
+      "reasoning": 207,
+      "totalTokens": 46934,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    "stopReason": "stop",
+    "timestamp": 1791380720404,
+    "responseId": "e29c7e05-5571-473f-a68c-fa1b3efe6842",
+    "rawStopReason": "stop",
+    "diagnostics": [
+      {
+        "type": "bangumi_output_normalized",
+        "timestamp": 1791380724200,
+        "details": {
+          "schemaVersion": 1,
+          "adjustments": [
+            {
+              "path": "/content/0/nextType",
+              "rule": "derived_next_type"
+            }
+          ]
+        }
+      },
+      {
+        "type": "application_recovery",
+        "timestamp": 1791380724201,
+        "details": {
+          "autoRetry": "host",
+          "chainId": "89ad6e20-5798-440a-a383-ebfccb13017e",
+          "attempt": 1,
+          "status": "recovered",
+          "retainedParts": 0
+        }
+      }
+    ],
+    "thinkingLevel": "high"
+  }
+]

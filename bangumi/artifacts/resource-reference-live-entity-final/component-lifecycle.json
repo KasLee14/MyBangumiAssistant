@@ -1,0 +1,160 @@
+[
+  {
+    "elapsedMs": 27563,
+    "parts": []
+  },
+  {
+    "elapsedMs": 27809,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 27809,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 27810,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 27876,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 27987,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 27990,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 27995,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": false
+      }
+    ]
+  },
+  {
+    "elapsedMs": 27998,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": false
+      },
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 28054,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": false
+      },
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 28181,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": false
+      },
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 28182,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": false
+      },
+      {
+        "type": "Gallery",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 28184,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": false
+      },
+      {
+        "type": "Gallery",
+        "pending": false
+      }
+    ]
+  },
+  {
+    "elapsedMs": 28184,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": false
+      },
+      {
+        "type": "Gallery",
+        "pending": false
+      }
+    ]
+  },
+  {
+    "elapsedMs": 29187,
+    "parts": [
+      {
+        "type": "Gallery",
+        "pending": false
+      },
+      {
+        "type": "Gallery",
+        "pending": false
+      }
+    ]
+  }
+]

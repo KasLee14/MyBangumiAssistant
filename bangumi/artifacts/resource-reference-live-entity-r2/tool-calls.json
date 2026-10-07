@@ -1,0 +1,118 @@
+[
+  {
+    "id": "call_00_IRqeLhr0YUDnpfebSlOL9643",
+    "name": "get_person_details",
+    "arguments": {
+      "person_id": 1,
+      "fields": [
+        "id",
+        "name",
+        "entity",
+        "career",
+        "personType",
+        "url"
+      ]
+    }
+  },
+  {
+    "id": "call_01_4pFyWOrgWe9Jgzt2b7UO9181",
+    "name": "get_character_details",
+    "arguments": {
+      "character_id": 1,
+      "fields": [
+        "id",
+        "name",
+        "entity",
+        "characterType",
+        "url"
+      ]
+    }
+  },
+  {
+    "id": "call_02_edaYbO0EEMAq4BVd9Kvy7052",
+    "name": "get_person_image",
+    "arguments": {
+      "person_id": 1,
+      "fields": [
+        "id",
+        "url",
+        "kind",
+        "imageType"
+      ]
+    }
+  },
+  {
+    "id": "call_03_2MIeSz1fi4fmZu1xVOYv1290",
+    "name": "get_character_image",
+    "arguments": {
+      "character_id": 1,
+      "fields": [
+        "id",
+        "url",
+        "kind",
+        "imageType"
+      ]
+    }
+  },
+  {
+    "id": "call_00_WPBO8CEBtund4Bd7FIQv2123",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_cce38cc0d6f51253db89e1b0aa205d4c",
+      "fields": [
+        "entity",
+        "id",
+        "name",
+        "personType",
+        "career",
+        "url"
+      ],
+      "keys": [
+        {
+          "personId": 1
+        },
+        {
+          "characterId": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "call_01_9ZgX4fSwvbma8cclV0267462",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_eb49d70ea0325837e1ad33825b098427",
+      "fields": [
+        "entity",
+        "id",
+        "name",
+        "characterType",
+        "url"
+      ]
+    }
+  },
+  {
+    "id": "call_02_gYq4XI273me0XXwqX5uY9989",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_f186990c4e275540f86772e562f90adc",
+      "fields": [
+        "url",
+        "imageType",
+        "kind"
+      ]
+    }
+  },
+  {
+    "id": "call_03_dJiQSmZmtRP9PYbUeJ740985",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_b811bc6ddd5ec137d085bd794df5c50d",
+      "fields": [
+        "url",
+        "imageType",
+        "kind"
+      ]
+    }
+  }
+]

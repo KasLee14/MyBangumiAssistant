@@ -47,8 +47,10 @@ test('真实McpService.call与Pi桥接可交付部分母源里的2项已核推�
   const tool = createReadTools({ call: f.call }).find(tool => tool.name === 'prepare_candidate_output');
   const reply = await tool.execute('candidate-output-bridge', args, undefined, undefined, {}), parsed = JSON.parse(reply.content[0].text);
   assert.equal(parsed.error, undefined); assert.equal(parsed.value.kind, 'candidate_output');
-  assert.equal(parsed.value.bytes, Buffer.byteLength(JSON.stringify(parsed.value.presentation), 'utf8'));
-  const canonical = decode(parsed.value.presentation);
+  assert.equal(parsed.value.presentation,undefined);
+  const snapshot=await f.service.readCachedResource(parsed.value.resourceRef,{turnId:'candidate-output-bridge'});
+  assert.equal(parsed.value.bytes,Buffer.byteLength(JSON.stringify(snapshot.value.presentation),'utf8'));
+  const canonical=decode(snapshot.value.presentation);
   assert.equal(canonical.content[0].text, args.introduction);
   assert.deepEqual(canonical.content[1].props.items.map(item => item.id), [1, 2]);
   assert.ok(canonical.content.at(-1).text.includes(args.reasons[0].reason));
@@ -70,7 +72,9 @@ test('服务根出口table默认要求来源分页耗尽，Pi桥接交付全部�
     introduction: '当前集合12项', conclusion: '此次来源分页已耗尽。' }, undefined, undefined, {});
   const parsed = JSON.parse(reply.content[0].text); assert.equal(parsed.error, undefined);
   assert.equal(parsed.value.scope.completion_scope, 'exhaustive'); assert.equal(parsed.value.counts.preparedCount, 12);
-  const canonical = decode(parsed.value.presentation); assert.equal(canonical.content[1].props.rows.length, 12);
+  assert.equal(parsed.value.presentation,undefined);
+  const snapshot=await f.service.readCachedResource(parsed.value.resourceRef,{turnId:'candidate-output-bridge'});
+  const canonical = decode(snapshot.value.presentation); assert.equal(canonical.content[1].props.rows.length, 12);
   assert.deepEqual(canonical.content[1].props.rows.map(row => row.url), Array.from({ length: 12 }, (_, index) => `https://bgm.tv/subject/${index + 1}`));
   assert.ok(canonical.content.at(-1).text.includes('此次来源分页已耗尽。'));
   assert.ok(canonical.content.at(-1).text.includes('未完整来源1个')); assert.equal(f.reads.length, before);

@@ -55,25 +55,33 @@ function wholePlan(args: EffectiveCandidatePresentationArgs, rows: Record<string
     maxTableParts: MAX_CANDIDATE_TABLE_PARTS, reservedTextParts: RESERVED_CANDIDATE_TABLE_TEXT_PARTS,
     remainingContentSlots: Math.max(0, MAX_CONTENT_PARTS - partBytes.length), fit: reasons.length === 0, reasons };
 }
-/** 已选集合必须处理完成且当前事实仍满足本层条件；全量另外要求来源与祖先扫描耗尽。 */
+/** 显式成员只核对本层已通过结果；整集合必须处理完成，全量另外要求来源与祖先扫描耗尽。 */
 export function candidatePresentationSet(store: CandidateStore, ref: string, binding: CandidateBinding, context?: AccessContext,
-  completionScope: 'selected' | 'exhaustive' = 'exhaustive'): CandidateSet {
+  completionScope: 'selected' | 'exhaustive' = 'exhaustive', subjectIds?: readonly number[]): CandidateSet {
   const set = store.get(ref, binding), stage = candidateStage(set);
-  if (set.refRole !== 'result' || set.qualification?.complete === false || stage.remainingCount > 0 || set.continuation
+  if (subjectIds !== undefined && (!subjectIds.length || subjectIds.length > 200 || new Set(subjectIds).size !== subjectIds.length
+    || subjectIds.some(id => !Number.isSafeInteger(id) || id < 1))) throw new AppError('INVALID_INPUT', '展示成员必须是1至200个唯一正整数作品ID。');
+  if (set.refRole !== 'result' || subjectIds === undefined && (set.qualification?.complete === false || stage.remainingCount > 0 || set.continuation
     || completionScope === 'exhaustive' && (set.sources.some(source => source.nextOffset !== null)
-      || set.coverageDependencies.some(dependency => dependency.remainingCount > 0)))
+      || set.coverageDependencies.some(dependency => dependency.remainingCount > 0))))
     throw new AppError('CANDIDATE_STAGE_INCOMPLETE', '请先完成本层选择；全量展示还须完成来源及祖先扫描。原引用仍保留。');
+  const members = new Map(set.rows.map(row => [row.id, row]));
+  const rows = subjectIds === undefined ? set.rows : subjectIds.map(id => {
+    const row = members.get(id);
+    if (!row) throw new AppError('CANDIDATE_ID_MISMATCH', '展示作品不属于本层已通过结果，不能从工作集或其他引用补入。');
+    return row;
+  });
   if (set.visibility === 'self' && (!context?.account || context.account.id !== set.account?.id))
     throw new AppError('CANDIDATE_SCOPE_MISMATCH', '本人候选展示需要匹配的当前账户。');
   if ((set.requiresNsfw || set.rows.some(row => row.requiresNsfw || row.facts.nsfw === true))
     && (!context?.account || context.account.id !== binding.accountId || context.nsfw.allowed !== true || context.nsfw.preference === false))
     throw new AppError('NSFW_SCOPE_CHANGED', '当前可见权限不能展示此候选范围。');
-  for (const row of set.rows) for (const filter of set.factFilters) {
+  for (const row of rows) for (const filter of set.factFilters) {
     const result = evaluateCandidateFacts(row, filter).result;
     if (result !== 'match') throw new AppError(result === 'unknown' ? 'CANDIDATE_REQUIRED_FACTS_MISSING' : 'CANDIDATE_STAGE_INCOMPLETE',
       '当前缓存事实不能确证已执行的筛选条件；请在原范围补证并复核。');
   }
-  return set;
+  return subjectIds === undefined ? set : { ...set, rows };
 }
 /** 对指定缓存行格式化，供输出分页复用；不改变集合、覆盖或事实。 */
 function tableProjection(store: CandidateStore, set: CandidateSet, args: EffectiveCandidatePresentationArgs, binding: CandidateBinding,

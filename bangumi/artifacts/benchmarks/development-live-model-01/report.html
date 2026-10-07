@@ -1,0 +1,286 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bangumi benchmark</title><style>body{max-width:1100px;margin:32px auto;padding:0 20px;font:15px/1.65 system-ui;color:#172033;background:#f8fafc}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #dbe2eb;text-align:left}details.run{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:12px;margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:12px;border-radius:6px}input{width:100%;padding:10px;box-sizing:border-box}a{color:#2563eb}strong{color:#334155}</style><h1>Bangumi benchmark</h1><p>自动硬判通过不等于语义评审通过。失败、超时和资料缺失均保留；性能差值只比较双方通过且指标可用的配对。API未返回的思考与token保持不可用。</p><pre>{
+  &quot;runs&quot;: 1,
+  &quot;outcomes&quot;: {
+    &quot;failed&quot;: 1
+  },
+  &quot;passRate&quot;: 0,
+  &quot;macroFamilyPassRate&quot;: 0,
+  &quot;semanticPending&quot;: 0,
+  &quot;totals&quot;: {
+    &quot;mcpCalls&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 1
+    },
+    &quot;upstreamRequests&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 1
+    },
+    &quot;contextInputTokensMax&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 47299
+    },
+    &quot;contextInputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 94151
+    },
+    &quot;inputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 46663
+    },
+    &quot;outputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 551
+    },
+    &quot;cacheReadTokensSum&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 47488
+    },
+    &quot;modelToolResultBytes&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 971
+    },
+    &quot;totalMs&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 18610.762799999997
+    },
+    &quot;modelMs&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 3274.8135999999977
+    },
+    &quot;estimatedCost&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    }
+  }
+}</pre><h2>逐例证据</h2><input id="filter" placeholder="筛选案例、场景、版本或结果状态" aria-label="筛选运行记录"><details class="run" data-search="facts-basic facts failed candidate"><summary>facts-basic · candidate #1 <strong>failed</strong></summary><p><a href="runs/candidate/facts-basic/1/result.json">原始结果</a> <a href="runs/candidate/facts-basic/1/tracelog/2026-10-07/01a11707-797a-7264-9ae2-45196aed0382/6d29827ed400c4a865d07c4918986ae0/summary.json">trace摘要</a></p><p>总耗时 18611ms；模型请求 2；MCP 1；上游 1；含缓存输入token 94151</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,4.460817226991509 200,4"/></svg><p>语义评审：not_required </p><pre>text：文本断言未通过
+text：文本断言未通过
+text：文本断言未通过</pre><h3>对话轮次 1</h3><p>查询条目1001的名称、评分、首播日期和集数，给出条目链接。</p><pre>已按你的要求读取条目 1001 的基本资料：
+星港追踪（条目 1001）
+条目链接
+以上为公开 SFW 来源读取结果；当前为匿名访问，未包含 NSFW 相关内容。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1001,
+      &quot;fields&quot;: [
+        &quot;id&quot;,
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;,
+        &quot;totalEpisodes&quot;,
+        &quot;url&quot;,
+        &quot;subjectType&quot;,
+        &quot;platform&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;platform&quot;: &quot;TV&quot;,
+        &quot;score&quot;: 8.4,
+        &quot;totalEpisodes&quot;: 12,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1001&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-07T15:42:25.622Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_b7309608e3d661eee30ba010552232e6&quot;,
+        &quot;fields&quot;: [
+          &quot;id&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;date&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;url&quot;,
+          &quot;subjectType&quot;,
+          &quot;platform&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 18610.762799999997,
+    &quot;startupMs&quot;: 13014.0622,
+    &quot;modelRequests&quot;: 2,
+    &quot;providerHttpRequests&quot;: 2,
+    &quot;proposedToolCalls&quot;: 1,
+    &quot;toolExecutions&quot;: 1,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 1,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 1,
+    &quot;upstreamRequests&quot;: 1,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 2.383899999998903,
+    &quot;modelMs&quot;: 3274.8135999999977,
+    &quot;providerPayloadBytesMax&quot;: 166808,
+    &quot;inputTokensMax&quot;: 46340,
+    &quot;inputTokensSum&quot;: 46663,
+    &quot;contextInputTokensMax&quot;: 47299,
+    &quot;contextInputTokensSum&quot;: 94151,
+    &quot;reasoningTokensSum&quot;: 280,
+    &quot;outputTokensSum&quot;: 551,
+    &quot;cacheReadTokensSum&quot;: 47488,
+    &quot;cacheWriteTokensSum&quot;: 0,
+    &quot;totalTokensSum&quot;: 94702,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 971,
+    &quot;firstTextMs&quot;: 17856.9225,
+    &quot;firstCompleteResultMs&quot;: 18481.1679,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;inputTokens&quot;: 46340,
+        &quot;contextInputTokens&quot;: 46852,
+        &quot;reasoningTokens&quot;: 102,
+        &quot;outputTokens&quot;: 190,
+        &quot;cacheReadTokens&quot;: 512,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 47042,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 165061,
+        &quot;durationMs&quot;: 1454.199199999999,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 752.6327999999994,
+        &quot;visibleThinkingMs&quot;: 483.78559999999925,
+        &quot;thinkingChars&quot;: 374,
+        &quot;responseModel&quot;: &quot;deepseek-flash&quot;
+      },
+      {
+        &quot;inputTokens&quot;: 323,
+        &quot;contextInputTokens&quot;: 47299,
+        &quot;reasoningTokens&quot;: 178,
+        &quot;outputTokens&quot;: 361,
+        &quot;cacheReadTokens&quot;: 46976,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 47660,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 166808,
+        &quot;durationMs&quot;: 1820.6143999999986,
+        &quot;firstTextMs&quot;: 1196.3273999999983,
+        &quot;firstThinkingMs&quot;: 224.814699999999,
+        &quot;visibleThinkingMs&quot;: 930.1068999999989,
+        &quot;thinkingChars&quot;: 727,
+        &quot;responseModel&quot;: &quot;deepseek-flash&quot;
+      }
+    ]
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791387745625.51,
+      &quot;elapsedMs&quot;: 4719.283500000001,
+      &quot;durationMs&quot;: 2.383899999998903,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: false,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: [
+            1001
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;8\\.4&quot;
+        },
+        &quot;passed&quot;: false,
+        &quot;detail&quot;: &quot;文本断言未通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;2024[-年/]0?1[-月/]0?8&quot;
+        },
+        &quot;passed&quot;: false,
+        &quot;detail&quot;: &quot;文本断言未通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;12&quot;
+        },
+        &quot;passed&quot;: false,
+        &quot;detail&quot;: &quot;文本断言未通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;evidence&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ],
+          &quot;fields&quot;: [
+            &quot;score&quot;,
+            &quot;date&quot;,
+            &quot;totalEpisodes&quot;
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;实际模型可见字段：[[1001,[\&quot;score\&quot;,\&quot;date\&quot;,\&quot;totalEpisodes\&quot;]]]&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details><script>document.getElementById("filter").addEventListener("input",function(){const q=this.value.toLowerCase();document.querySelectorAll(".run").forEach(function(el){el.hidden=!el.dataset.search.toLowerCase().includes(q)})});</script></html>

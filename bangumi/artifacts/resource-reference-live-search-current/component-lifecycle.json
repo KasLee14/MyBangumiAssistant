@@ -1,0 +1,55 @@
+[
+  {
+    "elapsedMs": 3207,
+    "parts": []
+  },
+  {
+    "elapsedMs": 30765,
+    "parts": []
+  },
+  {
+    "elapsedMs": 31763,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 31764,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 31967,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": true
+      }
+    ]
+  },
+  {
+    "elapsedMs": 31972,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": false
+      }
+    ]
+  },
+  {
+    "elapsedMs": 32026,
+    "parts": [
+      {
+        "type": "SubjectCards",
+        "pending": false
+      }
+    ]
+  }
+]

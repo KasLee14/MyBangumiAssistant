@@ -1,0 +1,259 @@
+{
+  "toolProjectionAudit": [
+    {
+      "name": "get_subject_details",
+      "arguments": {
+        "subject_id": 253,
+        "fields": [
+          "id",
+          "name",
+          "nameCn",
+          "score",
+          "image",
+          "summary",
+          "url",
+          "rank",
+          "ratingCount"
+        ]
+      },
+      "error": false,
+      "modelBytes": 2161,
+      "fullBytes": 2490,
+      "resourceRefs": [
+        "rr_a9633fee9247ea5750dfb69b4d0d4b39"
+      ],
+      "visibleDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 26
+        },
+        {
+          "path": "/value/image",
+          "bytes": 57
+        },
+        {
+          "path": "/value/summary",
+          "bytes": 1086
+        }
+      ],
+      "fullDisplayFields": [
+        {
+          "path": "/value/url",
+          "bytes": 26
+        },
+        {
+          "path": "/value/image",
+          "bytes": 57
+        },
+        {
+          "path": "/value/summary",
+          "bytes": 1086
+        }
+      ],
+      "displayFieldsExplicitlyRequested": [
+        "id",
+        "name",
+        "nameCn",
+        "score",
+        "image",
+        "summary",
+        "url",
+        "rank",
+        "ratingCount"
+      ]
+    },
+    {
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_a9633fee9247ea5750dfb69b4d0d4b39",
+        "fields": [
+          "name",
+          "score"
+        ]
+      },
+      "error": true,
+      "modelBytes": 1362,
+      "fullBytes": 1362,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": [
+        "name",
+        "score"
+      ]
+    },
+    {
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_a9633fee9247ea5750dfb69b4d0d4b39",
+        "keys": [
+          {
+            "id": 253
+          }
+        ],
+        "range": {
+          "offset": 0,
+          "limit": 5
+        }
+      },
+      "error": true,
+      "modelBytes": 673,
+      "fullBytes": 673,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": []
+    },
+    {
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_a9633fee9247ea5750dfb69b4d0d4b39",
+        "keys": [
+          253
+        ],
+        "fields": [
+          "name",
+          "score"
+        ]
+      },
+      "error": true,
+      "modelBytes": 673,
+      "fullBytes": 673,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": [
+        "name",
+        "score"
+      ]
+    }
+  ],
+  "providerPayloadAudit": [
+    {
+      "request": 1,
+      "tools": []
+    },
+    {
+      "request": 2,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 2161,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 26
+            },
+            {
+              "path": "/value/image",
+              "bytes": 57
+            },
+            {
+              "path": "/value/summary",
+              "bytes": 1086
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "request": 3,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 2161,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 26
+            },
+            {
+              "path": "/value/image",
+              "bytes": 57
+            },
+            {
+              "path": "/value/summary",
+              "bytes": 1086
+            }
+          ]
+        },
+        {
+          "item": 1,
+          "bytes": 1362,
+          "displayFields": []
+        }
+      ]
+    },
+    {
+      "request": 4,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 2161,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 26
+            },
+            {
+              "path": "/value/image",
+              "bytes": 57
+            },
+            {
+              "path": "/value/summary",
+              "bytes": 1086
+            }
+          ]
+        },
+        {
+          "item": 1,
+          "bytes": 1362,
+          "displayFields": []
+        },
+        {
+          "item": 2,
+          "bytes": 673,
+          "displayFields": []
+        }
+      ]
+    },
+    {
+      "request": 5,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 2161,
+          "displayFields": [
+            {
+              "path": "/value/url",
+              "bytes": 26
+            },
+            {
+              "path": "/value/image",
+              "bytes": 57
+            },
+            {
+              "path": "/value/summary",
+              "bytes": 1086
+            }
+          ]
+        },
+        {
+          "item": 1,
+          "bytes": 1362,
+          "displayFields": []
+        },
+        {
+          "item": 2,
+          "bytes": 673,
+          "displayFields": []
+        },
+        {
+          "item": 3,
+          "bytes": 673,
+          "displayFields": []
+        }
+      ]
+    }
+  ]
+}

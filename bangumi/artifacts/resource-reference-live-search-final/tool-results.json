@@ -1,0 +1,315 @@
+[
+  {
+    "name": "read",
+    "toolCallId": "call_00_1aF9m0R6zlNVzkNiE7T46234",
+    "isError": false,
+    "content": [
+      {
+        "type": "text",
+        "text": "---\nname: bangumi-query\ndescription: Bangumi只读检索，使用候选引用完成召回、事实筛选和按需补充资料；适用于查找、组合筛选、分页与多项核实。已知对象的简单资料读取无需加载。\n---\n\n# Bangumi 检索\n\n检索使用“召回 → 筛选 → 字段补全”的漏斗。宿主保存接口已经返回的完整资料，工具默认只返回身份、资源引用和进度；模型判断需要的名称、评分、标签、简介通过 `fields` 显式读取。已有 `resourceRef` 可用 `read_cached_resource` 读取已缓存字段，长文本按返回范围续读；它不联网补资料，未知字段需调用相应原工具。作品的适配判断与推荐选择由 [bangumi-recommend](../bangumi-recommend/SKILL.md) 介绍。\n\n## 候选与资料\n\n搜索、浏览、收藏或人物出演可用 `result_mode=\"candidates\"` 取得候选引用。召回工具选择适合用户目标的来源条件，`fields` 选择当前需要查看的资料。作品关系扩展是独立召回操作，适合用户需要沿前作、续作等关系查找的任务。\n\n`refine_subject_candidates` 沿 `candidate_ref` 用 `filter` 执行事实条件，用 `fields` 读取必要字段。宿主补齐筛选依赖，无需同时将它们全部展示给模型。评分、日期、形式、收藏状态属于事实；类别、题材主线和体验相似性由模型根据资料判断。标签是语义线索，精确标签命中范围不等于通俗类别的全部作品。模型选定成员后，可用 `filter.subject_ids` 从已有引用取得最终集合。\n\n`candidateRef` 是当前工作集，`resultRef` 是累计通过的结果集；当前页 `data` 只是窗口。需要继续处理时使用返回的游标与 `continue_subject_query`，需要下一页来源时使用来源工具的分页参数。中间结果仅需引用和进度时，可使用 `response_view=\"reference\"`；需要阅读资料时使用 `page`。参数、枚举和窗口限制以工具契约为准。\n\n`resourceRef` 用于缓存字段读取和展示，不能传给 `candidate_ref`；`candidateRef/resultRef` 用于候选筛选，`collectionRef` 用于收藏来源，三类引用不能互换。缓存 `keys` 只选该引用的列表成员，单详情省略；图片引用只含地址，完整实体卡片使用详情或列表引用。\n\n收藏证据通过 `collection_ref` 复用。本人收藏使用 `username=\"-\"`。只有完整且适用的账户、媒体和状态范围，才能以缺席证明未收藏；局部样本中没出现仍是未知。\n\n收藏查询的日期和其他筛选均可省略。续读或重新筛选同一来源时，使用已有 `collectionRef` 作为 `collection_ref`；原查询有筛选时，续读须保留原 `filter`（日期也可传 `air_date`）。只有明确取消筛选才传 `filter:{}`。收到 `INVALID_INPUT` 时根据字段路径和固定提示重新生成调用参数，保留用户范围；不要重写工具 Schema，也不要用新来源绕过纠参。\n\n## 范围与交付\n\n未知或读取失败不等于不符合。根据用户需要选择少量结果或继续取得指定范围；全量结果需要来源和候选处理均已结束，并说明仍缺失的必要证据。完成信息只针对实际读取范围，搜索估计总数、公开或 SFW 来源不能证明全站、私密或 R18 范围完整。\n\n交付名称及用户需要的资料，并区分事实与语义判断。资源组件可在 `props` 中提供 `resourceRef` 和所选身份，由宿主补齐名称、链接、图片等展示事实；模型仍负责说明与推荐理由。沿最终引用调用 `prepare_candidate_output` 时，使用其展示快照引用；同类型多块按返回组件索引逐块交付，不重新筛选或覆盖已准备快照。引用用于当前读取任务；跨任务重建必要来源，压缩上下文时保留条件、续页位置和证据缺口。\n\n## 简短例子\n\n用户要找评分至少 8 分、适合轻松观看的动画：先搜索或浏览动画候选，取名称与评分；沿引用以 `filter.rating.min=8` 筛选，再按 `fields` 读取标签、简介判断风格。需要更多合格候选就继续来源分页，资料不足就沿原引用补字段，选定后用 `filter.subject_ids` 取得最终成员。评分筛选由宿主执行，“轻松”由模型依据本次资料判断。\n"
+      }
+    ],
+    "full": null
+  },
+  {
+    "name": "search_subjects",
+    "toolCallId": "call_00_e0CBv5LC5LUjJNYwE9vt9154",
+    "isError": false,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"value\":{\"schemaVersion\":1,\"kind\":\"candidate_page\",\"entity\":\"subject_candidate\",\"candidateRef\":\"c_f557f41a-275a-447b-996c-b0cd0b9eddb0\",\"resultRef\":\"cr_82cc8807-9902-47dd-b834-4a90c7f43ca9\",\"responseView\":\"page\",\"data\":[{\"id\":253},{\"id\":860},{\"id\":146215},{\"id\":333887},{\"id\":376670},{\"id\":427132},{\"id\":569767},{\"id\":1307},{\"id\":8281},{\"id\":35382},{\"id\":38695},{\"id\":38698},{\"id\":38699},{\"id\":38700},{\"id\":38701},{\"id\":38702},{\"id\":38703},{\"id\":38704},{\"id\":60022},{\"id\":75015},{\"id\":91628},{\"id\":123444},{\"id\":143400},{\"id\":179935},{\"id\":268430},{\"id\":286478},{\"id\":314041},{\"id\":347693},{\"id\":349076},{\"id\":355796}],\"pending\":[],\"stage\":{\"inputCount\":30,\"processedCount\":30,\"matchedCount\":30,\"excludedCount\":0,\"pendingCount\":0,\"remainingCount\":0},\"set\":{\"workingCount\":30,\"resultCount\":30},\"page\":{\"cursor\":null,\"nextCursor\":null,\"limit\":30,\"returnedCount\":30,\"complete\":true},\"coverage\":{\"scope\":\"candidate_set\",\"coverageRef\":\"cv_2c0b8e91-0090-4ac5-b810-7ff30f66f87c\",\"mode\":\"summary\",\"complete\":false,\"sourceCount\":1,\"completeSourceCount\":0,\"incompleteSourceCount\":1,\"unknownTotalSourceCount\":0,\"pendingCount\":0,\"remainingCount\":0,\"unknownFieldCount\":0,\"failedFieldCount\":0,\"dependencyIncompleteCount\":0,\"dependencyPendingCount\":0,\"dependencyRemainingCount\":0,\"dependencyUnknownCount\":0,\"dependencyFailedCount\":0,\"sourceChanges\":[{\"tool\":\"search_subjects\",\"source\":\"v0\",\"privateRecords\":\"not_applicable\",\"sourceCount\":1,\"addedCount\":1,\"updatedCount\":0,\"completeSourceCount\":0,\"incompleteSourceCount\":1,\"unknownTotalSourceCount\":0,\"scannedCount\":30}]},\"visibility\":\"public\",\"readAt\":\"2026-10-07T14:08:57.583Z\",\"accessContext\":{\"mode\":\"anonymous\",\"account\":null,\"nsfw\":{\"preference\":null,\"allowed\":null,\"state\":\"not_checked\"},\"source\":\"v0\",\"nsfwApplied\":false,\"checkedAt\":\"2026-10-07T14:08:54.885Z\",\"queryCoverage\":{\"requested\":\"exclude\",\"actual\":\"sfw_only\",\"nsfw\":\"excluded\",\"totalKind\":\"estimated\",\"limitations\":[\"v0_anonymous_source\",\"estimated_search_total\"]}},\"sourcePage\":{\"total\":62,\"limit\":30,\"offset\":0,\"returnedCount\":30,\"nextOffset\":30,\"complete\":false,\"totalKind\":\"estimated\",\"sourceNextOffset\":30,\"sourceHasMore\":true},\"resourceRef\":\"rr_b0dc63dfa70e132d719764ca12656b83\",\"fields\":[],\"availableFields\":[\"schemaVersion\",\"kind\",\"entity\",\"candidateRef\",\"resultRef\",\"parentRef\",\"responseView\",\"id\",\"include\",\"stage\",\"inputCount\",\"processedCount\",\"matchedCount\",\"excludedCount\",\"pendingCount\",\"remainingCount\",\"workingCount\",\"resultCount\",\"visibility\",\"readAt\"]}}"
+      }
+    ],
+    "full": {
+      "value": {
+        "schemaVersion": 1,
+        "kind": "candidate_page",
+        "entity": "subject_candidate",
+        "candidateRef": "c_f557f41a-275a-447b-996c-b0cd0b9eddb0",
+        "resultRef": "cr_82cc8807-9902-47dd-b834-4a90c7f43ca9",
+        "parentRef": "c_4b44d0e7-d6c9-4135-a564-6b0dfdc7161c",
+        "responseView": "page",
+        "data": [
+          {
+            "id": 253
+          },
+          {
+            "id": 860
+          },
+          {
+            "id": 146215
+          },
+          {
+            "id": 333887
+          },
+          {
+            "id": 376670
+          },
+          {
+            "id": 427132
+          },
+          {
+            "id": 569767
+          },
+          {
+            "id": 1307
+          },
+          {
+            "id": 8281
+          },
+          {
+            "id": 35382
+          },
+          {
+            "id": 38695
+          },
+          {
+            "id": 38698
+          },
+          {
+            "id": 38699
+          },
+          {
+            "id": 38700
+          },
+          {
+            "id": 38701
+          },
+          {
+            "id": 38702
+          },
+          {
+            "id": 38703
+          },
+          {
+            "id": 38704
+          },
+          {
+            "id": 60022
+          },
+          {
+            "id": 75015
+          },
+          {
+            "id": 91628
+          },
+          {
+            "id": 123444
+          },
+          {
+            "id": 143400
+          },
+          {
+            "id": 179935
+          },
+          {
+            "id": 268430
+          },
+          {
+            "id": 286478
+          },
+          {
+            "id": 314041
+          },
+          {
+            "id": 347693
+          },
+          {
+            "id": 349076
+          },
+          {
+            "id": 355796
+          }
+        ],
+        "pending": [],
+        "fields": [
+          "id"
+        ],
+        "include": [],
+        "filter": {},
+        "scope": {
+          "keyword": "星际牛仔",
+          "subject_type": 2,
+          "result_mode": "candidates",
+          "limit": 30,
+          "sort": "match",
+          "offset": 0
+        },
+        "stage": {
+          "inputCount": 30,
+          "processedCount": 30,
+          "matchedCount": 30,
+          "excludedCount": 0,
+          "pendingCount": 0,
+          "remainingCount": 0
+        },
+        "set": {
+          "workingCount": 30,
+          "resultCount": 30
+        },
+        "page": {
+          "cursor": null,
+          "nextCursor": null,
+          "limit": 30,
+          "returnedCount": 30,
+          "complete": true
+        },
+        "coverage": {
+          "scope": "candidate_set",
+          "coverageRef": "cv_2c0b8e91-0090-4ac5-b810-7ff30f66f87c",
+          "mode": "summary",
+          "complete": false,
+          "sourceCount": 1,
+          "completeSourceCount": 0,
+          "incompleteSourceCount": 1,
+          "unknownTotalSourceCount": 0,
+          "pendingCount": 0,
+          "remainingCount": 0,
+          "unknownFieldCount": 0,
+          "failedFieldCount": 0,
+          "dependencyIncompleteCount": 0,
+          "dependencyPendingCount": 0,
+          "dependencyRemainingCount": 0,
+          "dependencyUnknownCount": 0,
+          "dependencyFailedCount": 0,
+          "sourceChanges": [
+            {
+              "tool": "search_subjects",
+              "source": "v0",
+              "privateRecords": "not_applicable",
+              "sourceCount": 1,
+              "addedCount": 1,
+              "updatedCount": 0,
+              "completeSourceCount": 0,
+              "incompleteSourceCount": 1,
+              "unknownTotalSourceCount": 0,
+              "scannedCount": 30
+            }
+          ]
+        },
+        "visibility": "public",
+        "readAt": "2026-10-07T14:08:57.583Z",
+        "accessContext": {
+          "mode": "anonymous",
+          "account": null,
+          "nsfw": {
+            "preference": null,
+            "allowed": null,
+            "state": "not_checked"
+          },
+          "source": "v0",
+          "nsfwApplied": false,
+          "checkedAt": "2026-10-07T14:08:54.885Z",
+          "queryCoverage": {
+            "requested": "exclude",
+            "actual": "sfw_only",
+            "nsfw": "excluded",
+            "totalKind": "estimated",
+            "limitations": [
+              "v0_anonymous_source",
+              "estimated_search_total"
+            ]
+          }
+        },
+        "sourcePage": {
+          "total": 62,
+          "limit": 30,
+          "offset": 0,
+          "returnedCount": 30,
+          "nextOffset": 30,
+          "complete": false,
+          "totalKind": "estimated",
+          "sourceNextOffset": 30,
+          "sourceHasMore": true
+        },
+        "resourceRef": "rr_b0dc63dfa70e132d719764ca12656b83"
+      }
+    }
+  },
+  {
+    "name": "read_cached_resource",
+    "toolCallId": "call_00_6mlHpacr7Na8NXGRbTlH2510",
+    "isError": true,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"error\":{\"code\":\"MCP_INVALID_RESULT\",\"message\":\"MCP返回不符合固定输出契约。\",\"diagnosis\":{\"category\":\"contract\",\"stage\":\"response_contract\",\"effect\":\"read\",\"blockedFields\":[],\"allowedValues\":[],\"capabilitySuggestions\":[\"read_alternate_source\",\"report_gap\"],\"replanAllowed\":true,\"retryable\":false},\"diagnostic\":{\"schemaVersion\":1,\"errorId\":\"7b0896be-a130-4dc4-94e2-f82faa6d6475\",\"reason\":\"response_schema_invalid\",\"certainty\":\"confirmed\",\"recovery\":\"none\",\"issues\":[{\"path\":\"/value\",\"rule\":\"additionalProperties\",\"message\":\"must NOT have additional properties\"},{\"path\":\"/value\",\"rule\":\"additionalProperties\",\"message\":\"must NOT have additional properties\"},{\"path\":\"/value\",\"rule\":\"additionalProperties\",\"message\":\"must NOT have additional properties\"},{\"path\":\"/value\",\"rule\":\"additionalProperties\",\"message\":\"must NOT have additional properties\"},{\"path\":\"/value\",\"rule\":\"additionalProperties\",\"message\":\"must NOT have additional properties\"},{\"path\":\"/value\",\"rule\":\"additionalProperties\",\"message\":\"must NOT have additional properties\"},{\"path\":\"/value\",\"rule\":\"additionalProperties\",\"message\":\"must NOT have additional properties\"},{\"path\":\"/value\",\"rule\":\"additionalProperties\",\"message\":\"must NOT have additional properties\"}],\"evidence\":{},\"causes\":[],\"code\":\"MCP_INVALID_RESULT\",\"origin\":\"mcp\",\"stage\":\"validate\",\"operation\":\"read_cached_resource\"}}}"
+      }
+    ],
+    "full": {
+      "error": {
+        "code": "MCP_INVALID_RESULT",
+        "message": "MCP返回不符合固定输出契约。",
+        "diagnosis": {
+          "category": "contract",
+          "stage": "response_contract",
+          "effect": "read",
+          "blockedFields": [],
+          "allowedValues": [],
+          "capabilitySuggestions": [
+            "read_alternate_source",
+            "report_gap"
+          ],
+          "replanAllowed": true,
+          "retryable": false
+        },
+        "diagnostic": {
+          "schemaVersion": 1,
+          "errorId": "7b0896be-a130-4dc4-94e2-f82faa6d6475",
+          "reason": "response_schema_invalid",
+          "certainty": "confirmed",
+          "recovery": "none",
+          "issues": [
+            {
+              "path": "/value",
+              "rule": "additionalProperties",
+              "message": "must NOT have additional properties"
+            },
+            {
+              "path": "/value",
+              "rule": "additionalProperties",
+              "message": "must NOT have additional properties"
+            },
+            {
+              "path": "/value",
+              "rule": "additionalProperties",
+              "message": "must NOT have additional properties"
+            },
+            {
+              "path": "/value",
+              "rule": "additionalProperties",
+              "message": "must NOT have additional properties"
+            },
+            {
+              "path": "/value",
+              "rule": "additionalProperties",
+              "message": "must NOT have additional properties"
+            },
+            {
+              "path": "/value",
+              "rule": "additionalProperties",
+              "message": "must NOT have additional properties"
+            },
+            {
+              "path": "/value",
+              "rule": "additionalProperties",
+              "message": "must NOT have additional properties"
+            },
+            {
+              "path": "/value",
+              "rule": "additionalProperties",
+              "message": "must NOT have additional properties"
+            }
+          ],
+          "evidence": {},
+          "causes": [],
+          "code": "MCP_INVALID_RESULT",
+          "origin": "mcp",
+          "stage": "validate",
+          "operation": "read_cached_resource"
+        }
+      }
+    }
+  }
+]

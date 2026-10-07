@@ -334,7 +334,7 @@ test('subjects content is native and its facts survive the next real Pi request 
   const prior = f.captures[1].context.messages.find(message => message.role === 'assistant');
   const replayed = prior.content.filter(part => part.type === 'text').map(part => part.text).join('\n');
   assert.ok(replayed.includes('事实条目'));
-  assert.ok(replayed.includes('8.2'));
+  assert.equal(replayed.includes('8.2'), false);
   assert.ok(replayed.includes('"props"'));
   assert.ok(replayed.includes('"type":"SubjectCards"'));
   const persisted = f.manager.getBranch().find(entry => entry.type === 'message'
@@ -368,7 +368,7 @@ test('Completions agent requests default to the declared provider constraint and
   }
 });
 
-test('DataTable from convertToLlm can be edited and generated again with pending and object rows unchanged', async t => {
+test('DataTable历史进入模型时仅保留展示摘要，新生成和持久化仍保持完整对象行', async t => {
   const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
   const table = { type: 'DataTable', pending: false, props: {
     columns: ['weekday', 'count', 'subjects', 'date', 'url'].map(key => ({ key, label: key })),
@@ -379,9 +379,13 @@ test('DataTable from convertToLlm can be edited and generated again with pending
     rows: table.props.rows.map(({ weekday, count, subjects }) => ({ weekday, count, subjects })) } };
   const f = await fixture(t, [nativeMessage(wireFor({ content: [table] })), transcript => {
     const previous = transcript.messages.findLast(message => message.role === 'assistant');
-    const replayed = previous.content.find(part => part.type === 'text' && part.text.startsWith('{"type":"DataTable"'));
-    assert.deepEqual(JSON.parse(replayed.text), table);
-    assert.deepEqual(normalizeProviderContent({ content: [JSON.parse(replayed.text)] }), { content: [table] });
+    const replayed = previous.content.find(part => part.type === 'text' && part.text.startsWith('历史展示摘要：'));
+    const summary = JSON.parse(replayed.text.slice('历史展示摘要：'.length));
+    assert.equal(summary.type, 'DataTable');
+    assert.equal(summary.props.rows.length, 7);
+    assert.ok(summary.props.rows.every(row => row && typeof row === 'object' && !Array.isArray(row)));
+    assert.equal(replayed.text.includes('2026-10-01'), false);
+    assert.equal(replayed.text.includes('https://bgm.tv/subject'), false);
     return nativeMessage(wireFor({ content: [edited] }));
   }], { api: 'openai-completions', provider: 'deepseek' });
   await f.runtime.session.prompt('整理周一到周日每天更新的动画');

@@ -77,6 +77,8 @@ function storedRow(dto: Data, value: unknown, source: TextSource, hidden = false
 /** 缓存仅属于本实例并绑定查看账户及NSFW权限；引用不能访问路径、会话或其他实例。 */
 export class CommunityReader {
   private readonly viewer = new AsyncLocalStorage<AccessContext>();
+  private fullViews = new WeakMap<Data, Data>();
+  private textRefs = new WeakMap<StoredRow, { viewer: string; ref: string }>();
   private viewerKey(): string {
     const context = this.viewer.getStore(), accountSource = context?.mode === 'account' && context.source === 'p1';
     return JSON.stringify(['p1', accountSource ? context.account?.id ?? null : null, accountSource && context.nsfwApplied && context.nsfw.allowed === true]);
@@ -99,7 +101,14 @@ export class CommunityReader {
     this.maxChars = options.maxChars ?? 8_000_000;
     if (![this.ttl, this.maxEntries, this.maxChars].every(n => Number.isSafeInteger(n) && n > 0)) throw new AppError('INVALID_INPUT', '社区缓存配置无效。');
   }
-  clear(): void { this.entries.clear(); this.expired.clear(); this.chars = 0; }
+  clear(): void { this.entries.clear(); this.expired.clear(); this.chars = 0; this.fullViews = new WeakMap(); this.textRefs = new WeakMap(); }
+  /** 返回已取得且核实过的完整正文视图；不读取网络，也不暴露原始标记。 */
+  completeResource(value: Data): Data { return structuredClone(this.fullViews.get(value) ?? value); }
+  private detailed(envelope: Data, row: Data): Data {
+    const result = { ...envelope, ...row };
+    this.fullViews.set(result, { ...envelope, ...(this.fullViews.get(row) ?? row) });
+    return result;
+  }
   private remove(ref: string): void {
     const entry = this.entries.get(ref);
     if (!entry) return;
@@ -135,6 +144,22 @@ export class CommunityReader {
   }
   private expand(row: StoredRow, include: string[], limit: number, pins: Set<string>, excerptOrigin = 'content_prefix'): Data {
     const result = { ...row.dto };
+    let complete: Data = { ...result };
+    if (excerptOrigin === 'upstream_summary') {
+      const chars = row.text === null ? null : Array.from(row.text);
+      complete.excerpt = chars === null ? null : { text: chars.slice(0, 300).join(''), origin: excerptOrigin, truncated: chars.length > 300 };
+    } else if (Object.keys(row.source).length) {
+      if (row.state === 'unavailable') complete.content = { state: 'unavailable', reason: row.reason ?? 'not_exposed' };
+      else if (row.state === 'unsupported_shape') complete.content = { state: 'unsupported_shape' };
+      else {
+        const chars = Array.from(row.text!), previous = this.textRefs.get(row);
+        const old = previous?.viewer === this.viewerKey() ? this.entries.get(previous.ref) : undefined;
+        const ref = old && old.expires > this.now() ? previous!.ref : this.put({ kind: 'text', source: row.source, chars }, pins);
+        pins.add(ref); this.textRefs.set(row, { viewer: this.viewerKey(), ref });
+        complete.content = { state: 'available', format: 'plain_text', contentRef: ref, text: row.text,
+          range: { offset: 0, returnedChars: chars.length, totalChars: chars.length, nextOffset: null }, isFullText: true };
+      }
+    }
     if (include.includes('excerpt')) {
       const chars = row.text === null ? null : Array.from(row.text);
       result.excerpt = chars === null ? null : { text: chars.slice(0, 300).join(''), origin: excerptOrigin, truncated: chars.length > 300 };
@@ -143,10 +168,12 @@ export class CommunityReader {
       if (row.state === 'unavailable') result.content = { state: 'unavailable', reason: row.reason ?? 'not_exposed' };
       else if (row.state === 'unsupported_shape') result.content = { state: 'unsupported_shape' };
       else {
-        const chars = Array.from(row.text!); const ref = this.put({ kind: 'text', source: row.source, chars }, pins);
+        const chars = Array.from(row.text!); const cached = complete.content as Data | undefined;
+        const ref = typeof cached?.contentRef === 'string' ? cached.contentRef : this.put({ kind: 'text', source: row.source, chars }, pins);
         result.content = this.content(ref, chars, 0, limit);
       }
     }
+    this.fullViews.set(result, complete);
     return result;
   }
   private envelope(args: Data, kind: string, entity?: string): Data {
@@ -154,9 +181,12 @@ export class CommunityReader {
   }
   private page(args: Data, entity: string, rows: StoredRow[], total: number, source: 'upstream' | 'host', pins: Set<string>, snapshotRef?: string, excerptOrigin?: string): Data {
     const offset = Number(args.offset); const limit = Number(args.limit);
-    return { ...this.envelope(args, 'page', entity), data: rows.map(row => this.expand(row, args.include as string[] ?? [], 500, pins, excerptOrigin)),
+    const data = rows.map(row => this.expand(row, args.include as string[] ?? [], 500, pins, excerptOrigin));
+    const result = { ...this.envelope(args, 'page', entity), data,
       page: { paginationSource: source, total, limit, offset, returnedCount: rows.length, nextOffset: offset + rows.length < total ? offset + rows.length : null,
         complete: offset === 0 && rows.length === total, ...(snapshotRef ? { snapshotRef } : {}) } };
+    this.fullViews.set(result, { ...result, data: data.map(row => this.fullViews.get(row) ?? row) });
+    return result;
   }
   private async upstream(args: Data, entity: string, path: string, map: (raw: Data) => StoredRow, pins: Set<string>, signal?: AbortSignal, origin?: string): Promise<Data> {
     const limit = Number(args.limit); const offset = Number(args.offset);
@@ -244,18 +274,18 @@ export class CommunityReader {
       const raw = record(await this.request(`/p1/blogs/${bid}`, {}, signal));
       if (positive(raw.id) !== bid || raw.public !== true) throw new AppError('PRIVATE_SCOPE', '日志归属或公开范围不一致。');
       const meta = { blogId: bid, title: string(raw.title, 300, true), author: author(raw.user, raw.uid), createdAt: time(raw.createdAt), updatedAt: time(raw.updatedAt), replyCount: count(raw.replies), url: `https://bgm.tv/blog/${bid}` };
-      return { ...this.envelope(args, 'details', 'blog'), ...this.expand(storedRow(meta, raw.content, { kind: 'blog', blogId: bid }), args.include as string[], 5000, pins) };
+      return this.detailed(this.envelope(args, 'details', 'blog'), this.expand(storedRow(meta, raw.content, { kind: 'blog', blogId: bid }), args.include as string[], 5000, pins));
     }
     if (name === 'get_subject_topic_details') {
       const raw = this.checkedTopic(await this.request(`/p1/subjects/-/topics/${tid}`, {}, signal), args);
       const meta = this.topicMeta(raw, sid);
       let row = storedRow(meta, null, {});
-      if ((args.include as string[]).includes('content')) {
+      {
         this.flatten(raw.replies, 'topic', tid, sid);
         const first = this.mainPost(raw);
         row = storedRow(meta, first.content, { kind: 'topicPost', subjectId: sid, topicId: tid, postId: positive(first.id) }, hiddenState(first.state));
       }
-      return { ...this.envelope(args, 'details', 'subjectTopic'), ...this.expand(row, args.include as string[], 5000, pins) };
+      return this.detailed(this.envelope(args, 'details', 'subjectTopic'), this.expand(row, args.include as string[], 5000, pins));
     }
     if (name === 'get_blog_comments' || name === 'get_subject_topic_replies') {
       const key = name === 'get_blog_comments' ? `blog:${bid}` : `topic:${sid}:${tid}`;

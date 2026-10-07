@@ -30,14 +30,15 @@ test('收藏来源续页按整个已读集合排序，末页更早日期不会�
     total: all.length, data: all.slice(options.query.offset, options.query.offset + options.query.limit),
   }) });
   t.after(() => service.close());
-  const call = (name, args) => service.call(name, args, undefined, undefined, undefined, { turnId: 'sorted-source' });
   for (const sort of ['date_asc', 'date_desc']) {
+    const turnId = `sorted-source:${sort}`;
+    const call = (name, args) => service.call(name, args, undefined, undefined, undefined, { turnId });
     const args = { username: 'alice', subject_type: 2, result_mode: 'candidates', response_view: 'reference',
       fields: ['id'], sort, source_limit: 100 };
     const first = await call('query_user_collections', args);
     const final = await call('query_user_collections', { ...args, collection_ref: first.collectionRef });
     assert.equal(final.candidateRef, first.candidateRef); assert.equal(final.coverage.complete, true);
-    const binding = service.candidates.peekBinding(final.resultRef, 'sorted-source').binding;
+    const binding = service.candidates.peekBinding(final.resultRef, turnId).binding;
     const rows = service.candidates.get(final.resultRef, binding).rows;
     const ordered = rows.map(row => [row.id, row.facts.date]);
     assert.deepEqual(ordered, [...ordered].sort((a,b) => (sort === 'date_asc' ? 1 : -1) * a[1].localeCompare(b[1]) || a[0] - b[0]));

@@ -3,6 +3,8 @@ import { compileSchema, type JsonSchema } from '../support/tool-schema.js';
 import { checkOutput, pageMetadata, checkPageMetadata } from './subject-output.js';
 import { normalizeInfobox } from './infobox-output.js';
 import { isDeepStrictEqual } from 'node:util';
+import { normalizeResourceImages } from './resource-images.js';
+import { stripResourceRef, RESOURCE_REF_PATTERN } from './resource-contract.js';
 
 export type Data = Record<string, unknown>;
 const known = (value: unknown): value is Data => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -61,7 +63,7 @@ export function entitySummary(value: unknown, kind: 'character' | 'person'): Dat
   return { schemaVersion: 1, entity: kind, id, name: raw.name,
     ...(kind === 'character' ? { characterType: valid.includes(Number(type)) && typeof type === 'number' ? type : null }
       : { personType: valid.includes(Number(type)) && typeof type === 'number' ? type : null, career: strings(raw.career) }),
-    nsfw: boolean(raw.nsfw), url: `https://bgm.tv/${kind}/${id}` };
+    nsfw: boolean(raw.nsfw), url: `https://bgm.tv/${kind}/${id}`, ...normalizeResourceImages(raw) };
 }
 function stats(value: unknown): Data | null {
   if (value == null) return null;
@@ -293,7 +295,7 @@ export function resourceResult(name: string, value: unknown, args: Data): unknow
   if (name === 'get_user_info') {
     const raw = record(value); if (typeof raw.username !== 'string' || typeof raw.nickname !== 'string' || integer(raw.user_group) === null) throw new AppError('INVALID_RESPONSE', '用户公开资料不完整。');
     return { schemaVersion: 1, entity: 'user', id: positive(raw.id), username: raw.username, nickname: raw.nickname, userGroup: raw.user_group, url: `https://bgm.tv/user/${encodeURIComponent(raw.username)}`, included: args.include,
-      ...((args.include as string[]).includes('sign') ? { sign: text(raw.sign) } : {}), readAt: now() };
+      ...((args.include as string[]).includes('sign') ? { sign: text(raw.sign) } : {}), ...normalizeResourceImages(raw, 'avatar'), readAt: now() };
   }
   if (name === 'get_user_avatar') {
     const raw = record(value); return { schemaVersion: 1, kind: 'avatar', userIdentifier: args.username, userId: raw.account == null ? null : positive(record(raw.account).id), username: raw.account == null ? null : record(raw.account).username,
@@ -353,7 +355,29 @@ export function resourceResult(name: string, value: unknown, args: Data): unknow
 }
 
 /** 输入绑定在schema之外核对；字段组、对象、账户、范围均不能由服务返回自行改绑。 */
+export function completeResourceResult(name: string, raw: unknown, args: Data, base?: Data): {
+  value: Data; fieldStates: Record<string, 'known' | 'unknown' | 'failed'>;
+} {
+  const groups = /^get_(character|person)_details$/.test(name) ? ['summary', 'infobox', 'bio', 'stats']
+    : name === 'get_episode_details' ? ['description', 'stats'] : name === 'get_user_info' ? ['sign']
+    : name === 'get_index' && args.own !== true ? ['description'] : /^get_(subject|character|person|episode)_revision$/.test(name) ? ['content'] : [];
+  if (!groups.length) return { value: base ?? record(resourceResult(name, raw, args)), fieldStates: {} };
+  const result = record(resourceResult(name, raw, { ...args, include: [] })), fieldStates: Record<string, 'known' | 'unknown' | 'failed'> = {};
+  for (const field of groups) {
+    try {
+      const part = record(resourceResult(name, raw, { ...args, include: [field] }));
+      for (const [key, value] of Object.entries(part)) if (key !== 'included') result[key] = value;
+      (result.included as string[]).push(field);
+      fieldStates[field] = part[field] == null && field !== 'content' ? 'unknown' : 'known';
+    } catch { fieldStates[field] = 'failed'; }
+  }
+  return { value: result, fieldStates };
+}
+
 export function checkResourceResponse(name: string, value: unknown, args: Data, schema: JsonSchema): void {
+  if (known(value) && Object.hasOwn(value, 'resourceRef') && (typeof value.resourceRef !== 'string' || !new RegExp(RESOURCE_REF_PATTERN).test(value.resourceRef)))
+    throw new AppError('MCP_INVALID_RESULT', '资源引用格式无效。');
+  value = stripResourceRef(value);
   if (name === 'get_person_characters' && record(value).kind === 'candidate_page') {
     checkOutput(schema, { value }); return;
   }

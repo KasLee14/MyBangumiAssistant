@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "trace_id": "3989d1c3bd27fa60afd5d61ab341a797",
+  "root_span_id": "584a55197f8908d8",
+  "purpose": "agent",
+  "parent_trace": null,
+  "session": {
+    "session_id": "01a116de-a40b-7062-8845-7d8ac3deeaf3",
+    "session_file": null,
+    "branch_start_id": "24c18378",
+    "branch_end_id": "97b07652"
+  },
+  "started_at": "2026-10-07T14:57:33.898Z",
+  "execution_status": "completed",
+  "duration_ms": 30318.288599999996,
+  "inputs": [
+    {
+      "text": "这是只读验收。搜索动画“星际牛仔”，只处理搜索得到的第一页；先读取默认主键投影，再用本轮缓存字段读取获取名称和评分，核实匹配对象后按需取得详情。至少调用一次 read_cached_resource。选择最符合标题的一个结果，用 SubjectCards 的资源引用 props 展示封面、简介、链接、评分，并根据已读取的事实给一句选择理由。不要声称全站穷尽，不修改账户数据。",
+      "source": "interactive",
+      "streamingBehavior": null
+    }
+  ],
+  "final_output": {
+    "text": "在这一页结果里，与标题“星际牛仔”直接对应的就是 **《星际牛仔》（カウボーイビバップ，ID 253）**——其余命中多为“星际宝贝”“星际迷航”“星际漫步”等同含“星际”字样但题材无关的作品，因此按标题匹配度只选它一条。理由：它的中文名与检索词完全一致，是 1998 年的 TV 动画（全 31 集），当前评分 9.1、评分人数约 1.99 万，在结果集中口碑与热度都最高，而不是靠关键词混入的近似标题。\n\n范围说明：本次只处理搜索返回的第一页（30 条，源内估计约 62 条），未做全站穷尽；数据为匿名只读的公共 SFW 范围，未修改任何账户数据。",
+    "status": "final",
+    "message_ref": {
+      "path": "payloads/e841a4cbbd38ffc297568109c661fe72789a9a5be746bdbbee8669a828fc6141.json",
+      "sha256": "e841a4cbbd38ffc297568109c661fe72789a9a5be746bdbbee8669a828fc6141",
+      "bytes": 4508
+    }
+  },
+  "capture": {
+    "complete": true,
+    "issues": [],
+    "dropped_events": 0,
+    "provider_payloads": "redacted_when_available",
+    "provider_payload_count": 5,
+    "reasoning": "provider_visible_only",
+    "http_request_tracing": "not_instrumented",
+    "compaction_model_requests": "not_instrumented",
+    "cache_warming_requests": "not_instrumented"
+  },
+  "analysis": {
+    "schema_version": 1,
+    "metrics": {
+      "llm_requests": 5,
+      "usage_unavailable_requests": 0,
+      "llm_duration_ms": 10155.892399999997,
+      "prompt_bytes_max": 187005,
+      "tokens": {
+        "input": 5807,
+        "output": 1231,
+        "cache_read": 224000,
+        "cache_write": 0,
+        "total": 231038
+      },
+      "proposed_tool_calls": 4,
+      "executed_tools": 4,
+      "tool_errors": 0,
+      "mcp_client_calls": 4,
+      "mcp_rpc_attempts": 4,
+      "mcp_initialization_ms": 17303.898999999998,
+      "rpc_attempt_unknown_calls": 0,
+      "mcp_result_bytes": 13635,
+      "model_tool_result_bytes": 13683,
+      "search_candidate_rows": 0,
+      "search_unique_candidates": 0,
+      "search_overlap_ratio": null,
+      "mcp_by_tool": {
+        "search_subjects": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 18947.8067,
+          "result_bytes": 2040
+        },
+        "read_cached_resource": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 7.489800000003015,
+          "result_bytes": 2814
+        },
+        "refine_subject_candidates": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 569.6852999999974,
+          "result_bytes": 6301
+        },
+        "get_subject_details": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 161.41809999999532,
+          "result_bytes": 2480
+        }
+      },
+      "mcp_by_phase": {
+        "query": {
+          "calls": 4,
+          "duration_ms": 19686.399899999997
+        }
+      },
+      "host_duration_ms": {
+        "account_queue": 0,
+        "confirmation": 0,
+        "preflight": 0,
+        "submit": 0,
+        "verify": 0
+      }
+    },
+    "findings": []
+  },
+  "evaluation": null
+}

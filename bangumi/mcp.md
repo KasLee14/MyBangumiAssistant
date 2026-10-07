@@ -1,6 +1,6 @@
 # Bangumi MCP 字段声明
 
-70 个底层工具及宿主工具 execute_write_batch。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。
+71 个底层工具及宿主工具 execute_write_batch。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。
 
 ## `get_daily_broadcast`
 
@@ -10,6 +10,8 @@
 | --- | --- | --- | --- | --- | --- |
 | limit | integer | 否 | 20 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 characters、cn、complete、date、en、entity、id、image、images、infobox、ja、kind、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、readAt、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、visibility、weekday | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 characters、cn、complete、date、en、entity、id、image、images、infobox、ja、kind、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、readAt、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、visibility、weekday |  |
 
 成功输出字段
 
@@ -22,6 +24,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `search_subjects`
 
@@ -54,8 +57,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes |  |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image |  |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。 |
 
 成功输出字段
@@ -71,6 +74,7 @@
 | value.visibility | string | 是 | — | 允许 public |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.schemaVersion | number | 是 | — | 固定 1 |  |
 | value.kind | string | 是 | — | 固定 candidate_page |  |
 | value.entity | string | 是 | — | 固定 subject_candidate |  |
@@ -82,7 +86,7 @@
 | value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -95,6 +99,7 @@
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `browse_subjects`
 
@@ -114,8 +119,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes |  |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image |  |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。 |
 | subject_type | integer | 是 | — | 固定 1 | oneOf 1 |
 | cat | integer | 否 | — | 允许 0、1001、1002、1003 | 书籍：0其他、1001漫画、1002小说、1003画集。；oneOf 1 |
@@ -128,8 +133,8 @@
 | series | boolean | 否 | — | — | oneOf 1 |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 1 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 1 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 1 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 1 |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；oneOf 1 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | oneOf 1 |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 1 |
 | subject_type | integer | 是 | — | 固定 2 | oneOf 2 |
 | cat | integer | 否 | — | 允许 0、1、2、3、5 | 动画形式：0其他、1TV、2OVA、3Movie、5WEB；恋爱/百合等题材使用search_subjects的filter。；oneOf 2 |
@@ -141,8 +146,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 | oneOf 2 |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 2 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 2 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 2 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 2 |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；oneOf 2 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | oneOf 2 |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 2 |
 | subject_type | integer | 是 | — | 固定 3 | oneOf 3 |
 | cat | integer | 否 | — | 允许 0 | 音乐仅0其他。；oneOf 3 |
@@ -154,8 +159,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 | oneOf 3 |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 3 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 3 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 3 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 3 |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；oneOf 3 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | oneOf 3 |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 3 |
 | subject_type | integer | 是 | — | 固定 4 | oneOf 4 |
 | cat | integer | 否 | — | 允许 0、4001、4002、4003、4005 | 游戏：0其他、4001游戏、4002软件、4003扩展包、4005桌游。；oneOf 4 |
@@ -168,8 +173,8 @@
 | platform | string | 否 | — | 最短字符数 1；最长字符数 100 | oneOf 4 |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 4 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 4 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 4 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 4 |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；oneOf 4 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | oneOf 4 |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 4 |
 | subject_type | integer | 是 | — | 固定 6 | oneOf 5 |
 | cat | integer | 否 | — | 允许 0、1、2、3、6001、6002、6003、6004 | 三次元：0其他、1日剧、2欧美剧、3华语剧、6001电视剧、6002电影、6003演出、6004综艺。；oneOf 5 |
@@ -181,8 +186,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 | oneOf 5 |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。；oneOf 5 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。；oneOf 5 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。；oneOf 5 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes | oneOf 5 |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；oneOf 5 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、summary、infobox、relations、durationMinutes、image | oneOf 5 |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。；oneOf 5 |
 
 成功输出字段
@@ -199,6 +204,7 @@
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.filterCoverage | browse_subjects_filterCoverage | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.schemaVersion | number | 是 | — | 固定 1 |  |
 | value.kind | string | 是 | — | 固定 candidate_page |  |
 | value.entity | string | 是 | — | 固定 subject_candidate |  |
@@ -210,7 +216,7 @@
 | value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -223,6 +229,7 @@
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_subject_details`
 
@@ -233,6 +240,8 @@
 | subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | include | array<string> | 否 | summary | 最多项 4；元素不重复；元素：允许 summary、infobox、tagStats、ratingDistribution |  |
 | include[] | string | 是 | — | 允许 summary、infobox、tagStats、ratingDistribution |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 characters、date、entity、id、image、images、included、infobox、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 characters、date、entity、id、image、images、included、infobox、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url |  |
 
 成功输出字段
 
@@ -255,6 +264,9 @@
 | value.tags | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | value.metaTags | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | value.url | string | 是 | — | 最长字符数 100；正则 ^https://bgm\.tv/subject/[1-9]\d*$ |  |
+| value.images | null / get_subject_details_images | 否 | — | anyOf 2 个分支 |  |
+| value.image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
+| value.resourceFieldStates | get_subject_details_resourceFieldStates | 否 | — | 拒绝额外字段 |  |
 | value.relation | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
 | value.staff | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
 | value.series | boolean / null | 否 | — | anyOf 2 个分支 |  |
@@ -265,6 +277,7 @@
 | value.tagStats | array<get_subject_details_tagStatsItem> / null | 否 | — | anyOf 2 个分支；array：最多项 100 |  |
 | value.ratingDistribution | get_subject_details_ratingDistribution / null | 否 | — | anyOf 2 个分支 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_subject_image`
 
@@ -274,6 +287,8 @@
 | --- | --- | --- | --- | --- | --- |
 | subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | image_type | string | 否 | large | 允许 large、common、medium、small、grid |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 id、imageType、kind、schemaVersion、url | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、imageType、kind、schemaVersion、url |  |
 
 成功输出字段
 
@@ -285,6 +300,7 @@
 | value.imageType | string | 是 | large | 允许 large、common、medium、small、grid |  |
 | value.url | string | 是 | — | 最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_subject_persons`
 
@@ -295,6 +311,8 @@
 | subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 20 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 career、entity、id、image、images、kind、name、nsfw、participationText、personType、readAt、relation、schemaVersion、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 career、entity、id、image、images、kind、name、nsfw、participationText、personType、readAt、relation、schemaVersion、url、visibility |  |
 
 成功输出字段
 
@@ -309,6 +327,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_subject_characters`
 
@@ -319,6 +338,8 @@
 | subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 20 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 actorsCoverage、career、characterType、entity、id、image、images、kind、name、nsfw、personType、readAt、relation、schemaVersion、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 actorsCoverage、career、characterType、entity、id、image、images、kind、name、nsfw、personType、readAt、relation、schemaVersion、url、visibility |  |
 
 成功输出字段
 
@@ -333,6 +354,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_subject_relations`
 
@@ -343,6 +365,8 @@
 | subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 20 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 characters、date、entity、id、image、images、infobox、kind、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、readAt、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 characters、date、entity、id、image、images、infobox、kind、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、readAt、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、visibility |  |
 
 成功输出字段
 
@@ -357,6 +381,7 @@
 | value.visibility | string | 是 | — | 允许 public |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_episodes`
 
@@ -368,6 +393,8 @@
 | episode_type | integer | 否 | — | 允许 0、1、2、3、4、5、6 |  |
 | limit | integer | 否 | 100 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 airDate、disc、duration、durationSeconds、entity、episodeType、id、kind、mainSequence、name、nameCn、readAt、schemaVersion、sort、subjectId、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 airDate、disc、duration、durationSeconds、entity、episodeType、id、kind、mainSequence、name、nameCn、readAt、schemaVersion、sort、subjectId、url、visibility |  |
 
 成功输出字段
 
@@ -382,6 +409,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_episode_details`
 
@@ -392,6 +420,8 @@
 | episode_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | include | array<string> | 否 | description | 最多项 2；元素不重复；元素：允许 description、stats |  |
 | include[] | string | 是 | — | 允许 description、stats |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 airDate、description、disc、duration、durationSeconds、entity、episodeType、id、included、mainSequence、name、nameCn、readAt、schemaVersion、sort、stats、subjectId、url | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 airDate、description、disc、duration、durationSeconds、entity、episodeType、id、included、mainSequence、name、nameCn、readAt、schemaVersion、sort、stats、subjectId、url |  |
 
 成功输出字段
 
@@ -416,6 +446,7 @@
 | value.stats | get_episode_details_stats / null | 否 | — | anyOf 2 个分支 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `search_characters`
 
@@ -427,6 +458,8 @@
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
 | nsfw_filter | boolean | 否 | — | — |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 characterType、entity、id、image、images、kind、name、nsfw、readAt、schemaVersion、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 characterType、entity、id、image、images、kind、name、nsfw、readAt、schemaVersion、url、visibility |  |
 
 成功输出字段
 
@@ -441,6 +474,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `search_persons`
 
@@ -453,6 +487,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
 | career_filter | array<string> | 否 | — | 最少项 1；最多项 7；元素不重复；元素：允许 producer、mangaka、artist、seiyu、writer、illustrator、actor |  |
 | career_filter[] | string | 是 | — | 允许 producer、mangaka、artist、seiyu、writer、illustrator、actor |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 career、entity、id、image、images、kind、name、nsfw、personType、readAt、schemaVersion、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 career、entity、id、image、images、kind、name、nsfw、personType、readAt、schemaVersion、url、visibility |  |
 
 成功输出字段
 
@@ -467,6 +503,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_character_details`
 
@@ -477,6 +514,8 @@
 | character_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | include | array<string> | 否 | summary | 最多项 4；元素不重复；元素：允许 summary、infobox、bio、stats |  |
 | include[] | string | 是 | — | 允许 summary、infobox、bio、stats |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 bio、characterType、entity、id、image、images、included、infobox、name、nsfw、readAt、schemaVersion、stats、summary、url | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 bio、characterType、entity、id、image、images、included、infobox、name、nsfw、readAt、schemaVersion、stats、summary、url |  |
 
 成功输出字段
 
@@ -495,7 +534,10 @@
 | value.stats | Stats / null | 否 | — | anyOf 2 个分支 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.nsfw | boolean / null | 是 | — | anyOf 2 个分支 |  |
+| value.images | null / get_subject_details_images | 否 | — | anyOf 2 个分支 |  |
+| value.image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_character_image`
 
@@ -505,6 +547,8 @@
 | --- | --- | --- | --- | --- | --- |
 | character_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | image_type | string | 否 | large | 允许 large、medium、small、grid |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 id、imageType、kind、schemaVersion、url | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、imageType、kind、schemaVersion、url |  |
 
 成功输出字段
 
@@ -516,6 +560,7 @@
 | value.imageType | string | 是 | large | 允许 large、medium、small、grid |  |
 | value.url | string | 是 | — | 最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_character_subjects`
 
@@ -526,6 +571,8 @@
 | character_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 20 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 characters、date、entity、id、image、images、infobox、kind、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、readAt、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 characters、date、entity、id、image、images、infobox、kind、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、readAt、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、visibility |  |
 
 成功输出字段
 
@@ -540,6 +587,7 @@
 | value.visibility | string | 是 | — | 允许 public |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_character_persons`
 
@@ -550,6 +598,8 @@
 | character_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 20 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 appearanceRole、career、code、entity、id、image、images、kind、label、meaning、name、nameCn、nsfw、personType、readAt、schemaVersion、sourceTypeCode、staff、subjectType、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 appearanceRole、career、code、entity、id、image、images、kind、label、meaning、name、nameCn、nsfw、personType、readAt、schemaVersion、sourceTypeCode、staff、subjectType、url、visibility |  |
 
 成功输出字段
 
@@ -564,6 +614,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `collect_character`
 
@@ -591,10 +642,12 @@
 | value.requestedCollected | boolean | 是 | — | 固定 true | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | get_character_image_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<collect_character_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `uncollect_character`
 
@@ -622,10 +675,12 @@
 | value.requestedCollected | boolean | 是 | — | 固定 false | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | get_character_image_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<collect_character_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `get_user_character_collections`
 
@@ -636,6 +691,8 @@
 | username | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^(?:-&#124;[A-Za-z0-9_]+)$ | 本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、characterType、collected、createdAt、entity、id、image、images、kind、name、nsfw、readAt、schemaVersion、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、characterType、collected、createdAt、entity、id、image、images、kind、name、nsfw、readAt、schemaVersion、url、username、visibility |  |
 
 成功输出字段
 
@@ -651,6 +708,7 @@
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
 
@@ -662,6 +720,8 @@
 | --- | --- | --- | --- | --- | --- |
 | username | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^(?:-&#124;[A-Za-z0-9_]+)$ | 本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。 |
 | character_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、characterType、collected、createdAt、entity、id、image、images、kind、name、nsfw、readAt、schemaVersion、state、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、characterType、collected、createdAt、entity、id、image、images、kind、name、nsfw、readAt、schemaVersion、state、url、username、visibility |  |
 
 成功输出字段
 
@@ -677,6 +737,7 @@
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 1 |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 1 |
 | value.collection | characterCollectionItem | 否 | — | 拒绝额外字段 | then: 提供 state；state=collected |
 | value.collection | null | 否 | — | — | else: 提供 state；state=collected |
 | value.schemaVersion | number | 是 | — | 固定 1 | oneOf 2 |
@@ -688,6 +749,7 @@
 | value.visibility | string | 是 | — | 固定 public | oneOf 2 |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 2 |
 
 ## `get_person_details`
 
@@ -698,6 +760,8 @@
 | person_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | include | array<string> | 否 | summary | 最多项 4；元素不重复；元素：允许 summary、infobox、bio、stats |  |
 | include[] | string | 是 | — | 允许 summary、infobox、bio、stats |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 bio、career、entity、id、image、images、included、infobox、name、nsfw、personType、readAt、schemaVersion、stats、summary、url | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 bio、career、entity、id、image、images、included、infobox、name、nsfw、personType、readAt、schemaVersion、stats、summary、url |  |
 
 成功输出字段
 
@@ -717,7 +781,10 @@
 | value.stats | Stats / null | 否 | — | anyOf 2 个分支 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.nsfw | boolean / null | 是 | — | anyOf 2 个分支 |  |
+| value.images | null / get_subject_details_images | 否 | — | anyOf 2 个分支 |  |
+| value.image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_person_image`
 
@@ -727,6 +794,8 @@
 | --- | --- | --- | --- | --- | --- |
 | person_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | image_type | string | 否 | large | 允许 large、medium、small、grid |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 id、imageType、kind、schemaVersion、url | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、imageType、kind、schemaVersion、url |  |
 
 成功输出字段
 
@@ -738,6 +807,7 @@
 | value.imageType | string | 是 | large | 允许 large、medium、small、grid |  |
 | value.url | string | 是 | — | 最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_person_subjects`
 
@@ -748,6 +818,8 @@
 | person_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 20 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 characters、date、entity、id、image、images、infobox、kind、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、readAt、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 characters、date、entity、id、image、images、infobox、kind、metaTags、name、nameCn、nsfw、platform、rank、ratingCount、ratingDistribution、readAt、relation、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、visibility |  |
 
 成功输出字段
 
@@ -762,6 +834,7 @@
 | value.visibility | string | 是 | — | 允许 public |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_person_characters`
 
@@ -779,10 +852,14 @@
 | include[] | string | 是 | — | 允许 subject_facts、own_collection |  |
 | snapshot_ref | string | 否 | — | 最短字符数 32；最长字符数 32；正则 ^[a-f0-9]{32}$ | 增强查询续页使用首个响应page.snapshotRef，并保持所有筛选和include相同；不重新读取完整关联源。 |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image、account、appearanceRole、candidateRef、characterType、code、collectionRef、duration、entity、excludedCount、failedFields、images、include、inputCount、kind、label、matchedCount、matchedRelationTotal、matchedSubjectTotal、max、meaning、min、missingFields、nativeSourceComplete、ownCollection、parentRef、pendingCount、processedCount、qualificationGapCount、rating、readAt、relation、relationRowsConsumed、relationTotal、remainingCount、responseView、resultCount、resultRef、schemaVersion、snapshotRef、sourceComplete、sourcePaginationComplete、sourceReturnedCount、sourceTotal、sourceTypeCode、sourceUnit、staff、stage、subjectCount、subjectFacts、tag、unavailableCollectionCount、unavailableSubjectCount、unknownFormCount、unknownRoleCount、username、visibility、workingCount | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image、account、appearanceRole、candidateRef、characterType、code、collectionRef、duration、entity、excludedCount、failedFields、images、include、inputCount、kind、label、matchedCount、matchedRelationTotal、matchedSubjectTotal、max、meaning、min、missingFields、nativeSourceComplete、ownCollection、parentRef、pendingCount、processedCount、qualificationGapCount、rating、readAt、relation、relationRowsConsumed、relationTotal、remainingCount、responseView、resultCount、resultRef、schemaVersion、snapshotRef、sourceComplete、sourcePaginationComplete、sourceReturnedCount、sourceTotal、sourceTypeCode、sourceUnit、staff、stage、subjectCount、subjectFacts、tag、unavailableCollectionCount、unavailableSubjectCount、unknownFormCount、unknownRoleCount、username、visibility、workingCount |  |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 候选模式同轮上一阶段引用，配合snapshot_ref和准确offset续读；按作品ID合并，不重取来源。 |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；then: 提供 result_mode；result_mode=candidates |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image | then: 提供 result_mode；result_mode=candidates |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 account、appearanceRole、candidateRef、characterType、code、collectionRef、collectionState、collectionStatus、date、duration、durationMinutes、entity、excludedCount、failedFields、id、image、images、include、infobox、inputCount、kind、label、matchedCount、matchedRelationTotal、matchedSubjectTotal、max、meaning、metaTags、min、missingFields、name、nameCn、nativeSourceComplete、nsfw、ownCollection、parentRef、pendingCount、personalComment、personalRating、personalTags、platform、processedCount、qualificationGapCount、rank、rating、ratingCount、readAt、relation、relationRowsConsumed、relationTotal、relations、remainingCount、responseView、resultCount、resultRef、schemaVersion、score、snapshotRef、sourceComplete、sourcePaginationComplete、sourceReturnedCount、sourceTotal、sourceTypeCode、sourceUnit、staff、stage、subjectCount、subjectFacts、subjectForm、subjectType、summary、tag、tags、unavailableCollectionCount、unavailableSubjectCount、unknownFormCount、unknownRoleCount、url、username、visibility、workingCount | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；else: 提供 result_mode；result_mode=candidates |
+| fields[] | string | 是 | — | 允许 account、appearanceRole、candidateRef、characterType、code、collectionRef、collectionState、collectionStatus、date、duration、durationMinutes、entity、excludedCount、failedFields、id、image、images、include、infobox、inputCount、kind、label、matchedCount、matchedRelationTotal、matchedSubjectTotal、max、meaning、metaTags、min、missingFields、name、nameCn、nativeSourceComplete、nsfw、ownCollection、parentRef、pendingCount、personalComment、personalRating、personalTags、platform、processedCount、qualificationGapCount、rank、rating、ratingCount、readAt、relation、relationRowsConsumed、relationTotal、relations、remainingCount、responseView、resultCount、resultRef、schemaVersion、score、snapshotRef、sourceComplete、sourcePaginationComplete、sourceReturnedCount、sourceTotal、sourceTypeCode、sourceUnit、staff、stage、subjectCount、subjectFacts、subjectForm、subjectType、summary、tag、tags、unavailableCollectionCount、unavailableSubjectCount、unknownFormCount、unknownRoleCount、url、username、visibility、workingCount | else: 提供 result_mode；result_mode=candidates |
 | subject_type | integer | 是 | — | 固定 2 | then: 提供 subject_form；subject_form∈tv、ova、movie、web、other |
 
 成功输出字段
@@ -800,6 +877,7 @@
 | value.coverage | AppearanceCoverage | 否 | — | 拒绝额外字段 |  |
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
 | value.schemaVersion | number | 是 | — | 固定 1 |  |
@@ -813,7 +891,7 @@
 | value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -827,6 +905,7 @@
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | value.appearanceStage | get_person_characters_appearanceStage | 是 | — | 拒绝额外字段 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `collect_person`
 
@@ -854,10 +933,12 @@
 | value.requestedCollected | boolean | 是 | — | 固定 true | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | get_person_image_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<collect_person_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `uncollect_person`
 
@@ -885,10 +966,12 @@
 | value.requestedCollected | boolean | 是 | — | 固定 false | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | get_person_image_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<collect_person_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `get_user_person_collections`
 
@@ -899,6 +982,8 @@
 | username | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^(?:-&#124;[A-Za-z0-9_]+)$ | 本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、career、collected、createdAt、entity、id、image、images、kind、name、nsfw、personType、readAt、schemaVersion、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、career、collected、createdAt、entity、id、image、images、kind、name、nsfw、personType、readAt、schemaVersion、url、username、visibility |  |
 
 成功输出字段
 
@@ -914,6 +999,7 @@
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
 
@@ -925,6 +1011,8 @@
 | --- | --- | --- | --- | --- | --- |
 | username | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^(?:-&#124;[A-Za-z0-9_]+)$ | 本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。 |
 | person_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、career、collected、createdAt、entity、id、image、images、kind、name、nsfw、personType、readAt、schemaVersion、state、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、career、collected、createdAt、entity、id、image、images、kind、name、nsfw、personType、readAt、schemaVersion、state、url、username、visibility |  |
 
 成功输出字段
 
@@ -940,6 +1028,7 @@
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 1 |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 1 |
 | value.collection | personCollectionItem | 否 | — | 拒绝额外字段 | then: 提供 state；state=collected |
 | value.collection | null | 否 | — | — | else: 提供 state；state=collected |
 | value.schemaVersion | number | 是 | — | 固定 1 | oneOf 2 |
@@ -951,6 +1040,7 @@
 | value.visibility | string | 是 | — | 固定 public | oneOf 2 |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 2 |
 
 ## `get_user_info`
 
@@ -961,6 +1051,8 @@
 | username | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^(?:-&#124;[A-Za-z0-9_]+)$ | 本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。 |
 | include | array<string> | 否 | sign | 最多项 1；元素不重复；元素：允许 sign |  |
 | include[] | string | 是 | — | 允许 sign |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 entity、id、image、images、included、nickname、readAt、schemaVersion、sign、url、userGroup、username | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 entity、id、image、images、included、nickname、readAt、schemaVersion、sign、url、userGroup、username |  |
 
 成功输出字段
 
@@ -976,7 +1068,10 @@
 | value.included | array<string> | 是 | — | 最多项 1；元素不重复；元素：允许 sign |  |
 | value.sign | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 10000 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
+| value.images | null / get_subject_details_images | 否 | — | anyOf 2 个分支 |  |
+| value.image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_user_avatar`
 
@@ -986,6 +1081,8 @@
 | --- | --- | --- | --- | --- | --- |
 | username | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^(?:-&#124;[A-Za-z0-9_]+)$ | 本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。 |
 | avatar_type | string | 否 | large | 允许 large、medium、small |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 imageType、kind、schemaVersion、url、userId、userIdentifier、username | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 imageType、kind、schemaVersion、url、userId、userIdentifier、username |  |
 
 成功输出字段
 
@@ -999,6 +1096,7 @@
 | value.imageType | string | 是 | large | 允许 large、medium、small |  |
 | value.url | string / null | 是 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_current_user`
 
@@ -1007,6 +1105,8 @@
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | check_nsfw | boolean | 否 | false | — |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 id、kind、readAt、schemaVersion、username | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、kind、readAt、schemaVersion、username |  |
 
 成功输出字段
 
@@ -1018,6 +1118,7 @@
 | value.username | string | 是 | — | 最短字符数 1；最长字符数 200 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_user_collections`
 
@@ -1032,8 +1133,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 9007199254740991 |  |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | merge_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 同读取任务中已有候选集合；分支合并按作品ID去重并复用事实。 |
 
 成功输出字段
@@ -1050,6 +1151,7 @@
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
 | value.schemaVersion | number | 是 | — | 固定 1 |  |
@@ -1063,7 +1165,7 @@
 | value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -1076,6 +1178,7 @@
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `query_user_collections`
 
@@ -1094,9 +1197,9 @@
 | extra_subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | result_mode | string | 否 | — | 允许 legacy、candidates | candidates启用召回与筛选漏斗，返回精简字段及候选集合引用；省略保持旧契约。 |
 | response_view | string | 否 | — | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
-| fields | array<string> | 否 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 仅候选模式可提供；省略为id/name/nameCn/subjectType，只投影已取得字段；缺失字段后续refine补取。 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
-| filter | object | 否 | — | 拒绝额外字段 |  |
+| fields | array<string> | 否 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
+| filter | object | 否 | — | 拒绝额外字段 | 本层明确筛选。收藏引用上次查询有筛选时，续读须重复提供filter或air_date；明确取消筛选传空对象。 |
 | filter.subject_ids | array<integer> | 否 | — | 最少项 1；最多项 10000；元素不重复；元素：≥ 1；≤ 9007199254740991 | 在现有候选引用中保留明确ID白名单；语义判断由LLM完成后可回传选中ID，宿主只按ID匹配且复用事实与祖先引用，不重新召回。 |
 | filter.subject_ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | filter.subject_type | number | 否 | — | 允许 1、2、3、4、6 | 本层目标媒体，不自动继承父媒体；用户限定媒体时须明确提供，与形式或语义类别分开。 |
@@ -1168,7 +1271,7 @@
 | filter.any_of[].duration.min | number | 否 | — | ≥ 0 |  |
 | filter.any_of[].duration.max | number | 否 | — | ≥ 0 |  |
 | source_limit | integer | 否 | — | ≥ 1；≤ 10000 | 候选模式省略100；本次宿主扫描的来源条数预算，按100条整页读取，可续读累计超过一万条；不是匹配数或候选总量限制。 |
-| collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 续读已取得的同账户同范围收藏快照。 |
+| collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 续读或重新筛选已取得的同账户同范围收藏快照；本读取轮次同账户、媒体及来源状态范围已有快照时必填，不能重复建立同范围来源。 |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | air_date | object | 是 | — | 最少字段 1；拒绝额外字段 | 实际YYYY-MM-DD日期，含上下界；min不能晚于max。；else: 提供 result_mode；result_mode=candidates |
 | air_date.min | string | 否 | — | 最短字符数 10；最长字符数 10；正则 ^\d{4}-\d{2}-\d{2}$ | else: 提供 result_mode；result_mode=candidates |
@@ -1188,6 +1291,7 @@
 | value.visibility | string | 是 | — | 允许 self、public |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.schemaVersion | number | 是 | — | 固定 1 |  |
 | value.kind | string | 是 | — | 固定 candidate_page |  |
 | value.entity | string | 是 | — | 固定 subject_candidate |  |
@@ -1199,7 +1303,7 @@
 | value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -1212,6 +1316,7 @@
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_user_subject_collection`
 
@@ -1221,6 +1326,8 @@
 | --- | --- | --- | --- | --- | --- |
 | username | string | 是 | — | 最短字符数 1；最长字符数 100；正则 ^(?:-&#124;[A-Za-z0-9_]+)$ | 本人完整收藏用 -；显式用户名仅查询该用户公开范围，登录后按当前账户权限读取。 |
 | subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、chapters、collectionStatus、comment、complete、id、kind、personalRating、personalTags、private、progressMeaning、readAt、schemaVersion、state、subjectId、username、visibility、volumes | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、chapters、collectionStatus、comment、complete、id、kind、personalRating、personalTags、private、progressMeaning、readAt、schemaVersion、state、subjectId、username、visibility、volumes |  |
 
 成功输出字段
 
@@ -1236,6 +1343,7 @@
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 1 |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 1 |
 | value.collection | SelfSubjectSnapshot | 否 | — | 拒绝额外字段 | then: 提供 state；state=collected |
 | value.collection | null | 否 | — | — | else: 提供 state；state=collected |
 | value.schemaVersion | number | 是 | — | 固定 1 | oneOf 2 |
@@ -1247,6 +1355,7 @@
 | value.visibility | string | 是 | — | 固定 public | oneOf 2 |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 2 |
 | value.collection | PublicSubjectCollection | 否 | — | 拒绝额外字段 | then: 提供 state；state=collected |
 
 ## `update_subject_collection`
@@ -1283,10 +1392,12 @@
 | value.requestedCollected | boolean / null | 是 | — | anyOf 2 个分支 | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | get_subject_image_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<update_subject_collection_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `get_user_episode_collection`
 
@@ -1298,6 +1409,8 @@
 | episode_type | integer | 否 | — | 允许 0、1、2、3、4、5、6 |  |
 | limit | integer | 否 | 100 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、airDate、disc、duration、durationSeconds、entity、episodeStatus、episodeType、id、kind、mainSequence、name、nameCn、readAt、schemaVersion、sort、statusMeaning、subjectId、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、airDate、disc、duration、durationSeconds、entity、episodeStatus、episodeType、id、kind、mainSequence、name、nameCn、readAt、schemaVersion、sort、statusMeaning、subjectId、updatedAt、url、username、visibility |  |
 
 成功输出字段
 
@@ -1313,6 +1426,7 @@
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `update_episode_collection`
 
@@ -1343,10 +1457,12 @@
 | value.requestedCollected | boolean / null | 是 | — | anyOf 2 个分支 | allOf 1 |
 | value.requestedEpisodeStatus | number | 是 | — | 允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | get_subject_image_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<update_episode_collection_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `get_single_episode_collection`
 
@@ -1355,6 +1471,8 @@
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | episode_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、airDate、complete、disc、duration、durationSeconds、entity、episodeStatus、episodeType、id、kind、mainSequence、name、nameCn、readAt、schemaVersion、sort、statusMeaning、subjectId、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、airDate、complete、disc、duration、durationSeconds、entity、episodeStatus、episodeType、id、kind、mainSequence、name、nameCn、readAt、schemaVersion、sort、statusMeaning、subjectId、updatedAt、url、username、visibility |  |
 
 成功输出字段
 
@@ -1369,6 +1487,7 @@
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `update_single_episode_collection`
 
@@ -1401,10 +1520,12 @@
 | value.requestedEpisodeStatus | number | 是 | — | 允许 0、1、2、3 | allOf 1 |
 | value.affectedEpisodeIds | array<integer> | 否 | — | 最多项 2000；元素不重复；元素：≥ 1；≤ 9007199254740991 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | update_single_episode_collection_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<update_episode_collection_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `get_person_revisions`
 
@@ -1415,6 +1536,8 @@
 | person_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 changeNote、createdAt、entity、id、kind、nickname、readAt、revisionId、revisionType、schemaVersion、targetId、targetKind、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 changeNote、createdAt、entity、id、kind、nickname、readAt、revisionId、revisionType、schemaVersion、targetId、targetKind、username、visibility |  |
 
 成功输出字段
 
@@ -1429,6 +1552,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_person_revision`
 
@@ -1441,6 +1565,8 @@
 | include[] | string | 是 | — | 允许 content |  |
 | version_limit | integer | 否 | 10 | ≥ 1；≤ 20 |  |
 | version_offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 changeNote、complete、content、contentState、createdAt、entity、id、included、limit、nextOffset、nickname、offset、readAt、returnedCount、revisionId、revisionType、schemaVersion、sourceKey、targetId、targetKind、total、username、versions、versionsPage | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 changeNote、complete、content、contentState、createdAt、entity、id、included、limit、nextOffset、nickname、offset、readAt、returnedCount、revisionId、revisionType、schemaVersion、sourceKey、targetId、targetKind、total、username、versions、versionsPage |  |
 
 成功输出字段
 
@@ -1461,6 +1587,7 @@
 | value.versionsPage | VersionsPageMeta / null | 是 | — | anyOf 2 个分支 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.included | array<组合字段> | 否 | — | 最多项 0 | then: 提供 contentState；contentState=not_requested |
 | value.included | array<组合字段> | 否 | — | — | else: 提供 contentState；contentState=not_requested |
 | value.versionsPage | VersionsPageMeta | 否 | — | 拒绝额外字段 | then: 提供 contentState；contentState=available |
@@ -1477,6 +1604,8 @@
 | character_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 changeNote、createdAt、entity、id、kind、nickname、readAt、revisionId、revisionType、schemaVersion、targetId、targetKind、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 changeNote、createdAt、entity、id、kind、nickname、readAt、revisionId、revisionType、schemaVersion、targetId、targetKind、username、visibility |  |
 
 成功输出字段
 
@@ -1491,6 +1620,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_character_revision`
 
@@ -1503,6 +1633,8 @@
 | include[] | string | 是 | — | 允许 content |  |
 | version_limit | integer | 否 | 10 | ≥ 1；≤ 20 |  |
 | version_offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 changeNote、complete、content、contentState、createdAt、entity、id、included、limit、nextOffset、nickname、offset、readAt、returnedCount、revisionId、revisionType、schemaVersion、sourceKey、targetId、targetKind、total、username、versions、versionsPage | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 changeNote、complete、content、contentState、createdAt、entity、id、included、limit、nextOffset、nickname、offset、readAt、returnedCount、revisionId、revisionType、schemaVersion、sourceKey、targetId、targetKind、total、username、versions、versionsPage |  |
 
 成功输出字段
 
@@ -1523,6 +1655,7 @@
 | value.versionsPage | VersionsPageMeta / null | 是 | — | anyOf 2 个分支 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.included | array<组合字段> | 否 | — | 最多项 0 | then: 提供 contentState；contentState=not_requested |
 | value.included | array<组合字段> | 否 | — | — | else: 提供 contentState；contentState=not_requested |
 | value.versionsPage | VersionsPageMeta | 否 | — | 拒绝额外字段 | then: 提供 contentState；contentState=available |
@@ -1539,6 +1672,8 @@
 | subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 changeNote、createdAt、entity、id、kind、nickname、readAt、revisionId、revisionType、schemaVersion、targetId、targetKind、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 changeNote、createdAt、entity、id、kind、nickname、readAt、revisionId、revisionType、schemaVersion、targetId、targetKind、username、visibility |  |
 
 成功输出字段
 
@@ -1553,6 +1688,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_subject_revision`
 
@@ -1565,6 +1701,8 @@
 | include[] | string | 是 | — | 允许 content |  |
 | version_limit | integer | 否 | 10 | ≥ 1；≤ 20 |  |
 | version_offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 changeNote、complete、content、contentState、createdAt、entity、id、included、limit、nextOffset、nickname、offset、readAt、returnedCount、revisionId、revisionType、schemaVersion、sourceKey、targetId、targetKind、total、username、versions、versionsPage | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 changeNote、complete、content、contentState、createdAt、entity、id、included、limit、nextOffset、nickname、offset、readAt、returnedCount、revisionId、revisionType、schemaVersion、sourceKey、targetId、targetKind、total、username、versions、versionsPage |  |
 
 成功输出字段
 
@@ -1585,6 +1723,7 @@
 | value.versionsPage | VersionsPageMeta / null | 是 | — | anyOf 2 个分支 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.included | array<组合字段> | 否 | — | 最多项 0 | then: 提供 contentState；contentState=not_requested |
 | value.included | array<组合字段> | 否 | — | — | else: 提供 contentState；contentState=not_requested |
 | value.versionsPage | VersionsPageMeta | 否 | — | 拒绝额外字段 | then: 提供 contentState；contentState=available |
@@ -1601,6 +1740,8 @@
 | episode_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 changeNote、createdAt、entity、id、kind、nickname、readAt、revisionId、revisionType、schemaVersion、targetId、targetKind、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 changeNote、createdAt、entity、id、kind、nickname、readAt、revisionId、revisionType、schemaVersion、targetId、targetKind、username、visibility |  |
 
 成功输出字段
 
@@ -1615,6 +1756,7 @@
 | value.visibility | string | 是 | — | 固定 public |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_episode_revision`
 
@@ -1627,6 +1769,8 @@
 | include[] | string | 是 | — | 允许 content |  |
 | version_limit | integer | 否 | 10 | ≥ 1；≤ 20 |  |
 | version_offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 changeNote、complete、content、contentState、createdAt、entity、id、included、limit、nextOffset、nickname、offset、readAt、returnedCount、revisionId、revisionType、schemaVersion、sourceKey、targetId、targetKind、total、username、versions、versionsPage | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 changeNote、complete、content、contentState、createdAt、entity、id、included、limit、nextOffset、nickname、offset、readAt、returnedCount、revisionId、revisionType、schemaVersion、sourceKey、targetId、targetKind、total、username、versions、versionsPage |  |
 
 成功输出字段
 
@@ -1647,6 +1791,7 @@
 | value.versionsPage | VersionsPageMeta / null | 是 | — | anyOf 2 个分支 |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.included | array<组合字段> | 否 | — | 最多项 0 | then: 提供 contentState；contentState=not_requested |
 | value.included | array<组合字段> | 否 | — | — | else: 提供 contentState；contentState=not_requested |
 | value.versionsPage | VersionsPageMeta | 否 | — | 拒绝额外字段 | then: 提供 contentState；contentState=available |
@@ -1682,12 +1827,14 @@
 | value.requestedCollected | boolean / null | 是 | — | anyOf 2 个分支 | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.createdId | integer | 否 | — | ≥ 1；≤ 9007199254740991 | then: 提供 submissionState；submissionState=acknowledged |
 | value.target | create_index_target | 否 | — | 拒绝额外字段 | then: 提供 submissionState；submissionState=acknowledged |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | create_index_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<create_index_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `get_index`
 
@@ -1699,12 +1846,18 @@
 | own | boolean | 否 | false | — | 需要本人私有目录或收藏现状时设 true，使用本应用账户会话。 |
 | include | array<string> | 否 | — | 最多项 2；元素不重复；元素：允许 description、stats |  |
 | include[] | string | 是 | — | 允许 description、stats |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、collected、complete、createdAt、description、entity、id、included、kind、nickname、ownerId、private、readAt、schemaVersion、stats、title、totalSubjects、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、collected、complete、createdAt、description、entity、id、included、kind、nickname、ownerId、private、readAt、schemaVersion、stats、title、totalSubjects、updatedAt、url、username、visibility |  |
 | index_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 | oneOf 1 |
 | own | boolean | 否 | false | 固定 false | oneOf 1 |
 | include | array<string> | 否 | description | 最多项 2；元素不重复；元素：允许 description、stats | oneOf 1 |
 | include[] | string | 是 | — | 允许 description、stats | oneOf 1 |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、collected、complete、createdAt、description、entity、id、included、kind、nickname、ownerId、private、readAt、schemaVersion、stats、title、totalSubjects、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；oneOf 1 |
+| fields[] | string | 是 | — | 允许 account、collected、complete、createdAt、description、entity、id、included、kind、nickname、ownerId、private、readAt、schemaVersion、stats、title、totalSubjects、updatedAt、url、username、visibility | oneOf 1 |
 | index_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 | oneOf 2 |
 | own | boolean | 是 | — | 固定 true | oneOf 2 |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、collected、complete、createdAt、description、entity、id、included、kind、nickname、ownerId、private、readAt、schemaVersion、stats、title、totalSubjects、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。；oneOf 2 |
+| fields[] | string | 是 | — | 允许 account、collected、complete、createdAt、description、entity、id、included、kind、nickname、ownerId、private、readAt、schemaVersion、stats、title、totalSubjects、updatedAt、url、username、visibility | oneOf 2 |
 
 成功输出字段
 
@@ -1728,6 +1881,7 @@
 | value.collected | null | 是 | — | — | oneOf 1 |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 1 |
 | value.schemaVersion | number | 是 | — | 固定 1 | oneOf 2 |
 | value.kind | string | 是 | — | 固定 indexState | oneOf 2 |
 | value.id | integer | 是 | — | ≥ 1；≤ 9007199254740991 | oneOf 2 |
@@ -1741,6 +1895,7 @@
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 | oneOf 2 |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | oneOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 2 |
 
 ## `update_index`
 
@@ -1771,10 +1926,12 @@
 | value.requestedCollected | boolean / null | 是 | — | anyOf 2 个分支 | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | create_index_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<update_index_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `get_index_subjects`
 
@@ -1787,6 +1944,8 @@
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 10000 |  |
 | own | boolean | 否 | false | — | 需要本人私有目录或收藏现状时设 true，使用本应用账户会话。 |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 account、characters、comment、date、entity、id、image、images、infobox、kind、metaTags、name、nameCn、nsfw、order、platform、rank、ratingCount、ratingDistribution、readAt、relation、relationId、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 account、characters、comment、date、entity、id、image、images、infobox、kind、metaTags、name、nameCn、nsfw、order、platform、rank、ratingCount、ratingDistribution、readAt、relation、relationId、resourceFieldStates、schemaVersion、score、series、staff、subjectType、summary、tagStats、tags、totalEpisodes、totalVolumes、url、username、visibility |  |
 
 成功输出字段
 
@@ -1802,6 +1961,7 @@
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.account | search_subjects_account | 是 | — | 拒绝额外字段 | then: 提供 visibility；visibility=self |
 | value.account | 禁止 | 否 | — | 禁止 | else: 提供 visibility；visibility=self |
 
@@ -1834,12 +1994,14 @@
 | value.requestedCollected | boolean / null | 是 | — | anyOf 2 个分支 | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.relatedId | integer | 否 | — | ≥ 1；≤ 9007199254740991 | then: 提供 submissionState；submissionState=acknowledged |
 | value.target | add_subject_to_index_target_2 | 否 | — | 拒绝额外字段 | then: 提供 submissionState；submissionState=acknowledged |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | add_subject_to_index_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<add_subject_to_index_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `update_index_subject`
 
@@ -1870,12 +2032,14 @@
 | value.requestedCollected | boolean / null | 是 | — | anyOf 2 个分支 | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.relatedId | integer | 否 | — | ≥ 1；≤ 9007199254740991 | then: 提供 submissionState；submissionState=acknowledged |
 | value.target | add_subject_to_index_target_2 | 否 | — | 拒绝额外字段 | then: 提供 submissionState；submissionState=acknowledged |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | add_subject_to_index_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<update_index_subject_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `remove_subject_from_index`
 
@@ -1904,12 +2068,14 @@
 | value.requestedCollected | boolean / null | 是 | — | anyOf 2 个分支 | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.relatedId | integer | 否 | — | ≥ 1；≤ 9007199254740991 | then: 提供 submissionState；submissionState=acknowledged |
 | value.target | add_subject_to_index_target_2 | 否 | — | 拒绝额外字段 | then: 提供 submissionState；submissionState=acknowledged |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | add_subject_to_index_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<remove_subject_from_index_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `collect_index`
 
@@ -1937,10 +2103,12 @@
 | value.requestedCollected | boolean | 是 | — | 固定 true | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | create_index_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<collect_index_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `uncollect_index`
 
@@ -1968,10 +2136,12 @@
 | value.requestedCollected | boolean | 是 | — | 固定 false | allOf 1 |
 | value.requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 | allOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 1 |
 | value.submissionState | string | 否 | — | 固定 acknowledged | allOf 2 |
 | value.target | create_index_target | 否 | — | 拒绝额外字段 | allOf 2 |
 | value.items | array<collect_index_itemsItem_2> | 否 | — | 最少项 1；最多项 201 | allOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | allOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | allOf 2 |
 
 ## `refine_subject_candidates`
 
@@ -2053,8 +2223,8 @@
 | filter.any_of[].duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
 | filter.any_of[].duration.min | number | 否 | — | ≥ 0 |  |
 | filter.any_of[].duration.max | number | 否 | — | ≥ 0 |  |
-| fields | array<string> | 否 | id、name、nameCn、subjectType | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| fields | array<string> | 否 | id | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | response_view | string | 否 | page | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
 | collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 当前账户和媒体的收藏证据引用；多状态完整核对须全状态来源，单状态快照只能证明该状态缺席。 |
 | cursor | string | 否 | — | 最短字符数 1；最长字符数 150 |  |
@@ -2075,7 +2245,7 @@
 | value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -2088,6 +2258,7 @@
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `expand_subject_relations`
 
@@ -2242,8 +2413,8 @@
 | filter.any_of[].duration | object | 否 | — | 最少字段 1；拒绝额外字段 |  |
 | filter.any_of[].duration.min | number | 否 | — | ≥ 0 |  |
 | filter.any_of[].duration.max | number | 否 | — | ≥ 0 |  |
-| fields | array<string> | 否 | id、name、nameCn、subjectType | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
-| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| fields | array<string> | 否 | id | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | response_view | string | 否 | page | 允许 page、reference | reference只返回引用、累计计数和覆盖，不输出中间候选与回溯数组。 |
 | collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | cursor | string | 否 | — | 最短字符数 1；最长字符数 150 |  |
@@ -2265,7 +2436,7 @@
 | value.data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | value.pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | value.set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| value.fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| value.fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | value.include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | value.filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -2280,6 +2451,7 @@
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | value.relationStage | expand_subject_relations_relationStage | 是 | — | 拒绝额外字段 |  |
 | value.lineage | array<expand_subject_relations_lineageItem> | 是 | — | 最多项 100 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_candidate_coverage`
 
@@ -2309,6 +2481,7 @@
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_candidate_lineage`
 
@@ -2337,6 +2510,7 @@
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.readAt | string | 是 | — | 最长字符数 50 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `continue_subject_query`
 
@@ -2360,6 +2534,7 @@
 | value.result | continue_subject_query_result | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 1 |
 | value.schemaVersion | number | 是 | — | 固定 1 | oneOf 2 |
 | value.kind | string | 是 | — | 固定 candidate_continuation | oneOf 2 |
 | value.tool | string | 是 | — | 固定 expand_subject_relations | oneOf 2 |
@@ -2367,6 +2542,7 @@
 | value.result | continue_subject_query_result_2 | 是 | — | 拒绝额外字段 | oneOf 2 |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 | oneOf 2 |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 | oneOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 2 |
 
 ## `prepare_candidate_output`
 
@@ -2387,8 +2563,8 @@
 | lineage | string | 否 | — | 允许 none、witness、all |  |
 | lineage_format | string | 否 | — | 允许 names、ids、full |  |
 | max_bytes | integer | 否 | — | ≥ 1024；≤ 65536 | 内部表格单块预算；每次交付仍受40000字节内容根限制。 |
-| card_fields | array<string> | 否 | — | 最多项 7；元素不重复；元素：允许 nameCn、score、scoreCount、rank、date、summary、tags |  |
-| card_fields[] | string | 是 | — | 允许 nameCn、score、scoreCount、rank、date、summary、tags |  |
+| card_fields | array<string> | 否 | — | 最多项 8；元素不重复；元素：允许 nameCn、score、scoreCount、rank、date、summary、tags、image | 额外卡片事实字段；同一候选缓存中已核实的封面由宿主自动附加。显式image可按原范围补齐缺失封面，不猜测地址。 |
+| card_fields[] | string | 是 | — | 允许 nameCn、score、scoreCount、rank、date、summary、tags、image |  |
 | layout | string | 否 | — | 允许 list、grid |  |
 | reasons | array<object> | 否 | — | — | 当前resultRef内每个已选作品至多一条模型理由；宿主仅按ID关联为Text并转义，不改事实summary。 |
 | reasons[] | object | 是 | — | 拒绝额外字段 |  |
@@ -2414,8 +2590,8 @@
 | introduction | string | 否 | — | 最长字符数 4000 | oneOf 2 |
 | conclusion | string | 否 | — | 最长字符数 4000 | oneOf 2 |
 | format | string | 是 | — | 固定 subject_cards | oneOf 2 |
-| card_fields | array<string> | 否 | nameCn | 最多项 7；元素不重复；元素：允许 nameCn、score、scoreCount、rank、date、summary、tags | oneOf 2 |
-| card_fields[] | string | 是 | — | 允许 nameCn、score、scoreCount、rank、date、summary、tags | oneOf 2 |
+| card_fields | array<string> | 否 | nameCn | 最多项 8；元素不重复；元素：允许 nameCn、score、scoreCount、rank、date、summary、tags、image | 额外卡片事实字段；同一候选缓存中已核实的封面由宿主自动附加。显式image可按原范围补齐缺失封面，不猜测地址。；oneOf 2 |
+| card_fields[] | string | 是 | — | 允许 nameCn、score、scoreCount、rank、date、summary、tags、image | oneOf 2 |
 | completion_scope | string | 否 | selected | 允许 selected、exhaustive | 少量推荐selected不要求未选母池扫描耗尽，但已选集合必须完成本层处理、资格与权限核实；全量请求使用exhaustive。；oneOf 2 |
 | layout | string | 否 | list | 允许 list、grid | oneOf 2 |
 | reasons | array<object> | 否 | 空数组 | — | 当前resultRef内每个已选作品至多一条模型理由；宿主仅按ID关联为Text并转义，不改事实summary。；oneOf 2 |
@@ -2442,6 +2618,7 @@
 | value.presentation | prepare_candidate_output_presentation | 是 | — | 拒绝额外字段 | oneOf 1 |
 | value.bytes | integer | 是 | — | ≥ 0；≤ 9007199254740991 | oneOf 1 |
 | value.page | get_candidate_coverage_page | 否 | — | 拒绝额外字段 | oneOf 1 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 1 |
 | value.schemaVersion | number | 是 | — | 固定 1 | oneOf 2 |
 | value.candidateRef | string | 是 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
 | value.format | string | 是 | — | 允许 table、subject_cards | oneOf 2 |
@@ -2456,6 +2633,7 @@
 | value.kind | string | 是 | — | 固定 candidate_output_plan | oneOf 2 |
 | value.status | string | 是 | — | 固定 projection_required | oneOf 2 |
 | value.guidance | prepare_candidate_output_guidance | 是 | — | 拒绝额外字段 | oneOf 2 |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ | oneOf 2 |
 
 ## `get_subject_comments`
 
@@ -2468,6 +2646,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 9007199254740991 |  |
 | include | array<string> | 否 | 空数组 | 最多项 1；元素不重复；元素：允许 excerpt、content |  |
 | include[] | string | 是 | — | 允许 excerpt、content |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 collectionStatus、content、entity、excerpt、id、included、kind、nickname、rating、readAt、schemaVersion、subjectId、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 collectionStatus、content、entity、excerpt、id、included、kind、nickname、rating、readAt、schemaVersion、subjectId、updatedAt、url、username、visibility |  |
 
 成功输出字段
 
@@ -2483,6 +2663,7 @@
 | value.data | array<get_subject_comments_dataItem> | 是 | — | 最多项 20 |  |
 | value.page | get_subject_comments_page | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.data | array<get_subject_comments_dataItem_2> | 否 | — | — | then: 提供 included；included |
 | value.data | array<get_subject_comments_dataItem_3> | 否 | — | — | else: 提供 included；included |
 | value.data | array<get_subject_comments_dataItem_4> | 否 | — | — | then: 提供 included；included |
@@ -2499,6 +2680,8 @@
 | offset | integer | 否 | 0 | ≥ 0；≤ 9007199254740991 |  |
 | include | array<string> | 否 | 空数组 | 最多项 1；元素不重复；元素：允许 excerpt |  |
 | include[] | string | 是 | — | 允许 excerpt |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 blogId、createdAt、entity、excerpt、id、included、kind、nickname、readAt、relationId、replyCount、schemaVersion、subjectId、title、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 blogId、createdAt、entity、excerpt、id、included、kind、nickname、readAt、relationId、replyCount、schemaVersion、subjectId、title、updatedAt、url、username、visibility |  |
 
 成功输出字段
 
@@ -2514,6 +2697,7 @@
 | value.data | array<get_subject_reviews_dataItem> | 是 | — | 最多项 20 |  |
 | value.page | get_subject_comments_page | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.data | array<get_subject_comments_dataItem_2> | 否 | — | — | then: 提供 included；included |
 | value.data | array<get_subject_comments_dataItem_3> | 否 | — | — | else: 提供 included；included |
 
@@ -2526,6 +2710,8 @@
 | blog_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | include | array<string> | 否 | 空数组 | 最多项 1；元素不重复；元素：允许 content |  |
 | include[] | string | 是 | — | 允许 content |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 blogId、content、createdAt、entity、id、included、kind、nickname、readAt、replyCount、schemaVersion、title、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 blogId、content、createdAt、entity、id、included、kind、nickname、readAt、replyCount、schemaVersion、title、updatedAt、url、username、visibility |  |
 
 成功输出字段
 
@@ -2547,6 +2733,7 @@
 | value.url | string | 是 | — | 最长字符数 100；正则 ^https://bgm\.tv/blog/[1-9]\d*$ |  |
 | value.content | get_blog_details_content / get_blog_details_content_2 / get_blog_details_content_3 | 否 | — | oneOf 3 个分支 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.content | get_blog_details_content / get_blog_details_content_2 / get_blog_details_content_3 | 是 | — | oneOf 3 个分支 | then: 提供 included；included |
 | value.content | 禁止 | 否 | — | 禁止 | else: 提供 included；included |
 
@@ -2562,6 +2749,8 @@
 | snapshot_ref | string | 否 | — | 最短字符数 35；最长字符数 35；正则 ^pg_[A-Za-z0-9_-]{32}$ |  |
 | include | array<string> | 否 | 空数组 | 最多项 1；元素不重复；元素：允许 excerpt、content |  |
 | include[] | string | 是 | — | 允许 excerpt、content |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 blogId、content、createdAt、entity、excerpt、id、included、kind、nickname、parentId、readAt、rootId、schemaVersion、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 blogId、content、createdAt、entity、excerpt、id、included、kind、nickname、parentId、readAt、rootId、schemaVersion、url、username、visibility |  |
 | snapshot_ref | string | 是 | — | 最短字符数 35；最长字符数 35；正则 ^pg_[A-Za-z0-9_-]{32}$ | then: 提供 offset；offset |
 
 成功输出字段
@@ -2578,6 +2767,7 @@
 | value.data | array<get_blog_comments_dataItem> | 是 | — | 最多项 20 |  |
 | value.page | get_blog_comments_page | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.data | array<get_subject_comments_dataItem_2> | 否 | — | — | then: 提供 included；included |
 | value.data | array<get_subject_comments_dataItem_3> | 否 | — | — | else: 提供 included；included |
 | value.data | array<get_subject_comments_dataItem_4> | 否 | — | — | then: 提供 included；included |
@@ -2592,6 +2782,8 @@
 | subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | limit | integer | 否 | 10 | ≥ 1；≤ 20 |  |
 | offset | integer | 否 | 0 | ≥ 0；≤ 9007199254740991 |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 createdAt、entity、id、included、kind、nickname、readAt、replyCount、schemaVersion、subjectId、title、topicId、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 createdAt、entity、id、included、kind、nickname、readAt、replyCount、schemaVersion、subjectId、title、topicId、updatedAt、url、username、visibility |  |
 
 成功输出字段
 
@@ -2607,6 +2799,7 @@
 | value.data | array<get_subject_topics_dataItem> | 是 | — | 最多项 20 |  |
 | value.page | get_subject_comments_page | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 
 ## `get_subject_topic_details`
 
@@ -2618,6 +2811,8 @@
 | topic_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | include | array<string> | 否 | 空数组 | 最多项 1；元素不重复；元素：允许 content |  |
 | include[] | string | 是 | — | 允许 content |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 content、createdAt、entity、id、included、kind、nickname、readAt、replyCount、schemaVersion、subjectId、title、topicId、updatedAt、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 content、createdAt、entity、id、included、kind、nickname、readAt、replyCount、schemaVersion、subjectId、title、topicId、updatedAt、url、username、visibility |  |
 
 成功输出字段
 
@@ -2640,6 +2835,7 @@
 | value.url | string | 是 | — | 最长字符数 100；正则 ^https://bgm\.tv/subject/topic/[1-9]\d*$ |  |
 | value.content | get_blog_details_content / get_blog_details_content_2 / get_blog_details_content_3 | 否 | — | oneOf 3 个分支 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.content | get_blog_details_content / get_blog_details_content_2 / get_blog_details_content_3 | 是 | — | oneOf 3 个分支 | then: 提供 included；included |
 | value.content | 禁止 | 否 | — | 禁止 | else: 提供 included；included |
 
@@ -2656,6 +2852,8 @@
 | snapshot_ref | string | 否 | — | 最短字符数 35；最长字符数 35；正则 ^pg_[A-Za-z0-9_-]{32}$ |  |
 | include | array<string> | 否 | 空数组 | 最多项 1；元素不重复；元素：允许 excerpt、content |  |
 | include[] | string | 是 | — | 允许 excerpt、content |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 content、createdAt、entity、excerpt、id、included、kind、nickname、parentId、readAt、rootId、schemaVersion、subjectId、topicId、url、username、visibility | 模型只返回身份和查询状态；显式指定判断需要的字段。完整响应缓存，展示资料由宿主展开。 |
+| fields[] | string | 是 | — | 允许 content、createdAt、entity、excerpt、id、included、kind、nickname、parentId、readAt、rootId、schemaVersion、subjectId、topicId、url、username、visibility |  |
 | snapshot_ref | string | 是 | — | 最短字符数 35；最长字符数 35；正则 ^pg_[A-Za-z0-9_-]{32}$ | then: 提供 offset；offset |
 
 成功输出字段
@@ -2672,6 +2870,7 @@
 | value.data | array<get_subject_topic_replies_dataItem> | 是 | — | 最多项 20 |  |
 | value.page | get_blog_comments_page | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
 | value.data | array<get_subject_comments_dataItem_2> | 否 | — | — | then: 提供 included；included |
 | value.data | array<get_subject_comments_dataItem_3> | 否 | — | — | else: 提供 included；included |
 | value.data | array<get_subject_comments_dataItem_4> | 否 | — | — | then: 提供 included；included |
@@ -2699,6 +2898,54 @@
 | value.source | read_community_content_source / read_community_content_source_2 / read_community_content_source_3 / read_community_content_source_4 | 是 | — | oneOf 4 个分支 |  |
 | value.content | get_blog_details_content | 是 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
+| value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
+
+## `read_cached_resource`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resource_ref | string | 是 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：最长字符数 80；正则 ^[A-Za-z][A-Za-z0-9]*$ |  |
+| fields[] | string | 是 | — | 最长字符数 80；正则 ^[A-Za-z][A-Za-z0-9]*$ |  |
+| keys | array<integer / object> | 否 | — | 最多项 100；元素不重复；元素：oneOf 2 个分支；integer：≥ 1 |  |
+| keys[] | integer | 是 | — | ≥ 1 | oneOf 1 |
+| keys[] | object | 是 | — | 最少字段 1；最多字段 8；拒绝额外字段 | oneOf 2 |
+| keys[].id | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].subjectId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].personId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].characterId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].episodeId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].revisionId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].blogId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].topicId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].replyId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].relationId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].indexId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].parentId | integer | 否 | — | ≥ 1 | oneOf 2 |
+| keys[].code | integer | 否 | — | ≥ 0 | oneOf 2 |
+| keys[].username | string | 否 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
+| keys[].userIdentifier | string | 否 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
+| keys[].kind | string | 否 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
+| keys[].entity | string | 否 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
+| range | object | 否 | — | 拒绝额外字段 |  |
+| range.offset | integer | 否 | 0 | ≥ 0 |  |
+| range.limit | integer | 否 | 500 | ≥ 1；≤ 5000 |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| value.schemaVersion | number | 是 | — | 固定 1 |  |
+| value.kind | string | 是 | — | 固定 cached_resource |  |
+| value.resourceRef | string | 是 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
+| value.sourceTool | string | 是 | — | — |  |
+| value.value | object | 是 | — | — |  |
+| value.accessContext | object | 是 | — | 见公共结构 |  |
+| value.fields | array<string> | 否 | — | — |  |
+| value.fieldStates | object | 否 | — | — |  |
+| value.range | object | 否 | — | — |  |
 
 ## `execute_write_batch`
 
@@ -2967,10 +3214,17 @@
 | tags | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | metaTags | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | url | string | 是 | — | 最长字符数 100；正则 ^https://bgm\.tv/subject/[1-9]\d*$ |  |
+| images | null / get_subject_details_images | 否 | — | anyOf 2 个分支 |  |
+| image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
+| resourceFieldStates | get_subject_details_resourceFieldStates | 否 | — | 拒绝额外字段 |  |
 | relation | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
 | staff | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
 | series | boolean / null | 否 | — | anyOf 2 个分支 |  |
 | characters | array<get_subject_details_charactersItem> | 否 | — | 最多项 100 |  |
+| summary | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 50000 |  |
+| infobox | array<get_subject_details_infoboxItem> / null | 否 | — | anyOf 2 个分支；array：最多项 300 |  |
+| tagStats | array<get_subject_details_tagStatsItem> / null | 否 | — | anyOf 2 个分支；array：最多项 100 |  |
+| ratingDistribution | get_subject_details_ratingDistribution / null | 否 | — | anyOf 2 个分支 |  |
 
 ### `search_subjects_page`
 
@@ -3015,6 +3269,7 @@
 | infobox | array<get_subject_details_infoboxItem> / null | 否 | — | anyOf 2 个分支；array：最多项 300 |  |
 | relations | array<search_subjects_dataItem_2_relationsItem> / null | 否 | — | anyOf 2 个分支；array：最多项 100 |  |
 | durationMinutes | number / null | 否 | — | anyOf 2 个分支；number：≥ 0 |  |
+| image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | fieldStates | search_subjects_dataItem_2_fieldStates | 否 | — | 拒绝额外字段 |  |
 
 ### `search_subjects_pendingItem`
@@ -3022,8 +3277,8 @@
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
-| missingFields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
-| failedFields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| missingFields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
+| failedFields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 
 ### `search_subjects_set`
 
@@ -3152,11 +3407,18 @@
 | tags | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | metaTags | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | url | string | 是 | — | 最长字符数 100；正则 ^https://bgm\.tv/subject/[1-9]\d*$ |  |
+| images | null / get_subject_details_images | 否 | — | anyOf 2 个分支 |  |
+| image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
+| resourceFieldStates | get_subject_details_resourceFieldStates | 否 | — | 拒绝额外字段 |  |
 | relation | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
 | staff | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 300 |  |
 | series | boolean / null | 否 | — | anyOf 2 个分支 |  |
 | characters | array<get_subject_details_charactersItem> | 否 | — | 最多项 100 |  |
 | dateEvidence | browse_subjects_dataItem_dateEvidence / null | 是 | — | anyOf 2 个分支 |  |
+| summary | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 50000 |  |
+| infobox | array<get_subject_details_infoboxItem> / null | 否 | — | anyOf 2 个分支；array：最多项 300 |  |
+| tagStats | array<get_subject_details_tagStatsItem> / null | 否 | — | anyOf 2 个分支；array：最多项 100 |  |
+| ratingDistribution | get_subject_details_ratingDistribution / null | 否 | — | anyOf 2 个分支 |  |
 
 ### `browse_subjects_filterCoverage`
 
@@ -3168,6 +3430,25 @@
 | unknownDateCount | integer | 是 | — | ≥ 0；≤ 100 |  |
 | unknownDateSubjectIds | array<integer> | 是 | — | 最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 |  |
 | complete | boolean | 是 | — | — | 当前窗口日期筛选没有未知条目；分页和NSFW覆盖另见page/accessContext。 |
+
+### `get_subject_details_images`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| large | string | 否 | — | 最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
+| common | string | 否 | — | 最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
+| medium | string | 否 | — | 最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
+| small | string | 否 | — | 最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
+| grid | string | 否 | — | 最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
+
+### `get_subject_details_resourceFieldStates`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| summary | string | 否 | — | 允许 known、unknown、failed |  |
+| infobox | string | 否 | — | 允许 known、unknown、failed |  |
+| tagStats | string | 否 | — | 允许 known、unknown、failed |  |
+| ratingDistribution | string | 否 | — | 允许 known、unknown、failed |  |
 
 ### `get_subject_details_charactersItem`
 
@@ -3286,6 +3567,8 @@
 | characterType | number / null | 是 | — | anyOf 2 个分支；number：允许 1、2、3、4 |  |
 | url | string / null | 是 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | nsfw | boolean / null | 是 | — | anyOf 2 个分支 |  |
+| images | null / get_subject_details_images | 否 | — | anyOf 2 个分支 |  |
+| image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 
 ### `PersonSummary`
 
@@ -3299,6 +3582,8 @@
 | career | array<string> / null | 是 | — | anyOf 2 个分支；array：最多项 100；元素：最短字符数 1；最长字符数 100 |  |
 | url | string / null | 是 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | nsfw | boolean / null | 是 | — | anyOf 2 个分支 |  |
+| images | null / get_subject_details_images | 否 | — | anyOf 2 个分支 |  |
+| image | string / null | 否 | — | anyOf 2 个分支；string：最短字符数 1；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 
 ### `get_character_details_infoboxItem`
 
@@ -3599,6 +3884,7 @@
 | message | string | 是 | — | 最长字符数 3000 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
+| issues | array<SafeError_issuesItem> | 否 | — | 最多项 200 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
@@ -4133,23 +4419,6 @@
 | code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
 | sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
-### `SafeError_17`
-
-| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
-| --- | --- | --- | --- | --- | --- |
-| code | string | 是 | — | 最长字符数 100 |  |
-| message | string | 是 | — | 最长字符数 20000 |  |
-| accessContext | AccessContext | 否 | — | 见公共结构 |  |
-| networkAttempted | boolean | 否 | — | 固定 false |  |
-| rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
-| sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
-| diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
-| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
-| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
-| recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
-| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
-| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
-
 ### `expand_subject_relations_relationStage`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
@@ -4182,7 +4451,7 @@
 | parentCount | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | parents | array<expand_subject_relations_lineageItem_parentsItem> | 是 | — | — |  |
 
-### `SafeError_18`
+### `SafeError_17`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -4190,6 +4459,7 @@
 | message | string | 是 | — | 最长字符数 20000 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
+| issues | array<SafeError_issuesItem> | 否 | — | 最多项 200 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
@@ -4253,7 +4523,7 @@
 | candidate_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 当前读取轮次的候选引用；与subject_ids互斥，两者必选一。 |
 | subject_ids | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 | 明确作品ID；与candidate_ref互斥，两者必选一。 |
 | filter | continue_subject_query_request_filter | 否 | 对象 | 拒绝额外字段 |  |
-| fields | array<string> | 否 | id、name、nameCn、subjectType | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
+| fields | array<string> | 否 | id | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
 | response_view | string | 否 | page | 允许 page、reference | page按limit读取必要字段；reference不返回作品正文，只处理事实筛选并返回进度和引用。 |
 | collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 当前账户和媒体的收藏证据引用；多状态完整核对须全状态来源，单状态快照只能证明该状态缺席。 |
 | cursor | string | 否 | — | 最短字符数 1；最长字符数 150 |  |
@@ -4276,7 +4546,7 @@
 | data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -4299,7 +4569,7 @@
 | relations | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 300 | 父到子关系标签白名单，按上游已登记标签精确匹配；未知标签保留待核实。 |
 | exclude_relations | array<string> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：最短字符数 1；最长字符数 300 | 父到子关系标签排除名单；不能把未知关系标签当作未命中。 |
 | filter | continue_subject_query_request_filter | 否 | 对象 | 拒绝额外字段 | 子作品条件；与parent_filter分开。 |
-| fields | array<string> | 否 | id、name、nameCn、subjectType | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
+| fields | array<string> | 否 | id | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image | 模型可见字段；page按需从缓存或固定资源补取，reference只处理事实筛选。完整已读资料保存在宿主。 |
 | response_view | string | 否 | page | 允许 page、reference | reference只返回引用、累计计数和覆盖，不输出中间候选与回溯数组。 |
 | collection_ref | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
 | cursor | string | 否 | — | 最短字符数 1；最长字符数 150 |  |
@@ -4321,7 +4591,7 @@
 | data | array<search_subjects_dataItem_2> | 是 | — | 最多项 100 |  |
 | pending | array<search_subjects_pendingItem> | 是 | — | 最多项 100 |  |
 | set | search_subjects_set | 是 | — | 拒绝额外字段 |  |
-| fields | array<string> | 是 | — | 最多项 23；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes |  |
+| fields | array<string> | 是 | — | 最多项 24；元素不重复；元素：允许 id、name、nameCn、subjectType、date、platform、subjectForm、nsfw、score、rank、ratingCount、tags、metaTags、url、personalRating、personalTags、personalComment、collectionStatus、collectionState、summary、infobox、relations、durationMinutes、image |  |
 | include | array<string> | 是 | 空数组 | 最多项 5；元素不重复；元素：允许 summary、infobox、relations、own_collection、subject_facts | subject_facts补基础身份/媒体/形式/日期/NSFW/公共评分统计/标签/链接，仅详情include=[]公共组；summary、infobox、relations、own_collection各自显式按需取得。 |
 | filter | search_subjects_filter | 是 | — | 拒绝额外字段 |  |
 | scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
@@ -4424,24 +4694,6 @@
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | content | 禁止 | 否 | — | 禁止 |  |
-
-### `SafeError_19`
-
-| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
-| --- | --- | --- | --- | --- | --- |
-| code | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
-| message | string | 是 | — | 最长字符数 20000 |  |
-| networkAttempted | boolean | 否 | — | 固定 false |  |
-| issues | array<SafeError_issuesItem> | 否 | — | 最多项 200 |  |
-| accessContext | AccessContext | 否 | — | 见公共结构 |  |
-| rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
-| sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
-| diagnosis | SafeError_diagnosis | 否 | — | 拒绝额外字段 |  |
-| diagnostic | SafeError_diagnostic | 否 | — | 拒绝额外字段 |  |
-| contractIssue | SafeError_contractIssue | 否 | — | 拒绝额外字段 |  |
-| recovery | SafeError_recovery | 否 | — | 拒绝额外字段 |  |
-| code | string | 是 | — | 固定 MCP_INVALID_RESULT | then: 提供 contractIssue；contractIssue |
-| sourceTool | string | 是 | — | 固定 browse_subjects | then: 提供 contractIssue；contractIssue |
 
 ### `get_subject_reviews_dataItem`
 
@@ -4576,6 +4828,11 @@
 | subjectId | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | topicId | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | postId | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+
+### `SafeError_18`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
 
 ### `get_daily_broadcast_dataItem_weekday`
 
@@ -4769,6 +5026,7 @@
 | infobox | string | 否 | — | 允许 unknown、failed |  |
 | relations | string | 否 | — | 允许 unknown、failed |  |
 | durationMinutes | string | 否 | — | 允许 unknown、failed |  |
+| image | string | 否 | — | 允许 unknown、failed |  |
 
 ### `search_subjects_filter_air_date`
 
@@ -5476,6 +5734,8 @@
 | title | string | 否 | — | — |  |
 | columns | array<prepare_candidate_output_presentation_contentItem_3_props_columnsItem> | 是 | — | — |  |
 | rows | array<object> | 是 | — | 最多项 200 |  |
+| keyColumn | string | 否 | — | — |  |
+| currentRow | string | 否 | — | — |  |
 | note | string | 否 | — | — |  |
 
 ### `prepare_candidate_output_presentation_contentItem_2_props_itemsItem`

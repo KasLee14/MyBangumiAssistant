@@ -20,7 +20,7 @@ import { WebSessionManager } from './web/session-manager.js';
 import { TaskQueue } from './support/task-queue.js';
 import { restoreWriteRateLimits, WriteRateLimiter } from './mcp/write-rate-limit.js';
 import { WriteJournal } from './mcp/write-journal.js';
-import { analyzeTrace } from './tracing/analyze.js';
+import { runTraceAnalyze } from './tracing/cli.js';
 import type { TraceOptions } from './tracing/schema.js';
 
 export interface WebOptions { port: number; open: boolean }
@@ -121,9 +121,7 @@ const help = `MyBangumiAssistant · Pi ${VERSION}
 
 export async function launcherMain(argv = process.argv.slice(2)): Promise<number> {
   if (argv[0] === 'trace-analyze') {
-    if (argv.length !== 2 || !argv[1]) throw new AppError('INVALID_ARGUMENT', '用法：my-bangumi-assistant trace-analyze <某次 trace 目录>。');
-    process.stdout.write(JSON.stringify(await analyzeTrace(argv[1]), null, 2) + '\n');
-    return 0;
+    return runTraceAnalyze(argv);
   }
   const options = parseLauncherArgs(argv);
   const args = options.pi;

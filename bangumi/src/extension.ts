@@ -1,9 +1,10 @@
-import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
+import type { ExtensionAPI, ExtensionFactory } from '@earendil-works/pi-coding-agent';
 import { randomUUID } from 'node:crypto';
 import { AccountSessionStore, login } from './login/index.js';
 import { createTerminalChannel, type InteractionChannel } from './interaction.js';
 import { LocalMcpClient, type McpCallClient } from './mcp/client.js';
 import { createReadTools } from './mcp/pi-tools.js';
+import { CollectionQueryInputState } from './mcp/collection-query-input.js';
 import { createWriteBoundary } from './mcp/write-boundary.js';
 import { createBatchWriteTool } from './mcp/batch-write.js';
 import type { WriteRateLimiter } from './mcp/write-rate-limit.js';
@@ -21,6 +22,10 @@ import { TOOL_DEFINITIONS } from './mcp/catalog.js';
 import { clearReadRecoveryScope } from './mcp/read-recovery.js';
 import { CONTENT_OUTPUT_INSTRUCTION } from './output/provider-content.js';
 import { COMPONENT_SELECTION_INSTRUCTION } from './output/component-selection.js';
+import type { ResourceContentResolver } from './output/resource-content.js';
+
+const extensionResolvers = new WeakMap<ExtensionAPI, ResourceContentResolver>();
+export function extensionResourceResolver(pi: ExtensionAPI): ResourceContentResolver | undefined { return extensionResolvers.get(pi); }
 
 export interface BangumiExtensionConfig {
   authDir: string;
@@ -60,7 +65,18 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       onTrace: event => trace.mcpDiagnostic(event) });
     let client: McpCallClient & { close?(): Promise<void> } = config.client ?? createClient();
     let activeReadTurnId: string | undefined;
+    const activeResourceRefs = new Set<string>();
+    const resolver: ResourceContentResolver = async (ref, signal, selection) => {
+      if (!activeReadTurnId || !activeResourceRefs.has(ref)) throw new AppError('RESOURCE_SCOPE_MISMATCH', '资源引用不属于当前读取轮次。');
+      if (!client.readCachedResource) throw new AppError('MCP_PROTOCOL_ERROR', '当前 MCP 客户端没有缓存读取接口。');
+      return client.readCachedResource(ref, signal, { turnId: activeReadTurnId }, selection);
+    };
+    resolver.isCurrent = ref => activeResourceRefs.has(ref);
+    extensionResolvers.set(pi, resolver);
+    const collectionQueries = new CollectionQueryInputState();
     const clearReadTurn = () => {
+      activeResourceRefs.clear();
+      collectionQueries.clear();
       const ending = activeReadTurnId; activeReadTurnId = undefined;
       if (ending) {
         clearReadRecoveryScope(ending);
@@ -69,24 +85,36 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       }
     };
     const facade: McpCallClient = {
+      ...(client.readCachedResource ? { readCachedResource: (ref: string, signal?: AbortSignal) => {
+        if (!activeReadTurnId || !client.readCachedResource) throw new AppError('RESOURCE_REF_EXPIRED', '没有可用的当前读取轮次。');
+        return client.readCachedResource(ref, signal, { turnId: activeReadTurnId });
+      } } : {}),
       call: (name, args, signal, guard, batch, read) => {
+        if (TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'write') { collectionQueries.clear(); activeResourceRefs.clear(); }
         const scope = TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'read'
           ? read ?? (activeReadTurnId ? { turnId: activeReadTurnId } : undefined) : undefined;
         const expectedReadTurnId = activeReadTurnId;
         const cancelled = () => { if (activeReadTurnId === expectedReadTurnId) clearReadTurn(); };
         signal?.addEventListener('abort', cancelled, { once: true });
         return trace.mcp(name, args, () => client.call(name, args, signal, guard, batch, scope), guard?.accountId,
-          config.client === undefined && client instanceof LocalMcpClient).finally(() => signal?.removeEventListener('abort', cancelled));
+          config.client === undefined && client instanceof LocalMcpClient).then(value => {
+            if (expectedReadTurnId === activeReadTurnId && value && typeof value === 'object' && 'resourceRef' in value && typeof value.resourceRef === 'string') activeResourceRefs.add(value.resourceRef);
+            return value;
+          }).finally(() => signal?.removeEventListener('abort', cancelled));
       },
       close: async () => { await client.close?.(); },
     };
     const unsubscribeProxy = config.client ? undefined : proxy.onChange(async () => {
+      activeResourceRefs.clear();
+      collectionQueries.clear();
       const previous = client;
       client = createClient();
       try { await previous.close?.(); } catch { /* 旧子进程可能已退出。 */ }
     });
     const store = config.store ?? new AccountSessionStore(config.authDir);
     const resetClient = config.client ? undefined : async () => {
+      activeResourceRefs.clear();
+      collectionQueries.clear();
       const previous = client;
       client = createClient();
       try { await previous.close?.(); } catch { /* 废弃旧连接和批次上下文，不重发请求。 */ }
@@ -101,7 +129,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       ...(resetClient ? { resetClient } : {}),
     });
     // 固定MCP写映射只在宿主计划内执行，模型不能拆成逐项写调用绕过整批政策。
-    for (const tool of createReadTools(facade)) pi.registerTool(trace.wrapTool(tool));
+    for (const tool of createReadTools(facade, { collectionQueries, owner: () => activeReadTurnId })) pi.registerTool(trace.wrapTool(tool));
     const batchTool = createBatchWriteTool(boundary, record => {
       config.writeJournal?.append({ kind: 'bangumi-batch', ...record });
       pi.appendEntry('bangumi/batch', record);
@@ -151,6 +179,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
             proxy: proxy.current, requestTimeoutMs: config.timeoutMs, prompt: (kind, signal) => channel.login(ctx, kind, signal),
             manual: args.trim() === 'manual', notice: message => channel.notify(ctx, message, 'info') });
           const user = config.accountQueue ? await config.accountQueue.run(performLogin, ctx.signal) : await performLogin();
+          clearReadTurn(); await resetClient?.();
           channel.notify(ctx, `Bangumi已登录：${user.username}（#${user.id}）`, 'info');
         } catch (error) { channel.notify(ctx, safeError(error).message, 'error'); }
       },
@@ -169,6 +198,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       handler: async (_args, ctx) => {
         if (config.accountQueue) await config.accountQueue.run(() => store.clear(), ctx.signal);
         else await store.clear();
+        clearReadTurn(); await resetClient?.();
         channel.notify(ctx, '已清除本应用Bangumi登录会话。', 'info');
       },
     });

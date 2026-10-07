@@ -1,0 +1,1 @@
+{"fields":["id","name","nameCn","subjectType","date","score","rank","ratingCount","image","summary","url","tags","totalEpisodes"],"include":["summary"],"subject_id":253}

@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "trace_id": "94c851744df486447048d1585c9c74f0",
+  "root_span_id": "1c28accf344e7191",
+  "purpose": "agent",
+  "parent_trace": null,
+  "session": {
+    "session_id": "01a116a5-cd28-770b-b86b-1fa04693024a",
+    "session_file": null,
+    "branch_start_id": "a9b631ed",
+    "branch_end_id": "71366e63"
+  },
+  "started_at": "2026-10-07T13:55:27.878Z",
+  "execution_status": "completed",
+  "duration_ms": 18177.1182,
+  "inputs": [
+    {
+      "text": "这是只读验收。查询 Bangumi 作品 253 的详情，先用默认字段查询，再从本轮资源缓存按需读取名称和评分（至少调用一次 read_cached_resource）。最后用 SubjectCards 的资源引用 props 展示它，卡片要有缓存中的封面、简介、评分与链接；不要在最终模型 JSON 中抄写缓存展示字段。请简要说明作品名称和评分，不修改账户数据。",
+      "source": "interactive",
+      "streamingBehavior": null
+    }
+  ],
+  "final_output": {
+    "text": "已按默认字段读取作品 253：**星际牛仔**（カウボーイビバップ），Bangumi 评分 **9.1**（约 19859 人评分，排名第 4）。随后从本轮资源缓存按需读取了名称、评分及封面/简介/链接等展示字段，以下卡片由宿主按缓存引用展开。本次为只读查询（匿名公共 v0 源，NSFW 未检查），未对账户数据做任何修改。",
+    "status": "final",
+    "message_ref": {
+      "path": "payloads/9f4dc766e5614e6b19ecfa49c196b9e865caf8a4f3e7da66d8fd1eb76e50b457.json",
+      "sha256": "9f4dc766e5614e6b19ecfa49c196b9e865caf8a4f3e7da66d8fd1eb76e50b457",
+      "bytes": 3429
+    }
+  },
+  "capture": {
+    "complete": true,
+    "issues": [],
+    "dropped_events": 0,
+    "provider_payloads": "redacted_when_available",
+    "provider_payload_count": 4,
+    "reasoning": "provider_visible_only",
+    "http_request_tracing": "not_instrumented",
+    "compaction_model_requests": "not_instrumented",
+    "cache_warming_requests": "not_instrumented"
+  },
+  "analysis": {
+    "schema_version": 1,
+    "metrics": {
+      "llm_requests": 4,
+      "usage_unavailable_requests": 0,
+      "llm_duration_ms": 7799.522699999998,
+      "prompt_bytes_max": 169733,
+      "tokens": {
+        "input": 2339,
+        "output": 775,
+        "cache_read": 177152,
+        "cache_write": 0,
+        "total": 180266
+      },
+      "proposed_tool_calls": 3,
+      "executed_tools": 3,
+      "tool_errors": 1,
+      "mcp_client_calls": 3,
+      "mcp_rpc_attempts": 3,
+      "mcp_initialization_ms": 9799.3261,
+      "rpc_attempt_unknown_calls": 0,
+      "mcp_result_bytes": 5041,
+      "model_tool_result_bytes": 3829,
+      "search_candidate_rows": 0,
+      "search_unique_candidates": 0,
+      "search_overlap_ratio": null,
+      "mcp_by_tool": {
+        "get_subject_details": {
+          "calls": 1,
+          "errors": 0,
+          "duration_ms": 10243.0253,
+          "result_bytes": 2480
+        },
+        "read_cached_resource": {
+          "calls": 2,
+          "errors": 1,
+          "duration_ms": 13.335800000000745,
+          "result_bytes": 2561
+        }
+      },
+      "mcp_by_phase": {
+        "query": {
+          "calls": 3,
+          "duration_ms": 10256.3611
+        }
+      },
+      "host_duration_ms": {
+        "account_queue": 0,
+        "confirmation": 0,
+        "preflight": 0,
+        "submit": 0,
+        "verify": 0
+      }
+    },
+    "findings": [
+      {
+        "kind": "changed_arguments_after_error",
+        "severity": "inspect",
+        "span_ids": [
+          "0ff2129f6c9d1c1a",
+          "e2dbcd8e56daccef"
+        ],
+        "detail": "失败后修改了参数，可检查错误反馈是否帮助恢复。"
+      }
+    ]
+  },
+  "evaluation": null
+}

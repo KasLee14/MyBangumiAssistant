@@ -1,0 +1,806 @@
+[
+  {
+    "name": "search_subjects",
+    "toolCallId": "call_00_kQAOizVAH4a6zl192zWV3763",
+    "isError": false,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"value\":{\"schemaVersion\":1,\"kind\":\"candidate_page\",\"entity\":\"subject_candidate\",\"candidateRef\":\"c_5e33495e-3e81-4f04-b076-b9fb15d508ec\",\"resultRef\":\"cr_2de174e4-b3b9-4dad-b816-e52b42878622\",\"responseView\":\"reference\",\"data\":[],\"pending\":[],\"stage\":{\"inputCount\":30,\"processedCount\":30,\"matchedCount\":30,\"excludedCount\":0,\"pendingCount\":0,\"remainingCount\":0},\"set\":{\"workingCount\":30,\"resultCount\":30},\"page\":{\"cursor\":null,\"nextCursor\":null,\"limit\":30,\"returnedCount\":0,\"complete\":true},\"coverage\":{\"scope\":\"candidate_set\",\"coverageRef\":\"cv_faf4874b-925a-4057-ac5c-da902649d72d\",\"mode\":\"summary\",\"complete\":false,\"sourceCount\":1,\"completeSourceCount\":0,\"incompleteSourceCount\":1,\"unknownTotalSourceCount\":0,\"pendingCount\":0,\"remainingCount\":0,\"unknownFieldCount\":0,\"failedFieldCount\":0,\"dependencyIncompleteCount\":0,\"dependencyPendingCount\":0,\"dependencyRemainingCount\":0,\"dependencyUnknownCount\":0,\"dependencyFailedCount\":0,\"sourceChanges\":[{\"tool\":\"search_subjects\",\"source\":\"v0\",\"privateRecords\":\"not_applicable\",\"sourceCount\":1,\"addedCount\":1,\"updatedCount\":0,\"completeSourceCount\":0,\"incompleteSourceCount\":1,\"unknownTotalSourceCount\":0,\"scannedCount\":30}]},\"visibility\":\"public\",\"readAt\":\"2026-10-07T14:57:54.047Z\",\"accessContext\":{\"mode\":\"anonymous\",\"account\":null,\"nsfw\":{\"preference\":null,\"allowed\":null,\"state\":\"not_checked\"},\"source\":\"v0\",\"nsfwApplied\":false,\"checkedAt\":\"2026-10-07T14:57:52.719Z\",\"queryCoverage\":{\"requested\":\"exclude\",\"actual\":\"sfw_only\",\"nsfw\":\"excluded\",\"totalKind\":\"estimated\",\"limitations\":[\"v0_anonymous_source\",\"estimated_search_total\"]}},\"sourcePage\":{\"total\":62,\"limit\":30,\"offset\":0,\"returnedCount\":30,\"nextOffset\":30,\"complete\":false,\"totalKind\":\"estimated\",\"sourceNextOffset\":30,\"sourceHasMore\":true},\"resourceRef\":\"rr_e8f594f5cecb141e4b24f38bca6d4038\",\"fields\":[\"id\"],\"availableFields\":[\"schemaVersion\",\"kind\",\"entity\",\"candidateRef\",\"resultRef\",\"parentRef\",\"responseView\",\"include\",\"stage\",\"inputCount\",\"processedCount\",\"matchedCount\",\"excludedCount\",\"pendingCount\",\"remainingCount\",\"workingCount\",\"resultCount\",\"visibility\",\"readAt\"]}}"
+      }
+    ],
+    "full": {
+      "value": {
+        "schemaVersion": 1,
+        "kind": "candidate_page",
+        "entity": "subject_candidate",
+        "candidateRef": "c_5e33495e-3e81-4f04-b076-b9fb15d508ec",
+        "resultRef": "cr_2de174e4-b3b9-4dad-b816-e52b42878622",
+        "parentRef": "c_5c3322dc-4f09-467f-a434-f7cc2a822f7f",
+        "responseView": "reference",
+        "data": [],
+        "pending": [],
+        "fields": [
+          "id"
+        ],
+        "include": [],
+        "filter": {},
+        "scope": {
+          "keyword": "星际牛仔",
+          "subject_type": 2,
+          "result_mode": "candidates",
+          "fields": [
+            "id"
+          ],
+          "limit": 30,
+          "response_view": "reference",
+          "sort": "match",
+          "offset": 0
+        },
+        "stage": {
+          "inputCount": 30,
+          "processedCount": 30,
+          "matchedCount": 30,
+          "excludedCount": 0,
+          "pendingCount": 0,
+          "remainingCount": 0
+        },
+        "set": {
+          "workingCount": 30,
+          "resultCount": 30
+        },
+        "page": {
+          "cursor": null,
+          "nextCursor": null,
+          "limit": 30,
+          "returnedCount": 0,
+          "complete": true
+        },
+        "coverage": {
+          "scope": "candidate_set",
+          "coverageRef": "cv_faf4874b-925a-4057-ac5c-da902649d72d",
+          "mode": "summary",
+          "complete": false,
+          "sourceCount": 1,
+          "completeSourceCount": 0,
+          "incompleteSourceCount": 1,
+          "unknownTotalSourceCount": 0,
+          "pendingCount": 0,
+          "remainingCount": 0,
+          "unknownFieldCount": 0,
+          "failedFieldCount": 0,
+          "dependencyIncompleteCount": 0,
+          "dependencyPendingCount": 0,
+          "dependencyRemainingCount": 0,
+          "dependencyUnknownCount": 0,
+          "dependencyFailedCount": 0,
+          "sourceChanges": [
+            {
+              "tool": "search_subjects",
+              "source": "v0",
+              "privateRecords": "not_applicable",
+              "sourceCount": 1,
+              "addedCount": 1,
+              "updatedCount": 0,
+              "completeSourceCount": 0,
+              "incompleteSourceCount": 1,
+              "unknownTotalSourceCount": 0,
+              "scannedCount": 30
+            }
+          ]
+        },
+        "visibility": "public",
+        "readAt": "2026-10-07T14:57:54.047Z",
+        "accessContext": {
+          "mode": "anonymous",
+          "account": null,
+          "nsfw": {
+            "preference": null,
+            "allowed": null,
+            "state": "not_checked"
+          },
+          "source": "v0",
+          "nsfwApplied": false,
+          "checkedAt": "2026-10-07T14:57:52.719Z",
+          "queryCoverage": {
+            "requested": "exclude",
+            "actual": "sfw_only",
+            "nsfw": "excluded",
+            "totalKind": "estimated",
+            "limitations": [
+              "v0_anonymous_source",
+              "estimated_search_total"
+            ]
+          }
+        },
+        "sourcePage": {
+          "total": 62,
+          "limit": 30,
+          "offset": 0,
+          "returnedCount": 30,
+          "nextOffset": 30,
+          "complete": false,
+          "totalKind": "estimated",
+          "sourceNextOffset": 30,
+          "sourceHasMore": true
+        },
+        "resourceRef": "rr_e8f594f5cecb141e4b24f38bca6d4038"
+      }
+    }
+  },
+  {
+    "name": "read_cached_resource",
+    "toolCallId": "call_00_LLvfEVI6QyjefQaJHpRv3445",
+    "isError": false,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"value\":{\"schemaVersion\":1,\"kind\":\"cached_resource\",\"resourceRef\":\"rr_e8f594f5cecb141e4b24f38bca6d4038\",\"sourceTool\":\"search_subjects\",\"value\":{\"schemaVersion\":1,\"kind\":\"candidate_page\",\"entity\":\"subject_candidate\",\"candidateRef\":\"c_5e33495e-3e81-4f04-b076-b9fb15d508ec\",\"resultRef\":\"cr_2de174e4-b3b9-4dad-b816-e52b42878622\",\"responseView\":\"reference\",\"data\":[],\"pending\":[],\"stage\":{\"inputCount\":30,\"processedCount\":30,\"matchedCount\":30,\"excludedCount\":0,\"pendingCount\":0,\"remainingCount\":0},\"set\":{\"workingCount\":30,\"resultCount\":30},\"page\":{\"cursor\":null,\"nextCursor\":null,\"limit\":30,\"returnedCount\":0,\"complete\":true},\"coverage\":{\"scope\":\"candidate_set\",\"coverageRef\":\"cv_faf4874b-925a-4057-ac5c-da902649d72d\",\"mode\":\"summary\",\"complete\":false,\"sourceCount\":1,\"completeSourceCount\":0,\"incompleteSourceCount\":1,\"unknownTotalSourceCount\":0,\"pendingCount\":0,\"remainingCount\":0,\"unknownFieldCount\":0,\"failedFieldCount\":0,\"dependencyIncompleteCount\":0,\"dependencyPendingCount\":0,\"dependencyRemainingCount\":0,\"dependencyUnknownCount\":0,\"dependencyFailedCount\":0,\"sourceChanges\":[{\"tool\":\"search_subjects\",\"source\":\"v0\",\"privateRecords\":\"not_applicable\",\"sourceCount\":1,\"addedCount\":1,\"updatedCount\":0,\"completeSourceCount\":0,\"incompleteSourceCount\":1,\"unknownTotalSourceCount\":0,\"scannedCount\":30}]},\"visibility\":\"public\",\"readAt\":\"2026-10-07T14:57:54.047Z\",\"accessContext\":{\"mode\":\"anonymous\",\"account\":null,\"nsfw\":{\"preference\":null,\"allowed\":null,\"state\":\"not_checked\"},\"source\":\"v0\",\"nsfwApplied\":false,\"checkedAt\":\"2026-10-07T14:57:52.719Z\",\"queryCoverage\":{\"requested\":\"exclude\",\"actual\":\"sfw_only\",\"nsfw\":\"excluded\",\"totalKind\":\"estimated\",\"limitations\":[\"v0_anonymous_source\",\"estimated_search_total\"]}},\"sourcePage\":{\"total\":62,\"limit\":30,\"offset\":0,\"returnedCount\":30,\"nextOffset\":30,\"complete\":false,\"totalKind\":\"estimated\",\"sourceNextOffset\":30,\"sourceHasMore\":true},\"fields\":[\"id\",\"name\",\"nameCn\",\"score\",\"ratingCount\",\"subjectType\",\"date\"],\"availableFields\":[\"schemaVersion\",\"kind\",\"entity\",\"candidateRef\",\"resultRef\",\"parentRef\",\"responseView\",\"include\",\"stage\",\"inputCount\",\"processedCount\",\"matchedCount\",\"excludedCount\",\"pendingCount\",\"remainingCount\",\"workingCount\",\"resultCount\",\"visibility\",\"readAt\",\"resourceFieldStates\"]},\"accessContext\":{\"mode\":\"anonymous\",\"account\":null,\"nsfw\":{\"preference\":null,\"allowed\":null,\"state\":\"not_checked\"},\"source\":\"v0\",\"nsfwApplied\":false,\"checkedAt\":\"2026-10-07T14:57:52.719Z\",\"queryCoverage\":{\"requested\":\"exclude\",\"actual\":\"sfw_only\",\"nsfw\":\"excluded\",\"totalKind\":\"estimated\",\"limitations\":[\"v0_anonymous_source\",\"estimated_search_total\"]}},\"fields\":[\"id\",\"name\",\"nameCn\",\"score\",\"ratingCount\",\"subjectType\",\"date\"],\"fieldStates\":{\"id\":\"unknown\",\"name\":\"unknown\",\"nameCn\":\"unknown\",\"score\":\"unknown\",\"ratingCount\":\"unknown\",\"subjectType\":\"unknown\",\"date\":\"unknown\"}}}"
+      }
+    ],
+    "full": {
+      "value": {
+        "schemaVersion": 1,
+        "kind": "cached_resource",
+        "resourceRef": "rr_e8f594f5cecb141e4b24f38bca6d4038",
+        "sourceTool": "search_subjects",
+        "value": {
+          "schemaVersion": 1,
+          "kind": "candidate_page",
+          "entity": "subject_candidate",
+          "candidateRef": "c_5e33495e-3e81-4f04-b076-b9fb15d508ec",
+          "resultRef": "cr_2de174e4-b3b9-4dad-b816-e52b42878622",
+          "responseView": "reference",
+          "data": [],
+          "pending": [],
+          "stage": {
+            "inputCount": 30,
+            "processedCount": 30,
+            "matchedCount": 30,
+            "excludedCount": 0,
+            "pendingCount": 0,
+            "remainingCount": 0
+          },
+          "set": {
+            "workingCount": 30,
+            "resultCount": 30
+          },
+          "page": {
+            "cursor": null,
+            "nextCursor": null,
+            "limit": 30,
+            "returnedCount": 0,
+            "complete": true
+          },
+          "coverage": {
+            "scope": "candidate_set",
+            "coverageRef": "cv_faf4874b-925a-4057-ac5c-da902649d72d",
+            "mode": "summary",
+            "complete": false,
+            "sourceCount": 1,
+            "completeSourceCount": 0,
+            "incompleteSourceCount": 1,
+            "unknownTotalSourceCount": 0,
+            "pendingCount": 0,
+            "remainingCount": 0,
+            "unknownFieldCount": 0,
+            "failedFieldCount": 0,
+            "dependencyIncompleteCount": 0,
+            "dependencyPendingCount": 0,
+            "dependencyRemainingCount": 0,
+            "dependencyUnknownCount": 0,
+            "dependencyFailedCount": 0,
+            "sourceChanges": [
+              {
+                "tool": "search_subjects",
+                "source": "v0",
+                "privateRecords": "not_applicable",
+                "sourceCount": 1,
+                "addedCount": 1,
+                "updatedCount": 0,
+                "completeSourceCount": 0,
+                "incompleteSourceCount": 1,
+                "unknownTotalSourceCount": 0,
+                "scannedCount": 30
+              }
+            ]
+          },
+          "visibility": "public",
+          "readAt": "2026-10-07T14:57:54.047Z",
+          "accessContext": {
+            "mode": "anonymous",
+            "account": null,
+            "nsfw": {
+              "preference": null,
+              "allowed": null,
+              "state": "not_checked"
+            },
+            "source": "v0",
+            "nsfwApplied": false,
+            "checkedAt": "2026-10-07T14:57:52.719Z",
+            "queryCoverage": {
+              "requested": "exclude",
+              "actual": "sfw_only",
+              "nsfw": "excluded",
+              "totalKind": "estimated",
+              "limitations": [
+                "v0_anonymous_source",
+                "estimated_search_total"
+              ]
+            }
+          },
+          "sourcePage": {
+            "total": 62,
+            "limit": 30,
+            "offset": 0,
+            "returnedCount": 30,
+            "nextOffset": 30,
+            "complete": false,
+            "totalKind": "estimated",
+            "sourceNextOffset": 30,
+            "sourceHasMore": true
+          },
+          "fields": [
+            "id",
+            "name",
+            "nameCn",
+            "score",
+            "ratingCount",
+            "subjectType",
+            "date"
+          ],
+          "availableFields": [
+            "schemaVersion",
+            "kind",
+            "entity",
+            "candidateRef",
+            "resultRef",
+            "parentRef",
+            "responseView",
+            "include",
+            "stage",
+            "inputCount",
+            "processedCount",
+            "matchedCount",
+            "excludedCount",
+            "pendingCount",
+            "remainingCount",
+            "workingCount",
+            "resultCount",
+            "visibility",
+            "readAt",
+            "resourceFieldStates"
+          ]
+        },
+        "accessContext": {
+          "mode": "anonymous",
+          "account": null,
+          "nsfw": {
+            "preference": null,
+            "allowed": null,
+            "state": "not_checked"
+          },
+          "source": "v0",
+          "nsfwApplied": false,
+          "checkedAt": "2026-10-07T14:57:52.719Z",
+          "queryCoverage": {
+            "requested": "exclude",
+            "actual": "sfw_only",
+            "nsfw": "excluded",
+            "totalKind": "estimated",
+            "limitations": [
+              "v0_anonymous_source",
+              "estimated_search_total"
+            ]
+          }
+        },
+        "fields": [
+          "id",
+          "name",
+          "nameCn",
+          "score",
+          "ratingCount",
+          "subjectType",
+          "date"
+        ],
+        "fieldStates": {
+          "id": "unknown",
+          "name": "unknown",
+          "nameCn": "unknown",
+          "score": "unknown",
+          "ratingCount": "unknown",
+          "subjectType": "unknown",
+          "date": "unknown"
+        }
+      }
+    }
+  },
+  {
+    "name": "refine_subject_candidates",
+    "toolCallId": "call_00_mMp8FBznU5icgOparfxE8034",
+    "isError": false,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"value\":{\"schemaVersion\":1,\"kind\":\"candidate_page\",\"entity\":\"subject_candidate\",\"candidateRef\":\"cr_2de174e4-b3b9-4dad-b816-e52b42878622\",\"resultRef\":\"cr_2de174e4-b3b9-4dad-b816-e52b42878622\",\"responseView\":\"page\",\"data\":[{\"id\":253,\"name\":\"カウボーイビバップ\",\"nameCn\":\"星际牛仔\",\"score\":9.1,\"ratingCount\":19896,\"date\":\"1998-10-23\",\"subjectType\":2},{\"id\":860,\"name\":\"カウボーイビバップ 天国の扉\",\"nameCn\":\"星际牛仔 天国之扉\",\"score\":8.2,\"ratingCount\":7244,\"date\":\"2001-09-01\",\"subjectType\":2},{\"id\":146215,\"name\":\"星际飚车王\",\"nameCn\":\"\",\"score\":5.2,\"ratingCount\":79,\"date\":null,\"subjectType\":2,\"fieldStates\":{\"date\":\"unknown\"}},{\"id\":333887,\"name\":\"星际侠探\",\"nameCn\":\"\",\"score\":7,\"ratingCount\":1,\"date\":\"2019-06-07\",\"subjectType\":2},{\"id\":376670,\"name\":\"星际一游\",\"nameCn\":\"星际一游\",\"score\":5,\"ratingCount\":3,\"date\":\"2022-04-18\",\"subjectType\":2},{\"id\":427132,\"name\":\"星际大逃亡\",\"nameCn\":\"\",\"score\":0,\"ratingCount\":0,\"date\":\"2020-06-01\",\"subjectType\":2},{\"id\":569767,\"name\":\"星际护卫队\",\"nameCn\":\"星际护卫队\",\"score\":0,\"ratingCount\":0,\"date\":null,\"subjectType\":2,\"fieldStates\":{\"date\":\"unknown\"}},{\"id\":1307,\"name\":\"コヨーテ ラグタイムショー\",\"nameCn\":\"星际海盗\",\"score\":6,\"ratingCount\":103,\"date\":\"2006-07-03\",\"subjectType\":2},{\"id\":8281,\"name\":\"てなもんやボイジャーズ\",\"nameCn\":\"星际迷航俏女郎\",\"score\":6.8,\"ratingCount\":162,\"date\":\"1999-06-25\",\"subjectType\":2},{\"id\":35382,\"name\":\"E'S OTHERWISE\",\"nameCn\":\"星际少年队\",\"score\":5.3,\"ratingCount\":24,\"date\":\"2003-04-01\",\"subjectType\":2},{\"id\":38695,\"name\":\"Lilo & Stitch\",\"nameCn\":\"星际宝贝\",\"score\":6.9,\"ratingCount\":474,\"date\":\"2002-06-21\",\"subjectType\":2},{\"id\":38698,\"name\":\"Stitch! The Movie\",\"nameCn\":\"星际宝贝史迪奇\",\"score\":6.4,\"ratingCount\":59,\"date\":\"2003-08-26\",\"subjectType\":2},{\"id\":38699,\"name\":\"Lilo & Stitch 2: Stitch Has a Glitch\",\"nameCn\":\"星际宝贝2：史迪奇有问题\",\"score\":6,\"ratingCount\":48,\"date\":\"2005-08-30\",\"subjectType\":2},{\"id\":38700,\"name\":\"Leroy & Stitch\",\"nameCn\":\"星际宝贝：终极任务\",\"score\":6.3,\"ratingCount\":39,\"date\":\"2006-06-23\",\"subjectType\":2},{\"id\":38701,\"name\":\"Lilo & Stitch: The Series\",\"nameCn\":\"星际宝贝TV版\",\"score\":7,\"ratingCount\":345,\"date\":\"2003-09-20\",\"subjectType\":2},{\"id\":38702,\"name\":\"スティッチ!\",\"nameCn\":\"星际宝贝！神奇大冒险\",\"score\":6.2,\"ratingCount\":34,\"date\":\"2008-10-08\",\"subjectType\":2},{\"id\":38703,\"name\":\"スティッチ! 〜いたずらエイリアンの大冒険〜\",\"nameCn\":\"星际宝贝！外星大冒险\",\"score\":5.7,\"ratingCount\":17,\"date\":\"2009-10-13\",\"subjectType\":2},{\"id\":38704,\"name\":\"スティッチ! 〜ずっと最高のトモダチ〜\",\"nameCn\":\"星际宝贝！～一直最高的朋友～\",\"score\":5.8,\"ratingCount\":19,\"date\":\"2010-07-06\",\"subjectType\":2},{\"id\":60022,\"name\":\"Extreme Dinosaurs\",\"nameCn\":\"星际恐龙\",\"score\":6.4,\"ratingCount\":245,\"date\":\"1997-09-01\",\"subjectType\":2},{\"id\":75015,\"name\":\"Star Trek: The Animated Series Season 1\",\"nameCn\":\"星际旅行：动画版 第一季\",\"score\":6.6,\"ratingCount\":11,\"date\":\"1973-09-08\",\"subjectType\":2},{\"id\":91628,\"name\":\"インターステラ5555:THE 5TORY OF THE 5ECRET 5TAR 5YSTEM\",\"nameCn\":\"星际5555：异星梦系统秘传\",\"score\":7.1,\"ratingCount\":143,\"date\":\"2003-12-03\",\"subjectType\":2},{\"id\":123444,\"name\":\"Wander Over Yonder\",\"nameCn\":\"星际漫步\",\"score\":7,\"ratingCount\":9,\"date\":\"2013-08-16\",\"subjectType\":2},{\"id\":143400,\"name\":\"Wander Over Yonder Season 2\",\"nameCn\":\"星际漫步 第二季\",\"score\":7,\"ratingCount\":7,\"date\":\"2015-08-03\",\"subjectType\":2},{\"id\":179935,\"name\":\"スターフォックス ゼロ ザ・バトル・ビギンズ\",\"nameCn\":\"星际火狐：零 战斗开始\",\"score\":6.1,\"ratingCount\":9,\"date\":\"2016-04-21\",\"subjectType\":2},{\"id\":268430,\"name\":\"Star Trek: The Animated Series Season 2\",\"nameCn\":\"星际旅行：动画版 第二季\",\"score\":6,\"ratingCount\":3,\"date\":\"1974-09-07\",\"subjectType\":2},{\"id\":286478,\"name\":\"UNBELIEVABLE SPACE LOVE\",\"nameCn\":\"星际幻爱\",\"score\":6.5,\"ratingCount\":22,\"date\":\"2018-07-17\",\"subjectType\":2},{\"id\":314041,\"name\":\"Star Trek: Lower Decks Season 1\",\"nameCn\":\"星际迷航：下层舰员 第一季\",\"score\":7.6,\"ratingCount\":30,\"date\":\"2020-08-06\",\"subjectType\":2},{\"id\":347693,\"name\":\"Star Trek: Lower Decks Season 2\",\"nameCn\":\"星际迷航：下层舰员 第二季\",\"score\":7.1,\"ratingCount\":21,\"date\":\"2021-08-12\",\"subjectType\":2},{\"id\":349076,\"name\":\"Voltron: The Third Dimension\",\"nameCn\":\"星际争霸战\",\"score\":0,\"ratingCount\":0,\"date\":\"1998-09-12\",\"subjectType\":2},{\"id\":355796,\"name\":\"Star Trek Prodigy\",\"nameCn\":\"星际迷航 神童\",\"score\":7.4,\"ratingCount\":9,\"date\":\"2021-10-28\",\"subjectType\":2}],\"pending\":[],\"stage\":{\"inputCount\":30,\"processedCount\":30,\"matchedCount\":30,\"excludedCount\":0,\"pendingCount\":0,\"remainingCount\":0},\"set\":{\"workingCount\":30,\"resultCount\":30},\"page\":{\"cursor\":null,\"nextCursor\":null,\"limit\":30,\"returnedCount\":30,\"complete\":true},\"coverage\":{\"scope\":\"candidate_set\",\"coverageRef\":\"cv_1f1c5f49-d068-477a-b877-0b9630534eea\",\"mode\":\"summary\",\"complete\":false,\"sourceCount\":3,\"completeSourceCount\":2,\"incompleteSourceCount\":1,\"unknownTotalSourceCount\":0,\"pendingCount\":0,\"remainingCount\":0,\"unknownFieldCount\":2,\"failedFieldCount\":0,\"dependencyIncompleteCount\":0,\"dependencyPendingCount\":0,\"dependencyRemainingCount\":0,\"dependencyUnknownCount\":0,\"dependencyFailedCount\":0,\"sourceChanges\":[{\"tool\":\"get_subject_details\",\"source\":\"v0\",\"privateRecords\":\"public_only\",\"sourceCount\":2,\"addedCount\":2,\"updatedCount\":0,\"completeSourceCount\":2,\"incompleteSourceCount\":0,\"unknownTotalSourceCount\":0,\"scannedCount\":2}]},\"visibility\":\"public\",\"readAt\":\"2026-10-07T14:57:58.281Z\",\"accessContext\":{\"mode\":\"anonymous\",\"account\":null,\"nsfw\":{\"preference\":null,\"allowed\":null,\"state\":\"not_checked\"},\"source\":\"v0\",\"nsfwApplied\":false,\"checkedAt\":\"2026-10-07T14:57:57.967Z\"},\"resourceRef\":\"rr_f0cc71dc6197e70e27992aa9c05176e4\",\"fields\":[\"id\",\"name\",\"nameCn\",\"score\",\"ratingCount\",\"date\",\"subjectType\"],\"availableFields\":[\"schemaVersion\",\"kind\",\"entity\",\"candidateRef\",\"resultRef\",\"parentRef\",\"responseView\",\"id\",\"name\",\"nameCn\",\"score\",\"ratingCount\",\"date\",\"subjectType\",\"include\",\"stage\",\"inputCount\",\"processedCount\",\"matchedCount\",\"excludedCount\",\"pendingCount\",\"remainingCount\",\"workingCount\",\"resultCount\",\"visibility\",\"readAt\"]}}"
+      }
+    ],
+    "full": {
+      "value": {
+        "schemaVersion": 1,
+        "kind": "candidate_page",
+        "entity": "subject_candidate",
+        "candidateRef": "cr_2de174e4-b3b9-4dad-b816-e52b42878622",
+        "resultRef": "cr_2de174e4-b3b9-4dad-b816-e52b42878622",
+        "parentRef": "c_5e33495e-3e81-4f04-b076-b9fb15d508ec",
+        "responseView": "page",
+        "data": [
+          {
+            "id": 253,
+            "name": "カウボーイビバップ",
+            "nameCn": "星际牛仔",
+            "score": 9.1,
+            "ratingCount": 19896,
+            "date": "1998-10-23",
+            "subjectType": 2
+          },
+          {
+            "id": 860,
+            "name": "カウボーイビバップ 天国の扉",
+            "nameCn": "星际牛仔 天国之扉",
+            "score": 8.2,
+            "ratingCount": 7244,
+            "date": "2001-09-01",
+            "subjectType": 2
+          },
+          {
+            "id": 146215,
+            "name": "星际飚车王",
+            "nameCn": "",
+            "score": 5.2,
+            "ratingCount": 79,
+            "date": null,
+            "subjectType": 2,
+            "fieldStates": {
+              "date": "unknown"
+            }
+          },
+          {
+            "id": 333887,
+            "name": "星际侠探",
+            "nameCn": "",
+            "score": 7,
+            "ratingCount": 1,
+            "date": "2019-06-07",
+            "subjectType": 2
+          },
+          {
+            "id": 376670,
+            "name": "星际一游",
+            "nameCn": "星际一游",
+            "score": 5,
+            "ratingCount": 3,
+            "date": "2022-04-18",
+            "subjectType": 2
+          },
+          {
+            "id": 427132,
+            "name": "星际大逃亡",
+            "nameCn": "",
+            "score": 0,
+            "ratingCount": 0,
+            "date": "2020-06-01",
+            "subjectType": 2
+          },
+          {
+            "id": 569767,
+            "name": "星际护卫队",
+            "nameCn": "星际护卫队",
+            "score": 0,
+            "ratingCount": 0,
+            "date": null,
+            "subjectType": 2,
+            "fieldStates": {
+              "date": "unknown"
+            }
+          },
+          {
+            "id": 1307,
+            "name": "コヨーテ ラグタイムショー",
+            "nameCn": "星际海盗",
+            "score": 6,
+            "ratingCount": 103,
+            "date": "2006-07-03",
+            "subjectType": 2
+          },
+          {
+            "id": 8281,
+            "name": "てなもんやボイジャーズ",
+            "nameCn": "星际迷航俏女郎",
+            "score": 6.8,
+            "ratingCount": 162,
+            "date": "1999-06-25",
+            "subjectType": 2
+          },
+          {
+            "id": 35382,
+            "name": "E'S OTHERWISE",
+            "nameCn": "星际少年队",
+            "score": 5.3,
+            "ratingCount": 24,
+            "date": "2003-04-01",
+            "subjectType": 2
+          },
+          {
+            "id": 38695,
+            "name": "Lilo & Stitch",
+            "nameCn": "星际宝贝",
+            "score": 6.9,
+            "ratingCount": 474,
+            "date": "2002-06-21",
+            "subjectType": 2
+          },
+          {
+            "id": 38698,
+            "name": "Stitch! The Movie",
+            "nameCn": "星际宝贝史迪奇",
+            "score": 6.4,
+            "ratingCount": 59,
+            "date": "2003-08-26",
+            "subjectType": 2
+          },
+          {
+            "id": 38699,
+            "name": "Lilo & Stitch 2: Stitch Has a Glitch",
+            "nameCn": "星际宝贝2：史迪奇有问题",
+            "score": 6,
+            "ratingCount": 48,
+            "date": "2005-08-30",
+            "subjectType": 2
+          },
+          {
+            "id": 38700,
+            "name": "Leroy & Stitch",
+            "nameCn": "星际宝贝：终极任务",
+            "score": 6.3,
+            "ratingCount": 39,
+            "date": "2006-06-23",
+            "subjectType": 2
+          },
+          {
+            "id": 38701,
+            "name": "Lilo & Stitch: The Series",
+            "nameCn": "星际宝贝TV版",
+            "score": 7,
+            "ratingCount": 345,
+            "date": "2003-09-20",
+            "subjectType": 2
+          },
+          {
+            "id": 38702,
+            "name": "スティッチ!",
+            "nameCn": "星际宝贝！神奇大冒险",
+            "score": 6.2,
+            "ratingCount": 34,
+            "date": "2008-10-08",
+            "subjectType": 2
+          },
+          {
+            "id": 38703,
+            "name": "スティッチ! 〜いたずらエイリアンの大冒険〜",
+            "nameCn": "星际宝贝！外星大冒险",
+            "score": 5.7,
+            "ratingCount": 17,
+            "date": "2009-10-13",
+            "subjectType": 2
+          },
+          {
+            "id": 38704,
+            "name": "スティッチ! 〜ずっと最高のトモダチ〜",
+            "nameCn": "星际宝贝！～一直最高的朋友～",
+            "score": 5.8,
+            "ratingCount": 19,
+            "date": "2010-07-06",
+            "subjectType": 2
+          },
+          {
+            "id": 60022,
+            "name": "Extreme Dinosaurs",
+            "nameCn": "星际恐龙",
+            "score": 6.4,
+            "ratingCount": 245,
+            "date": "1997-09-01",
+            "subjectType": 2
+          },
+          {
+            "id": 75015,
+            "name": "Star Trek: The Animated Series Season 1",
+            "nameCn": "星际旅行：动画版 第一季",
+            "score": 6.6,
+            "ratingCount": 11,
+            "date": "1973-09-08",
+            "subjectType": 2
+          },
+          {
+            "id": 91628,
+            "name": "インターステラ5555:THE 5TORY OF THE 5ECRET 5TAR 5YSTEM",
+            "nameCn": "星际5555：异星梦系统秘传",
+            "score": 7.1,
+            "ratingCount": 143,
+            "date": "2003-12-03",
+            "subjectType": 2
+          },
+          {
+            "id": 123444,
+            "name": "Wander Over Yonder",
+            "nameCn": "星际漫步",
+            "score": 7,
+            "ratingCount": 9,
+            "date": "2013-08-16",
+            "subjectType": 2
+          },
+          {
+            "id": 143400,
+            "name": "Wander Over Yonder Season 2",
+            "nameCn": "星际漫步 第二季",
+            "score": 7,
+            "ratingCount": 7,
+            "date": "2015-08-03",
+            "subjectType": 2
+          },
+          {
+            "id": 179935,
+            "name": "スターフォックス ゼロ ザ・バトル・ビギンズ",
+            "nameCn": "星际火狐：零 战斗开始",
+            "score": 6.1,
+            "ratingCount": 9,
+            "date": "2016-04-21",
+            "subjectType": 2
+          },
+          {
+            "id": 268430,
+            "name": "Star Trek: The Animated Series Season 2",
+            "nameCn": "星际旅行：动画版 第二季",
+            "score": 6,
+            "ratingCount": 3,
+            "date": "1974-09-07",
+            "subjectType": 2
+          },
+          {
+            "id": 286478,
+            "name": "UNBELIEVABLE SPACE LOVE",
+            "nameCn": "星际幻爱",
+            "score": 6.5,
+            "ratingCount": 22,
+            "date": "2018-07-17",
+            "subjectType": 2
+          },
+          {
+            "id": 314041,
+            "name": "Star Trek: Lower Decks Season 1",
+            "nameCn": "星际迷航：下层舰员 第一季",
+            "score": 7.6,
+            "ratingCount": 30,
+            "date": "2020-08-06",
+            "subjectType": 2
+          },
+          {
+            "id": 347693,
+            "name": "Star Trek: Lower Decks Season 2",
+            "nameCn": "星际迷航：下层舰员 第二季",
+            "score": 7.1,
+            "ratingCount": 21,
+            "date": "2021-08-12",
+            "subjectType": 2
+          },
+          {
+            "id": 349076,
+            "name": "Voltron: The Third Dimension",
+            "nameCn": "星际争霸战",
+            "score": 0,
+            "ratingCount": 0,
+            "date": "1998-09-12",
+            "subjectType": 2
+          },
+          {
+            "id": 355796,
+            "name": "Star Trek Prodigy",
+            "nameCn": "星际迷航 神童",
+            "score": 7.4,
+            "ratingCount": 9,
+            "date": "2021-10-28",
+            "subjectType": 2
+          }
+        ],
+        "pending": [],
+        "fields": [
+          "id",
+          "name",
+          "nameCn",
+          "score",
+          "ratingCount",
+          "date",
+          "subjectType"
+        ],
+        "include": [],
+        "filter": {},
+        "scope": {
+          "candidate_ref": "cr_2de174e4-b3b9-4dad-b816-e52b42878622",
+          "fields": [
+            "id",
+            "name",
+            "nameCn",
+            "score",
+            "ratingCount",
+            "date",
+            "subjectType"
+          ],
+          "limit": 30,
+          "filter": {},
+          "response_view": "page"
+        },
+        "stage": {
+          "inputCount": 30,
+          "processedCount": 30,
+          "matchedCount": 30,
+          "excludedCount": 0,
+          "pendingCount": 0,
+          "remainingCount": 0
+        },
+        "set": {
+          "workingCount": 30,
+          "resultCount": 30
+        },
+        "page": {
+          "cursor": null,
+          "nextCursor": null,
+          "limit": 30,
+          "returnedCount": 30,
+          "complete": true
+        },
+        "coverage": {
+          "scope": "candidate_set",
+          "coverageRef": "cv_1f1c5f49-d068-477a-b877-0b9630534eea",
+          "mode": "summary",
+          "complete": false,
+          "sourceCount": 3,
+          "completeSourceCount": 2,
+          "incompleteSourceCount": 1,
+          "unknownTotalSourceCount": 0,
+          "pendingCount": 0,
+          "remainingCount": 0,
+          "unknownFieldCount": 2,
+          "failedFieldCount": 0,
+          "dependencyIncompleteCount": 0,
+          "dependencyPendingCount": 0,
+          "dependencyRemainingCount": 0,
+          "dependencyUnknownCount": 0,
+          "dependencyFailedCount": 0,
+          "sourceChanges": [
+            {
+              "tool": "get_subject_details",
+              "source": "v0",
+              "privateRecords": "public_only",
+              "sourceCount": 2,
+              "addedCount": 2,
+              "updatedCount": 0,
+              "completeSourceCount": 2,
+              "incompleteSourceCount": 0,
+              "unknownTotalSourceCount": 0,
+              "scannedCount": 2
+            }
+          ]
+        },
+        "visibility": "public",
+        "readAt": "2026-10-07T14:57:58.281Z",
+        "accessContext": {
+          "mode": "anonymous",
+          "account": null,
+          "nsfw": {
+            "preference": null,
+            "allowed": null,
+            "state": "not_checked"
+          },
+          "source": "v0",
+          "nsfwApplied": false,
+          "checkedAt": "2026-10-07T14:57:57.967Z"
+        },
+        "resourceRef": "rr_f0cc71dc6197e70e27992aa9c05176e4"
+      }
+    }
+  },
+  {
+    "name": "get_subject_details",
+    "toolCallId": "call_00_B8U6etCMQxdtgRAxaRVZ5180",
+    "isError": false,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"value\":{\"schemaVersion\":1,\"entity\":\"subject\",\"id\":253,\"subjectType\":2,\"name\":\"カウボーイビバップ\",\"nameCn\":\"星际牛仔\",\"date\":\"1998-10-23\",\"score\":9.1,\"rank\":4,\"ratingCount\":19859,\"totalEpisodes\":31,\"tags\":[\"渡边信一郎\",\"菅野洋子\",\"星际牛仔\",\"科幻\",\"经典\",\"SUNRISE\",\"神作\",\"神配乐\",\"TV\",\"1998\",\"原创\",\"CowboyBebop\",\"林原惠\",\"cowboy\",\"日本\",\"山寺宏一\",\"公路片\",\"1998年10月\",\"浪漫\",\"战斗\",\"渡辺信一郎\",\"BONES\",\"信本敬子\",\"单元剧\",\"音乐\",\"1998年\",\"菅野よう子\",\"公路\",\"川元利浩\",\"90年代\"],\"url\":\"https://bgm.tv/subject/253\",\"image\":\"https://lain.bgm.tv/r/800/pic/cover/l/c2/4c/253_jJJj9.jpg\",\"included\":[\"summary\"],\"summary\":\"       2021年，随着超光速航行技术的实现，人类得以在太阳系范围内方便的自由移动，但是由于设计上的失误，这种技术引发了月球的爆炸，无数的月球碎片被吸引向地球，造成了空前绝后的大灾难。存活下来的人类逃离地球，并开始在太阳系各地建立家园。由于这次灾难，国家、政府等权利机构都极为不稳定、治安问题也成为了一个难题。为了在人力资源不足的情况下抓捕罪犯，有些组织开始允许个人抓捕通缉的罪犯并换取奖金，“赏金猎人”这个职业也就由此诞生了。\\r\\n       史派克（Spike）和杰特（Jet）是驾驶飞船Bebop号在宇宙中以捉拿逃犯获取奖金为生的赏金猎人。两人在星际间的旅程中，结识了身负巨债、嗜财如命的美女菲（Faye）和电脑神童艾德（Ed），并收养了拥有高智商的数据狗爱因（Ein）。从此，四人一狗游荡在广阔之宇宙之中，在自己与他人的生活中经历著种种悲欢离合，也寻找著各自的过去。\",\"accessContext\":{\"mode\":\"anonymous\",\"account\":null,\"nsfw\":{\"preference\":null,\"allowed\":null,\"state\":\"not_checked\"},\"source\":\"v0\",\"nsfwApplied\":false,\"checkedAt\":\"2026-10-07T14:58:00.140Z\"},\"resourceRef\":\"rr_455f0047e69fee0610367cec767666a5\",\"fields\":[\"id\",\"name\",\"nameCn\",\"subjectType\",\"date\",\"score\",\"rank\",\"ratingCount\",\"image\",\"summary\",\"url\",\"tags\",\"totalEpisodes\"],\"availableFields\":[\"schemaVersion\",\"entity\",\"id\",\"subjectType\",\"name\",\"nameCn\",\"date\",\"platform\",\"nsfw\",\"score\",\"rank\",\"ratingCount\",\"totalEpisodes\",\"totalVolumes\",\"tags\",\"metaTags\",\"url\",\"images\",\"image\",\"series\",\"included\",\"summary\"]}}"
+      }
+    ],
+    "full": {
+      "value": {
+        "schemaVersion": 1,
+        "entity": "subject",
+        "id": 253,
+        "subjectType": 2,
+        "name": "カウボーイビバップ",
+        "nameCn": "星际牛仔",
+        "date": "1998-10-23",
+        "platform": "TV",
+        "nsfw": false,
+        "score": 9.1,
+        "rank": 4,
+        "ratingCount": 19859,
+        "totalEpisodes": 31,
+        "totalVolumes": 0,
+        "tags": [
+          "渡边信一郎",
+          "菅野洋子",
+          "星际牛仔",
+          "科幻",
+          "经典",
+          "SUNRISE",
+          "神作",
+          "神配乐",
+          "TV",
+          "1998",
+          "原创",
+          "CowboyBebop",
+          "林原惠",
+          "cowboy",
+          "日本",
+          "山寺宏一",
+          "公路片",
+          "1998年10月",
+          "浪漫",
+          "战斗",
+          "渡辺信一郎",
+          "BONES",
+          "信本敬子",
+          "单元剧",
+          "音乐",
+          "1998年",
+          "菅野よう子",
+          "公路",
+          "川元利浩",
+          "90年代"
+        ],
+        "metaTags": [
+          "科幻",
+          "TV",
+          "日本",
+          "原创"
+        ],
+        "url": "https://bgm.tv/subject/253",
+        "images": {
+          "large": "https://lain.bgm.tv/pic/cover/l/c2/4c/253_jJJj9.jpg",
+          "common": "https://lain.bgm.tv/r/400/pic/cover/l/c2/4c/253_jJJj9.jpg",
+          "medium": "https://lain.bgm.tv/r/800/pic/cover/l/c2/4c/253_jJJj9.jpg",
+          "small": "https://lain.bgm.tv/r/200/pic/cover/l/c2/4c/253_jJJj9.jpg",
+          "grid": "https://lain.bgm.tv/r/100/pic/cover/l/c2/4c/253_jJJj9.jpg"
+        },
+        "image": "https://lain.bgm.tv/r/800/pic/cover/l/c2/4c/253_jJJj9.jpg",
+        "series": false,
+        "included": [
+          "summary"
+        ],
+        "summary": "       2021年，随着超光速航行技术的实现，人类得以在太阳系范围内方便的自由移动，但是由于设计上的失误，这种技术引发了月球的爆炸，无数的月球碎片被吸引向地球，造成了空前绝后的大灾难。存活下来的人类逃离地球，并开始在太阳系各地建立家园。由于这次灾难，国家、政府等权利机构都极为不稳定、治安问题也成为了一个难题。为了在人力资源不足的情况下抓捕罪犯，有些组织开始允许个人抓捕通缉的罪犯并换取奖金，“赏金猎人”这个职业也就由此诞生了。\r\n       史派克（Spike）和杰特（Jet）是驾驶飞船Bebop号在宇宙中以捉拿逃犯获取奖金为生的赏金猎人。两人在星际间的旅程中，结识了身负巨债、嗜财如命的美女菲（Faye）和电脑神童艾德（Ed），并收养了拥有高智商的数据狗爱因（Ein）。从此，四人一狗游荡在广阔之宇宙之中，在自己与他人的生活中经历著种种悲欢离合，也寻找著各自的过去。",
+        "accessContext": {
+          "mode": "anonymous",
+          "account": null,
+          "nsfw": {
+            "preference": null,
+            "allowed": null,
+            "state": "not_checked"
+          },
+          "source": "v0",
+          "nsfwApplied": false,
+          "checkedAt": "2026-10-07T14:58:00.140Z"
+        },
+        "resourceRef": "rr_455f0047e69fee0610367cec767666a5"
+      }
+    }
+  }
+]

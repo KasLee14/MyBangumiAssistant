@@ -1,17 +1,59 @@
 import { randomUUID, createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 import { lazyStream, type AssistantMessage, type AssistantMessageEvent } from '@earendil-works/pi-ai';
 import { retryDelayMs, type RetryPolicy } from '@earendil-works/pi-ai/utils/retry';
 import type { AgentSession, ExtensionAPI, SessionBoundaryDraft } from '@earendil-works/pi-coding-agent';
 import { assistantErrorDiagnostic, createErrorDiagnostic, withAssistantDiagnostic, type ErrorDiagnostic } from '../support/error-diagnostic.js';
 import { sanitizeErrorDiagnostic } from '../support/errors.js';
-import { TOOL_DEFINITIONS } from '../mcp/catalog.js';
+import { TOOL_DEFINITIONS, validateToolArguments, findToolDefinition } from '../mcp/catalog.js';
+import { schemaArguments } from '../support/tool-schema.js';
 import { outputCheckpoint, attachOutputCheckpoint } from './recovery-checkpoint.js';
 import { validateMixedContent, validateMixedPart, type MixedPart } from './content-schema.js';
 import { deriveNextTypes, contentFingerprint } from './content-normalize.js';
+import { projectContentForModel } from './model-context.js';
 
 type Mode = 'retry_request' | 'continue_output' | 'repair_component' | 'regenerate_output' | 'replan_read' | 'report_failure';
-interface Plan { mode: Mode; prefix: MixedPart[]; feedback: string; delayMs: number; errorId: string }
+interface ResourceSource { tool: string; args: Record<string, unknown>; publicArgs: Record<string, unknown>; ids: number[]; components: Record<string, number[][]>; state?: Record<string, unknown> }
+interface ReferenceRefresh { source: ResourceSource; kind: string; ids: number[]; readStarted?: boolean }
+interface Plan { mode: Mode; prefix: MixedPart[]; feedback: string; delayMs: number; errorId: string; referenceRefresh?: ReferenceRefresh }
+type Data = Record<string, unknown>;
+const referenceIdentityKinds = new Set(['SubjectCards', 'Gallery', 'ProgressView']);
+const record = (value: unknown): value is Data => value !== null && typeof value === 'object' && !Array.isArray(value);
+const positiveId = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+// 仅解包公开续查契约中的这一层；不递归搜寻远端对象中的任意result。
+const resourceValue = (value: Data): Data => value.kind === 'candidate_continuation' && record(value.result) && value.result.kind === 'candidate_page' ? value.result : value;
+function resourceState(value: Data): Data | undefined {
+  if (!value.resultRef && !value.candidateRef) return undefined;
+  return structuredClone(Object.fromEntries(['resultRef', 'candidateRef', 'scope', 'coverage'].filter(key => value[key] !== undefined).map(key => [key, value[key]])));
+}
+function presentationMembers(value: Data): Record<string, number[][]> {
+  const presentation = record(value.presentation) ? value.presentation : undefined;
+  const parts = Array.isArray(presentation?.content) ? presentation.content : presentation?.type ? [presentation] : [];
+  const result: Record<string, number[][]> = {};
+  for (const part of parts) {
+    if (!record(part) || typeof part.type !== 'string' || !record(part.props)) continue;
+    const rows = part.props.items ?? part.props.episodes;
+    if (!Array.isArray(rows) || rows.some(item => !record(item) || !positiveId(item.id))) continue;
+    (result[part.type] ??= []).push(rows.map(item => (item as { id: number }).id));
+  }
+  return result;
+}
+function referenceIds(draft: { type?: string; props?: { partIndex?: number; items?: Record<string, unknown>[] } }, source: ResourceSource): number[] | undefined {
+  if (draft.props?.items) {
+    const ids = draft.props.items.map(item => item.id ?? item.characterId ?? item.personId ?? item.episodeId ?? item.subjectId);
+    return ids.every(positiveId) && new Set(ids).size === ids.length ? ids : undefined;
+  }
+  return source.components[draft.type ?? '']?.[draft.props?.partIndex ?? 0] ?? (source.ids.length ? source.ids : undefined);
+}
+function referenceFailureInstruction(reason: string, diagnostic?: ErrorDiagnostic): string {
+  if (reason === 'resource_reference_access_denied') return '缓存引用的账户、权限或读取轮次绑定不匹配，停止所有工具操作。仅依据error中的具体错误说明展示限制，保留已完成部分，不重取数据、不绕过账户或NSFW范围。';
+  if (reason === 'resource_reference_stage_incomplete' && diagnostic?.causes.some(cause => cause.code === 'CANDIDATE_REQUIRED_FACTS_MISSING'))
+    return '候选卡片所需的必要展示事实尚未核实完整，停止本次展示恢复。用text仅依据error说明名称、媒体类型等必要字段缺口；不能根据展示字段缺失推断还有未处理候选，也不能声称展示已完成。保留已完成部分，不替换成员、不扩大查询范围。';
+  if (reason === 'resource_reference_stage_incomplete') return '候选阶段尚未完成，停止本次展示恢复。用text明确原筛选范围仍有未处理或待核条目；只引用error及scope.coverage中已知的pendingCount、remainingCount和完整性，未知计数说明未知，不能将已核实部分声称为完整结果或任务已完成。保留已完成部分，不扩大查询范围。';
+  if (reason === 'resource_reference_refresh_required') return '缓存引用已失效，当前失败组件不能由宿主可靠核验原来源、成员范围及顺序。停止工具操作，用text说明引用失效和展示缺口，保留已完成部分；不能替换成员、重搜全站或推断账户、权限发生变化。';
+  return '缓存引用读取发生内部或传输故障，停止工具操作。用text依据error中的真实错误码和诊断说明展示失败及缺口，保留已完成部分；没有账户或权限错误证据时不得归因为账户或权限变化。';
+}
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const mixed = (message: AssistantMessage): MixedPart[] => message.content.filter(part => part.type !== 'thinking' && part.type !== 'toolCall').map(part =>
   part.type === 'text' ? validateMixedPart({ type: 'text', nextType: part.nextType, text: part.text }) : part);
@@ -41,16 +83,31 @@ export class RecoveryController {
   private scope: unknown[] = [];
   private toolFailures = new Set<string>();
   private requiredIds: number[] | undefined;
+  private readonly resourceSources = new Map<string, ResourceSource>();
   constructor(private readonly policy: () => RetryPolicy) {}
 
   private reset(): void {
     this.wait?.abort(); this.wait = undefined;
     if (this.originalTools && this.session) this.session.setActiveToolsByName(this.originalTools);
     this.originalTools = undefined; this.plan = undefined; this.pending = false; this.stopped = false;
-    this.attempts = 0; this.noProgress = 0; this.lastFailure = ''; this.scope = []; this.requiredIds = undefined; this.toolFailures.clear(); this.chainId = randomUUID(); this.epoch++;
+    this.attempts = 0; this.noProgress = 0; this.lastFailure = ''; this.scope = []; this.requiredIds = undefined; this.toolFailures.clear(); this.resourceSources.clear(); this.chainId = randomUUID(); this.epoch++;
   }
   bind(session: AgentSession): void {
     this.session = session;
+    const beforeToolCall = session.agent.beforeToolCall;
+    session.agent.beforeToolCall = async (call, signal) => {
+      const previous = await beforeToolCall?.(call, signal);
+      if (previous?.block) return previous;
+      const refresh = this.plan?.referenceRefresh;
+      if (!refresh) return previous;
+      if (refresh.readStarted) return { block: true, terminate: true, reason: '本次引用恢复已尝试读取原来源，不能重复请求。' };
+      try {
+        if (call.toolCall.name !== refresh.source.tool || !isDeepStrictEqual(validateToolArguments(call.toolCall.name, call.args), refresh.source.args))
+          return { block: true, terminate: true, reason: '引用恢复只允许以原查询参数重新读取同一来源，不能改变范围或调用写工具。' };
+      } catch { return { block: true, terminate: true, reason: '引用恢复查询不符合原来源绑定。' }; }
+      refresh.readStarted = true;
+      return previous;
+    };
     const prepare = session.agent.prepareRequest;
     session.agent.prepareRequest = async (request, signal) => {
       const result = await prepare?.(request, signal), context = result?.context ?? request.context;
@@ -87,16 +144,29 @@ export class RecoveryController {
             const message = event.type === 'error' ? event.error : event.type === 'done' ? event.message : event.partial;
             const prefix = plan?.prefix ?? [];
             const projected = { ...message, content: event.type === 'done' ? connect([...prefix, ...message.content]) : [...prefix, ...message.content] };
-            if (event.type === 'done' && plan && ['continue_output', 'repair_component', 'regenerate_output', 'report_failure'].includes(plan.mode)) {
+            if (event.type === 'done' && plan && (['continue_output', 'repair_component', 'regenerate_output', 'report_failure'].includes(plan.mode)
+              || plan.referenceRefresh && !message.content.some(part => part.type === 'toolCall'))) {
               try {
                 if (message.content.some(part => part.type === 'toolCall')) throw new Error('恢复阶段禁止工具调用。');
+                if (plan.mode === 'report_failure' && message.content.some(part => part.type !== 'text' && part.type !== 'thinking'))
+                  throw new Error('展示失败报告仅允许text后缀，不能新增或替换组件；已完成组件由宿主保留。');
+                if (plan.referenceRefresh && message.content.some(part => part.type !== 'text' && part.type !== 'thinking' && part.type !== plan.referenceRefresh!.kind))
+                  throw new Error('引用恢复后缀只允许原目标组件及text，不能附加其他组件扩大成员范围。');
                 validateMixedContent({ content: mixed(projected) });
                 const previousIds = new Set(prefix.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []));
                 const returnedIds = mixed(message).flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []);
                 if (returnedIds.some(id => previousIds.has(id)) || new Set(returnedIds).size !== returnedIds.length) throw new Error('恢复结果重复已交付作品。');
+                if (plan.referenceRefresh && referenceIdentityKinds.has(plan.referenceRefresh.kind)) {
+                  const targetIds = message.content.flatMap(part => {
+                    if (part.type !== plan.referenceRefresh!.kind || part.type === 'text' || part.type === 'thinking' || part.type === 'toolCall') return [];
+                    const props = part.props as { items?: { id: number }[]; episodes?: { id: number }[] };
+                    return (props.items ?? props.episodes ?? []).map(item => item.id);
+                  });
+                  if (!isDeepStrictEqual(targetIds, plan.referenceRefresh.ids)) throw new Error('引用恢复改变了原成员范围或顺序。');
+                }
                 if (plan.mode !== 'report_failure' && controller.requiredIds) {
-                  const all = [...previousIds, ...returnedIds].sort((a, b) => a - b);
-                  if (JSON.stringify(all) !== JSON.stringify([...controller.requiredIds].sort((a, b) => a - b))) throw new Error('恢复结果改变了宿主已准备的完整作品集合。');
+                  const all = [...previousIds, ...returnedIds];
+                  if (!isDeepStrictEqual(all, controller.requiredIds)) throw new Error('恢复结果改变了宿主已准备的完整作品集合或顺序。');
                 }
               } catch (error) {
                 const diagnostic = createErrorDiagnostic({ code: 'CONTENT_SCHEMA_INVALID', reason: 'recovery_result_invalid', origin: 'content', stage: 'validate', recovery: 'repair_component',
@@ -149,17 +219,30 @@ export class RecoveryController {
     this.noProgress = failure === this.lastFailure ? this.noProgress + 1 : 0; this.lastFailure = failure;
     const policy = this.policy();
     let mode: Mode | undefined;
+    let referenceRefresh: ReferenceRefresh | undefined;
+    const draft = cp.draft as { type?: string; props?: { resourceRef?: string; partIndex?: number; items?: Record<string, unknown>[] } } | undefined;
+    const source = draft?.props?.resourceRef ? this.resourceSources.get(draft.props.resourceRef) : undefined;
     if (['continue_output', 'repair_component'].includes(diagnostic.recovery) || diagnostic.recovery === 'correct_parameters' && diagnostic.origin === 'content')
       mode = diagnostic.recovery === 'repair_component' ? 'repair_component' : 'continue_output';
     if (diagnostic.recovery === 'retry_request') mode = prefix.length ? 'continue_output' : 'retry_request';
     if (cp.failureScope === 'envelope' && diagnostic.origin === 'content') mode = 'regenerate_output';
     // 供应商网络/限流错误优先使用原诊断的退避策略；空线路断点不能把它改成即时JSON续写。
     if (cp.failureScope === 'json' && mode && diagnostic.recovery !== 'retry_request') mode = 'continue_output';
+    if (diagnostic.reason === 'resource_reference_refresh_required') {
+      const ids = source && draft ? referenceIds(draft, source) : undefined;
+      const identityVerifiable = referenceIdentityKinds.has(draft?.type ?? '');
+      mode = source && ids && identityVerifiable ? 'replan_read' : 'report_failure';
+      if (source && ids && identityVerifiable) {
+        referenceRefresh = { source, kind: draft?.type ?? '', ids };
+      }
+    } else if (['resource_reference_stage_incomplete', 'resource_reference_access_denied', 'resource_reference_unavailable'].includes(diagnostic.reason)) mode = 'report_failure';
+    // 同一引用恢复后的组件校验若失败，修复后缀也必须保留原成员锁，不能借普通repair_component换成员。
+    else if (mode && mode !== 'report_failure' && this.plan?.referenceRefresh) referenceRefresh = this.plan.referenceRefresh;
     if (!policy.enabled || this.attempts >= policy.maxRetries || this.noProgress >= 2 || !mode || this.stopped || this.plan?.mode === 'report_failure') {
       this.stopped = true; this.pending = false;
       return [{ type: 'context_edit', targetId, replacement: null }, this.record('stopped', diagnostic), {
         type: 'custom_message', customType: 'bangumi/recovery-result', display: false,
-        content: JSON.stringify({ kind: 'host_recovery_result', status: 'stopped', error: sanitizeErrorDiagnostic(diagnostic), completedContent: prefix, scope: this.scope }),
+        content: JSON.stringify({ kind: 'host_recovery_result', status: 'stopped', error: sanitizeErrorDiagnostic(diagnostic), completedContent: projectContentForModel(prefix), scope: this.scope }),
       }];
     }
     // 断点只能推进；已有合法块在后续失败中不能消失或被模型重写。
@@ -168,18 +251,23 @@ export class RecoveryController {
     }
     this.attempts++;
     const feedback = { schemaVersion: 1, kind: 'host_recovery_feedback', chainId: this.chainId, attempt: this.attempts, maxAttempts: policy.maxRetries,
-      error: sanitizeErrorDiagnostic(diagnostic), scope: this.scope,
+      error: sanitizeErrorDiagnostic(diagnostic), scope: source?.state ? [source.state] : this.scope,
       checkpoint: { completedParts: prefix.length, resumeAt: prefix.length, errorPathScope: 'last_response_suffix',
         failureScope: cp.failureScope ?? 'unknown', ...(cp.failedPartIndex === undefined ? {} : { failedPartIndex: cp.failedPartIndex }),
         completedSubjectIds: prefix.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []),
-        ...(cp.draft === undefined ? {} : { draft: cp.draft }), jsonComplete: cp.jsonComplete },
+        ...(cp.draft === undefined ? {} : { draft: projectContentForModel(cp.draft) }), jsonComplete: cp.jsonComplete },
       goal: { strategy: mode, instruction: mode === 'retry_request' ? '依据错误恢复当前阶段，保留已完成工具结果及用户范围。'
+        : mode === 'replan_read' ? '缓存引用已失效。只能按referenceSource的原工具和原参数重新读取同一来源，取得新resourceRef后仅补未完成组件；保留原成员、顺序和用户条件，不调用写工具，不重复已完成前缀。'
+        : mode === 'report_failure' ? referenceFailureInstruction(diagnostic.reason, diagnostic)
         : '只返回resumeAt位置的待修复块及必要后续内容，或尚未完成的后缀。若确实没有剩余内容，返回content空数组作为独立响应结束。禁止重复已完成作品，禁止工具调用，输出独立合法content JSON；完成部分由宿主合并并维护连接状态。' } };
+    if (referenceRefresh) Object.assign(feedback, { referenceSource: { tool: referenceRefresh.source.tool, args: referenceRefresh.source.publicArgs, memberIds: referenceRefresh.ids } });
     this.plan = { mode, prefix, feedback: JSON.stringify(feedback), errorId: diagnostic.errorId,
+      ...(referenceRefresh ? { referenceRefresh } : {}),
       delayMs: mode === 'retry_request' ? retryDelayMs(policy, this.attempts) : 0 };
     this.pending = true;
     if (!this.originalTools) this.originalTools = this.session!.getActiveToolNames();
-    if (mode !== 'retry_request') this.session!.setActiveToolsByName([]);
+    if (referenceRefresh && mode === 'replan_read') this.session!.setActiveToolsByName([referenceRefresh.source.tool]);
+    else if (mode !== 'retry_request') this.session!.setActiveToolsByName([]);
     return [{ type: 'context_edit', targetId, replacement: null }, this.record('scheduled', diagnostic), {
       type: 'custom_message', customType: 'bangumi/recovery-feedback', content: this.plan.feedback, display: false, details: { chainId: this.chainId, attempt: this.attempts },
     }];
@@ -195,11 +283,33 @@ export class RecoveryController {
         const value = (result.details as { value?: unknown } | undefined)?.value;
         if (value && typeof value === 'object') {
           const row = value as Record<string, unknown>;
-          if (row.resultRef || row.candidateRef) { this.scope.push({ resultRef: row.resultRef, candidateRef: row.candidateRef, scope: row.scope, coverage: row.coverage }); this.scope = this.scope.slice(-4); }
+          const resource = resourceValue(row);
+          const sourceCall = event.message.content.find(part => part.type === 'toolCall' && part.id === result.toolCallId);
+          if (typeof row.resourceRef === 'string' && sourceCall?.type === 'toolCall' && result.toolName !== 'read_cached_resource'
+            && TOOL_DEFINITIONS.find(tool => tool.name === result.toolName)?.effect === 'read') {
+            const data = Array.isArray(resource.data) ? resource.data : [resource];
+            const ids = data.flatMap(value => {
+              if (!record(value)) return [];
+              const target = value.character ?? value.person ?? value.episode ?? value.subject ?? value.target ?? value;
+              return record(target) && positiveId(target.id) ? [target.id] : [];
+            });
+            const components = presentationMembers(resource), state = resourceState(resource);
+            const definition = findToolDefinition(result.toolName);
+            this.resourceSources.set(row.resourceRef, { tool: result.toolName, args: validateToolArguments(result.toolName, sourceCall.arguments),
+              publicArgs: schemaArguments(definition.modelInputSchema ?? definition.inputSchema, sourceCall.arguments), ids, components,
+              ...(state ? { state } : {}) });
+          }
+          const state = resourceState(resource);
+          if (state) { this.scope.push(state); this.scope = this.scope.slice(-4); }
           if (row.kind === 'candidate_output' && row.format === 'subject_cards') {
-            const counts = row.counts as { memberCount?: number; preparedCount?: number };
-            const presentation = row.presentation as { content?: MixedPart[] };
-            if (counts?.memberCount === counts?.preparedCount && Array.isArray(presentation?.content)) this.requiredIds = presentation.content.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []);
+            const counts = record(row.counts) ? row.counts : undefined;
+            const ids = presentationMembers(row).SubjectCards?.flat(), page = record(row.page) ? row.page : undefined;
+            this.requiredIds = undefined;
+            // 全体成员只能由canonical已准备快照与一致计数证明；模型投影的scope/reasons并不代表全体。
+            if (counts && typeof counts.memberCount === 'number' && Number.isSafeInteger(counts.memberCount) && counts.memberCount >= 0
+              && counts.memberCount === counts.preparedCount && counts.remainingCount === 0 && ids
+              && ids.length === counts.preparedCount && new Set(ids).size === ids.length
+              && (!page || page.offset === 0 && page.complete === true && page.returnedCount === counts.memberCount)) this.requiredIds = ids;
           }
           const unknown = result.toolName === 'execute_write_batch' && (row.state === 'unknown' || Number((row.summary as { unknown?: number } | undefined)?.unknown ?? 0) > 0);
           if (unknown) {
@@ -213,6 +323,17 @@ export class RecoveryController {
           }
         }
         if (result.isError) {
+          if (this.plan?.referenceRefresh) {
+            const { referenceRefresh: _refresh, ...previous } = this.plan;
+            const diagnostic = (result.details as { error?: { diagnostic?: ErrorDiagnostic } } | undefined)?.error?.diagnostic;
+            const feedback = JSON.stringify({ schemaVersion: 1, kind: 'host_recovery_feedback', chainId: this.chainId,
+              ...(diagnostic ? { error: sanitizeErrorDiagnostic(diagnostic) } : {}), scope: this.scope,
+              checkpoint: { completedParts: previous.prefix.length, resumeAt: previous.prefix.length },
+              goal: { strategy: 'report_failure', instruction: '原来源重读未完成。停止所有工具，保留已完成组件，用text仅依据已有错误说明读取或展示缺口；没有账户或权限错误证据时不能推断账户或权限问题，不重发、不扩大查询范围，也不能声称任务已完成。' } });
+            this.plan = { ...previous, mode: 'report_failure', feedback };
+            this.session!.setActiveToolsByName([]); this.pending = true;
+            return { entries: [this.record('reference_read_failed', diagnostic), { type: 'custom_message', customType: 'bangumi/recovery-feedback', content: feedback, display: false, details: { chainId: this.chainId } }] };
+          }
           if (!this.policy().enabled) continue;
           const safe = (result.details as { error?: { diagnostic?: ErrorDiagnostic; diagnosis?: { replanAllowed?: boolean }; networkAttempted?: false } } | undefined)?.error;
           const diagnostic = safe?.diagnostic;

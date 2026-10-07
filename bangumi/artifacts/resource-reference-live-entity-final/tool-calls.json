@@ -1,0 +1,66 @@
+[
+  {
+    "id": "call_00_uSPzUyFtnCfku9z6Alp28088",
+    "name": "get_person_details",
+    "arguments": {
+      "person_id": 1,
+      "fields": [
+        "id",
+        "name",
+        "entity",
+        "personType",
+        "career",
+        "image",
+        "url",
+        "summary"
+      ]
+    }
+  },
+  {
+    "id": "call_01_k83vFl4dtnBU9w5qwycD9053",
+    "name": "get_character_details",
+    "arguments": {
+      "character_id": 1,
+      "fields": [
+        "id",
+        "name",
+        "entity",
+        "characterType",
+        "image",
+        "url",
+        "summary"
+      ]
+    }
+  },
+  {
+    "id": "call_00_WBTZMREXPB33gOIDHna49825",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_4aec871f6f6ad2947e4b50cda89f16c8",
+      "fields": [
+        "id",
+        "name",
+        "entity",
+        "personType",
+        "career",
+        "image",
+        "url"
+      ]
+    }
+  },
+  {
+    "id": "call_01_hamN0lklMHB7tKNw2Dom6609",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_70c11c5e14a36ee3f8c4bc6dc1951cab",
+      "fields": [
+        "id",
+        "name",
+        "entity",
+        "characterType",
+        "image",
+        "url"
+      ]
+    }
+  }
+]

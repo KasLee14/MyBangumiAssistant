@@ -1,0 +1,230 @@
+{
+  "toolProjectionAudit": [
+    {
+      "name": "get_subject_details",
+      "arguments": {
+        "subject_id": 253
+      },
+      "error": true,
+      "modelBytes": 2,
+      "fullBytes": 2,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": []
+    },
+    {
+      "name": "get_subject_details",
+      "arguments": {
+        "subject_id": 253
+      },
+      "error": true,
+      "modelBytes": 2,
+      "fullBytes": 2,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": []
+    },
+    {
+      "name": "get_subject_details",
+      "arguments": {
+        "subject_id": 253,
+        "fields": [
+          "id",
+          "name",
+          "nameCn",
+          "kind",
+          "image",
+          "score",
+          "rank",
+          "summary",
+          "url",
+          "tags",
+          "date",
+          "ratingCount"
+        ]
+      },
+      "error": true,
+      "modelBytes": 2,
+      "fullBytes": 2,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": [
+        "id",
+        "name",
+        "nameCn",
+        "kind",
+        "image",
+        "score",
+        "rank",
+        "summary",
+        "url",
+        "tags",
+        "date",
+        "ratingCount"
+      ]
+    },
+    {
+      "name": "get_subject_image",
+      "arguments": {
+        "subject_id": 253,
+        "image_type": "large"
+      },
+      "error": true,
+      "modelBytes": 2,
+      "fullBytes": 2,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": []
+    },
+    {
+      "name": "refine_subject_candidates",
+      "arguments": {
+        "subject_ids": [
+          253
+        ],
+        "fields": [
+          "id",
+          "name",
+          "nameCn",
+          "kind",
+          "image",
+          "score",
+          "rank",
+          "summary",
+          "url",
+          "tags",
+          "date"
+        ]
+      },
+      "error": true,
+      "modelBytes": 675,
+      "fullBytes": 675,
+      "resourceRefs": [],
+      "visibleDisplayFields": [],
+      "fullDisplayFields": [],
+      "displayFieldsExplicitlyRequested": [
+        "id",
+        "name",
+        "nameCn",
+        "kind",
+        "image",
+        "score",
+        "rank",
+        "summary",
+        "url",
+        "tags",
+        "date"
+      ]
+    }
+  ],
+  "providerPayloadAudit": [
+    {
+      "request": 1,
+      "tools": []
+    },
+    {
+      "request": 2,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 223,
+          "displayFields": []
+        }
+      ]
+    },
+    {
+      "request": 3,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 223,
+          "displayFields": []
+        },
+        {
+          "item": 1,
+          "bytes": 223,
+          "displayFields": []
+        }
+      ]
+    },
+    {
+      "request": 4,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 223,
+          "displayFields": []
+        },
+        {
+          "item": 1,
+          "bytes": 223,
+          "displayFields": []
+        },
+        {
+          "item": 2,
+          "bytes": 436,
+          "displayFields": []
+        }
+      ]
+    },
+    {
+      "request": 5,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 223,
+          "displayFields": []
+        },
+        {
+          "item": 1,
+          "bytes": 223,
+          "displayFields": []
+        },
+        {
+          "item": 2,
+          "bytes": 436,
+          "displayFields": []
+        },
+        {
+          "item": 3,
+          "bytes": 41,
+          "displayFields": []
+        }
+      ]
+    },
+    {
+      "request": 6,
+      "tools": [
+        {
+          "item": 0,
+          "bytes": 223,
+          "displayFields": []
+        },
+        {
+          "item": 1,
+          "bytes": 223,
+          "displayFields": []
+        },
+        {
+          "item": 2,
+          "bytes": 436,
+          "displayFields": []
+        },
+        {
+          "item": 3,
+          "bytes": 41,
+          "displayFields": []
+        },
+        {
+          "item": 4,
+          "bytes": 675,
+          "displayFields": []
+        }
+      ]
+    }
+  ]
+}

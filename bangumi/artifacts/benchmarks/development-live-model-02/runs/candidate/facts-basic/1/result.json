@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "caseId": "facts-basic",
+  "family": "facts",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "60d3d41946e50d669435b61c5a9810122597ee4f015891a752c6488489a19cfb",
+  "versionHash": "08f90b3228b7a2fdb06f5cd7e9045959c958ae7f197f3ac5bd7224f3fbdb2ca7",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "incomplete_capture",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的名称、评分、首播日期和集数，给出条目链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "nextType": "InfoBox",
+            "text": "条目 1001 的公开资料如下（来源：Bangumi 公共 v0，匿名读取；本次未涉及 NSFW 权限核实）。"
+          },
+          {
+            "type": "InfoBox",
+            "pending": false,
+            "props": {
+              "title": "条目基本信息",
+              "rows": [
+                {
+                  "label": "name",
+                  "value": "星港追踪"
+                },
+                {
+                  "label": "nameCn",
+                  "value": "星港追踪"
+                },
+                {
+                  "label": "subjectType",
+                  "value": "2"
+                },
+                {
+                  "label": "platform",
+                  "value": "TV"
+                },
+                {
+                  "label": "date",
+                  "value": "2024-01-08"
+                },
+                {
+                  "label": "score",
+                  "value": "8.4"
+                },
+                {
+                  "label": "rank",
+                  "value": "1"
+                },
+                {
+                  "label": "ratingCount",
+                  "value": "3000"
+                },
+                {
+                  "label": "totalEpisodes",
+                  "value": "12"
+                },
+                {
+                  "label": "url",
+                  "value": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "LinkList",
+            "pending": false,
+            "props": {
+              "links": [
+                {
+                  "label": "Bangumi 条目页：星港追踪",
+                  "url": "https://bgm.tv/subject/1001",
+                  "hint": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "text": "条目 1001 的公开资料如下（来源：Bangumi 公共 v0，匿名读取；本次未涉及 NSFW 权限核实）。\n条目基本信息\nname\n星港追踪\nnameCn\n星港追踪\nsubjectType\n2\nplatform\nTV\ndate\n2024-01-08\nscore\n8.4\nrank\n1\nratingCount\n3000\ntotalEpisodes\n12\nurl\nhttps://bgm.tv/subject/1001\nBangumi 条目页：星港追踪\nhttps://bgm.tv/subject/1001\nhttps://bgm.tv/subject/1001",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "subjectType",
+              "score",
+              "rank",
+              "ratingCount",
+              "date",
+              "totalEpisodes",
+              "url",
+              "platform"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-07T15:53:36.728Z"
+              },
+              "resourceRef": "rr_b9ca222117eb822a41f1f0aaa2d55f02",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "subjectType",
+                "score",
+                "rank",
+                "ratingCount",
+                "date",
+                "totalEpisodes",
+                "url",
+                "platform"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "subjectType",
+              "score",
+              "rank",
+              "ratingCount",
+              "date",
+              "totalEpisodes",
+              "url",
+              "platform"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-07T15:53:39.203Z"
+              },
+              "resourceRef": "rr_07bfb351601718524354babddd62a1f5",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "subjectType",
+                "score",
+                "rank",
+                "ratingCount",
+                "date",
+                "totalEpisodes",
+                "url",
+                "platform"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 29210.7958
+    }
+  ],
+  "metrics": {
+    "totalMs": 29294.5974,
+    "startupMs": 23925.6389,
+    "modelRequests": 3,
+    "providerHttpRequests": 3,
+    "proposedToolCalls": 2,
+    "toolExecutions": 2,
+    "toolErrors": 0,
+    "mcpCalls": 2,
+    "mcpMs": 21323.302099999997,
+    "mcpInitializationMs": 21181.1889,
+    "cacheRpcCalls": 1,
+    "rpcDispatches": 3,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 2.159700000003795,
+    "modelMs": 6355.723699999995,
+    "providerPayloadBytesMax": 169598,
+    "inputTokensMax": 46427,
+    "inputTokensSum": 47105,
+    "contextInputTokensMax": 48007,
+    "contextInputTokensSum": 142337,
+    "reasoningTokensSum": 622,
+    "outputTokensSum": 991,
+    "cacheReadTokensSum": 95232,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 143328,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 2056,
+    "firstTextMs": 28516.383500000004,
+    "firstCompleteResultMs": 29191.683600000004,
+    "confirmationsMs": 0,
+    "duplicateReads": 1,
+    "requests": [
+      {
+        "inputTokens": 46427,
+        "contextInputTokens": 46939,
+        "reasoningTokens": 82,
+        "outputTokens": 177,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 47116,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 165481,
+        "durationMs": 1467.2756999999983,
+        "firstTextMs": null,
+        "firstThinkingMs": 842.2118999999984,
+        "visibleThinkingMs": 390.72479999999996,
+        "thinkingChars": 318,
+        "responseModel": "deepseek-flash"
+      },
+      {
+        "inputTokens": 287,
+        "contextInputTokens": 47391,
+        "reasoningTokens": 249,
+        "outputTokens": 344,
+        "cacheReadTokens": 47104,
+        "cacheWriteTokens": 0,
+        "totalTokens": 47735,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 167244,
+        "durationMs": 1884.642399999997,
+        "firstTextMs": null,
+        "firstThinkingMs": 506.3986999999979,
+        "visibleThinkingMs": 1094.1022999999986,
+        "thinkingChars": 839,
+        "responseModel": "deepseek-flash"
+      },
+      {
+        "inputTokens": 391,
+        "contextInputTokens": 48007,
+        "reasoningTokens": 291,
+        "outputTokens": 470,
+        "cacheReadTokens": 47616,
+        "cacheWriteTokens": 0,
+        "totalTokens": 48477,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 169598,
+        "durationMs": 3003.8055999999997,
+        "firstTextMs": 2328.473600000005,
+        "firstThinkingMs": 520.4336000000039,
+        "visibleThinkingMs": 1768.197699999997,
+        "thinkingChars": 1303,
+        "responseModel": "deepseek-flash"
+      }
+    ]
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "8\\.4"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "2024[-年/]0?1[-月/]0?8"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "12"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date",
+            "totalEpisodes"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\",\"totalEpisodes\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791388416730.3967,
+      "elapsedMs": 6306.842899999998,
+      "durationMs": 1.8255000000026484,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791388419203.394,
+      "elapsedMs": 8779.8401,
+      "durationMs": 0.3342000000011467,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\development-live-model-02\\runs\\candidate\\facts-basic\\1\\tracelog\\2026-10-07\\01a11711-98d8-775e-b2c2-d2d395a58b79\\d75b24fe2f8f62eed7e36b16c578426a"
+  ],
+  "captureIssues": [
+    "runtime_version_changed"
+  ]
+}

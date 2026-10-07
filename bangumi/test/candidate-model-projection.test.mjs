@@ -81,9 +81,10 @@ test('Pi上下文保留本次fields和续查进度，完整scope及审计数据�
   assert.ok(next.structuredContent.value.request); assert.ok(next.structuredContent.value.result.scope);
 });
 
-test('输出交付与显式审计保持需要的完整数据，普通候选投影不修改原结果', () => {
+test('输出模型只拿引用回执，宿主保留完整交付；显式审计保留来源证据', () => {
   const output = { kind: 'candidate_output', presentation: { content: [{ text: '完整交付' }] }, scope: { format: 'table' } };
-  assert.equal(projectModelResult(output), output);
+  assert.equal(projectModelResult(output).presentation,undefined);
+  assert.deepEqual(output.presentation,{content:[{text:'完整交付'}]});
   const sources = [{ tool: 'search_subjects', scope: '显式请求的来源' }];
   const audit = { kind: 'candidate_coverage', sources, dependencies: [], coverage: { complete: false, sources } };
   const projected = projectModelResult(audit);

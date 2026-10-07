@@ -8,6 +8,7 @@ import { normalizeProviderContent, normalizeProviderPart, type OutputAdjustment 
 import { deriveNextTypes } from './content-normalize.js';
 import type { FailureScope } from './recovery-checkpoint.js';
 import { credentialValues, redact } from '../support/errors.js';
+import { isResourceReference, normalizeResourceReference, type ResourceReferenceProps } from './resource-content.js';
 
 export type ContentDelta =
   | { type: 'text'; index: number; delta: string }
@@ -45,6 +46,8 @@ export class ContentDecoder {
   private completedCount = 0;
   private readonly emittedText = new Map<number, number>();
   private output: ContentDelta[] = [];
+  private readonly references = new Map<number, { kind: ComponentKind; props: ResourceReferenceProps }>();
+  resourceReferences(): [number, { kind: ComponentKind; props: ResourceReferenceProps }][] { return structuredClone([...this.references]); }
 
   constructor(options: { mode?: 'provider' | 'canonical' } = {}) {
     this.mode = options.mode ?? 'provider';
@@ -372,8 +375,19 @@ export class ContentDecoder {
       && item.path.length === 3 && item.path[0] === 'content' && item.path[1] === index && item.path[2] === 'props');
     const source = propsFrame?.value ?? (Object.hasOwn(frame.value, 'props') ? frame.value.props : kind === 'TagCloud' ? [] : {});
     let props;
-    try { props = normalizePartialComponentProps(kind, source); }
-    catch (error) { if (error instanceof ContentOutputError) throw error.at(`/content/${index}/props`); throw error; }
+    try {
+      if (this.mode === 'provider' && isResourceReference(source)) {
+        normalizeResourceReference(source, true, kind); props = kind === 'TagCloud' ? [] : {};
+      } else {
+        try { props = normalizePartialComponentProps(kind, source); }
+        catch (error) {
+          // 引用键可以最后生成；仅接受另一套已声明的部分输入契约。
+          if (this.mode !== 'provider' || source === null || typeof source !== 'object' || Array.isArray(source)) throw error;
+          try { normalizeResourceReference(source, true, kind); props = kind === 'TagCloud' ? [] : {}; }
+          catch { throw error; }
+        }
+      }
+    } catch (error) { if (error instanceof ContentOutputError) throw error.at(`/content/${index}/props`); throw error; }
     // kind 和每个已闭合字段都已校验，pending 分支允许缺失尚在生成的顶层字段。
     this.update(index, { type: kind, pending: true, props } as MixedPart);
   }
@@ -391,8 +405,14 @@ export class ContentDecoder {
       this.output.push({ type: 'text_end', index, part: clone(part) });
       if (isComponentKind(part.nextType)) this.reserve(index + 1, part.nextType);
     } else {
-      if (part.pending === true) this.fail('schema', '完整组件仍处于占位状态');
-      this.output.push({ type: 'component', index, part: clone(part) });
+      const raw = value as { props?: unknown };
+      if (part.pending === true && this.mode === 'provider' && isResourceReference(raw.props)) {
+        this.references.set(index, { kind: part.type, props: normalizeResourceReference(raw.props, false, part.type) });
+        this.output.push({ type: 'update', index, part: clone(part) });
+      } else {
+        if (part.pending === true) this.fail('schema', '完整组件仍处于占位状态');
+        this.output.push({ type: 'component', index, part: clone(part) });
+      }
     }
     this.parts[index] = part;
     this.predicted.delete(index);

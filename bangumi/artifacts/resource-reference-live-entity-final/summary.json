@@ -1,0 +1,231 @@
+{
+  "scenario": "entity",
+  "prompt": "这是只读验收。查询 Bangumi 人物 1 和角色 1 的公开详情，使用字段读取取得名称，至少对一个资源调用 read_cached_resource，然后用 Gallery 的资源引用 props 展示两者的图片、名称和链接。最后说明各自实体类型，保持人物与角色的身份区别。不修改账户数据。",
+  "configuration": {
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "thinking": "high"
+  },
+  "configurationSource": "C:\\Users\\Kas\\AppData\\Local\\MyBangumiAssistant-Pi\\pi\\settings.json",
+  "durationMs": 29212,
+  "stopReason": "stop",
+  "schemaValid": true,
+  "readOnly": true,
+  "cachedReadExecuted": true,
+  "imagePresent": true,
+  "componentTypes": [
+    "Gallery",
+    "Gallery"
+  ],
+  "allComponentsComplete": true,
+  "providerVisibleThinkingParts": 3,
+  "wireReferencePresent": true,
+  "finalWireReferencePresent": true,
+  "finalWireComponents": [
+    {
+      "response": 3,
+      "type": "Gallery",
+      "propsKeys": [
+        "title",
+        "resourceRef",
+        "items"
+      ],
+      "resourceRef": "rr_4aec871f6f6ad2947e4b50cda89f16c8",
+      "itemKeys": [
+        [
+          "id",
+          "entity"
+        ]
+      ]
+    },
+    {
+      "response": 3,
+      "type": "Gallery",
+      "propsKeys": [
+        "title",
+        "resourceRef",
+        "items"
+      ],
+      "resourceRef": "rr_70c11c5e14a36ee3f8c4bc6dc1951cab",
+      "itemKeys": [
+        [
+          "id",
+          "entity"
+        ]
+      ]
+    }
+  ],
+  "providerWireComponents": [
+    {
+      "response": 3,
+      "type": "Gallery",
+      "propsKeys": [
+        "title",
+        "resourceRef",
+        "items"
+      ],
+      "resourceRef": "rr_4aec871f6f6ad2947e4b50cda89f16c8",
+      "itemKeys": [
+        [
+          "id",
+          "entity"
+        ]
+      ]
+    },
+    {
+      "response": 3,
+      "type": "Gallery",
+      "propsKeys": [
+        "title",
+        "resourceRef",
+        "items"
+      ],
+      "resourceRef": "rr_70c11c5e14a36ee3f8c4bc6dc1951cab",
+      "itemKeys": [
+        [
+          "id",
+          "entity"
+        ]
+      ]
+    }
+  ],
+  "providerWireToolCalls": [
+    {
+      "response": 1,
+      "name": "get_person_details",
+      "arguments": {
+        "person_id": 1,
+        "fields": [
+          "id",
+          "name",
+          "entity",
+          "personType",
+          "career",
+          "image",
+          "url",
+          "summary"
+        ]
+      }
+    },
+    {
+      "response": 1,
+      "name": "get_character_details",
+      "arguments": {
+        "character_id": 1,
+        "fields": [
+          "id",
+          "name",
+          "entity",
+          "characterType",
+          "image",
+          "url",
+          "summary"
+        ]
+      }
+    },
+    {
+      "response": 2,
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_4aec871f6f6ad2947e4b50cda89f16c8",
+        "fields": [
+          "id",
+          "name",
+          "entity",
+          "personType",
+          "career",
+          "image",
+          "url"
+        ]
+      }
+    },
+    {
+      "response": 2,
+      "name": "read_cached_resource",
+      "arguments": {
+        "resource_ref": "rr_70c11c5e14a36ee3f8c4bc6dc1951cab",
+        "fields": [
+          "id",
+          "name",
+          "entity",
+          "characterType",
+          "image",
+          "url"
+        ]
+      }
+    }
+  ],
+  "responseCaptureBytes": 447033,
+  "toolErrorCount": 0,
+  "strictPrimaryKeyProof": false,
+  "requestCount": 3,
+  "toolCalls": [
+    "get_person_details",
+    "get_character_details",
+    "read_cached_resource",
+    "read_cached_resource"
+  ],
+  "errors": [],
+  "tokenUsage": {
+    "input": 47149,
+    "output": 1550,
+    "cacheRead": 94080,
+    "cacheWrite": 0,
+    "reasoning": 806,
+    "totalTokens": 142779
+  },
+  "cumulativeInputTokens": 141229,
+  "peakRequestInputTokens": 49655,
+  "perMessageUsage": [
+    {
+      "input": 41706,
+      "output": 403,
+      "cacheRead": 1664,
+      "cacheWrite": 0,
+      "reasoning": 253,
+      "totalTokens": 43773,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    {
+      "input": 4556,
+      "output": 635,
+      "cacheRead": 43648,
+      "cacheWrite": 0,
+      "reasoning": 446,
+      "totalTokens": 48839,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    {
+      "input": 887,
+      "output": 512,
+      "cacheRead": 48768,
+      "cacheWrite": 0,
+      "reasoning": 107,
+      "totalTokens": 50167,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    }
+  ],
+  "endToEndValid": true,
+  "defaultProjectionLeakCount": 0,
+  "defaultProjectionLeaks": [],
+  "realHttpCountEvidence": "现有 trace 未记录 HTTP 请求次数；cache-only 零请求由独立可计数 transport 测试证明",
+  "valid": true
+}

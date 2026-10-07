@@ -1,0 +1,1 @@
+{"thinking":"现在输出。用 Gallery 引用 props 展示两者的图片、名称、链接。两个 Gallery 各引用一个 resourceRef。\n\nitems 主键：人物 entity \"person\", id 1；角色 entity \"character\", id 1。\n\n输出 JSON。\n\n也可加 text 说明实体类型区别。\n\nGallery props: {resourceRef, items:[{id:1, entity:\"person\"}]}. Gallery 不带 layout。\n\n注意 items 项可以有 id、entity 等。entity 枚举包含 person/character。\n\n输出。","type":"thinking"}

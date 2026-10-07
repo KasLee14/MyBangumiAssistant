@@ -1,0 +1,33 @@
+[
+  {
+    "id": "call_00_1aF9m0R6zlNVzkNiE7T46234",
+    "name": "read",
+    "arguments": {
+      "path": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\dist\\src\\strategies\\skills\\bangumi-query\\SKILL.md"
+    }
+  },
+  {
+    "id": "call_00_e0CBv5LC5LUjJNYwE9vt9154",
+    "name": "search_subjects",
+    "arguments": {
+      "keyword": "星际牛仔",
+      "subject_type": 2,
+      "result_mode": "candidates",
+      "limit": 30
+    }
+  },
+  {
+    "id": "call_00_6mlHpacr7Na8NXGRbTlH2510",
+    "name": "read_cached_resource",
+    "arguments": {
+      "resource_ref": "rr_b0dc63dfa70e132d719764ca12656b83",
+      "fields": [
+        "name",
+        "nameCn",
+        "score",
+        "date",
+        "subjectType"
+      ]
+    }
+  }
+]

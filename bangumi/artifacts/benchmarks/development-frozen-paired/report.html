@@ -1,0 +1,494 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bangumi benchmark</title><style>body{max-width:1100px;margin:32px auto;padding:0 20px;font:15px/1.65 system-ui;color:#172033;background:#f8fafc}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #dbe2eb;text-align:left;overflow-wrap:anywhere}details.run{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:12px;margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:12px;border-radius:6px}input{width:100%;padding:10px;box-sizing:border-box}a{color:#2563eb}strong{color:#334155}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}.stats div{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:14px}.stats b{display:block;font-size:26px}.meta{overflow-wrap:anywhere}</style><h1>Bangumi benchmark</h1><p>自动硬判通过不等于语义评审通过。失败、超时和资料缺失均保留；性能差值只比较双方通过且指标可用的配对。API未返回的思考与token保持不可用。</p><p class="meta">benchmark · faux/faux-1 · thinking=off · 2026-10-07T16:00:55.123Z</p><div class="stats"><div>计划运行<b>2</b></div><div>自动硬判通过率<b>100%</b></div><div>按场景宏平均<b>100%</b></div><div>待语义评审<b>0</b></div></div><details><summary>完整资源消耗与结果状态</summary><pre>{
+  &quot;runs&quot;: 2,
+  &quot;outcomes&quot;: {
+    &quot;passed&quot;: 2
+  },
+  &quot;passRate&quot;: 1,
+  &quot;macroFamilyPassRate&quot;: 1,
+  &quot;semanticPending&quot;: 0,
+  &quot;totals&quot;: {
+    &quot;mcpCalls&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 2
+    },
+    &quot;mcpMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 24840.6843
+    },
+    &quot;mcpInitializationMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 24667.5725
+    },
+    &quot;upstreamRequests&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 2
+    },
+    &quot;contextInputTokensMax&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 126584
+    },
+    &quot;contextInputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 190695
+    },
+    &quot;inputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 63701
+    },
+    &quot;outputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 102
+    },
+    &quot;cacheReadTokensSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 63292
+    },
+    &quot;modelToolResultBytes&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 1664
+    },
+    &quot;totalMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 25360.0371
+    },
+    &quot;modelMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 31.866500000001906
+    },
+    &quot;estimatedCost&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    }
+  }
+}</pre></details><h2>版本对照</h2><table><tr><th>案例</th><th>硬判通过率</th><th>性能配对</th><th>输入token差值中位数</th><th>耗时差值ms</th><th>复核项</th></tr><tr><td>facts-basic</td><td>100% → 100%</td><td>1/1</td><td>1</td><td>66</td><td>small-sample</td></tr></table><pre>[]</pre><h2>逐例证据</h2><input id="filter" placeholder="筛选案例、场景、版本或结果状态" aria-label="筛选运行记录"><details class="run" data-search="facts-basic facts passed control"><summary>facts-basic · control #1 <strong>passed</strong></summary><p><a href="runs/control/facts-basic/1/result.json">原始结果</a> <a href="runs/control/facts-basic/1/tracelog/2026-10-08/01a11718-d63b-74fe-a17b-6e5475ec0c95/47c9c503beece6c562ffbcfde4461fd3/summary.json">trace摘要</a></p><p>总耗时 12647ms；模型请求 2；MCP 1；上游 1；含缓存输入token 95347</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,4.393077978518278 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>查询条目1001的名称、评分、首播日期和集数，给出条目链接。</p><pre>星港追踪，评分8.4，首播2024-01-08，共12集。https://bgm.tv/subject/1001</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1001,
+      &quot;fields&quot;: [
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;,
+        &quot;totalEpisodes&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;score&quot;: 8.4,
+        &quot;totalEpisodes&quot;: 12,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-07T16:01:19.192Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_9a59992db4659325533164096be7a84d&quot;,
+        &quot;fields&quot;: [
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;date&quot;,
+          &quot;totalEpisodes&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 12646.849000000002,
+    &quot;startupMs&quot;: 11304.7614,
+    &quot;modelRequests&quot;: 2,
+    &quot;providerHttpRequests&quot;: 0,
+    &quot;proposedToolCalls&quot;: 1,
+    &quot;toolExecutions&quot;: 1,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 1,
+    &quot;mcpMs&quot;: 12378.6776,
+    &quot;mcpInitializationMs&quot;: 12287.6307,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 1,
+    &quot;upstreamRequests&quot;: 1,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 2.0421000000005733,
+    &quot;modelMs&quot;: 18.711100000000442,
+    &quot;providerPayloadBytesMax&quot;: 165443,
+    &quot;inputTokensMax&quot;: 31646,
+    &quot;inputTokensSum&quot;: 31850,
+    &quot;contextInputTokensMax&quot;: 63292,
+    &quot;contextInputTokensSum&quot;: 95347,
+    &quot;reasoningTokensSum&quot;: null,
+    &quot;outputTokensSum&quot;: 51,
+    &quot;cacheReadTokensSum&quot;: 31646,
+    &quot;cacheWriteTokensSum&quot;: 31851,
+    &quot;totalTokensSum&quot;: 95398,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 832,
+    &quot;firstTextMs&quot;: 12549.432799999999,
+    &quot;firstCompleteResultMs&quot;: 12552.988000000001,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;inputTokens&quot;: 31646,
+        &quot;contextInputTokens&quot;: 63292,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 23,
+        &quot;cacheReadTokens&quot;: 0,
+        &quot;cacheWriteTokens&quot;: 31646,
+        &quot;totalTokens&quot;: 63315,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 163965,
+        &quot;durationMs&quot;: 11.197199999998702,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: &quot;faux-1&quot;
+      },
+      {
+        &quot;inputTokens&quot;: 204,
+        &quot;contextInputTokens&quot;: 32055,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 28,
+        &quot;cacheReadTokens&quot;: 31646,
+        &quot;cacheWriteTokens&quot;: 205,
+        &quot;totalTokens&quot;: 32083,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 165443,
+        &quot;durationMs&quot;: 7.51390000000174,
+        &quot;firstTextMs&quot;: 3.933499999999185,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: &quot;faux-1&quot;
+      }
+    ]
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791388879195.053,
+      &quot;elapsedMs&quot;: 3725.3071,
+      &quot;durationMs&quot;: 2.0421000000005733,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: [
+            1001
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;8\\.4&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;2024[-年/]0?1[-月/]0?8&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;12&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;evidence&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ],
+          &quot;fields&quot;: [
+            &quot;score&quot;,
+            &quot;date&quot;,
+            &quot;totalEpisodes&quot;
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;实际模型可见字段：[[1001,[\&quot;score\&quot;,\&quot;date\&quot;,\&quot;totalEpisodes\&quot;]]]&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details>
+<details class="run" data-search="facts-basic facts passed candidate"><summary>facts-basic · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/facts-basic/1/result.json">原始结果</a> <a href="runs/candidate/facts-basic/1/tracelog/2026-10-08/01a11719-2f7e-7423-bd37-9bf3143ae88a/86dc8a72bbdbcccedbe88d739a681011/summary.json">trace摘要</a></p><p>总耗时 12713ms；模型请求 2；MCP 1；上游 1；含缓存输入token 95348</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,4.393073226752094 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>查询条目1001的名称、评分、首播日期和集数，给出条目链接。</p><pre>星港追踪，评分8.4，首播2024-01-08，共12集。https://bgm.tv/subject/1001</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1001,
+      &quot;fields&quot;: [
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;,
+        &quot;totalEpisodes&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;score&quot;: 8.4,
+        &quot;totalEpisodes&quot;: 12,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-07T16:01:42.028Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_c4dd623b6b9e1df7d70337e973738c83&quot;,
+        &quot;fields&quot;: [
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;date&quot;,
+          &quot;totalEpisodes&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 12713.188100000001,
+    &quot;startupMs&quot;: 9686.055,
+    &quot;modelRequests&quot;: 2,
+    &quot;providerHttpRequests&quot;: 0,
+    &quot;proposedToolCalls&quot;: 1,
+    &quot;toolExecutions&quot;: 1,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 1,
+    &quot;mcpMs&quot;: 12462.0067,
+    &quot;mcpInitializationMs&quot;: 12379.941799999999,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 1,
+    &quot;upstreamRequests&quot;: 1,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 1.526400000000649,
+    &quot;modelMs&quot;: 13.155400000001464,
+    &quot;providerPayloadBytesMax&quot;: 165445,
+    &quot;inputTokensMax&quot;: 31646,
+    &quot;inputTokensSum&quot;: 31851,
+    &quot;contextInputTokensMax&quot;: 63292,
+    &quot;contextInputTokensSum&quot;: 95348,
+    &quot;reasoningTokensSum&quot;: null,
+    &quot;outputTokensSum&quot;: 51,
+    &quot;cacheReadTokensSum&quot;: 31646,
+    &quot;cacheWriteTokensSum&quot;: 31851,
+    &quot;totalTokensSum&quot;: 95399,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 832,
+    &quot;firstTextMs&quot;: 12612.5047,
+    &quot;firstCompleteResultMs&quot;: 12614.853700000001,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;inputTokens&quot;: 31646,
+        &quot;contextInputTokens&quot;: 63292,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 23,
+        &quot;cacheReadTokens&quot;: 0,
+        &quot;cacheWriteTokens&quot;: 31646,
+        &quot;totalTokens&quot;: 63315,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 163967,
+        &quot;durationMs&quot;: 7.136199999999008,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: &quot;faux-1&quot;
+      },
+      {
+        &quot;inputTokens&quot;: 205,
+        &quot;contextInputTokens&quot;: 32056,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 28,
+        &quot;cacheReadTokens&quot;: 31646,
+        &quot;cacheWriteTokens&quot;: 205,
+        &quot;totalTokens&quot;: 32084,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 165445,
+        &quot;durationMs&quot;: 6.019200000002456,
+        &quot;firstTextMs&quot;: 3.653200000000652,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: &quot;faux-1&quot;
+      }
+    ]
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791388902029.924,
+      &quot;elapsedMs&quot;: 4002.0908999999992,
+      &quot;durationMs&quot;: 1.526400000000649,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: [
+            1001
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;8\\.4&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;2024[-年/]0?1[-月/]0?8&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;12&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;evidence&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ],
+          &quot;fields&quot;: [
+            &quot;score&quot;,
+            &quot;date&quot;,
+            &quot;totalEpisodes&quot;
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;实际模型可见字段：[[1001,[\&quot;score\&quot;,\&quot;date\&quot;,\&quot;totalEpisodes\&quot;]]]&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details><script>document.getElementById("filter").addEventListener("input",function(){const q=this.value.toLowerCase();document.querySelectorAll(".run").forEach(function(el){el.hidden=!el.dataset.search.toLowerCase().includes(q)})});</script></html>
