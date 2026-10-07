@@ -63,17 +63,27 @@ export interface MessageBlocksProps {
   blocks: MessageBlock[];
   /** 流式期：内容块不挂滚动入场动画。 */
   streaming?: boolean;
+  /**
+   * 是否挂内容块入场动画（默认挂）。
+   *
+   * 关掉它只有一个场景：**工具结果的展开体**。它在展开那一刻才挂载，此时元素已在视口内
+   * （用户刚点开），而 `AnimatedContent` 是滚动触发的：元素已经在视口里时它仍要等一次滚动
+   * 事件，于是出现「点了展开却看不到内容」。展开是用户的显式动作，不需要入场动画提示。
+   */
+  animate?: boolean;
 }
 
 /**
  * 块索引即 key：块只追加或原地替换（同一个 `contentIndex` 的快照覆盖同一项），索引稳定，
  * 比用载荷内容做 key 更可靠——载荷在 `pending` 期每帧都在变。
  */
-export const MessageBlocks = memo(function MessageBlocks({ blocks, streaming = false }: MessageBlocksProps): ReactNode {
+export const MessageBlocks = memo(function MessageBlocks({
+  blocks, streaming = false, animate = true,
+}: MessageBlocksProps): ReactNode {
   return (
     <>
       {blocks.map((block, index) => (
-        <BlockSlot key={index} block={block} animate={!streaming} />
+        <BlockSlot key={index} block={block} animate={animate && !streaming} />
       ))}
     </>
   );

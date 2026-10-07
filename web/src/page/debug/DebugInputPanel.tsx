@@ -53,17 +53,32 @@ const SAMPLES: readonly { label: string; hint: string; json?: string; frame?: st
   },
   {
     label: '2 工具开始',
-    hint: 'tool_execution_start：出现「处理过程」条目，状态进行中',
-    json: JSON.stringify({ type: 'tool_execution_start', toolCallId: 'call-1', toolName: 'query_subject' }, null, 2),
+    hint: 'tool_execution_start：出现工具行（标题 + 参数摘要 + 进行中）',
+    json: JSON.stringify({
+      type: 'tool_execution_start',
+      toolCallId: 'call-1',
+      toolName: 'search_subjects',
+      args: { keyword: '攻壳机动队', filter: { tag: '科幻' } },
+    }, null, 2),
   },
   {
     label: '3 工具结束',
-    hint: 'tool_execution_end：同一 id 原地更新为完成（验证 version++ 重发）',
+    hint: 'tool_execution_end：同一 id 原地更新为完成，结果里的 presentation 渲染成内容块',
     json: JSON.stringify({
       type: 'tool_execution_end',
       toolCallId: 'call-1',
+      toolName: 'search_subjects',
       isError: false,
-      result: { details: { value: { state: 'ok' } }, content: [{ type: 'text', text: '命中 1 项' }] },
+      result: {
+        content: [{ type: 'text', text: '命中 1 项' }],
+        presentation: {
+          type: 'SubjectCards',
+          props: {
+            layout: 'grid',
+            items: [{ id: 8, name: 'GHOST IN THE SHELL', nameCn: '攻壳机动队', kind: 'anime', score: 8.9 }],
+          },
+        },
+      },
     }, null, 2),
   },
   {
@@ -120,6 +135,7 @@ const SAMPLES: readonly { label: string; hint: string; json?: string; frame?: st
     hint: 'event 数组 = 一个 flush 窗口：多条事件合并成一帧，只看到批次结束时的最终状态',
     json: JSON.stringify([
       { type: 'agent_start' },
+      { type: 'turn_start' },
       {
         type: 'message_update',
         assistantMessageEvent: {

@@ -66,23 +66,27 @@ interface Block {
   level?: number;
   ordered?: boolean;
   lines: string[];
+  /** 代码围栏的语言标记（```ts 里的 `ts`）；没有标记时是空串。 */
+  lang?: string;
 }
 
 function parseBlocks(text: string): Block[] {
   const blocks: Block[] = [];
   const lines = text.split('\n');
   let current: Block | null = null;
-  let fence = false;
+  let openFence = false;
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index] ?? '';
-    if (/^\s*```/.test(line)) {
-      if (fence && current?.kind === 'code') { blocks.push(current); current = null; fence = false; continue; }
+    const fence = /^\s*```\s*([A-Za-z0-9+#._-]*)/.exec(line);
+    if (fence !== null) {
+      if (openFence && current?.kind === 'code') { blocks.push(current); current = null; openFence = false; continue; }
       if (current) { blocks.push(current); current = null; }
-      current = { kind: 'code', lines: [] };
-      fence = true;
+      // 语言标记只用于显示（本渲染器不做语法高亮）：留着它，读者能分清 ts 与 json。
+      current = { kind: 'code', lines: [], lang: fence[1] ?? '' };
+      openFence = true;
       continue;
     }
-    if (fence) { current?.lines.push(line); continue; }
+    if (openFence) { current?.lines.push(line); continue; }
     const heading = /^(#{1,4})\s+(.*)$/.exec(line);
     if (heading) {
       if (current) { blocks.push(current); current = null; }
@@ -210,7 +214,13 @@ export const Markdown = memo(function Markdown({ text }: { text: string }): Reac
       {blocks.map((block, index) => {
         const key = `block-${index}`;
         if (block.kind === 'code') {
-          return <pre key={key}><code>{block.lines.join('\n')}</code></pre>;
+          // 语言标记可选：没有就不渲染标签，避免出现一个空的角标。
+          return (
+            <pre key={key}>
+              {block.lang ? <span className="markdownCodeLang">{block.lang}</span> : null}
+              <code>{block.lines.join('\n')}</code>
+            </pre>
+          );
         }
         if (block.kind === 'table') return renderTable(block, key);
         if (block.kind === 'divider') return <hr key={key} />;

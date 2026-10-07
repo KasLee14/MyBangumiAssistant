@@ -1,6 +1,6 @@
-import type { CatalogView, SessionOptionView } from '../../../bangumi/src/web/protocol';
+import type { CatalogView, MessageBlock, SessionOptionView } from '../../../bangumi/src/web/protocol';
 import type { CatalogAction } from './reducers/catalog';
-import type { PendingEcho, StreamAction, StreamFrame } from './reducers/stream';
+import type { PendingEcho, StreamAction, StreamDeltaFrame, StreamFrame } from './reducers/stream';
 import type { SettingsPane, UiAction } from './reducers/ui';
 
 /** 全部 action 由根 reducer 定义；这里转出，调用方从 actions 取即可。 */
@@ -9,6 +9,17 @@ export type { AppAction } from './reducers';
 /* ---------------------------------------------------------------- 会话流 */
 
 export const frameReceived = (frame: StreamFrame): StreamAction => ({ type: 'stream/frame', frame });
+/**
+ * 流式增量帧：只带正文与思考的追加部分。
+ *
+ * 与 `frameReceived` 的分工是「自愈」与「高频」的分离——全量帧负责任何接不上的情况，
+ * 增量帧负责流式期的每一帧，见 `protocol.ts` 的 `StreamDeltaView`。
+ */
+export const deltaReceived = (frame: StreamDeltaFrame): StreamAction => ({ type: 'stream/delta', frame });
+/** 摊平显示推进一格；`content` 由 `store/pacing.ts` 按帧算出。 */
+export const pacedUpdated = (content: MessageBlock[]): StreamAction => ({ type: 'stream/paced', content });
+/** 摊平播完（目标已追上且流式已结束）：清空显示区，屏幕交回历史条目。 */
+export const pacedDone = (): StreamAction => ({ type: 'stream/pacedDone' });
 export const streamFatal = (message: string): StreamAction => ({ type: 'stream/fatal', message });
 export const connectionChanged = (connected: boolean): StreamAction => ({ type: 'stream/connected', connected });
 export const pendingEchoSet = (echo: PendingEcho): StreamAction => ({ type: 'stream/pendingEchoSet', echo });
@@ -39,4 +50,11 @@ export const collapsedToggled = (): UiAction => ({ type: 'ui/collapsedToggled' }
 /** 置顶 / 取消置顶：状态在 `ui.pinned`，落盘由 store 的订阅负责（纯前端本地状态）。 */
 export const pinnedToggled = (sessionId: string): UiAction => ({ type: 'ui/pinnedToggled', sessionId });
 export const revealIncremented = (): UiAction => ({ type: 'ui/revealIncremented' });
+/**
+ * 展开/折叠过程区的一条。
+ *
+ * 键的形态见 `UiState.processOpen`：`` `${turn}` `` 是整轮过程，`` `${turn}:${step}` `` 是
+ * 单个思考行或工具行。
+ */
+export const processToggled = (key: string, open: boolean): UiAction => ({ type: 'ui/processToggled', key, open });
 export const credentialProviderSet = (provider: string): UiAction => ({ type: 'ui/credentialProviderSet', provider });

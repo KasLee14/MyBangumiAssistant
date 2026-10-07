@@ -52,7 +52,8 @@ export type ContentBlockOf<K extends ContentKind> = Extract<MessageBlock, { type
 
 /** base 条目：不做注册表化，仍由 `Turn` 的分支渲染（助手的正文是块数组，也属于这一类）。 */
 export type BaseTranscriptKind =
-  | 'header' | 'user' | 'assistant' | 'notice' | 'error' | 'activity' | 'confirmation';
+  | 'header' | 'user' | 'assistant' | 'notice' | 'error'
+  | 'reasoning' | 'tool' | 'turn' | 'confirmation';
 
 /**
  * base 条目的 kind 清单。
@@ -60,9 +61,12 @@ export type BaseTranscriptKind =
  * 定义在这里而不是 `validate.ts`：两处都要用它——接收侧校验靠它放行 base 条目，`Turn`
  * 靠它判断「既不是 base 条目、也不是内容块」（那是未知形态的开发期告警点）。
  * 清单只此一份。
+ *
+ * 注意 `reasoning` / `tool` / `turn` 是过程区与轮次边界的条目，**不是内容块**：它们由
+ * `Turn` 按轮次分组后交给 `ProcessGroup` / `TurnProcessBar` 渲染，不经过内容块注册表。
  */
 export const BASE_KINDS = [
-  'header', 'user', 'assistant', 'notice', 'error', 'activity', 'confirmation',
+  'header', 'user', 'assistant', 'notice', 'error', 'reasoning', 'tool', 'turn', 'confirmation',
 ] as const satisfies readonly BaseTranscriptKind[];
 
 const BASE_KIND_SET: ReadonlySet<string> = new Set<string>(BASE_KINDS);

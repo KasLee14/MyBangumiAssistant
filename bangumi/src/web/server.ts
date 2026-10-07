@@ -6,7 +6,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { extname, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AppError, safeError } from '../support/errors.js';
-import type { ChatStateView, ServerEvent, ThinkingLevelName, TranscriptItemView } from './protocol.js';
+import type { ChatStateView, MessageBlock, ServerEvent, StreamDeltaView, ThinkingLevelName, TranscriptItemView } from './protocol.js';
 import type { WebSessionManager } from './session-manager.js';
 
 export interface WebTerminalOptions {
@@ -42,6 +42,14 @@ interface StreamClient extends StreamBookkeeping {
   clientId: string;
   sessionId: string;
   summaries: string;
+  /**
+   * 上一帧下发给该客户端的流式正文与思考快照，用于算增量。
+   *
+   * `null` 表示还没有基线（新连接、刚换会话）：此时必须发全量 `state` 帧，否则增量
+   * 没有可累加的起点。
+   */
+  liveContent: readonly MessageBlock[] | null;
+  liveThinking: string | null;
 }
 
 /**
@@ -68,6 +76,47 @@ export function takeFreshItems(
   if (full) bookkeeping.versions.clear();
   for (const item of fresh) bookkeeping.versions.set(item.id, item.version);
   return { full, fresh };
+}
+
+/** 流式增量里与本模块有关的两项；`scalars` 由调用方补上。 */
+type LiveDelta = Pick<StreamDeltaView, 'text' | 'thinking'>;
+
+/**
+ * 计算流式增量；**无法用增量安全表达时返回 `null`**，调用方改发 `state` 全量帧。
+ *
+ * 这个函数是「自愈」的那一半：只要判定有任何不确定，就退回全量帧，浏览器因此不需要
+ * 增量回退逻辑。判定只用三条：
+ *
+ * 1. 必须有上一帧的基线（新连接、刚换会话时没有）；
+ * 2. 思考文本必须是上一帧的**前缀**——否则说明它被清空或改写（换会话、打断恢复）；
+ * 3. 正文块数组长度不变，且除最后一块外**引用相同**。引用比较可行是因为
+ *    `blocksFromContent` 对未变的块做了结构共享（见 message-blocks.ts）：文本内容没变
+ *    就复用上一帧的对象引用。最后一块要么引用相同（只有思考在变），要么是上一块文本的延长。
+ *
+ * 「块数变化」——新的内容块出现、流式结束清空、整体替换——一律回退全量帧：这些事件频率低，
+ * 而全量帧是浏览器唯一的自愈通道。导出这个纯函数是为了能直接用脚本核对增量行为。
+ */
+export function takeLiveDelta(
+  previous: { liveContent: readonly MessageBlock[] | null; liveThinking: string | null },
+  liveContent: readonly MessageBlock[],
+  liveThinking: string,
+): LiveDelta | null {
+  if (previous.liveContent === null || previous.liveThinking === null) return null;
+  if (!liveThinking.startsWith(previous.liveThinking)) return null;
+  if (liveContent.length !== previous.liveContent.length) return null;
+  for (let index = 0; index < liveContent.length - 1; index += 1) {
+    if (liveContent[index] !== previous.liveContent[index]) return null;
+  }
+  const thinking = liveThinking.slice(previous.liveThinking.length);
+  const before = previous.liveContent.at(-1);
+  const after = liveContent.at(-1);
+  // 最后一块没换引用：只有思考在增长（正文块的首帧、结束清空都落在这里）。
+  if (after === before) return { text: null, thinking };
+  if (before === undefined || after === undefined) return null;
+  if (before.type !== 'text' || after.type !== 'text') return null;
+  if (!after.text.startsWith(before.text)) return null;
+  const delta = after.text.slice(before.text.length);
+  return delta === '' ? { text: null, thinking } : { text: { index: liveContent.length - 1, delta }, thinking };
 }
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -165,18 +214,39 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
     catch { dropClient(client); }
   };
   /**
-   * 增量下发的前提是首条目编号未变且条目数未减少；具体判定见 takeFreshItems，
-   * 它同时负责把「版本变化的条目」重发出去——工具结束、确认卡定论都是原地更新，
-   * 只按编号过滤会让界面永久停在「进行中」或「待确认」。
+   * 下发本帧：条目走 `state` 帧的 `items`，流式正文与思考走 `stream` 增量帧。
+   *
+   * 两条通道的分工：
+   * - `state` 帧是**自愈通道**，携带完整快照。首帧、会话切换、条目新增或原地更新
+   *   （工具结束、确认卡定论都是原地更新，只按编号过滤会让界面永久停在「进行中」）、
+   *   以及任何算不出增量的情况都走它；
+   * - `stream` 帧是**高频通道**，只带正文与思考的追加部分，省掉每帧重发全部文本的
+   *   O(n²) 开销（诊断见 `artifacts/web-streaming-diagnosis-and-plan.md`）。
+   *
+   * 条目记账见 takeFreshItems，增量判定见 takeLiveDelta。
    */
   const flushClient = (client: StreamClient, state: ChatStateView): void => {
     if (client.sessionId !== state.sessionId) {
       client.firstId = null;
       client.sessionId = state.sessionId;
+      // 换会话后旧的流式快照不再可比：增量以「接上一帧累加」为前提。
+      client.liveContent = null;
+      client.liveThinking = null;
     }
     const { full, fresh } = takeFreshItems(state.items, client);
-    const { items: _ignored, ...scalars } = state;
-    writeEvent(client, { type: 'state', instanceId, revision: sessions.revision, full, items: fresh, state: scalars });
+    const { items: _ignored, liveContent, liveThinking, ...scalars } = state;
+    // 条目有变化时必须走 `state` 帧——条目只挂在它上面；其余情况尽量发增量。
+    const delta = full || fresh.length > 0 ? null : takeLiveDelta(client, liveContent, liveThinking);
+    client.liveContent = liveContent;
+    client.liveThinking = liveThinking;
+    if (delta === null) {
+      writeEvent(client, {
+        type: 'state', instanceId, revision: sessions.revision, full, items: fresh,
+        state: { ...scalars, liveContent, liveThinking },
+      });
+    } else {
+      writeEvent(client, { type: 'stream', instanceId, revision: sessions.revision, delta: { ...delta, scalars } });
+    }
     const summaries = sessions.sessions(client.clientId);
     const serialized = JSON.stringify(summaries);
     if (client.summaries !== serialized) {
@@ -195,9 +265,17 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
       flushClient(client, state);
     }
   };
+  /**
+   * 合并窗口：约一帧（60Hz）的时长。
+   *
+   * 上游的 delta 是细粒度的（实测正文平均 1.6 字符/个、约 140 个/秒），所以窗口越长，
+   * 每帧一次吐出的字越多——40ms 时实测每帧 10~127 字符。取 16ms 让每帧落在几个字符上，
+   * 同时不给浏览器制造超过刷新率的帧。
+   */
+  const FLUSH_MS = 16;
   const schedule = (): void => {
     if (flushTimer || closing) return;
-    flushTimer = setTimeout(() => { flushTimer = undefined; flush(); }, 40);
+    flushTimer = setTimeout(() => { flushTimer = undefined; flush(); }, FLUSH_MS);
   };
   const unsubscribe = sessions.subscribe(schedule);
 
@@ -369,7 +447,7 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
         });
         res.write(': connected\n\n');
         const client: StreamClient = { res, firstId: null, lastId: 0, count: 0, versions: new Map(), closed: false,
-          clientId, sessionId: '', summaries: '' };
+          clientId, sessionId: '', summaries: '', liveContent: null, liveThinking: null };
         clients.add(client);
         sessions.setClients(clients.size);
         const cleanup = (): void => dropClient(client);

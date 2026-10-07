@@ -1,4 +1,4 @@
-import type { ChatScalarsView, ServerEvent, TranscriptItemView } from '../../../../bangumi/src/web/protocol';
+import type { ChatScalarsView, MessageBlock, ServerEvent, TranscriptItemView } from '../../../../bangumi/src/web/protocol';
 import type { AppAction } from './index';
 
 /** 首帧到达前的占位状态；文案与终端启动提示保持一致。 */
@@ -45,6 +45,22 @@ export interface StreamState extends ChatScalarsView {
   connected: boolean;
   pendingEcho: PendingEcho | null;
   /**
+   * 屏幕上的流式正文：`pacedTarget` 的**显示投影**。
+   *
+   * 上游的正文以突发批次到达（实测一批 10~90 字符、间隔 20~190ms），直接渲染就是
+   * 「一顿一顿、一次冒十几个字」。本字段保存已经摊平显示的那一份，由 `store/pacing.ts`
+   * 每帧推进。
+   */
+  displayedContent: MessageBlock[];
+  /**
+   * 摊平正在追赶的目标。
+   *
+   * 流式期就等于 `liveContent`（权威值）；**流式结束那一帧后者会被清空**，此时把它冻住，
+   * 让 `displayedContent` 把剩下的字播完——否则最后一段会直接跳出来（实测显示到 475/545）。
+   * 播完由 `stream/pacedDone` 收尾，屏幕交回历史条目。
+   */
+  pacedTarget: MessageBlock[];
+  /**
    * 前端本地状态：正在应答中的确认 id，null 表示没有应答在途。
    *
    * 它**不能**用宿主标量 `busy` 代替：写入确认必然出现在工具执行期间，此时
@@ -62,6 +78,8 @@ export const INITIAL_STREAM_STATE: StreamState = {
   items: [],
   connected: false,
   pendingEcho: null,
+  displayedContent: [],
+  pacedTarget: [],
   answering: null,
 };
 
@@ -86,8 +104,21 @@ export function mergeItems(previous: TranscriptItemView[], incoming: TranscriptI
 /** 流式状态帧；与 `ServerEvent` 的 `state` 分支同形。 */
 export type StreamFrame = Extract<ServerEvent, { type: 'state' }>;
 
+/**
+ * 流式增量帧；与 `ServerEvent` 的 `stream` 分支同形。
+ *
+ * 它只携带正文与思考的**追加**部分。宿主保证「接不上的情况一律改发全量 `state` 帧」，
+ * 所以这里不做增量回退：接不上就丢弃这一帧，等随后的全量帧纠正。
+ */
+export type StreamDeltaFrame = Extract<ServerEvent, { type: 'stream' }>;
+
 export type StreamAction =
   | { type: 'stream/frame'; frame: StreamFrame }
+  | { type: 'stream/delta'; frame: StreamDeltaFrame }
+  /** 摊平显示推进一格；`content` 是新的显示用块数组（由 `store/pacing.ts` 计算）。 */
+  | { type: 'stream/paced'; content: MessageBlock[] }
+  /** 摊平播完（目标已追上且流式已结束）：清空显示区，屏幕交回历史条目。 */
+  | { type: 'stream/pacedDone' }
   | { type: 'stream/fatal'; message: string }
   | { type: 'stream/connected'; connected: boolean }
   | { type: 'stream/pendingEchoSet'; echo: PendingEcho }
@@ -123,8 +154,59 @@ export function streamReducer(state: StreamState = INITIAL_STREAM_STATE, action:
         && (switched || frame.state.pending?.id !== state.answering)
         ? null
         : state.answering;
-      return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame.revision, items, connected: true, pendingEcho, answering };
+      const live = frame.state.liveContent;
+      /**
+       * 收尾播放：流式结束那一帧会把权威正文清空，此时把摊平目标**冻住**，让剩下的字
+       * 接着播完——否则最后一段会直接跳出来（实测显示到 475/545 就消失）。
+       *
+       * 两种情况下不让位：换会话（整体重建）、新一轮的用户消息已经落条目（旧回答的尾巴
+       * 若继续播，会挂在新问题下面）。
+       */
+      const nextRound = frame.items.some(item => item.kind === 'user');
+      const tail = !switched && !nextRound
+        && live.length === 0 && state.pacedTarget.length > 0 && state.displayedContent.length > 0;
+      return {
+        ...state, ...frame.state,
+        instanceId: frame.instanceId, revision: frame.revision, items, connected: true, pendingEcho, answering,
+        pacedTarget: tail ? state.pacedTarget : live,
+        displayedContent: tail ? state.displayedContent : live,
+      };
     }
+    case 'stream/delta': {
+      const { frame } = action;
+      // 增量是相对上一帧的差分：实例不同、编号没有前进、或会话换了都接不上，直接丢弃，
+      // 由随后必然到来的全量 `state` 帧纠正（宿主侧的 flushClient 负责这个保证）。
+      if (frame.instanceId !== state.instanceId || frame.revision <= state.revision) return state;
+      if (frame.delta.scalars.sessionId !== state.sessionId) return state;
+      let liveContent = state.liveContent;
+      const append = frame.delta.text;
+      if (append !== null) {
+        const previous = state.liveContent[append.index];
+        // 下标越界或那一格不是文本块时不猜——结构变化本身就意味着宿主会改发全量帧。
+        if (previous !== undefined && previous.type === 'text') {
+          const next = [...state.liveContent];
+          next[append.index] = { type: 'text', text: previous.text + append.delta };
+          liveContent = next;
+        }
+      }
+      return {
+        ...state,
+        ...frame.delta.scalars,
+        liveContent,
+        // 流式期的摊平目标就是权威值；一旦真的开始输出，任何冻住的旧尾巴都让位。
+        pacedTarget: liveContent,
+        liveThinking: state.liveThinking + frame.delta.thinking,
+        revision: frame.revision,
+        connected: true,
+      };
+    }
+    case 'stream/paced':
+      // 同引用即无变化：推进到「已经是目标值」时不该引起一次渲染。
+      return state.displayedContent === action.content ? state : { ...state, displayedContent: action.content };
+    case 'stream/pacedDone':
+      return state.displayedContent.length === 0 && state.pacedTarget.length === 0
+        ? state
+        : { ...state, displayedContent: [], pacedTarget: [] };
     case 'stream/fatal':
       return { ...state, status: action.message, connected: false, answering: null };
     case 'stream/connected':

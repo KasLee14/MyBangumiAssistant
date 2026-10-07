@@ -31,14 +31,128 @@ export interface ConfirmationView {
  */
 export interface TranscriptItemBase { id: number; version: number }
 
-/** 工具活动：一次工具调用的开始、进行与结束。 */
-export interface ActivityItemView extends TranscriptItemBase {
-  kind: 'activity';
-  label: string;
-  state: 'running' | 'waiting' | 'ok' | 'partial' | 'unknown' | 'error';
-  detail: string;
+/**
+ * 工具结果：结构化结果复用消息内容块。
+ *
+ * 与助手正文共用 `MessageBlock`（文本块 + 12 种内容块）是本项目对齐 DSH 时的关键取舍：
+ * Bangumi 工具的结果本身就是条目卡、表格与统计（`prepare_candidate_output` 的职责就是
+ * 产出这类载荷），因此过程区与正文区走同一个渲染入口，不必另造一套卡片族。
+ *
+ * `text` 只兜住无法结构化的结果（原始 JSON、超长纯文本），由浏览器渲染成等宽引用块。
+ */
+export interface ToolResultView {
+  blocks: MessageBlock[];
+  text?: string;
+  isError: boolean;
+  /** 失败文案；宿主已脱敏。 */
+  errorText?: string;
+  /** 宿主按阈值裁剪过（浏览器据此显示「已截断」提示）。 */
+  truncated?: boolean;
+}
+
+/** 工具调用的六态；语义沿用改造前的活动条目，只把承载从字符串换成了结构。 */
+export type ToolState = 'running' | 'waiting' | 'ok' | 'partial' | 'unknown' | 'error';
+
+/**
+ * 工具族：由宿主按工具名判定的粗分类。
+ *
+ * 它只服务呈现（浏览器据此选图标，并给过程组的活动分类），不参与任何业务判定——
+ * 因此放在协议里下发，而不是让浏览器再维护一张工具名表（那是同一个事实的第二个来源）。
+ */
+export type ToolFamily =
+  | 'calendar'
+  | 'search'
+  | 'candidate'
+  | 'detail'
+  | 'image'
+  | 'list'
+  | 'single'
+  | 'write'
+  | 'batch'
+  | 'tools';
+
+/** 工具调用条目：一次工具调用的开始、进行与结束。 */
+export interface ToolItemView extends TranscriptItemBase {
+  kind: 'tool';
+  /** 轮次与步序号，由宿主下发（前端不再推导）。 */
+  turn: number;
+  step: number;
+  /** 稳定标识：与结果配对、作为原地更新与子调用挂载的键。 */
+  callId: string;
+  /** 原始工具名，例如 `search_subjects`。 */
+  name: string;
+  /** 中文标题，宿主生成（浏览器不做映射）。 */
+  title: string;
+  /** 工具族，决定图标与过程组的活动分类。 */
+  family: ToolFamily;
+  /** 参数摘要，宿主生成并按阈值截断、压平空白。 */
+  summary: string;
+  /** 参数原文（pretty JSON，展开体用）；超过阈值时省略，由 `summary` 兜住。 */
+  argsText?: string;
+  state: ToolState;
+  /** 读/写：决定图标族与是否与写入确认联动。 */
+  access: 'read' | 'write';
+  startedAt: number;
+  /** 0 表示尚未结束。 */
+  endedAt: number;
+  /** 0 表示耗时未知（未结束，或历史缺时间戳）。 */
+  durationMs: number;
+  result?: ToolResultView;
+  /** 子调用（程序化调用）；嵌套展示用缩进与左侧细线。 */
+  subCalls?: ToolItemView[];
   /** 批次的中文计数与缺口在成功时也展示；普通工具仍沿用折叠详情。 */
   showDetail?: boolean;
+}
+
+/** 思考条目：一段思考的开始与结束。 */
+export interface ReasoningItemView extends TranscriptItemBase {
+  kind: 'reasoning';
+  turn: number;
+  step: number;
+  text: string;
+  /** 流式期该条仍在增长；落定后为 `done`。 */
+  state: 'running' | 'done';
+  startedAt: number;
+  /** 0 表示尚未结束。 */
+  endedAt: number;
+}
+
+/** 每轮（一个用户回合内的全部 step）的用量合计。 */
+export interface TurnUsageView {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  /** 推理 token；提供方未报告时省略。 */
+  reasoning?: number;
+  total: number;
+  cost: number;
+}
+
+/** 每一步的时序：用于首 token 延迟（TTFT）与解码耗时。 */
+export interface AssistantTimingView {
+  stepStartTime: number;
+  firstTokenTime: number;
+  completedTime: number;
+}
+
+/**
+ * 轮次条目：轮次边界与元数据。
+ *
+ * 它是**边界标记**，本身不承载过程或正文——前端按它切分轮次，并从它取耗时与计数。
+ * `status` 的 `open` 表示这一轮还在进行；`endedAt` 为 0 时同理。
+ */
+export interface TurnItemView extends TranscriptItemBase {
+  kind: 'turn';
+  turn: number;
+  startedAt: number;
+  /** 0 表示进行中。 */
+  endedAt: number;
+  status: 'open' | 'completed' | 'aborted' | 'error';
+  /** 该轮内的 assistant 消息数（step 数）。 */
+  messageCount: number;
+  toolCallCount: number;
+  usage?: TurnUsageView;
 }
 
 /* ============================================================
@@ -265,8 +379,19 @@ export type TranscriptItemView =
   | (TranscriptItemBase & { kind: 'error'; text: string; diagnostic?: ErrorDiagnostic })
   // 助手消息：内容块数组（见上方「消息内容块」）。扩展注入的结构化内容也投影成
   // 这一形态（单块），`origin` 只用于排查与将来的样式区分，不参与渲染分支。
-  | (TranscriptItemBase & { kind: 'assistant'; content: MessageBlock[]; origin?: 'extension' })
-  | ActivityItemView
+  // `turn` / `step` 由宿主下发：前端据此把这一条归入某一轮的正文，不再按条目顺序猜。
+  | (TranscriptItemBase & {
+      kind: 'assistant';
+      content: MessageBlock[];
+      origin?: 'extension';
+      turn: number;
+      step: number;
+      usage?: TurnUsageView;
+      timing?: AssistantTimingView;
+    })
+  | ReasoningItemView
+  | ToolItemView
+  | TurnItemView
   | (TranscriptItemBase & { kind: 'confirmation'; confirmation: ConfirmationView });
 
 /** Pi 的思考强度名称；`off` 表示关闭思考。 */
@@ -442,9 +567,32 @@ export interface CatalogView {
 
 export interface ApiErrorView { code: string; message: string; diagnostic?: ErrorDiagnostic }
 
-/** SSE 帧：`state` 增量携带条目，`full` 表示客户端应整体替换已有条目。 */
+/**
+ * 流式增量：正文与思考只带**追加**部分，其余标量仍全量下发。
+ *
+ * 存在的理由：`state` 帧每帧携带完整的 `liveContent` 与 `liveThinking`。流式期每约 16ms 一帧，
+ * 每帧重发已经写过的全部文本，在长回答上是 O(n²) 的序列化与下发。
+ *
+ * **自愈设计**：任何无法用增量安全表达的情况都不发本帧，改发 `state` 全量帧——会话切换、
+ * 历史重建、打断恢复重写回答、内容块结构变化、文本被改写都走那条路。浏览器因此**不做增量
+ * 回退**：累加只发生在本帧上，`state` 帧永远整体覆盖。
+ */
+export interface StreamDeltaView {
+  /** 正文追加：活动文本块在 `liveContent` 中的下标，以及本次追加的文本；null 表示正文没变。 */
+  text: { index: number; delta: string } | null;
+  /** 思考文本的追加部分；空串表示思考没变。 */
+  thinking: string;
+  /** `liveContent` 与 `liveThinking` 之外的标量，语义与 `state` 帧完全一致。 */
+  scalars: Omit<ChatScalarsView, 'liveContent' | 'liveThinking'>;
+}
+
+/**
+ * SSE 帧：`state` 增量携带条目，`full` 表示客户端应整体替换已有条目；`stream` 只带
+ * 流式正文与思考的追加部分（见 `StreamDeltaView`），不携带条目。
+ */
 export type ServerEvent =
   | { type: 'state'; instanceId: string; revision: number; full: boolean; items: TranscriptItemView[]; state: ChatScalarsView }
+  | { type: 'stream'; instanceId: string; revision: number; delta: StreamDeltaView }
   | { type: 'sessions'; sessions: SessionOptionView[] }
   | { type: 'fatal'; message: string };
 

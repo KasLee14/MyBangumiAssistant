@@ -13,6 +13,7 @@
 - **改这个目录之前先读完 §规则**：帧合并、应答在途的撤下、乐观回显的撤下，以及 reducer 的「无变化时返回原 state」都在那里；违反会直接表现为界面残留旧状态、React key 重复或整棵树重渲染。
 - **只想查某个字段或 action 的行为**：查 §索引 的三张清单表，不必通读 §规则。
 - **改帧处理**：先读 §规则 的「帧合并三条规则缺一不可」，再动手改 `stream.ts`。
+- **改流式正文的显示行为**：先读 §规则 的「正文与思考走增量帧」与「流式正文的显示投影与收尾播放」——`liveContent` / `pacedTarget` / `displayedContent` 三者分工不同，改错哪一份的表现都是肉眼可见的（"一次冒十几个字"、"最后一段整段跳出"）。
 - 本层的通用规则（引用稳定性、状态边界、依赖方向）见 [readme.md](readme.md) 的 §规则；本篇只写专属规则。
 
 ## 规则
@@ -55,6 +56,21 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 
 **违反后果**：缺任一条都会让界面残留旧状态；第 2 条缺失时还会出现 React key 重复。
 
+上面只列与「标量 + 条目」有关的部分：`stream/frame` 还要决定两个本地显示字段 `pacedTarget` / `displayedContent`（见 §规则「流式正文的显示投影与收尾播放」）。它们**不**参与这三条规则——条目合并仍只看 `id`（`version` 是宿主侧的重发判据），显示投影也允许在流式结束那一帧故意落后于权威值。
+
+### 思考 / 工具 / 轮次三类条目走同一套条目合并，没有专属规则
+
+`reasoning`、`tool`、`turn` 三类条目就是普通条目：进 `items`，与其余条目一样由 `mergeItems` **按 `id` 原地替换**（见上一条第 2 点）。两件事必须分清：
+
+- **宿主**按 `id` + `version` 决定增量帧里重发哪些条目（`protocol.ts` 的 `TranscriptItemBase` 注释）：工具从「进行中」变完成、轮次条目封口时补齐 `endedAt` / `usage` / 计数，都会带同一个 `id` 与更高的 `version` 重发那一条；
+- **浏览器**这边 `mergeItems` **只看 `id`、不比较 `version`**——同 `id` 一律替换，`version` 的递增只是宿主侧的判定依据。
+
+所以 `frame.full` 为假时**也必须**能处理「同一 `id` 再次出现」：工具行的「进行中 → 完成」、轮控制行的耗时与计数，全靠这条。给这三类条目加「只在整表替换的帧里更新」之类的特判，界面就会永远停在「进行中」、轮次耗时永远不出现。
+
+**流式期与它们无关的地方**：思考在流式期仍是标量 `liveThinking`（落条目发生在 `message_end`，见 `session.ts` 的 `flushReasoning`），工具则**一开始就是条目**（`tool_execution_start` 就 push 一条 `state: 'running'`）。因此过程区渲染的是 `items` 里的 `tool` / `reasoning` 条目，`liveThinking` 只服务流式区那一行思考（见 [../components/main-page.md](../components/main-page.md) §规则「思考行在流式期与历史期共用同一个组件」）。
+
+**违反后果**：三类条目停在旧状态——工具行一直「进行中」、轮控制行的耗时与计数永不补齐。
+
 ### 流式内容块走标量 `liveContent`，不进 `items`
 
 助手消息在流式期间**不进 `items`**：它的内容块放在标量 `liveContent`（`MessageBlock[]`）里随每帧覆盖，`message_end` 到了才把同一批块落成一个 `kind:'assistant'` 条目（`content: MessageBlock[]`）。所以上面三条帧合并规则**不需要为块做任何特殊处理**——块的增删改都发生在标量内部，条目合并仍然只看 `id` / `version`。
@@ -64,6 +80,77 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 **不要在 reducer 里对块做合并或补间**：块由宿主（或调试页的 simulator）投影成整份快照，reducer 只覆盖。这是"快照是唯一入口"那条契约在状态层的体现。
 
 **违反后果**：在 reducer 里按 `contentIndex` 再实现一遍合并，等于把上游的快照语义抄成第二份；两处一旦不一致，就会出现"文本正常、组件错位"这类最难定位的问题。
+
+**正文现在有两份，动手前先确认改的是哪一份**：`liveContent` 是宿主下发的**权威值**（随帧覆盖），`displayedContent` 是**屏幕上的那一份**，`pacedTarget` 是它正在追赶的目标（两者都是前端本地字段，由 `store/pacing.ts` 推进）。上面这条"reducer 只覆盖、不做补间"，说的是 `liveContent`；显示投影的推进与收尾规则见下一节。
+
+### 正文与思考走增量帧（`stream/delta`）
+
+`ServerEvent` 的 `stream` 分支只带**追加**部分，不携带条目：
+
+```ts
+{ type: 'stream'; instanceId: string; revision: number; delta: StreamDeltaView }
+// StreamDeltaView = {
+//   text: { index: number; delta: string } | null;   // 正文追加：活动文本块的下标 + 本次追加的文本
+//   thinking: string;                                // 思考追加；空串表示没变
+//   scalars: Omit<ChatScalarsView, 'liveContent' | 'liveThinking'>;  // 其余标量仍全量
+// }
+```
+
+`stream/delta` 因此是**纯累加**：把 `delta.text.delta` 接在 `liveContent[delta.text.index]` 那块文本的尾部、把 `delta.thinking` 接在 `liveThinking` 的尾部，`delta.scalars` 照旧整份覆盖，并把 `pacedTarget` 同步为新的 `liveContent`（权威值动了，摊平目标必须跟着动）。它**不动** `displayedContent`：屏幕上的进度只由 `stream/paced` 推进。
+
+两条守卫，缺一条就会把增量接到错的地方：
+
+1. **实例相同且 `revision` 更大**——`frame.instanceId !== state.instanceId || frame.revision <= state.revision` 直接丢弃。增量是"相对上一帧"的差分，重放迟到的帧会让同一段文本接两遍；
+2. **`delta.scalars.sessionId` 与当前会话一致**——不一致直接丢弃。换会话后的第一帧增量接不上旧正文。
+
+下标越界、或那一格不是 `text` 块时，**只跳过正文累加、其余标量照旧写入**，不猜结构。
+
+**"接不上就丢弃、不做增量回退"是协议约定，不是偷懒**：宿主（`takeLiveDelta` / `flushClient`）保证任何无法安全表达增量的情况——会话切换、历史重建、打断恢复重写回答、内容块结构变化、文本被改写、条目有变化——都改发**全量 `state` 帧**（自愈）。所以丢弃一帧不必自己设法补：随后的全量帧会整体覆盖（流式结束时清空正文本身也是一次全量帧，漏掉的文本不会被当成正确内容留在屏幕上）。自己写一套增量回退，反而会与宿主的判定分叉。
+
+**违反后果**：漏守卫 → 文本重复一段或新会话接上旧正文；把 `displayedContent` 也一起累加 → 摊平失效，屏幕直接跟着上游的批次跳字；在这里写增量回退 → 与宿主自愈协议出现两套判定，出问题时无法判断以哪一套为准。
+
+### 流式正文的显示投影与收尾播放
+
+`StreamState` 里有三个正文数组，分工不能混：
+
+| 字段 | 是什么 | 谁改 |
+|---|---|---|
+| `liveContent` | 宿主下发的**权威值**（协议标量，每帧整份覆盖） | `stream/frame`、`stream/delta` |
+| `pacedTarget` | 摊平正在追赶的**目标** | 流式期等于 `liveContent`；流式结束那一帧被**冻住**；`stream/pacedDone` 清空 |
+| `displayedContent` | **屏幕上的那一份**（组件经 `selectDisplayedContent` 读它） | `stream/paced` 推进；`stream/frame` 在本帧不进入收尾时跟随权威值；`stream/pacedDone` 清空 |
+
+后两个是**前端本地字段**：协议里没有它们，`INITIAL_STREAM_STATE` 里都是 `[]`。
+
+**为什么要有投影**：上游正文以**突发批次**到达（宿主每 16ms 合并一帧，实测每帧正文中位数 10 字符；窗口 40ms 时中位数 27 字符、单帧最多 127 字符）。按到达直接渲染就是"停一下、冒十几个字"。同期把窗口收到 16ms 并发增量帧之后，浏览器长任务从每轮 24 个（最大 286ms）降到 0 个；但每帧仍可能有几个到十几个字，所以显示要再按**时间**摊平一次（实测 59.5 字/秒）。
+
+**代价必须知道**：上游正文实测约 330 字符/秒，是摊平速度的五倍多，显示必然滞后——500 字的回答写完时，屏幕上大约还要再播 6~7 秒。这是"看着像逐字"的固有代价，不是可以优化掉的开销。**思考文本不摊平**（思考动辄上千字，逐字播要几十秒）。
+
+推进由 `store/pacing.ts` 的 `usePacing` 每帧算好后 dispatch：
+
+| action | 行为 |
+|---|---|
+| `stream/paced`（creator `pacedUpdated(content)`） | 只改 `displayedContent`；**同引用直接返回原 state**（推进到"已经是目标值"时不该引起一次渲染） |
+| `stream/pacedDone`（creator `pacedDone()`） | 把 `displayedContent` 与 `pacedTarget` **一起清空**，屏幕交回历史条目；两者本已为空时返回原 state |
+
+**收尾播放**：`stream/frame` 里除了上面三条帧合并规则，还要决定这一帧要不要让投影"继续播完"：
+
+```ts
+const nextRound = frame.items.some(item => item.kind === 'user');
+const tail = !switched && !nextRound
+  && live.length === 0 && state.pacedTarget.length > 0 && state.displayedContent.length > 0;
+// ...
+pacedTarget: tail ? state.pacedTarget : live,
+displayedContent: tail ? state.displayedContent : live,
+```
+
+即：**权威正文刚被清空**（`live.length === 0`，说明流式这一轮结束）、**不是换会话**、**本帧没有新的 `user` 条目**，且两个本地字段都非空时，把 `pacedTarget` / `displayedContent` **冻在上一帧的值上**，让剩下的字播完；其余情况两者都跟随权威值 `live`。
+
+两个"不让位"的分支各对应一种错：
+
+- **换会话**（`switched`）：整块状态重建，旧会话的尾巴不能带进新会话；
+- **本帧出现新的 `user` 条目**（`nextRound`）：旧回答的尾巴若继续播，会挂在新问题下面。
+
+**违反后果**：不冻住 → 最后一段直接跳出来（实测显示到 475/545 就消失，用户看到的是"回答没写完"）；把 `nextRound` 那条判据漏掉 → 旧回答的尾巴显示在新一轮问答下面；把 `live.length === 0` 那条判据漏掉（流式期就判定为收尾）→ 目标与投影一起冻住，屏幕上的正文停住不再增长。
 
 ### 应答在途的撤下条件（`answering`）
 
@@ -91,6 +178,25 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 ### `settingsPane` 住在 store，不放组件的 `useState`
 
 因为 `/model` 命令需要从组件外部直达"模型选择"行。两级关闭语义（`closePane` vs `closeSettings`）见 [../components/dialog.md](../components/dialog.md)。
+
+### `ui.processOpen` 装过程区的展开状态，`undefined` 与 `false` 必须区分
+
+```ts
+case 'ui/processToggled':
+  // 同值即无变化：展开状态由用户点击驱动，重复派发不该引起一次渲染。
+  return state.processOpen[action.key] === action.open
+    ? state
+    : { ...state, processOpen: { ...state.processOpen, [action.key]: action.open } };
+```
+
+- **键的形态由 `utils/process.ts` 的两个 helper 定义**（整轮过程 `turnProcessKey(turn)`、单个过程行 `processRowKey(turn, id)`），组件不自己拼字符串——行键用的是**条目 `id`**（同一步里思考与工具会撞键），见 [../utils/process.md](../utils/process.md) §规则「展开状态的键由两个 helper 定义」；
+- **`undefined`（没记录过）与 `false`（用户显式折叠过）必须区分**：消费侧 `Turn` 用「没记录 → 进行中的轮展开、历史轮折叠」的默认值，而用户一旦折过就一律以用户为准——把两者合并处理，用户就折不起进行中的轮次（每帧被默认值重新拉开）；
+- **放 store 而不是组件的 `useState`**：这些行随流式帧反复重渲染，且轮次在会话切换时整体重建，组件私有状态会连同重建一起丢；
+- 同值不新建对象（与其它 `ui` action 一致）：展开动作由用户点击驱动，重复派发不该引起一次渲染。
+
+工具行**子调用**的开合是刻意的例外：它留在 `ToolRow` 内部的 `useState`，粒度太细，不值得进全局状态。
+
+**违反后果**：`false` 与 `undefined` 合并处理 → 折叠点了没反应；放进组件 `useState` → 切会话后展开状态随机重置。
 
 ### 命令合并放在 `catalog` reducer，不放 selector
 
@@ -137,11 +243,15 @@ case 'ui/pinnedToggled': {
 |---|---|
 | §根 reducer 必须手写，不用 `combineReducers` | 想改用 `combineReducers`、或遇到 `never` 推断报错时 |
 | §帧合并三条规则缺一不可 | 加或改流字段时；**改帧处理前必读** |
-| §流式内容块走标量 `liveContent`，不进 `items` | 想给流式块加合并/补间、或问"组件的流式状态存在哪"时 |
+| §思考 / 工具 / 轮次三类条目走同一套条目合并，没有专属规则 | 给这三类条目加合并特判、或工具行停在「进行中」时 |
+| §流式内容块走标量 `liveContent`，不进 `items` | 想给流式块加合并/补间、或问"组件的流式状态存在哪"时（先分清权威值与显示投影） |
+| §正文与思考走增量帧（`stream/delta`） | 改增量帧的累加与守卫、排查"文本重复一段 / 新会话接上旧正文"时 |
+| §流式正文的显示投影与收尾播放 | 动 `displayedContent` / `pacedTarget`、排查"一次冒十几个字""最后一段整段跳出"时 |
 | §应答在途的撤下条件（`answering`） | 改确认卡的禁用与解禁、查"按钮点不动"时 |
 | §乐观回显的撤下条件（`pendingEcho`） | 气泡不消失或过早消失时 |
 | §`ui/draft` 与 `ui/draftRestore` 必须分成两个 action | 改输入草稿、发送失败回滚时 |
 | §`settingsPane` 住在 store，不放组件的 `useState` | 改设置弹窗的打开路径（如 `/model` 直达）时 |
+| §`ui.processOpen` 装过程区的展开状态，`undefined` 与 `false` 必须区分 | **改过程区折叠行为、或折叠点了没反应 / 进行中的轮被重新拉开时必读** |
 | §命令合并放在 `catalog` reducer，不放 selector | 动目录数据、改命令合并时机时 |
 | §`ui/pinnedToggled` 只改数组，落盘交给订阅 | 改置顶行为、或置顶刷新后丢失时 |
 | §新增一个 action 的步骤 | 加 action 时逐步照做 |
@@ -149,12 +259,17 @@ case 'ui/pinnedToggled': {
 
 ### `stream` 切片（`reducers/stream.ts`）
 
-字段：`ChatScalarsView` 的全部标量（`ready` / `busy` / `cancelling` / `status` / `liveContent` / `pending` / `sessionId` …）+ `instanceId` + `revision` + `items` + `connected` + `pendingEcho` + `answering`（前端本地状态，不在协议里）。
-初始值：`INITIAL_SCALARS` 加 `instanceId: ''`、`revision: -1`、`items: []`、`connected: false`、`pendingEcho: null`、`answering: null`。
+字段：`ChatScalarsView` 的全部标量（`ready` / `busy` / `cancelling` / `status` / `liveContent` / `pending` / `sessionId` …）+ `instanceId` + `revision` + `items` + `connected` + `pendingEcho` + `answering` + `displayedContent` / `pacedTarget`（后三者是前端本地状态，不在协议里）。
+初始值：`INITIAL_SCALARS` 加 `instanceId: ''`、`revision: -1`、`items: []`、`connected: false`、`pendingEcho: null`、`displayedContent: []`、`pacedTarget: []`、`answering: null`。
+
+`items` 里除文本条目外还有三类**结构化条目**：`reasoning`（思考）、`tool`（工具调用，含 `subCalls` 与结果内容块）、`turn`（轮次边界与元数据）。它们不额外占标量——过程区与轮控制行都从 `items` 里读（见 §规则「思考 / 工具 / 轮次三类条目走同一套条目合并」）。
 
 | action | 行为 |
 |---|---|
-| `stream/frame` | 见 §规则「帧合并三条规则缺一不可」 |
+| `stream/frame` | 见 §规则「帧合并三条规则缺一不可」；另按 §规则「流式正文的显示投影与收尾播放」决定 `pacedTarget` / `displayedContent` |
+| `stream/delta` | 见 §规则「正文与思考走增量帧（`stream/delta`）」：只累加 `liveContent` / `liveThinking` 与覆盖 `scalars`，并同步 `pacedTarget` |
+| `stream/paced` | 只写 `displayedContent`（摊平推进一格；同引用时返回原 state） |
+| `stream/pacedDone` | 摊平播完：`displayedContent` 与 `pacedTarget` 一起清空（本已为空时返回原 state） |
 | `stream/fatal` | 写入 `status` 并置 `connected: false`（宿主明确报错，不重试）；顺带清掉 `answering` |
 | `stream/connected` | 只改 `connected`；值未变时返回原 state |
 | `stream/pendingEchoSet` | 记录乐观回显（文本 + 当时的 `sessionId`） |
@@ -172,8 +287,8 @@ case 'ui/pinnedToggled': {
 
 ### `ui` 切片（`reducers/ui.ts`）
 
-字段：`switching`、`drafts`（`Record<string, string>`，键为会话 id）、`settingsOpen`、`settingsPane`、`sessionsOpen`、`collapsed`、`pinned`（`string[]`，置顶会话 id，按置顶顺序）、`reveal`、`notice`、`problem`、`credentialProvider`。
-初始值：`INITIAL_UI_STATE` 里 `pinned: []`；真实初值在 `store/index.ts` 里从 `localStorage` 读入（`loadPinned()`）。
+字段：`switching`、`drafts`（`Record<string, string>`，键为会话 id）、`settingsOpen`、`settingsPane`、`lastSettingsPane`、`sessionsOpen`、`collapsed`、`pinned`（`string[]`，置顶会话 id，按置顶顺序）、`reveal`、`processOpen`（过程区展开状态表，键见 [../utils/process.md](../utils/process.md)）、`notice`、`problem`、`credentialProvider`。
+初始值：`INITIAL_UI_STATE` 里 `pinned: []`、`processOpen: {}`；真实初值在 `store/index.ts` 里从 `localStorage` 读入（`loadPinned()`）。
 
 | action | 行为 |
 |---|---|
@@ -184,7 +299,8 @@ case 'ui/pinnedToggled': {
 | `ui/sessionsClosed` | 关闭会话弹窗 |
 | `ui/collapsedSet` / `ui/collapsedToggled` | 侧栏形态（`collapsedSet` 值未变时返回原 state） |
 | `ui/pinnedToggled` | 置顶 / 取消置顶指定会话（**每次都返回新数组**，落盘由 store 订阅负责，见 §规则） |
-| `ui/revealIncremented` | `/details`：递增展开计数 |
+| `ui/revealIncremented` | `/details`：递增展开计数（消费侧是 `TurnProcessBar` 的 `reveal`，递增即强制展开整轮过程） |
+| `ui/processToggled` | 写 `processOpen[key]`（整轮过程或单个过程行）；同值返回原 state，见 §规则 |
 | `ui/credentialProviderSet` | 设置行当前显示的提供方 |
 | `ui/switching` | 会话选择请求在途标记 |
 | `ui/draft` | 更新指定 `sessionId` 的草稿 |

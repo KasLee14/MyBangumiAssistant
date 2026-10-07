@@ -10,8 +10,9 @@ selector 清单与新增规则、store 实例与 `preloadedState`、类型导出
 
 ## 使用说明
 
-- **写 selector 之前先读完 §规则**：「selector 不得新建引用（稳定引用要求）」的三条反例、「`selectHeroPhase` 的条件不得只看 `items.length`」与「`preloadedState` 覆盖 `collapsed` 与 `pinned`、落盘只在一处订阅」都在那里；违反会表现为整棵树每帧重渲染、首屏遮住宿主提示、置顶刷新后丢失，或在 reducer 里读浏览器环境。
+- **写 selector 之前先读完 §规则**：「selector 不得新建引用（稳定引用要求）」的三条反例、「`selectHeroPhase` 的条件不得只看 `items.length`」、「流式正文读显示投影」与「`preloadedState` 覆盖 `collapsed` 与 `pinned`、落盘只在一处订阅」都在那里；违反会表现为整棵树每帧重渲染、首屏遮住宿主提示、屏幕上一次冒出十几个字或同一段回答出现两份、置顶刷新后丢失，或在 reducer 里读浏览器环境。
 - **只想查现成的 selector、或某个类型从哪转出**：直接查 §索引 的「选择器清单（`selectors.ts`）」与「转出的类型与值」，不必通读 §规则。
+- **不确定"流式正文该读哪个字段"**：见 §规则「流式正文读显示投影」——权威值（`liveContent`）与显示投影（`displayedContent`）是两回事。
 - **加 selector 之前**：先照 §规则「新增一个 selector」的四步做，最后在本文件的表格里登记。
 - 本层通用规则见 [readme.md](readme.md) 的 §规则；本篇只写专属规则。
 
@@ -31,7 +32,19 @@ selector 清单与新增规则、store 实例与 `preloadedState`、类型导出
 
 **违反后果**：有通知或流式输出时被首屏遮住。
 
-`selectHeroPhase` 的条件不能只看 `items.length`：只要有通知、命令回显或正在流式输出，就必须进入会话视图，否则首屏会把宿主提示挡住（这是历史 bug 的修复点）。判定式见 §索引「两个派生 selector」。
+`selectHeroPhase` 的条件不能只看 `items.length`：只要有通知、命令回显或正在流式输出，就必须进入会话视图，否则首屏会把宿主提示挡住（这是历史 bug 的修复点）。判定式见 §索引「三个派生 selector」。
+
+**判"还在不在输出"必须用权威值**：`selectHeroPhase` 读的是 `stream.liveContent` / `stream.liveThinking`，不是显示投影 `displayedContent`。上游的突发批次与摊平推进之间有一小段延迟（首帧刚到、`stream/paced` 还没跑时投影是空的），拿投影当判据等于把"还没显示出来"当成"没在输出"，首屏与会话视图会跟着显示进度抖动。
+
+### 流式正文读显示投影（`selectDisplayedContent`），不看权威值
+
+`stream.liveContent` 是宿主下发的**权威值**，`stream.displayedContent` 是**屏幕上的那一份**（由 `store/pacing.ts` 按时间逐字推进，见 [hooks-and-stream.md](hooks-and-stream.md)）。分工如下：
+
+- **正文读投影**：`selectDisplayedContent`（原 `selectLiveContent` 已删除）。读权威值会绕过摊平，上游一帧长出十几个字就直接上屏；
+- **"是否处于收尾播放"读 `selectPacedTail`**：`liveContent.length === 0 && displayedContent.length > 0`，即"流式已经结束、屏上的字还没播完"。它**只回答这一个问题**——`Stage` 用它给最后一轮 `Turn` 传 `hideAssistant`，让流式区独占显示，播完（`stream/pacedDone` 清空投影）历史条目无缝接管；
+- **"这一轮是否还在进行"读权威值**：`selectHeroPhase` 就是这么做的（见上一条）。
+
+**违反后果**：组件读 `liveContent` → 上游的突发批次直接上屏，一次冒出十几个字（改造前实测每帧正文中位数 27 字符、单帧最多 127 字符，同期浏览器每轮 24 个长任务、最大 286ms；改造后 0 个）；不用 `selectPacedTail` → 收尾播放期间历史条目与流式区同时显示同一段回答；把 `selectPacedTail` 当"流式进行中"用 → 它的语义恰好相反（那时 `liveContent` 已空），会把正常流式期判成收尾。
 
 ### store 实例（`index.ts`）：`preloadedState` 覆盖 `collapsed` 与 `pinned`，落盘只在一处订阅
 
@@ -77,9 +90,10 @@ export type AppDispatch = typeof store.dispatch;
 | 章节 | 什么时候读 |
 |---|---|
 | §选择器清单（`selectors.ts`） | 找现成 selector、判断要不要新增时 |
-| §两个派生 selector | 改首屏判定（`selectHeroPhase`）或设置行提供方回落逻辑时 |
+| §三个派生 selector | 改首屏判定（`selectHeroPhase`）、流式收尾判定（`selectPacedTail`）或设置行提供方回落逻辑时 |
 | §selector 不得新建引用（稳定引用要求） | **写 selector 前必读**（三条反例与对应做法） |
 | §`selectHeroPhase` 的条件不得只看 `items.length` | 排查"有通知或流式输出时首屏把提示挡住"时 |
+| §流式正文读显示投影（`selectDisplayedContent`），不看权威值 | 改流式正文的数据来源、排查"一次冒出十几个字""同一段回答出现两份"时 |
 | §store 实例（`index.ts`）：`preloadedState` 覆盖 `collapsed` 与 `pinned`，落盘只在一处订阅 | 改初值、`preloadedState`、置顶落盘或类型导出时 |
 | §新增一个 selector | 加 selector 时逐步照做 |
 
@@ -87,14 +101,14 @@ export type AppDispatch = typeof store.dispatch;
 
 | 分组 | 导出 |
 |---|---|
-| 会话流 | `selectStream`、`selectItems`、`selectLiveText`、`selectLiveThinking`、`selectBusy`、`selectPending`、`selectPendingEcho` |
+| 会话流 | `selectStream`、`selectItems`、`selectDisplayedContent`、`selectLiveThinking`、`selectBusy`、`selectPending`、`selectPendingEcho` |
 | 目录 | `selectModels`、`selectSessions`、`selectProviders`、`selectCommands`、`selectCanPersistCredentials` |
 | 界面 | `selectSettingsOpen`、`selectSettingsPane`、`selectSessionsOpen`、`selectCollapsed`、`selectReveal`、`selectNotice`、`selectProblem` |
-| 派生 | `selectHeroPhase`、`selectCredentialProvider` |
+| 派生 | `selectHeroPhase`、`selectPacedTail`、`selectCredentialProvider` |
 
 直接用 `state.xxx` 的字段访问在组件里也见得多（`useAppSelector(state => state.stream.busy)`），两者都合法：**被多处复用或需要派生计算时，才值得抽一个具名 selector。**
 
-### 两个派生 selector
+### 三个派生 selector
 
 ```ts
 // 首屏：完全空且空闲时才显示引导
@@ -102,6 +116,10 @@ export const selectHeroPhase = (state) =>
   state.stream.items.length === 0 && !state.stream.busy
   && state.stream.liveContent.length === 0 && !state.stream.liveThinking
   && state.stream.pendingEcho === null;
+
+// 收尾播放：流式已结束（权威正文已清空），但屏幕上的字还没播完
+export const selectPacedTail = (state) =>
+  state.stream.liveContent.length === 0 && state.stream.displayedContent.length > 0;
 
 // 设置行显示的提供方：没有显式选择时回落到目录里的当前提供方
 export const selectCredentialProvider = (state) =>
@@ -111,7 +129,7 @@ export const selectCredentialProvider = (state) =>
   ?? '';
 ```
 
-`selectHeroPhase` 为什么不能只看 `items.length`：见 §规则「`selectHeroPhase` 的条件不得只看 `items.length`」。
+`selectDisplayedContent` / `selectPacedTail` 在源码里排在 `selectItems` 之后（会话流分组下），这里按"是否派生"归类。`selectHeroPhase` 为什么不能只看 `items.length`、以及两个流式 selector 的分工：见 §规则「`selectHeroPhase` 的条件不得只看 `items.length`」与「流式正文读显示投影」。
 
 ### 转出的类型与值
 

@@ -152,11 +152,30 @@ function validateBase(kind: BaseTranscriptKind, raw: Record<string, unknown>, ba
       // `validateMessageBlock` 逐块校验（`text` 字段在块化后已不存在）。
       checkArray(bag, raw.content, 'content');
       return;
-    case 'activity':
-      checkText(bag, raw.label, 'label', false);
-      checkEnum(bag, raw.state, ['running', 'ok', 'error'], 'state', false);
-      // 协议里 detail 是必填字符串（可以为空串），缺失说明宿主映射漏了字段。
-      checkText(bag, raw.detail, 'detail', false);
+    case 'reasoning':
+      // 思考行：文本必填，`state` 只有进行中 / 已落定两种。
+      checkText(bag, raw.text, 'text', false);
+      checkEnum(bag, raw.state, ['running', 'done'], 'state', false);
+      return;
+    case 'tool':
+      // 工具行：宿主必须给出标题与状态（界面直接显示，不做映射），参数摘要允许为空串
+      // （拿不到摘要的工具只显示标题），结果整块可选（未结束时没有）。
+      checkText(bag, raw.callId, 'callId', false);
+      checkText(bag, raw.name, 'name', false);
+      checkText(bag, raw.title, 'title', false);
+      checkText(bag, raw.summary, 'summary', false);
+      checkEnum(bag, raw.state, ['running', 'waiting', 'ok', 'partial', 'unknown', 'error'], 'state', false);
+      checkEnum(bag, raw.access, ['read', 'write'], 'access', false);
+      if (raw.result !== undefined) {
+        const result = checkRecord(bag, raw.result, 'result');
+        // 结果的结构化部分是消息内容块数组：与助手正文同一套形状，块本身由
+        // `validateMessageBlock` 逐块校验。
+        if (result !== null) checkArray(bag, result.blocks, 'result.blocks');
+      }
+      return;
+    case 'turn':
+      // 轮次条目：只有边界与计数，没有正文。
+      checkEnum(bag, raw.status, ['open', 'completed', 'aborted', 'error'], 'status', false);
       return;
     case 'confirmation': {
       const confirmation = checkRecord(bag, raw.confirmation, 'confirmation');

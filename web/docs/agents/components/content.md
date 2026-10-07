@@ -23,11 +23,13 @@
 ### `type` 只有一个来源（`registry.tsx`）
 
 ```ts
-export type ContentKind = 'subjects' | … | 'links';                        // registry.tsx
-export type ContentBlockView = Extract<MessageBlock, { type: ContentKind }>;
+export type ContentKind =
+  | 'SubjectCards' | 'StatsCard' | 'ProgressView' | 'InfoBox' | 'DataTable' | 'Timeline'
+  | 'TagCloud' | 'Gallery' | 'CompareTable' | 'QuoteBlock' | 'Callout' | 'LinkList';   // registry.tsx
+export type ContentBlockOf<K extends ContentKind> = Extract<MessageBlock, { type: K }>;
 ```
 
-`ContentKind` 是 12 个内容种类的清单；`ContentBlockView` 用 `Extract<MessageBlock, { type: ContentKind }>` **从协议里挑**，不复制类型定义——协议改动会自动传导到前端。
+`ContentKind` 是 12 个内容种类的清单；`ContentBlockOf<K>` 用 `Extract<MessageBlock, { type: K }>` **从协议里挑**，不复制类型定义——协议改动会自动传导到前端（`registry.tsx` 另把协议里的 `ContentBlockView` / `MessageBlock` 直接转出，调用点不必深入 `protocol.ts`）。
 
 **违反后果**：协议漂移后内容块被静默丢弃。
 
@@ -55,7 +57,7 @@ export type ContentRegistryCoverage = AssertNever<
 
 协议加了第 13 个内容 type 却忘了扩 `ContentKind` 时，这一行会报错（`'text'` 是文本块，不属于内容组件库）。**不要为了让它通过而放宽这个断言**——它正是防止"协议漂移"的闸门。
 
-`BaseTranscriptKind`（`header`/`user`/`assistant`/`notice`/`error`/`activity`/`confirmation`）是有意排除在注册表之外的：这些条目由 `Turn.tsx` 的分支渲染，不走内容组件库。
+`BaseTranscriptKind`（`header` / `user` / `assistant` / `notice` / `error` / `reasoning` / `tool` / `turn` / `confirmation`，清单是 `registry.tsx` 的 `BASE_KINDS`）是有意排除在注册表之外的：这些条目由 `Turn.tsx` 的分支渲染，不走内容组件库。其中 `reasoning` / `tool` / `turn` 是**过程区与轮次边界**的条目，由 `Turn` 按轮次分组后交给 `ProcessGroup` / `TurnProcessBar` 渲染（见 [main-page.md](main-page.md)）——它们**不是内容块**，也不会出现在 `MessageBlock` 里。
 
 **违反后果**：协议新增 kind 时前端静默漏渲染。
 
@@ -78,6 +80,8 @@ export function contentRenderer(type: unknown): ((block: ContentBlockView) => Re
 `Turn.tsx` 另保留一条**条目层**的未知 kind 告警（模块级 `warnedKinds`）：协议之外的条目形态（宿主映射写错）不该静默消失。两层告警各管一层，**不要合并**。
 
 判定 base 条目用的是 `registry.tsx` 的 `isBaseTranscriptKind`：base kind 清单（`BASE_KINDS`）定义在那里，`Turn` 与 `validate.ts` 共用一份。
+
+**base 条目的形状也由校验器一并覆盖**（调试面板可以直接粘它们，不覆盖就会出现「面板能贴内容条目、贴 base 条目却报未知类型」）：`validate.ts` 的 `validateBase` 逐个分支查形状——`assistant` 只确认 `content` 是数组（块本身交 `validateMessageBlock`），新增的三个是 `reasoning`（`text` + `state ∈ {running, done}`）、`tool`（`callId` / `name` / `title` / `summary`、六态 `state`、`access`，以及可选的 `result.blocks` 数组）、`turn`（只查四态 `status`——轮次条目是边界标记，没有正文）。
 
 **违反后果**：误导用户以为渲染成功；或把告警留在不可达的分支里，宿主映射写错时界面只是"什么都没有"，永远没人发现。
 
@@ -109,6 +113,7 @@ export function contentRenderer(type: unknown): ((block: ContentBlockView) => Re
 **不注入 HTML**：行内标记（粗体、行内代码、链接）与表格/分隔线都以 React 节点输出，`INLINE` 白名单之外的内容按纯文本渲染。
 
 - 外部链接一律 `target="_blank" rel="noreferrer noopener"`。
+- **代码围栏的语言标记会渲染出来**：开栅行（```` ```ts ````）的语言标记解析进 `block.lang`，渲染成代码块右上角的 `.markdownCodeLang`；栅栏内的代码本身**不做语法高亮**——留着这个标记只是让读者能分清 `ts` 与 `json`。
 - 正文链接的**外观**不在这里决定：统一是「主色深字 + 下划线」（`--bgm-primary-text`，hover 转主色 / 交互蓝），**不使用蓝色链接色**（`--bgm-link` `#0084b4` 是上游遗留），规则落在 `frame.css` 的 `.markdown a`——组件只负责结构与 `target` / `rel`，不写颜色。
 - 它只被 `MessageBlocks.tsx` 使用（流式区与历史条目共用同一个正文入口）；改渲染规则等于改所有助手文本的呈现，回归时至少覆盖一条含表格与链接的回答。
 
@@ -127,7 +132,7 @@ export function contentRenderer(type: unknown): ((block: ContentBlockView) => Re
 | `details` | 该 type 的**载荷本体**，也就是块的 `props`：多数是对象（如 `{ rows: […] }`），`TagCloud` 是数组本身（协议里 `TagCloud` 成员的类型就是数组）。**不带字段名包装**——旧的 `{ info: {…} }` 写法已废弃 |
 | `display` | 为 `true` 才进入会话界面；`false` 的消息只进模型上下文 |
 
-两条通道的映射都在宿主侧 `bangumi/src/web/message-blocks.ts`（`blocksFromContent` / `blocksFromMessage` / `customContentBlocks`）——跨端共享的纯函数，宿主因此**不知道有哪些 kind、也不知道每种 kind 的载荷字段名**，只排除 Pi 的原生块（`thinking` / `toolCall` / `image` / …），其余原样透传。新增第 13 种 kind 时**宿主不需要改动**（见 §规则 末条清单）。custom 消息投影成"只含一个块的助手条目"（`origin: 'extension'`），所以旧会话里已落盘的 `custom_message` 仍能重建。
+两条通道的映射都在宿主侧 `bangumi/src/web/message-blocks.ts`（`blocksFromContent` / `blocksFromMessage` / `customContentBlocks`）——跨端共享的纯函数，宿主因此**不知道有哪些 kind、也不知道每种 kind 的载荷字段名**，只排除 Pi 的原生块（`thinking` / `toolCall` / `image` / …），其余原样透传。**「不进正文序列」是刻意的**：`thinking` 与 `toolCall` 各有承载（同一份 `content` 由 `reasoningTextFrom` / `toolCallsFrom` 分流成思考文本与工具调用头，见 `protocol.ts` 的 `ReasoningItemView` / `ToolItemView`），把它们塞进正文块数组会让 `store/pacing.ts` 的逐字摊平走「结构变化直接对齐」分支、在流式期造成正文跳变（理由写在 `NATIVE_BLOCK_TYPES` 的注释里）。新增第 13 种 kind 时**宿主不需要改动**（见 §规则 末条清单）。custom 消息投影成"只含一个块的助手条目"（`origin: 'extension'`），所以旧会话里已落盘的 `custom_message` 仍能重建。
 
 因此接收侧校验是唯一的形状闸门：载荷层级写错（例如 infobox 直接给 `{ rows: […] }`）会降级成 `ContentFallback`，`type` 写错则整块不渲染并告警一次。
 
@@ -157,9 +162,17 @@ ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENT
 
 `.contentInfoRow` / `.contentTimelineRow` / `.contentSubjectRow` / `.contentLinkRow` 的入场写在 `styles/content.css` 的 `@keyframes contentRowIn`：只动 `opacity` 与 `transform`（`translateY(var(--app-shift-row))` + `scale(.985)` → `none`），按 `:nth-child` 错峰 **`--app-stagger`（55ms）递增**，**第 9 行起封顶**（8 × 55ms = 440ms；与 `.appStagger` 同一张表，4 档封顶时第 5 行起会一次冒出好几行，见 [C04](../../design/decisions/C04-stagger.md)）；时长 `--app-dur-slow`、曲线 `--app-ease-spring`，`@media (prefers-reduced-motion: reduce)` 下 `animation: none`。`ProgressView` 的章节格（`.contentEpGrid > *`）复用同一条 keyframes，但**比别处多一档**：一话一格、网格里同时十几格是常态，第 10 格起沿用第 9 档（见 [C07](../../design/decisions/C07-progress-view.md)）。
 
-**为什么不用 JS / vendor 组件**：逐行动画如果每行挂一个观察器或 motion 组件，流式帧（约 40ms 一帧）里就是 N 个观察器与 N 次内联样式写入；CSS keyframes 由合成器执行、不触发布局，且天然尊重 reduced-motion。同一理由也是 `AnimatedList` 不采用的原因——它只接受 `items: string[]`，承载不了「标签 + 值」这类结构化行。**思路参考 ReactBits Animated List，但没有引入它的源码。**（滚动容器内**整块**的入场是另一条路径：`MessageBlocks` 用 `AnimatedContent` + `motionTokens` 的 `SHIFT.reveal` / `DURATION.reveal`。）
+**为什么不用 JS / vendor 组件**：逐行动画如果每行挂一个观察器或 motion 组件，流式帧（约 16ms 一帧）里就是 N 个观察器与 N 次内联样式写入；CSS keyframes 由合成器执行、不触发布局，且天然尊重 reduced-motion。同一理由也是 `AnimatedList` 不采用的原因——它只接受 `items: string[]`，承载不了「标签 + 值」这类结构化行。**思路参考 ReactBits Animated List，但没有引入它的源码。**（滚动容器内**整块**的入场是另一条路径：`MessageBlocks` 用 `AnimatedContent` + `motionTokens` 的 `SHIFT.reveal` / `DURATION.reveal`。）
 
 **违反后果**：流式期间每帧写入 N 个节点的样式，滚动与输入开始掉帧（这条是 [AGENTS.md](../../../AGENTS.md) §规则「外观层硬约定」第 3 条在内容条目上的落地）。
+
+### 滚动入场由 `animate` 开关，工具结果的展开体必须关掉
+
+`MessageBlocks` 的 `animate?: boolean`（默认 `true`）决定内容块要不要包 `AnimatedContent`；流式期本来就不挂（`BlockSlot` 收到的是 `animate && !streaming`，挂上去会让入场每帧反复触发）。
+
+只有一处传 `false`：**工具结果的展开体**（`ProcessRows.tsx` 的 `ToolResultBody`）。理由：展开体在**展开那一刻才挂载**，此时元素已经在视口内（用户刚点开），而 `AnimatedContent` 是**滚动触发**的——元素已在视口里时它仍要等一次滚动事件，于是出现「点了展开却看不到内容」。展开是用户的显式动作，不需要入场动画提示。
+
+**违反后果**：工具结果展开后一片空白，再滚一下才出现，用户会以为没有结果。
 
 ### 条形与进度条的长度走 CSS 变量，不写内联 `transform`
 
@@ -215,13 +228,14 @@ ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENT
 | §规则「`kind` 只有一个来源（`registry.tsx`）」 | 想另写一份 kind 清单、怀疑协议漂移时 |
 | §规则「`satisfies` 完整性与 `ContentRegistryCoverage` 断言不得放宽」 | 注册表编译报错、想放宽断言时 |
 | §规则「取渲染函数必须走 `contentRenderer()`」 | 写分发代码、想直接索引渲染表时 |
-| §规则「未知 `type` 一律丢弃 + 告警，不做降级渲染」 | 讨论要不要给未知 type 兜底渲染时；界面上"什么都没有"却找不到告警时（块层告警在 `ContentBlock`，条目层在 `Turn`） |
+| §规则「未知 `type` 一律丢弃 + 告警，不做降级渲染」 | 讨论要不要给未知 type 兜底渲染时；界面上"什么都没有"却找不到告警时（块层告警在 `ContentBlock`，条目层在 `Turn`）；想知道 base 条目（含 `reasoning` / `tool` / `turn`）在校验器里覆盖到哪一步时 |
 | §规则「骨架与降级的分界（`validate.ts` + `ContentBlock`）」 | 遇到骨架或降级块、要改校验规则时 |
 | §规则「数组规模上限」 | 改数组上限、遇到超长载荷时 |
-| §规则「`markdown.tsx` 不注入 HTML」 | 改助手文本渲染时 |
+| §规则「`markdown.tsx` 不注入 HTML」 | 改助手文本渲染、代码围栏或语言标记时 |
 | §规则「内容块的来源：助手消息 `content` 与 custom 消息」 | 问"这些卡片是谁产生的"、想把 kind 知识加进宿主时 |
 | §规则「每个 `kind` 的动效落点」 | 想给某个 `kind` 加动效、或问"某个 ReactBits 组件为什么没被用"时 |
 | §规则「行级入场用 CSS keyframes（`contentRowIn`），不用 JS 观察器」 | 想给内容行加入场动画、怀疑流式期间掉帧时 |
+| §规则「滚动入场由 `animate` 开关，工具结果的展开体必须关掉」 | 工具结果展开后一片空白、或想给别的场景关掉入场时 |
 | §规则「条形与进度条的长度走 CSS 变量，不写内联 `transform`」 | 改统计条形 / 进度条的长度，或动画结束后长度跳回默认值时 |
 | §规则「形态要点按 C04–C20 定稿，改这些结构前先读对应决策」 | 改内容条目的结构（网格列数、时间线列、引用块骨架、骨架扫光、降级卡）时 |
 | §规则「新增一种内容 `kind` 的完整清单」 | **新增内容展示时逐步照做**（7 步，缺一步会编译失败或静默丢弃） |
@@ -232,12 +246,12 @@ ReactBits 组件**按用途落点**（跨层约定见 [AGENTS.md](../../../AGENT
 | 文件 | 职责 |
 |---|---|
 | `registry.tsx` | **注册表本体**：`kind` 清单、`type → { limit, render }` 表、渲染函数查找、覆盖率断言 |
-| `MessageBlocks.tsx` | **助手消息正文的唯一渲染入口**：按块顺序渲染（文本 → `Markdown`、内容块 → `ContentBlock`），块级 `memo`；历史条目的内容块用 `AnimatedContent` 挂滚动入场（`SHIFT.reveal` 18px / `DURATION.reveal` 460ms，C19 定稿，`container="#app-stage-scroll"`） |
+| `MessageBlocks.tsx` | **助手消息正文的唯一渲染入口**：按块顺序渲染（文本 → `Markdown`、内容块 → `ContentBlock`），块级 `memo`；历史条目的内容块用 `AnimatedContent` 挂滚动入场（`SHIFT.reveal` 18px / `DURATION.reveal` 460ms，C19 定稿，`container="#app-stage-scroll"`），`animate`（默认 `true`）是这条入场的总开关——工具结果的展开体传 `false`，见 §规则 |
 | `index.tsx` | `ContentBlock`：`pending` → 骨架；否则接收侧校验 + 分发 + 降级/丢弃 |
 | `ContentSkeleton.tsx` | 骨架：载荷还在传时的占位（与 kind 无关）；**扫光的开关就是 `aria-busy` 语义本身**（`aria-busy="true"` + `[aria-busy='true']` 选择器），不在别处再挂一个 `animated` 开关 |
 | `validate.ts` | 块的载荷校验（零依赖手写守卫）`validateMessageBlock`，返回 `ok` / `degraded` / `dropped` |
 | `ContentFallback.tsx` | 降级块：**素面 + 左侧 2px 短条**（语义只由短条与 `△` 标记承担），把问题清单与折叠的原始 JSON 呈现给用户 |
-| `markdown.tsx` | `Markdown` 渲染器（行内标记 + 表格 + 分隔线），**以 React 节点输出，不注入 HTML** |
+| `markdown.tsx` | `Markdown` 渲染器（行内标记 + 表格 + 分隔线 + 代码围栏的语言标记），**以 React 节点输出，不注入 HTML** |
 | 12 个渲染组件 | `SubjectCards`、`StatsCard`、`ProgressView`、`InfoBox`、`DataTable`、`Timeline`、`TagCloud`、`Gallery`、`CompareTable`、`QuoteBlock`、`Callout`、`LinkList` |
 
 12 个 `kind`：`SubjectCards` / `StatsCard` / `ProgressView` / `InfoBox` / `DataTable` / `Timeline` / `TagCloud` / `Gallery` / `CompareTable` / `QuoteBlock` / `Callout` / `LinkList`。

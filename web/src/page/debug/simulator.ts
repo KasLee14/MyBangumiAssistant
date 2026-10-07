@@ -4,7 +4,12 @@ import {
   customContentBlocks,
   hasRenderableBlock,
 } from '../../../../bangumi/src/web/message-blocks';
-import type { ChatScalarsView, MessageBlock, ServerEvent, TranscriptItemView } from '../../../../bangumi/src/web/protocol';
+import {
+  toolAccess, toolArgsText, toolFamily, toolOutcome, toolSummary, toolTitle,
+} from '../../../../bangumi/src/web/tool-view';
+import type {
+  ChatScalarsView, MessageBlock, ServerEvent, TranscriptItemView, TurnItemView, TurnUsageView,
+} from '../../../../bangumi/src/web/protocol';
 
 /**
  * 调试页的宿主模拟器。
@@ -13,9 +18,12 @@ import type { ChatScalarsView, MessageBlock, ServerEvent, TranscriptItemView } f
  * 浏览器会收到的一帧 `StateFrame`（`store/stream.ts` 里 `onFrame` 的入参）。
  *
  * 这份代码是 `bangumi/src/web/session.ts` 的 `handleEvent` 在浏览器侧的复刻，
- * 只保留与该映射有关的语义：条目生成、标量改写、activity 的原地更新。**不含**
- * 宿主的派生计算（token 用量、上下文占用、登录与代理探测），那些字段按固定模拟值
+ * 只保留与该映射有关的语义：条目生成、标量改写、工具条目的原地更新、轮次边界与用量累计。
+ * **不含**宿主的派生计算（token 用量、上下文占用、登录与代理探测），那些字段按固定模拟值
  * 处理，界面上另有标注。
+ *
+ * 工具条目的文案与结果投影**直接调用宿主的纯函数**（`tool-view.ts`），因此调试页演练的就是
+ * 宿主真实走的逻辑，而不是又抄一遍——这条与 `message-blocks.ts` 的共用方式一致。
  *
  * 与真实宿主的两处刻意差异：
  * 1. notice 文案只保留与调试相关的少数几条；
@@ -58,6 +66,8 @@ interface MessageLike {
   details?: unknown;
   stopReason?: string;
   errorMessage?: string;
+  /** 提供方回报的用量；轮次条目的「用量」读数由它累加而来。 */
+  usage?: unknown;
 }
 
 /** 取内容块里所有 text 块并拼接；其它块类型（工具调用、图片）一律丢弃。 */
@@ -83,36 +93,6 @@ export function messageText(message: MessageLike): string {
   return '';
 }
 
-const DETAIL_LIMIT = 4000;
-
-function truncate(text: string): string {
-  return text.length > DETAIL_LIMIT ? `${text.slice(0, DETAIL_LIMIT)}\n…（已截断）` : text;
-}
-
-/** 对应 session.ts 的 resultDetail：只做保守的文本化。 */
-export function resultDetail(result: unknown): string {
-  if (result === null || result === undefined) return '';
-  if (typeof result === 'string') return truncate(result);
-  if (typeof result === 'object') {
-    const parts = (result as { content?: unknown }).content;
-    const text = Array.isArray(parts)
-      ? parts
-          .map(part => (part && typeof part === 'object' && typeof (part as { text?: unknown }).text === 'string'
-            ? (part as { text: string }).text
-            : ''))
-          .filter(Boolean)
-          .join('\n')
-      : '';
-    if (text) return truncate(text);
-    try {
-      return truncate(JSON.stringify(result, null, 2));
-    } catch {
-      return '';
-    }
-  }
-  return truncate(String(result));
-}
-
 /** 简化脱敏：真实宿主用凭据值表做替换，调试页没有凭据，只挡明显的密钥形状。 */
 const SECRET_PATTERNS: readonly (readonly [RegExp, string])[] = [
   [/sk-[A-Za-z0-9_-]{8,}/g, 'sk-***'],
@@ -121,12 +101,6 @@ const SECRET_PATTERNS: readonly (readonly [RegExp, string])[] = [
 
 export function redactText(text: string): string {
   return SECRET_PATTERNS.reduce((acc, [pattern, replacement]) => acc.replace(pattern, replacement), text);
-}
-
-/** 对应宿主对 activity 状态的判定：isError 或写入结果为 failed/unknown 即 error。 */
-function activityState(result: unknown, isError: boolean): 'ok' | 'error' {
-  const value = (result as { details?: { value?: { state?: string } } } | undefined)?.details?.value;
-  return isError || value?.state === 'failed' || value?.state === 'unknown' ? 'error' : 'ok';
 }
 
 /* ============================================================
@@ -141,6 +115,15 @@ export interface SimulatorState {
   activities: Map<string, number>;
   /** 本轮输入是否已经回显过，用于 message_start 的 user 去重。 */
   echoPending: boolean;
+  /** 当前用户回合号与回合内步序号（对应宿主的 currentTurn / currentStep）。 */
+  currentTurn: number;
+  currentStep: number;
+  /** 已发出的轮次条目，按回合号索引。 */
+  turnItems: Map<number, TurnItemView>;
+  /** 当前回合的用量累计。 */
+  turnUsage: TurnUsageView;
+  /** 当前回合的终态（message_end 的停止原因会改它）。 */
+  turnStatus: TurnItemView['status'];
   busy: boolean;
   cancelling: boolean;
   startedAt: number;
@@ -150,6 +133,67 @@ export interface SimulatorState {
   sessionId: string;
   /** emit 计数，充当帧的 revision。 */
   revision: number;
+}
+
+/** 空用量：与宿主 `emptyUsage()` 同形。 */
+function emptyUsage(): TurnUsageView {
+  return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, cost: 0 };
+}
+
+/** 与宿主 `openTurn()` 同构：开一个用户回合、复位步序号并发出轮次条目。 */
+function openTurn(state: SimulatorState): void {
+  state.currentTurn += 1;
+  state.currentStep = 0;
+  state.turnUsage = emptyUsage();
+  state.turnStatus = 'completed';
+  const item = pushItem(state, {
+    id: state.nextItemId++, version: 1, kind: 'turn', turn: state.currentTurn,
+    startedAt: Date.now(), endedAt: 0, status: 'open', messageCount: 0, toolCallCount: 0,
+  });
+  if (item.kind === 'turn') state.turnItems.set(state.currentTurn, item);
+}
+
+/** 与宿主 `closeTurn()` 同构：补齐结束时间、终态与累计用量。 */
+function closeTurn(state: SimulatorState): void {
+  const item = state.turnItems.get(state.currentTurn);
+  if (item === undefined) return;
+  item.endedAt = Date.now();
+  item.status = state.turnStatus;
+  item.usage = { ...state.turnUsage };
+  item.version += 1;
+}
+
+/** 与宿主 `noteAssistantStep()` / `noteToolCall()` 同构：维护轮控制行的计数。 */
+function noteTurnCount(state: SimulatorState, field: 'messageCount' | 'toolCallCount'): void {
+  const item = state.turnItems.get(state.currentTurn);
+  if (item === undefined) return;
+  item[field] += 1;
+  item.version += 1;
+}
+
+/** 与宿主 `flushReasoning()` 同构：把当前这段思考落成条目。 */
+function flushReasoning(state: SimulatorState): void {
+  const text = state.liveThinking.trim();
+  state.liveThinking = '';
+  if (!text) return;
+  const now = Date.now();
+  pushItem(state, {
+    id: state.nextItemId++, version: 1, kind: 'reasoning',
+    turn: state.currentTurn, step: state.currentStep || 1,
+    text, state: 'done', startedAt: now, endedAt: now,
+  });
+}
+
+/** 与宿主 `accumulateUsage()` 同构（只累加四类 token 与合计，cost 在调试页无意义）。 */
+function accumulateUsage(state: SimulatorState, usage: unknown): void {
+  if (usage === null || typeof usage !== 'object') return;
+  const value = usage as Record<string, unknown>;
+  const num = (input: unknown): number => (typeof input === 'number' && Number.isFinite(input) ? input : 0);
+  state.turnUsage.input += num(value['input']);
+  state.turnUsage.output += num(value['output']);
+  state.turnUsage.cacheRead += num(value['cacheRead']);
+  state.turnUsage.cacheWrite += num(value['cacheWrite']);
+  state.turnUsage.total += num(value['totalTokens']);
 }
 
 /**
@@ -172,6 +216,11 @@ export function createSimulatorState(sessionId = 'debug-session', revision = -1)
     items: [],
     activities: new Map<string, number>(),
     echoPending: false,
+    currentTurn: 0,
+    currentStep: 0,
+    turnItems: new Map<number, TurnItemView>(),
+    turnUsage: emptyUsage(),
+    turnStatus: 'completed',
     busy: false,
     cancelling: false,
     startedAt: 0,
@@ -273,6 +322,12 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
       state.cancelling = false;
       state.startedAt = Date.now();
       state.status = '正在处理';
+      openTurn(state);
+      return [emit(state, KEEP)];
+
+    case 'turn_start':
+      // 一次模型响应开始：步序号递增（与宿主一致；`turn_end` 不参与视图）。
+      state.currentStep += 1;
       return [emit(state, KEEP)];
 
     case 'message_start': {
@@ -315,21 +370,31 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
       if (custom !== undefined) {
         pushItem(state, {
           id: state.nextItemId++, version: 1, kind: 'assistant', content: custom, origin: 'extension',
+          turn: state.currentTurn, step: state.currentStep || 1,
         });
         return [emit(state, KEEP)];
       }
       if (message.role !== 'assistant') return [emit(state, KEEP)];
+      // 与宿主同一顺序：思考先落条目，正文随后；否则思考只存在于流式期。
+      flushReasoning(state);
+      accumulateUsage(state, message.usage);
       const blocks = blocksFromMessage(message);
       if (hasRenderableBlock(blocks))
-        pushItem(state, { id: state.nextItemId++, version: 1, kind: 'assistant', content: blocks });
+        pushItem(state, {
+          id: state.nextItemId++, version: 1, kind: 'assistant', content: blocks,
+          turn: state.currentTurn, step: state.currentStep || 1,
+        });
+      noteTurnCount(state, 'messageCount');
       state.liveBlocks = [];
       state.liveThinking = '';
       if (message.stopReason === 'error') {
+        state.turnStatus = 'error';
         pushItem(state, {
           id: state.nextItemId++, version: 1, kind: 'error',
           text: redactText(message.errorMessage ?? '模型请求失败。'),
         });
       } else if (message.stopReason === 'aborted') {
+        state.turnStatus = 'aborted';
         pushItem(state, {
           id: state.nextItemId++, version: 1, kind: 'notice',
           text: '本轮已停止；已发送的变更以回读结果及操作记录为准。',
@@ -342,27 +407,83 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
 
     case 'tool_execution_start': {
       const toolCallId = String(event['toolCallId'] ?? '');
+      const name = String(event['toolName'] ?? '未命名工具');
+      const args = event['args'];
+      const argsText = toolArgsText(args);
       const item = pushItem(state, {
-        id: state.nextItemId++, version: 1, kind: 'activity',
-        label: String(event['toolName'] ?? '未命名工具'), state: 'running', detail: '',
+        id: state.nextItemId++, version: 1, kind: 'tool',
+        turn: state.currentTurn, step: state.currentStep || 1,
+        callId: toolCallId, name,
+        // 标题、族、摘要都与宿主同源：直接调宿主那份纯函数（`tool-view.ts`），
+        // 因此调试页演练的是真实映射，而不是又写一份对照。
+        title: toolTitle(name), family: toolFamily(name),
+        summary: toolSummary(name, args),
+        ...(argsText === undefined ? {} : { argsText }),
+        state: 'running', access: toolAccess(name),
+        startedAt: Date.now(), endedAt: 0, durationMs: 0,
       });
-      if (item.kind === 'activity') state.activities.set(toolCallId, item.id);
+      if (item.kind === 'tool') state.activities.set(toolCallId, item.id);
+      noteTurnCount(state, 'toolCallCount');
+      return [emit(state, KEEP)];
+    }
+
+    case 'tool_execution_update': {
+      const toolCallId = String(event['toolCallId'] ?? '');
+      const name = String(event['toolName'] ?? '未命名工具');
+      const id = state.activities.get(toolCallId);
+      if (id === undefined) return [emit(state, KEEP)];
+      const index = state.items.findIndex(item => item.id === id);
+      const current = index < 0 ? undefined : state.items[index];
+      if (current?.kind !== 'tool') return [emit(state, KEEP)];
+      // 与宿主一致：只有批量写入的中间回执带可用进展（批次计数、额度等待），
+      // 其它工具的 `partialResult` 形状由各工具自己定义，这里沿用最终结果。
+      if (name !== 'execute_write_batch') return [emit(state, KEEP)];
+      const outcome = toolOutcome(name, event['partialResult'], false, false);
+      state.items[index] = {
+        ...current,
+        // 原地更新必须递增版本，否则增量帧不会再重发，界面停在「进行中」。
+        version: current.version + 1,
+        ...(outcome.state === undefined ? {} : { state: outcome.state }),
+        result: {
+          blocks: outcome.result.blocks,
+          isError: outcome.result.isError,
+          ...(outcome.result.text === undefined ? {} : { text: redactText(outcome.result.text) }),
+          ...(outcome.result.errorText === undefined ? {} : { errorText: redactText(outcome.result.errorText) }),
+          ...(outcome.result.truncated === undefined ? {} : { truncated: outcome.result.truncated }),
+        },
+        ...(outcome.showDetail === undefined ? {} : { showDetail: outcome.showDetail }),
+      };
+      state.status = outcome.state === 'waiting' ? '正在等待写入额度' : '正在执行修改计划';
       return [emit(state, KEEP)];
     }
 
     case 'tool_execution_end': {
       const toolCallId = String(event['toolCallId'] ?? '');
+      const name = String(event['toolName'] ?? '未命名工具');
       const id = state.activities.get(toolCallId);
       if (id !== undefined) {
         const index = state.items.findIndex(item => item.id === id);
         const current = index < 0 ? undefined : state.items[index];
-        if (current?.kind === 'activity') {
+        if (current?.kind === 'tool') {
+          const isError = event['isError'] === true;
+          const outcome = toolOutcome(name, event['result'], isError);
+          const endedAt = Date.now();
           // 对应宿主：原地更新同一条并递增版本，否则增量帧不会重发，界面停在「进行中」。
+          // 结果文本过一遍简化脱敏（宿主那边是真实凭据脱敏，见 session.ts 的 sanitizeResult）。
           state.items[index] = {
             ...current,
             version: current.version + 1,
-            state: activityState(event['result'], event['isError'] === true),
-            detail: redactText(resultDetail(event['result'])),
+            state: outcome.state ?? (isError ? 'error' : 'ok'),
+            result: {
+              blocks: outcome.result.blocks,
+              isError: outcome.result.isError,
+              ...(outcome.result.text === undefined ? {} : { text: redactText(outcome.result.text) }),
+              ...(outcome.result.errorText === undefined ? {} : { errorText: redactText(outcome.result.errorText) }),
+              ...(outcome.result.truncated === undefined ? {} : { truncated: outcome.result.truncated }),
+            },
+            ...(outcome.showDetail === undefined ? {} : { showDetail: outcome.showDetail }),
+            endedAt,
+            durationMs: Math.max(0, endedAt - current.startedAt),
           };
         }
         state.activities.delete(toolCallId);
@@ -373,6 +494,7 @@ export function applyEvent(state: SimulatorState, event: SimEvent): SimStep[] {
     case 'agent_end':
       state.busy = false;
       state.status = '';
+      closeTurn(state);
       return [emit(state, KEEP)];
 
     case 'agent_settled':
@@ -454,8 +576,8 @@ export function applyEvents(state: SimulatorState, events: readonly SimEvent[]):
 
 /** 已知的事件类型，供调试页给出可读的错误提示。 */
 export const SUPPORTED_EVENTS = [
-  'agent_start', 'message_start', 'message_update', 'message_end',
-  'tool_execution_start', 'tool_execution_end',
+  'agent_start', 'turn_start', 'message_start', 'message_update', 'message_end',
+  'tool_execution_start', 'tool_execution_update', 'tool_execution_end',
   'agent_end', 'agent_settled',
   'compaction_start', 'compaction_end',
   'auto_retry_start', 'auto_retry_end', 'session_info_changed',

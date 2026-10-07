@@ -1,7 +1,8 @@
-import { memo, type ReactNode } from 'react';
-import { useSelector } from 'react-redux';
+import { memo, useCallback, type ReactNode } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import type { MessageBlock } from '../../../../bangumi/src/web/protocol';
 import { Stage } from '../../components/mainPage/conversation/Stage';
+import { processToggled } from '../../store/actions';
 import type { RootState } from '../../store/reducers';
 
 /**
@@ -36,6 +37,13 @@ export const DebugPreview = memo(function DebugPreview({
 }: DebugPreviewProps): ReactNode {
   const scalars = useSelector((state: RootState) => state.stream);
   const items = useSelector((state: RootState) => state.stream.items);
+  // 过程开合走与主界面同一套 action：外层 Provider 给的是调试专用 store 实例，
+  // 因此这里改状态不会影响真实会话。
+  const openMap = useSelector((state: RootState) => state.ui.processOpen);
+  const dispatch = useDispatch();
+  const toggleProcess = useCallback((key: string, open: boolean): void => {
+    dispatch(processToggled(key, open));
+  }, [dispatch]);
 
   return (
     <main className="appConversation">
@@ -66,6 +74,8 @@ export const DebugPreview = memo(function DebugPreview({
           </button>
         ) : null}
       </div>
+      {/* 调试页的逐字播放由本页自己驱动（`playBlocks` 演受控的 liveBlocks），不存在
+          「历史条目与流式区同时显示同一段」的收尾阶段，所以这里恒为 false。 */}
       <Stage
         items={items}
         liveContent={liveBlocks}
@@ -76,6 +86,10 @@ export const DebugPreview = memo(function DebugPreview({
         startedAt={scalars.startedAt}
         sessionId={scalars.sessionId}
         reveal={reveal}
+        pacedTail={false}
+        openMap={openMap}
+        onToggleProcess={toggleProcess}
+        onToggleRow={toggleProcess}
         onConfirm={() => { /* 调试页不应答写入确认：那需要宿主。 */ }}
         onReject={() => { /* 同上。 */ }}
         {...(hasInput ? {} : { hero: <DebugHero /> })}

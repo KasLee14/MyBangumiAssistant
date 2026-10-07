@@ -35,11 +35,16 @@ export interface CustomContentSource {
 }
 
 /**
- * Pi 的原生块类型：它们有各自的承载通道，不进内容块序列。
+ * Pi 的原生块类型：它们有各自的承载通道，不进**正文**内容块序列。
  *
- * - `thinking` → 流式思考区（`liveThinking`）；
- * - `toolCall` → 工具活动条目（`activity`）；
+ * - `thinking` → 思考条目（由下面的 `reasoningTextFrom` 单独投影）；
+ * - `toolCall` → 工具条目（由下面的 `toolCallsFrom` 单独投影）；
  * - `image` / `redacted_thinking` / `fallback` → 当前没有展示需求。
+ *
+ * 「不进正文序列」是刻意的：正文只走 `MessageBlocks` 这一个渲染入口，而思考与工具是过程区
+ * 的独立条目（由前端按轮次分组）。所以同一份 `content` 会被分流成三类输出，而不是把思考与
+ * 工具塞进正文块数组——后者会让流式摊平踩坑：`store/pacing.ts` 的 `advanceFrame` 只逐字推进
+ * 「最后一块文本」，块序列里插入非文本块会走「结构变化直接对齐」分支，在流式期造成正文跳变。
  */
 const NATIVE_BLOCK_TYPES: ReadonlySet<string> = new Set([
   "thinking",
@@ -118,6 +123,53 @@ export function blocksFromContent(
 export function blocksFromMessage(message: unknown): MessageBlock[] {
   if (!isRecord(message)) return [];
   return blocksFromContent(message["content"]);
+}
+
+/**
+ * 思考块：`{ type: 'thinking', thinking, thinkingSignature?, redacted? }`。
+ *
+ * 一条 assistant 消息里可能有多个思考块（会被工具调用或正文打断），这里合并成一段文本——
+ * 过程区的一条思考行本来就是一段可折叠文本，不需要保留块边界。`redacted` 的块没有可见
+ * 文本（加密载荷在 `thinkingSignature` 里），直接跳过，而不是显示一串密文。
+ */
+export function reasoningTextFrom(content: unknown): string {
+  if (!Array.isArray(content)) return "";
+  const parts: string[] = [];
+  for (const raw of content) {
+    if (!isRecord(raw) || raw["type"] !== "thinking") continue;
+    if (raw["redacted"] === true) continue;
+    const thinking = raw["thinking"];
+    if (typeof thinking === "string" && thinking.trim().length > 0) parts.push(thinking);
+  }
+  return parts.join("\n\n");
+}
+
+/** 工具调用头：`{ type: 'toolCall', id, name, arguments }`。 */
+export interface ToolCallHead {
+  callId: string;
+  name: string;
+  /** 模型给出的原始参数；形状由各工具自己定义，宿主只透传。 */
+  args: unknown;
+}
+
+/**
+ * 从一条 assistant 消息里取出工具调用头。
+ *
+ * 它只回答「调用了什么、参数是什么」；状态与结果来自 `tool_execution_start/update/end`
+ * 事件（以及历史重建时的 `toolResult` 消息），因此这里刻意不带状态——同一个事实不留两个来源。
+ */
+export function toolCallsFrom(content: unknown): ToolCallHead[] {
+  if (!Array.isArray(content)) return [];
+  const calls: ToolCallHead[] = [];
+  for (const raw of content) {
+    if (!isRecord(raw) || raw["type"] !== "toolCall") continue;
+    const callId = raw["id"];
+    const name = raw["name"];
+    if (typeof callId !== "string" || callId.length === 0) continue;
+    if (typeof name !== "string" || name.length === 0) continue;
+    calls.push({ callId, name, args: raw["arguments"] });
+  }
+  return calls;
 }
 
 /**

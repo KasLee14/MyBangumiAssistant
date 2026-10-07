@@ -15,7 +15,9 @@
 | 本文件 | 判断"某段逻辑该不该放工具层"、要新增工具文件时 |
 | [api.md](api.md) | 加或改宿主端点、改错误语义、动 SSE 订阅时 |
 | [commands.md](commands.md) | 加本地斜杠命令、改补全匹配或 `/help` 文案时 |
-| [turns.md](turns.md) | 改轮次分组规则（哪些条目算过程、前导内容归属）时 |
+| [turns.md](turns.md) | 改轮次分组规则（轮次边界、哪些条目算过程、前导内容归属）时 |
+| [process.md](process.md) | 改过程组的状态行标题、耗时文案，或问「展开状态的键长什么样」时 |
+| [toolViews.md](toolViews.md) | 改工具行的状态记号、无障碍文案，或问「为什么这行没有展开钮」时 |
 | [credentialLabel.md](credentialLabel.md) | 改凭据来源的展示措辞时 |
 | [relativeTime.md](relativeTime.md) | 改历史会话右侧的时间文案、侧栏分组（四档）或分组顺序时 |
 | [debugMode.md](debugMode.md) | 改调试页的入口开关（`#debug`）与它的落点时 |
@@ -49,7 +51,9 @@
 |---|---|---|
 | [api.ts](api.md) | 宿主接口（HTTP + SSE） | `submitInput`、`fetchCatalog`、`openStream` … 共 15 个 |
 | [commands.ts](commands.md) | 斜杠命令候选表与匹配 | `LOCAL_COMMANDS`、`mergeCommands`、`matchCommands`、`helpText` |
-| [turns.ts](turns.md) | 条目 → 轮次的展示投影 | `projectTurns`、`TurnGroup` |
+| [turns.ts](turns.md) | 条目 → 轮次的展示投影 | `projectTurns`、`TurnGroup`、`ProcessItem` |
+| [process.ts](process.md) | 过程组的汇总与**中文活动文案**（对「文案在宿主」的一处有意例外） | `summarizeProcess`、`liveProcessTitle`、`settledProcessTitle`、`formatDuration`、`turnProcessKey`、`processRowKey` |
+| [toolViews.ts](toolViews.md) | 工具行的**视觉表**（六态记号与文案、展开体判定） | `TOOL_STATE`、`toolBodyKind`、`toolExpandable` |
 | [credentialLabel.ts](credentialLabel.md) | 凭据来源的共用措辞 | `AUTH_LABEL` |
 | [relativeTime.ts](relativeTime.md) | 会话「最后对话时间」的相对文案、侧栏四档分组与分组顺序 | `relativeTimeLabel`、`sessionDayGroup`、`SESSION_GROUP_ORDER` |
 | [debugMode.ts](debugMode.md) | 调试页的入口开关（`window.location.hash === '#debug'`） | `isDebugHash`、`enterDebug`、`exitDebug` |
@@ -63,7 +67,7 @@
 1. **无组件、无 hook、无状态**：所有导出都是函数、常量或类型。副作用只有三处：`api.ts` 里的网络请求、`revealOnScroll.ts` 里的 DOM 观察（它按滚动容器缓存 `IntersectionObserver`，进入视口给元素加类）、`pinnedStorage.ts` 里的 `localStorage` 读写（每一层都容错，坏数据降级成「没有置顶」）。三者都不得读 store。
 2. **错误语义统一**：`api.ts` 只把宿主的 `ApiErrorView.message` 包成 `Error` 抛出，不做提示、不重试、不改写文案。谁调用、谁决定怎么提示（见 [../store/actions-and-operations.md](../store/actions-and-operations.md)）。
 3. **不复制协议类型**：跨端类型从 `protocol.ts` 取；这里的类型要么是协议类型的别名，要么是纯前端的投影结构（如 `TurnGroup`）。
-4. **文案集中在能共用的地方**：同一句话若出现在两处界面，就抽成这里的常量或函数（`AUTH_LABEL`、`relativeTimeLabel` 是范例），避免两处漂移。
+4. **文案集中在能共用的地方**：同一句话若出现在两处界面，就抽成这里的常量或函数（`AUTH_LABEL`、`relativeTimeLabel` 是范例），避免两处漂移。**一处有意例外是 `process.ts` 的活动词**（「正在搜索」/「搜索作品」这类过程组标题）：它随流式期每一帧变化，宿主每帧下发等于给协议加一个高频字段，且不涉及脱敏——理由与边界写在 [process.md](process.md) §规则「活动词留在前端是一处有意例外」。工具标题、参数摘要、结果文本仍由宿主导出，不要搬过来。
 5. **不写"顺手"的通用工具**：没有第二个调用方的工具函数不要提前抽出来。
 6. **持久化只住 `pinnedStorage.ts`**：`localStorage` 的键、JSON 解析与失败降级都收在这一处，组件与 reducer 都不直接碰 `localStorage`（见 [../store/selectors-and-instance.md](../store/selectors-and-instance.md)）。
 

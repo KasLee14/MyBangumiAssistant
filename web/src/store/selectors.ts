@@ -4,7 +4,23 @@ import type { RootState } from './reducers';
 
 export const selectStream = (state: RootState) => state.stream;
 export const selectItems = (state: RootState) => state.stream.items;
-export const selectLiveContent = (state: RootState) => state.stream.liveContent;
+/**
+ * 屏幕上的流式正文。
+ *
+ * 读的是**显示投影**而不是权威值：上游以突发批次下发，权威值一帧就能长出十几个字，
+ * 摊平由 `store/pacing.ts` 负责（理由与代价见该文件）。`selectHeroPhase` 仍看权威值——
+ * 「这一轮还没结束」由宿主的事实决定，与显示进度无关。
+ */
+export const selectDisplayedContent = (state: RootState) => state.stream.displayedContent;
+
+/**
+ * 是否处于**收尾播放**：流式已经结束，但屏幕上的字还没播完。
+ *
+ * 此时历史条目里已经有同一段回答，必须让流式区独占显示，否则屏幕上会同时出现两份
+ * （见 `Stage` 的 `pacedTail`）。
+ */
+export const selectPacedTail = (state: RootState): boolean =>
+  state.stream.liveContent.length === 0 && state.stream.displayedContent.length > 0;
 export const selectLiveThinking = (state: RootState) => state.stream.liveThinking;
 export const selectBusy = (state: RootState) => state.stream.busy;
 export const selectPending = (state: RootState) => state.stream.pending;

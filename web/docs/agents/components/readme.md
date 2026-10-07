@@ -27,8 +27,9 @@
 5. **新增组件后登记进本文件**：违反后果：下一次对话找不到它（是全局规则「每次开发后更新文档」在本层的落地）。步骤见 §新增组件检查清单。
 6. **`common/` 只收「≥ 2 个入口共用」的原语**：判据是"去掉主界面之后，调试页与文档页还需要它吗"。三个入口（主界面 / 调试页 / 组件库文档页）共用同一批表面原语，所以顶栏只有 `common/AppTopBar` 一份定义，不为某一个入口另写一份——**主界面已经没有顶栏**（[C01](../../design/decisions/C01-app-top-bar.md) 删除；`AppTopBar` 现在只服务调试页与组件库文档页）。违反后果：共享层变成单页专用件的杂物间，三个入口的外观各自漂移（重构前顶栏分头实现就是这么来的）。
    会话与授权语义同样只有一份：待授权只在输入区出现一次（`ComposerSeat` 复用 `ConfirmationCard`），不因为入口不同而另建会话状态。详见 [main-page.md](main-page.md)。
-7. **批次活动统一使用 `ToolActivity`**：等待、部分完成、未知与失败分别呈现；成功时也显示宿主的批次计数。
-   不把浏览器里的原始 JSON 或提交回执当作批次主反馈，不在组件判断写入是否可以继续。
+7. **过程区只有两种原子行，工具行统一由 `ToolRow` 承载**：思考行 `ReasoningRow`、工具行 `ToolRow`（子调用递归缩进），六态记号与展开体判定收在 [../utils/toolViews.md](../utils/toolViews.md) 的一张表里（`TOOL_STATE` / `toolBodyKind` / `toolExpandable`），中文标题、参数摘要与结果载荷由宿主导出（`bangumi/src/web/tool-view.ts`）。
+   等待、部分完成、未知与失败分别呈现；成功时也显示宿主的批次计数。**不把浏览器里的原始 JSON 或提交回执当作批次主反馈，不在组件判断写入是否可以继续，也不在组件里另建一张工具名表。**
+   （原 `ToolActivity.tsx` 已删除：它在改造前是「一行文字 + 三个字符串」，承载不了结构化结果与思考历史化，见 [main-page.md](main-page.md) §简介「过程区与轮尾操作行的分工」。）
 
 ## 四类的边界
 
@@ -66,7 +67,7 @@
 | 子目录 | 区域 | 文件 |
 |---|---|---|
 | `shell/` | 侧栏（**唯一外壳**） | `Sidebar.tsx`（品牌行 + 8px 连接状态点 + 折叠钮、实心主色整行「开启新对话」、分组列表（置顶 / 今天 / 昨天 / 7 天内 / 更早），入场交给 `<Stagger>`）、`CollapseBubbles.tsx`（收起态左上角的两个胶囊：展开 / 新对话）、`icons.tsx`（外壳图标 `PanelIcon` / `EditIcon` / `GearIcon`，16×16 / `stroke-width` 1.4 统一规格）。`Header.tsx` 已随 [C01](../../design/decisions/C01-app-top-bar.md) 删除——主界面不再有顶栏 |
-| `conversation/` | 会话正文 | `Stage.tsx`、`Turn.tsx`、`Streaming.tsx`、`ToolActivity.tsx`、`MessageParts.tsx`、`ConfirmationCard.tsx`、`Hero.tsx` |
+| `conversation/` | 会话正文 | `Stage.tsx`、`Turn.tsx`、`Streaming.tsx`、`ProcessGroup.tsx`、`ProcessRows.tsx`、`ProcessIcons.tsx`、`TurnActions.tsx`、`MessageParts.tsx`、`ConfirmationCard.tsx`、`Hero.tsx`（`ToolActivity.tsx` 已删除——工具行改由 `ProcessRows.tsx` 的 `ToolRow` 承载） |
 | `composer/` | 输入区 | `Composer.tsx`、`ComposerSeat.tsx`、`StatsDock.tsx`、`ThinkingPicker.tsx` |
 | `overlays/` | 浮层挂载点 | `DialogStage.tsx`、`Toast.tsx` |
 
@@ -80,7 +81,7 @@
 
 | 组件 | 规则 | 数据来源 |
 |---|---|---|
-| `Stage` / `Turn` / `Streaming` / `MessageParts` / `ConfirmationCard` / `Hero` | A | props（`Shell` 从 store 读出后传入） |
+| `Stage` / `Turn` / `Streaming` / `ProcessGroup` / `ProcessRows` / `ProcessIcons` / `TurnActions` / `MessageParts` / `ConfirmationCard` / `Hero` | A | props（`Shell` 从 store 读出后传入；过程开合状态与回调也是 props，见 [main-page.md](main-page.md) §规则） |
 | `content/**`、`content/markdown.tsx` | A | props（协议条目） |
 | `StatsDock` | A | props（由 `Composer` 从 store 读出后传入） |
 | `common/**`（`AppTopBar` / `Stagger` / `Pill`） | B（同权） | props 或无状态（外壳侧，允许直接消费 store；现有 3 个原语都不读） |

@@ -1,4 +1,4 @@
-import type { ActivityItemView } from './protocol.js';
+import type { ToolState } from './protocol.js';
 
 type Data = Record<string, unknown>;
 const object = (value: unknown): Data => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Data : {};
@@ -47,8 +47,14 @@ function itemLine(item: Data, step: unknown, prefix = ''): string {
   return `${prefix}${at}${name ? ` ${name}` : ''}：${status}${blockedSteps(item)}${explanation ? `；${explanation}` : ''}`;
 }
 
-/** 只投影批次结果的公开事实；不把回执、guard、完整原值和正文作为界面主反馈。 */
-export function projectWriteActivity(result: unknown, final = false): Pick<ActivityItemView, 'state' | 'detail' | 'showDetail'> | undefined {
+/**
+ * 只投影批次结果的公开事实；不把回执、guard、完整原值和正文作为界面主反馈。
+ *
+ * 返回值刻意保持「文本 + 状态」的形状（而不是结构化内容块）：这条通道承载的细节
+ * （批次计数、依赖步骤、额度等待时间、香港时间、缺口）结构化只会丢信息。调用方
+ * （`tool-view.ts`）把它包装成 `ToolResultView` 的文本兜底。
+ */
+export function projectWriteActivity(result: unknown, final = false): { state: ToolState; detail: string; showDetail: boolean } | undefined {
   const envelope = object(result);
   const value = object(object(envelope.details).value ?? object(envelope.structuredContent).value ?? envelope.value);
   if (typeof value.state !== 'string') return undefined;
@@ -91,7 +97,7 @@ export function projectWriteActivity(result: unknown, final = false): Pick<Activ
   if (batchError) detail += `\n本次计划：${batchError}`;
   const missing = counts.skipped! + counts.failed! + counts.blocked! + counts.not_executed!;
   const completed = counts.success! + counts.unchanged!;
-  const state: ActivityItemView['state'] = value.state === 'unknown' || counts.unknown! > 0 ? 'unknown'
+  const state: ToolState = value.state === 'unknown' || counts.unknown! > 0 ? 'unknown'
     : value.state === 'partial' || missing > 0 && (completed > 0 || counts.skipped! > 0 || counts.blocked! > 0) ? 'partial'
     : value.state === 'failed' || counts.failed! > 0 || counts.not_executed! > 0 ? 'error' : 'ok';
   return { state, detail, showDetail: true };
