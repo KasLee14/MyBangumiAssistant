@@ -46,11 +46,16 @@ test('来源与候选窗口交错：来源推进使旧cc失效，原集合仍累
   const args = { username: 'alice', subject_type: 2, result_mode: 'candidates', fields: ['id'], response_view: 'reference', limit: 100 };
   const first = await call(f.service, 'get_user_collections', args);
   const window = await call(f.service, 'refine_subject_candidates', { candidate_ref: first.candidateRef, fields: ['id'], limit: 1 });
+  assert.equal(window.candidateRef, first.resultRef); assert.equal(window.resultRef, first.resultRef);
+  assert.equal(window.scope.candidate_ref, first.candidateRef);
+  assert.match(window.page.nextCursor, /^cp_/);
+  assert.equal(f.service.candidates.sets.size + f.service.candidates.resultViews.size, 3);
   const second = await call(f.service, 'get_user_collections', { ...args, offset: 100, merge_ref: window.candidateRef });
   assert.equal(second.candidateRef, first.candidateRef); assert.equal(second.resultRef, first.resultRef);
   await assert.rejects(call(f.service, 'continue_subject_query', { candidate_ref: window.candidateRef, cursor: window.page.nextCursor }),
     error => error.code === 'CANDIDATE_CURSOR_MISMATCH');
   assert.equal(second.set.resultCount, 200);
+  assert.equal(f.service.candidates.sets.size + f.service.candidates.resultViews.size, 3);
 });
 test('query_user_collections小来源窗口重复续读复用3refs，完整集合及旧覆盖保持', async t => {
   const f = serviceFixture(301); t.after(() => f.service.close());

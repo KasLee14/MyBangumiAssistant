@@ -968,7 +968,7 @@ get: (target, key) => {
         throw diagnosedError(new AppError('CANDIDATE_STAGE_INCOMPLETE', '准备展示需要本层已通过结果引用；请使用对应resultRef。'), createErrorDiagnostic({
           code: 'CANDIDATE_STAGE_INCOMPLETE', origin: 'domain', stage: 'input', operation: name, reason: 'candidate_result_reference_required',
           issues: [{ path: '/candidate_ref', rule: 'result_reference', message: '请使用本层已通过结果引用。', expected: set.resultRef }],
-          evidence: { requestedRef: set.ref, resultRef: set.resultRef },
+          evidence: { subjectCount: set.rows.length },
         }));
       }
       const effective = effectiveCandidateOutputArgs(args as unknown as CandidateOutputArgs);

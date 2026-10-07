@@ -639,7 +639,8 @@ test('默认64MB快照缓存支持6661成员完整67页，不重复保存全体�
   const origin = create(store, Array.from({ length: 6661 }, (_, index) => ({ id: index + 1,
     facts: { name: `作品${index + 1}`, nameCn: null, subjectType: 2, score: 8, tags: ['公开标签'], metaTags: ['元标签'], date: '2025-01-01', nsfw: false }, sources: [complete] })), { sources: [complete] });
   let reads = 0; const query = new CandidateQuery(store, { loadFacts: async () => { reads++; throw Error('缓存浏览不应读HTTP'); } });
-  let args = { candidate_ref: origin.ref, fields: ['id', 'name', 'nameCn', 'durationMinutes'], hydrate_fields: false, limit: 100 };
+  const qualified = await query.execute({ candidate_ref: origin.ref, fields: ['id'], response_view: 'reference' }, binding);
+  let args = { candidate_ref: qualified.resultRef, fields: ['id', 'name', 'nameCn', 'durationMinutes'], hydrate_fields: false, limit: 100 };
   const ids = []; let pages = 0, response, firstRef, firstCoverage;
   do {
     response = await query.execute(args, binding); checkCandidateResponse(response, args); pages++; ids.push(...response.data.map(row => row.id));
@@ -648,7 +649,7 @@ test('默认64MB快照缓存支持6661成员完整67页，不重复保存全体�
   } while (response.page.nextCursor);
   assert.equal(pages, 67); assert.equal(ids.length, 6661); assert.equal(new Set(ids).size, 6661); assert.equal(response.coverage.complete, true);
   assert.equal(response.stage.processedCount, 6661); assert.equal(store.get(response.resultRef, binding).rows.length, 6661); assert.equal(reads, 0);
-  assert.equal(firstRef, origin.ref, '纯字段分页沿原成员集合读取'); assert.equal(store.get(firstRef, binding).rows.length, 6661);
+  assert.equal(firstRef, qualified.resultRef, '纯字段分页沿原已核结果集合读取'); assert.equal(store.get(firstRef, binding).rows.length, 6661);
   assert.equal(store.getCoverage(firstCoverage, binding).qualification.remainingCount, 6561);
   assert.deepEqual(store.getCoverage(firstCoverage, binding).sources, [complete]); assert.ok(store.bytes < 64 * 1024 * 1024);
 });
@@ -925,16 +926,22 @@ test('raw input新页使旧cp及producer cc失效，字段变化另开阶段，i
   let raw = store.create({ binding, rows: [1, 2, 3].map(id => ({ id, facts: { name: `作品${id}` } })), sources });
   const args = { candidate_ref: raw.ref, fields: ['id'], limit: 1 };
   const first = await query.execute(args, binding, undefined, undefined, { processIds: [1, 2, 3], preserveInput: true, filterAlreadyApplied: true, hydrateProjection: false });
-  const projection = await query.execute(args, binding);
-  const stageProjection = await query.execute({ candidate_ref: first.candidateRef, fields: ['id'], limit: 1 }, binding);
+  const stageProjection = await query.execute({ candidate_ref: first.candidateRef, fields: ['id'], limit: 1 }, binding, undefined, undefined,
+    { processIds: [1, 2, 3], preserveInput: true, filterAlreadyApplied: true, hydrateProjection: false });
+  const projectionArgs = { ...args, candidate_ref: stageProjection.resultRef };
+  const projection = await query.execute(projectionArgs, binding);
+  assert.match(projection.page.nextCursor, /^cp_/); assert.match(stageProjection.page.nextCursor, /^cc_/);
+  assert.equal(store.sets.size, 2); assert.equal(store.resultViews.size, 1);
+  assert.equal(store.continuationArgs(projection.resultRef, projection.page.nextCursor, binding).cursor, projection.page.nextCursor);
+  assert.equal(store.continuationArgs(stageProjection.resultRef, stageProjection.page.nextCursor, binding).cursor, stageProjection.page.nextCursor);
   const beforeBytes = store.bytes;
   assert.throws(() => store.create({ binding, replaceRef: raw.ref, parentRef: raw.ref, rows: raw.rows }), error => error.code === 'INVALID_RESPONSE');
   assert.throws(() => store.create({ binding, replaceRef: raw.ref, rows: raw.rows, resultIds: [] }), error => error.code === 'INVALID_RESPONSE');
   assert.equal(store.bytes, beforeBytes);
   raw = store.create({ binding, replaceRef: raw.ref, parentRef: raw.parentRef, rows: [...raw.rows, { id: 4, facts: { name: '作品4' } }],
     sources: [{ ...sources[0], scannedCount: 4, complete: true, nextOffset: null }] });
-  assert.throws(() => store.continuationArgs(first.resultRef, first.page.nextCursor, binding), error => error.code === 'CANDIDATE_CURSOR_MISMATCH');
-  await assert.rejects(query.execute({ ...args, cursor: projection.page.nextCursor }, binding), error => error.code === 'CANDIDATE_CURSOR_MISMATCH');
+  assert.throws(() => store.continuationArgs(stageProjection.resultRef, stageProjection.page.nextCursor, binding), error => error.code === 'CANDIDATE_CURSOR_MISMATCH');
+  await assert.rejects(query.execute({ ...projectionArgs, cursor: projection.page.nextCursor }, binding), error => error.code === 'CANDIDATE_CURSOR_MISMATCH');
   await assert.rejects(query.execute({ candidate_ref: first.candidateRef, fields: ['id'], limit: 1, cursor: stageProjection.page.nextCursor }, binding),
     error => error.code === 'CANDIDATE_CURSOR_MISMATCH');
   const changedArgs = { candidate_ref: raw.ref, fields: ['id', 'name'], limit: 1 };

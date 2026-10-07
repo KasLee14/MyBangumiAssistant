@@ -35,11 +35,21 @@ export function blockOf(kind: ContentKind, payload: unknown): ContentBlockView {
 }
 
 /** 一条可直接粘进调试页「event 输入」框的 assistant 消息（正文是一个内容块）。 */
-export function eventText(section: LibrarySection): string {
+export function eventTextOf(kind: ContentKind, payload: unknown): string {
   return JSON.stringify({
     type: 'message_end',
-    message: { role: 'assistant', stopReason: 'stop', content: [blockOf(section.kind, section.payload)] },
+    message: { role: 'assistant', stopReason: 'stop', content: [blockOf(kind, payload)] },
   }, null, 2);
+}
+
+/**
+ * 主载荷对应的 event JSON。
+ *
+ * 形态变体（`section.variants`）也各自走 `eventTextOf`——同一个函数、同一份载荷，
+ * 所以变体预览卡上的「复制 event」给的不是手抄的第二份数据。
+ */
+export function eventText(section: LibrarySection): string {
+  return eventTextOf(section.kind, section.payload);
 }
 
 /** 一条可直接粘进调试页「frame 输入」框的完整 state 帧。 */

@@ -118,6 +118,19 @@ function signature(args: CandidateQueryArgs): string {
     fields: ['id', ...((args.fields ?? DEFAULT_CANDIDATE_FIELDS).filter(field => field !== 'id'))],
     include: args.include ?? [], collection_ref: args.collection_ref ?? null, hydrate_fields: args.hydrate_fields ?? true }));
 }
+/** 完成且成员等价的工作句柄仅作结果别名；字段游标始终绑定真实结果，来源阶段仍沿原工作句柄推进。 */
+function completedProjectionInput(store: CandidateStore, input: CandidateSet, binding: CandidateBinding,
+  args: CandidateQueryArgs, options: CandidateExecutionOptions): CandidateSet {
+  const stage = input.qualification;
+  if (input.refRole !== 'working' || !input.resultRef || !stage || !stage.complete || stage.pendingCount !== 0 || stage.remainingCount !== 0
+    || input.continuation || !isDeepStrictEqual(input.binding, binding) || Object.keys(args.filter ?? {}).length || args.subject_type !== undefined
+    || args.cursor && !args.cursor.startsWith('cp_') || options.forceStage || options.preserveInput || options.filterAlreadyApplied
+    || options.processIds !== undefined || options.stageRef !== undefined) return input;
+  const result = store.get(input.resultRef, binding);
+  if (result.refRole !== 'result' || result.parentRef !== input.ref || result.rows.length !== input.rows.length
+    || result.rows.some((row, index) => row.id !== input.rows[index]!.id)) return input;
+  return result;
+}
 function projected(row: CandidateRow, fields: CandidateField[]): CandidateView {
   const value: CandidateView = { id: row.id }, states: NonNullable<CandidateView['fieldStates']> = {};
   for (const field of fields.filter(field => field !== 'id')) {
@@ -144,6 +157,7 @@ export class CandidateQuery {
     if (args.candidate_ref) input = this.store.get(args.candidate_ref, binding);
     else if (args.subject_ids?.length) input = this.store.create({ binding, rows: args.subject_ids.map(id => ({ id, facts: {} })), sources: [] });
     else throw new AppError('INVALID_INPUT', '进一步筛选必须指定候选引用或明确作品ID。');
+    input = completedProjectionInput(this.store, input, binding, args, options);
     // 字段所属用户由绑定定义；祖先来源仍保留审计，不能误当成当前子集的个人事实owner。
     const usingPrivate = privateRequest(args), publicCollection = input.visibility === 'public' && input.binding.scopeKey.startsWith('public:collections:');
     if (accessContext && input.requiresNsfw && (accessContext.mode !== 'account' || accessContext.nsfw.allowed !== true))

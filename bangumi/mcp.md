@@ -2550,7 +2550,7 @@
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
-| candidate_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；仅展示已选成员，无网络、不判断类别，权限与当前必要条件仍须有效。 |
+| candidate_ref | string | 否 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；只展示此引用成员，默认只读缓存。显式image缺失时仅在原成员范围补图；权限与当前必要条件仍须有效。 |
 | offset | integer | 否 | — | ≥ 0；≤ 9007199254740991 | 同一结果引用的交付起点；指定offset或limit启用分页，不改变集合及覆盖。 |
 | limit | integer | 否 | — | ≥ 1；≤ 100 | 单次交付最多成员数；实际数量也受内容容量约束，按page.nextOffset继续。 |
 | title | string | 否 | — | 最长字符数 300 |  |
@@ -2570,7 +2570,7 @@
 | reasons[] | object | 是 | — | 拒绝额外字段 |  |
 | reasons[].subject_id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | reasons[].reason | string | 是 | — | 最短字符数 1；最长字符数 4000 |  |
-| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；仅展示已选成员，无网络、不判断类别，权限与当前必要条件仍须有效。；oneOf 1 |
+| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；只展示此引用成员，默认只读缓存。显式image缺失时仅在原成员范围补图；权限与当前必要条件仍须有效。；oneOf 1 |
 | offset | integer | 否 | — | ≥ 0；≤ 9007199254740991 | 同一结果引用的交付起点；指定offset或limit启用分页，不改变集合及覆盖。；oneOf 1 |
 | limit | integer | 否 | — | ≥ 1；≤ 100 | 单次交付最多成员数；实际数量也受内容容量约束，按page.nextOffset继续。；oneOf 1 |
 | title | string | 否 | — | 最长字符数 300 | oneOf 1 |
@@ -2583,7 +2583,7 @@
 | lineage | string | 否 | none | 允许 none、witness、all | oneOf 1 |
 | lineage_format | string | 否 | names | 允许 names、ids、full | oneOf 1 |
 | max_bytes | integer | 否 | 16000 | ≥ 1024；≤ 65536 | 内部表格单块预算；每次交付仍受40000字节内容根限制。；oneOf 1 |
-| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；仅展示已选成员，无网络、不判断类别，权限与当前必要条件仍须有效。；oneOf 2 |
+| candidate_ref | string | 是 | — | 最短字符数 1；最长字符数 100 | 已完成本层选择的resultRef；只展示此引用成员，默认只读缓存。显式image缺失时仅在原成员范围补图；权限与当前必要条件仍须有效。；oneOf 2 |
 | offset | integer | 否 | — | ≥ 0；≤ 9007199254740991 | 同一结果引用的交付起点；指定offset或limit启用分页，不改变集合及覆盖。；oneOf 2 |
 | limit | integer | 否 | — | ≥ 1；≤ 100 | 单次交付最多成员数；实际数量也受内容容量约束，按page.nextOffset继续。；oneOf 2 |
 | title | string | 否 | — | 最长字符数 300 | oneOf 2 |

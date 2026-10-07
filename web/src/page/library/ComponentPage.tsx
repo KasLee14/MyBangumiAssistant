@@ -1,17 +1,21 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Pill } from '../../components/common/Pill';
-import { ContentBlock } from '../../components/content';
-import { eventText, frameText, blockOf } from './items';
+import { ContentBlock, type ContentBlockView } from '../../components/content';
+import { eventText, eventTextOf, frameText, blockOf } from './items';
 import type { LibrarySection } from './samples';
 
 /**
  * 单个 kind 的详情页（**自绘**）。
  *
  * 内容严格只有四块（这是产品定的边界，别往里加第五块）：
- * 1. UI 预览——真实 `ContentBlock` 渲染主载荷，另给一张「空数据」变体；
+ * 1. UI 预览——真实 `ContentBlock` 渲染主载荷、若干**形态变体**（`section.variants`，可空）、
+ *    以及一张「空数据」变体；三种卡都是同构的自绘 `.libCard`；
  * 2. 参数——字段表，**下面一行参考附注**；
  * 3. 调试页 event 输入——可直接复制粘贴的 JSON；
  * 4. 调试页 frame 输入——同上。
+ *
+ * 形态变体**不是第五块**：它只让第 1 块里多出几张同构预览卡（`SubjectCards` 的 `layout: 'list'`
+ * 就是这么补上的），四块的契约与 `PAGE_ANCHORS` 完全不变。
  *
  * 页内目录由 `App` 指向这四块的 id，所以 id 命名是契约（见 `PAGE_ANCHORS`）。
  *
@@ -87,6 +91,18 @@ export function ComponentPage({ section }: { section: LibrarySection }): ReactNo
   const empty = useMemo(() => blockOf(section.kind, section.empty), [section]);
   const event = useMemo(() => eventText(section), [section]);
   const frame = useMemo(() => frameText(section), [section]);
+  // 形态变体：块与 event 都从**同一份载荷**现场生成（与主载荷同一条路径），
+  // 所以变体卡上的预览与「复制 event」给出的 JSON 不会各说一套。
+  const variants = useMemo(
+    (): readonly { label: string; note: string | undefined; block: ContentBlockView; event: string }[] =>
+      (section.variants ?? []).map(variant => ({
+        label: variant.label,
+        note: variant.note,
+        block: blockOf(section.kind, variant.payload),
+        event: eventTextOf(section.kind, variant.payload),
+      })),
+    [section],
+  );
 
   return (
     <>
@@ -112,6 +128,23 @@ export function ComponentPage({ section }: { section: LibrarySection }): ReactNo
           </header>
           <div className="libCardBody"><ContentBlock block={main} /></div>
         </section>
+        {variants.map(variant => (
+          <section className="libCard libPreviewCard" key={variant.label}>
+            <header className="libCardHead">
+              <span className="libCardTitle">{variant.label}</span>
+              {variant.note === undefined ? null : <span className="libVariantNote">{variant.note}</span>}
+              <button
+                type="button"
+                className="button sm"
+                title="把这一形态的 event JSON 复制走"
+                onClick={() => { void navigator.clipboard.writeText(variant.event); }}
+              >
+                复制 event
+              </button>
+            </header>
+            <div className="libCardBody"><ContentBlock block={variant.block} /></div>
+          </section>
+        ))}
         <section className="libCard libPreviewCard">
           <header className="libCardHead">
             <span className="libCardTitle">空数据</span>

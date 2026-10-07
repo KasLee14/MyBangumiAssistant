@@ -65,7 +65,7 @@
 
 固定顺序与 id 都是契约（`ComponentPage.tsx` 的 `PAGE_ANCHORS`，右侧目录按它生成）：
 
-1. **UI 预览**（`id="ui-preview"`）：主载荷 + 一张 `空数据` 变体，两张自绘 `.libCard` 预览卡；
+1. **UI 预览**（`id="ui-preview"`）：主载荷 + 若干**形态变体**（`section.variants`，可空）+ 一张 `空数据` 变体，都是同构的自绘 `.libCard` 预览卡；
 2. **参数**（`id="params"`）：参数表（**复用内容条目的 `.contentTable` 皮肤** + 组合类 `.libParamTable`，五列：字段 / 类型 / 必填 / 取值 / 说明），**下方一行参考附注**；
 3. **调试页 event 输入**（`id="event"`）：可复制的 JSON 块；
 4. **调试页 frame 输入**（`id="frame"`）：同上。
@@ -73,6 +73,8 @@
 **曾经有过第 5 块「customType」**（`id="custom-type"`，写 `customType: "<kind>"` 与载荷字段名）：块的形状统一为 `{ type, pending?, props }`、且 `type` 的取值就是组件名之后，这一块不再回答任何问题——没有随 kind 变化的字段名可讲，`type` 本身在 UI 预览的 event JSON 里已经看得见。因此删除，**id `custom-type` 已不存在**，右侧目录是四项。
 
 **参考只能作为参数块下的一行附注**（`ReferenceLine`），不得升级成独立的一块——这是产品明确划的边界。同理，再塞第五类内容（另一套 demo、用法教程、截图、变更日志）之后，没人能一眼分辨哪一块是契约。
+
+**形态变体（`section.variants`）不属于这一类**：它是**同一个 `kind` 的另一种排布/模式**（`SubjectCards` 的 `layout: 'list'`、`StatsCard` 的 `mode`、`ProgressView` 的数值/章节网格），仍在第 1 块内部、与主载荷走**同一条渲染路径**（`blockOf` + `ContentBlock` + `eventTextOf`），只是让「这一类组件一共有几种长相」在同一页可见。判据是「换的是载荷里的判别字段，还是另一件事」——后者才算第五类内容。
 
 **为什么**：四块正好覆盖三件事——长什么样、字段怎么写、怎么在调试页复现。
 
@@ -147,7 +149,7 @@
 
 **两张表都在 `samples.ts`**，`App.tsx` 与 `Overview.tsx` **不硬编码任何 kind**——左侧导航、总览卡数量、文案里的计数全部从表派生：
 
-1. 在 `LIBRARY_SECTIONS` 里加一项（`kind` / `title` / `summary` / `payload` / `empty` / `params` / `reference`）；
+1. 在 `LIBRARY_SECTIONS` 里加一项（`kind` / `title` / `summary` / `payload` / `variants?` / `empty` / `params` / `reference`）；
 2. 在 `LIBRARY_GROUPS` 的某一组 `kinds` 里加上它（条目与集合 / 数据与统计 / 文本与提示）——**漏了这一步它只会出现在总览页、左侧导航里找不到**；
 3. 两项的顺序与 `registry.tsx` 的 `CONTENT_KINDS` 对齐；
 - `empty` 必须给：页面给每个 `kind` 都渲染一个「空数据」变体，空态是这一页的一半价值（12 个 `kind` 里 10 个用 `.contentEmpty`，`DataTable` 的文案是「没有可展示的列。」，`QuoteBlock` 与 `Callout` 没有空态块）；
@@ -178,16 +180,16 @@
 | `navigate` / `OVERVIEW_HREF` / `componentHref` | `router.ts` | 写 hash 切页（进历史）+ 内容区滚回顶部；两个 href 构造器 | 加跳转入口、排查"后退没用"时 |
 | `filterSections` | `search.ts` | 顶部搜索的过滤口径（kind 名 / 标题 / summary / 载荷 JSON / 参数表四列） | 改搜索命中范围时 |
 | `Overview` | `Overview.tsx` | 总览页：每个 kind 一张自绘可点卡（`button`，数量与文案都取自 `LIBRARY_SECTIONS`，不写死数字），卡里是真实 `ContentBlock` 小预览，点卡进详情页 | 改总览页、新增 kind 时 |
-| `ComponentPage` | `ComponentPage.tsx` | 详情页本体（**自绘**）：严格四块 + 参数表（复用 `.contentTable` 皮肤）+ 参考附注 | 改详情页结构时 |
+| `ComponentPage` | `ComponentPage.tsx` | 详情页本体（**自绘**）：严格四块（第 1 块里含主载荷 / 形态变体 / 空数据三色预览卡）+ 参数表（复用 `.contentTable` 皮肤）+ 参考附注 | 改详情页结构时 |
 | `PAGE_ANCHORS` | `ComponentPage.tsx` | 四块的锚点 id 与标题（`ui-preview` / `params` / `event` / `frame`）；`PageToc` 按它生成 | **改四块标题或 id 时**（id 是契约） |
 | `PARAM_COLUMNS` | `ComponentPage.tsx` | 参数表五列：字段 / 类型 / 必填 / 取值 / 说明 | 改参数表列时 |
 | `CodeBlock` | `ComponentPage.tsx` | 可复制的 JSON 块（自绘 `.libCard` + 复制按钮）；复制后 1.6s 内显示「已复制」，剪贴板不可用时**静默返回、不谎报成功** | 改复制交互、怀疑"复制没反应"时 |
 | `ReferenceLine` | `ComponentPage.tsx` | 参数块下方的**一行**参考附注（`reference` 为 `null` 时显示「未使用 ReactBits 组件。」） | 改参考文案、想把参考升级成一块时 |
 | `blockOf(kind, payload)` | `items.ts` | 把载荷包成内容块（`{ type, props: payload }`），交给真实 `ContentBlock` | 改预览载荷构造、排查预览与调试页不一致时 |
-| `eventText` / `frameText` | `items.ts` | 由同一份载荷现场生成 event / frame JSON | 改「所见即所粘」时 |
+| `eventTextOf` / `eventText` / `frameText` | `items.ts` | 由同一份载荷现场生成 event / frame JSON；`eventTextOf(kind, payload)` 是主载荷与形态变体共用的入口（变体卡上的「复制 event」也走它） | 改「所见即所粘」时 |
 | `FRAME_STATE` | `items.ts` | frame 示例里的固定标量（组件库不连宿主，全部是模拟值） | 改 frame 示例时 |
-| `LIBRARY_SECTIONS` | `samples.ts` | 12 节的**唯一来源**：`kind` / `title` / `summary` / `payload` / `empty` / `params` / `reference` | 加节、改示例载荷、改参数表时 |
-| `LibrarySection` / `ParamRow` / `Reference` | `samples.ts` | 一节的类型、参数表行、ReactBits 参考（`reference` 可为 `null`） | 改数据结构时 |
+| `LIBRARY_SECTIONS` | `samples.ts` | 12 节的**唯一来源**：`kind` / `title` / `summary` / `payload` / `variants` / `empty` / `params` / `reference` | 加节、改示例载荷、改参数表时 |
+| `LibrarySection` / `LibraryVariant` / `ParamRow` / `Reference` | `samples.ts` | 一节的类型、形态变体、参数表行、ReactBits 参考（`reference` 可为 `null`） | 改数据结构时 |
 | `SUBJECT_ITEM` | `samples.ts` | `SubjectCards` 的条目卡公共参数行（`Gallery` 的 item 是另一套字段，**不能共用这张表**） | 改条目卡参数时 |
 
 ### 文件 → 场景
