@@ -115,13 +115,13 @@ document.querySelector('.dlgTitle')?.textContent === '模型选择'
 document.querySelector('.dlgList[aria-label="可用模型"]') !== null
 ```
 
-## K7 `/details` 展开过程折叠块
+## K7 `/details` 展开过程
 
 **步骤**：任一会话里（至少一轮已结束）执行 `/details`。
 
-**预期**：所有过程块展开；再执行仍为展开（计数递增，不做开关切换）。
+**预期**：当前会话内所有轮的**轮首控制行**被强制展开（`ui.reveal` 递增，消费侧是 `TurnProcessBar` 的 `reveal`：递增即展开）；再执行仍为展开（不做开关切换）。
 
-**判定**：`[...document.querySelectorAll('.processGroup')].every(g => g.dataset.open === 'true')`
+**判定**：`[...document.querySelectorAll('.processBar')].every(b => b.dataset.open === 'true')`
 
 ## K8 `/exit` 只给提示
 

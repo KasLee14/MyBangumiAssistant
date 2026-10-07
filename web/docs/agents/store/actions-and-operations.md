@@ -96,7 +96,7 @@ const doSomething = async (arg: string): Promise<void> => {
 
 | 分组 | creator |
 |---|---|
-| 会话流 | `frameReceived`、`streamFatal`、`connectionChanged`、`pendingEchoSet`、`pendingEchoCleared`、`answerStarted`、`answerSettled` |
+| 会话流 | `frameReceived`（全量 `state` 帧）、`deltaReceived`（`stream` 增量帧，只带正文与思考的追加部分）、`pacedUpdated` / `pacedDone`（逐字摊平的推进与收尾）、`streamFatal`、`connectionChanged`、`pendingEchoSet`、`pendingEchoCleared`、`answerStarted`、`answerSettled` |
 | 目录 | `catalogLoaded`、`sessionsUpdated` |
 | 界面 | `switchingSet`、`draftSet`、`draftRestored`、`noticeSet`、`problemSet`、`settingsOpened`、`settingsClosed`、`sessionsOpened`、`sessionsClosed`、`collapsedSet`、`collapsedToggled`、`pinnedToggled`、`revealIncremented`、`credentialProviderSet` |
 

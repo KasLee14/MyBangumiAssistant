@@ -32,11 +32,13 @@ import {
   blocksFromMessage,
   customContentBlocks,
   hasRenderableBlock,
+  reasoningTextFrom,
+  toolCallsFrom,
 } from "./message-blocks.js";
-import { projectWriteActivity } from "./write-activity.js";
+import { toolAccess, toolArgsText, toolFamily, toolOutcome, toolSummary, toolTitle } from "./tool-view.js";
 import type { TaskQueue } from "../support/task-queue.js";
 import type {
-  ActivityItemView,
+  AssistantTimingView,
   CatalogView,
   ChatScalarsView,
   ChatStateView,
@@ -46,15 +48,18 @@ import type {
   MessageBlock,
   ModelOptionView,
   ProviderOptionView,
+  ReasoningItemView,
   SessionOptionView,
   ThinkingLevelName,
   ThinkingView,
   TokenUsageView,
+  ToolItemView,
+  ToolResultView,
+  ToolState,
   TranscriptItemView,
+  TurnItemView,
+  TurnUsageView,
 } from "./protocol.js";
-
-/** 单条工具活动与结果细节的最大呈现长度，避免把整份工具输出塞进浏览器。 */
-const DETAIL_LIMIT = 4000;
 
 /**
  * Pi 会话事件的类型标识，取自 `AgentSessionEvent` 的判别字段 `type`。
@@ -71,6 +76,14 @@ const DETAIL_LIMIT = 4000;
 enum AgentSessionEventType {
   /** 一轮 agent 循环开始：置忙、复位取消标记并记录开始时间。 */
   AgentStart = "agent_start",
+  /**
+   * 子轮（一次模型响应 + 它触发的工具调用）开始。
+   *
+   * 它是**步序号**的来源：一个用户回合里模型可能因为工具结果而多次响应，前端据此把同一
+   * 回合内的多段过程与正文排到正确位置（`step`）。`turn_end` 不参与视图——工具结果已经由
+   * `tool_execution_end` 落到条目上，重复处理只会多出一个真相，因此这里不列它。
+   */
+  TurnStart = "turn_start",
   /** 新消息写入会话：本轮输入已回显时跳过 user 消息，避免出现重复条目。 */
   MessageStart = "message_start",
   /** 助手消息的流式增量：从 `partial.content` 投影出流式内容块，不产生会话条目。 */
@@ -153,38 +166,47 @@ function messageText(message: AgentMessage): string {
   return "";
 }
 
-function truncate(text: string): string {
-  return text.length > DETAIL_LIMIT
-    ? `${text.slice(0, DETAIL_LIMIT)}\n…（已截断）`
-    : text;
+/** 空用量：回合开始时复位，随后累加各步的 `usage`。 */
+function emptyUsage(): TurnUsageView {
+  return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, cost: 0 };
 }
 
-/** 工具结果只在浏览器里作为可折叠细节呈现，这里做保守的文本化。 */
-function resultDetail(result: unknown): string {
-  if (result === null || result === undefined) return "";
-  if (typeof result === "string") return truncate(result);
-  if (typeof result === "object") {
-    const content = (result as { content?: unknown }).content;
-    if (Array.isArray(content)) {
-      const text = content
-        .map((part) =>
-          part &&
-          typeof part === "object" &&
-          typeof (part as { text?: unknown }).text === "string"
-            ? (part as { text: string }).text
-            : "",
-        )
-        .filter(Boolean)
-        .join("\n");
-      if (text) return truncate(text);
-    }
-    try {
-      return truncate(JSON.stringify(result, null, 2));
-    } catch {
-      return "";
-    }
-  }
-  return truncate(String(result));
+function finite(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+/**
+ * 把一步的用量累加到回合合计上。
+ *
+ * Pi 的 `Usage` 按**步**（一次模型响应）上报，而界面要的是「这一轮用了多少」——一个用户
+ * 回合可能包含多次模型响应，所以必须累加而不是取最后一个。口径与 `TokenUsageView` 保持一致：
+ * `total` 取提供方的 `totalTokens`，`cost` 取价目表算出的总额，`reasoning` 只在提供方
+ * 报告时累加（它是 `output` 的子集，因此不并入 `total`）。
+ */
+function addUsage(target: TurnUsageView, usage: unknown): void {
+  if (usage === null || typeof usage !== "object") return;
+  const value = usage as Record<string, unknown>;
+  target.input += finite(value["input"]);
+  target.output += finite(value["output"]);
+  target.cacheRead += finite(value["cacheRead"]);
+  target.cacheWrite += finite(value["cacheWrite"]);
+  target.total += finite(value["totalTokens"]);
+  const cost = value["cost"];
+  target.cost += finite(
+    cost !== null && typeof cost === "object"
+      ? (cost as Record<string, unknown>)["total"]
+      : undefined,
+  );
+  const reasoning = finite(value["reasoning"]);
+  if (reasoning > 0) target.reasoning = (target.reasoning ?? 0) + reasoning;
+}
+
+/** 单步用量视图；提供方没给用量（或全为 0）时返回 undefined，浏览器据此不显示这一项。 */
+function usageView(usage: unknown): TurnUsageView | undefined {
+  if (usage === null || typeof usage !== "object") return undefined;
+  const target = emptyUsage();
+  addUsage(target, usage);
+  return target.total > 0 ? target : undefined;
 }
 
 /**
@@ -273,8 +295,27 @@ export class WebSession {
   private items: TranscriptItemView[] = [];
   private nextItemId = 1;
   private readonly recoveryReplies = new Map<string, { replyId?: number; errorId?: number }>();
-  /** 进行中的工具活动条目：结束时原地更新同一个对象并递增版本。 */
-  private readonly activities = new Map<string, TranscriptItemView>();
+  /** 进行中的工具条目：结束时原地更新同一个对象并递增版本。 */
+  private readonly activities = new Map<string, ToolItemView>();
+  /**
+   * 轮次与步序号。
+   *
+   * `currentTurn` 是**用户回合**（一次提交，对应前端的一个轮次分组）；`currentStep` 是该回合内
+   * 第几次模型响应（由 Pi 的 `turn_start` 驱动）。浏览器只读这两个数，不再按 user 条目猜轮次。
+   */
+  private currentTurn = 0;
+  private currentStep = 0;
+  /** 已发出的轮次条目，按回合号索引；回合结束时原地补齐状态、计数与用量。 */
+  private readonly turnItems = new Map<number, TurnItemView>();
+  /** 当前回合的用量累计：Pi 的 `usage` 按步上报，回合级要自己加。 */
+  private turnUsage: TurnUsageView = emptyUsage();
+  /** 当前回合的终态；`message_end` 的停止原因会把它改成 aborted / error。 */
+  private turnStatus: TurnItemView['status'] = 'completed';
+  /** 当前步的时序：用于首 token 延迟与解码耗时。 */
+  private stepStartedAt = 0;
+  private firstTokenTime = 0;
+  /** 当前思考段落的开始时间（`thinking_delta` 首次到达时记录）。 */
+  private thinkingStartedAt = 0;
   private readonly listeners = new Set<() => void>();
   private unsubscribe: (() => void) | undefined;
 
@@ -353,8 +394,14 @@ export class WebSession {
     this.unsubscribe?.();
     this.unsubscribe = this.runtime.session.subscribe(this.handleEvent);
     this.activities.clear();
+    this.turnItems.clear();
     this.liveBlocks = [];
     this.liveThinking = "";
+    this.currentTurn = 0;
+    this.currentStep = 0;
+    this.stepStartedAt = 0;
+    this.firstTokenTime = 0;
+    this.thinkingStartedAt = 0;
     this.echoPending = false;
     this.settlePending(false);
     this.rebuild();
@@ -549,6 +596,99 @@ export class WebSession {
     return stored;
   }
 
+  /**
+   * 开一个用户回合：递增回合号、复位步序号与用量，并发出轮次条目。
+   *
+   * 轮次条目本身不承载内容，它是**边界标记**——浏览器按它切分轮次，并从它取耗时与计数，
+   * 于是前端不再需要「按 user 条目猜轮次」这条规则。
+   */
+  private openTurn(startedAt = Date.now()): void {
+    this.currentTurn += 1;
+    this.currentStep = 0;
+    this.turnUsage = emptyUsage();
+    this.turnStatus = 'completed';
+    this.stepStartedAt = 0;
+    this.firstTokenTime = 0;
+    this.thinkingStartedAt = 0;
+    const item = this.push({
+      id: this.nextItemId++,
+      kind: 'turn',
+      turn: this.currentTurn,
+      startedAt,
+      endedAt: 0,
+      status: 'open',
+      messageCount: 0,
+      toolCallCount: 0,
+    }) as TurnItemView;
+    this.turnItems.set(this.currentTurn, item);
+  }
+
+  /** 关一个用户回合：补齐结束时间、终态与累计用量。 */
+  private closeTurn(status: TurnItemView['status'], endedAt = Date.now()): void {
+    const item = this.turnItems.get(this.currentTurn);
+    if (item === undefined) return;
+    item.endedAt = endedAt;
+    item.status = status;
+    item.usage = { ...this.turnUsage };
+    item.version += 1;
+  }
+
+  /**
+   * 把当前这段思考落成条目。
+   *
+   * 流式期思考走标量 `liveThinking`（不进条目：它每帧都在长，落条目只会让增量帧与条目
+   * 同时承载同一事实）；一条助手消息结束时它不再是「正在长的那一份」，此时才落条目——
+   * 于是历史里也有思考，而不只是产生它的那一轮能看到。
+   */
+  private flushReasoning(endedAt: number): void {
+    const text = this.liveThinking.trim();
+    const startedAt = this.thinkingStartedAt;
+    this.liveThinking = "";
+    this.thinkingStartedAt = 0;
+    if (!text) return;
+    this.push({
+      id: this.nextItemId++,
+      kind: 'reasoning',
+      turn: this.currentTurn,
+      step: this.currentStep || 1,
+      text,
+      state: 'done',
+      startedAt: startedAt || endedAt,
+      endedAt,
+    });
+  }
+
+  /** 记一次助手消息（步）与一次工具调用，用于轮控制行的计数。 */
+  private noteAssistantStep(): void {
+    const item = this.turnItems.get(this.currentTurn);
+    if (item === undefined) return;
+    item.messageCount += 1;
+    item.version += 1;
+  }
+
+  private noteToolCall(): void {
+    const item = this.turnItems.get(this.currentTurn);
+    if (item === undefined) return;
+    item.toolCallCount += 1;
+    item.version += 1;
+  }
+
+  private accumulateUsage(usage: unknown): void {
+    addUsage(this.turnUsage, usage);
+  }
+
+  /** 结果文本一律过一遍凭据脱敏：工具输出可能回显请求里带的密钥。 */
+  private sanitizeResult(view: ToolResultView): ToolResultView {
+    const secrets = credentialValues();
+    return {
+      blocks: view.blocks,
+      isError: view.isError,
+      ...(view.text === undefined ? {} : { text: redact(view.text, secrets) }),
+      ...(view.errorText === undefined ? {} : { errorText: redact(view.errorText, secrets) }),
+      ...(view.truncated === undefined ? {} : { truncated: view.truncated }),
+    };
+  }
+
   /** 追加一条面向用户的提示并立即推送：扩展命令的结果全靠这条路径回到浏览器。 */
   pushNotice(text: string, kind: "notice" | "error" = "notice"): void {
     this.push({ id: this.nextItemId++, kind, text });
@@ -563,17 +703,53 @@ export class WebSession {
   private rebuild(): void {
     this.items = [];
     this.recoveryReplies.clear();
+    this.turnItems.clear();
+    this.currentTurn = 0;
+    this.currentStep = 0;
+    this.turnUsage = emptyUsage();
+    this.turnStatus = "completed";
+    this.liveThinking = "";
+    this.thinkingStartedAt = 0;
+    /**
+     * 工具调用头（`callId` → 条目），供随后的 `toolResult` 消息配对补齐。
+     *
+     * 历史里调用头在 assistant 消息的 `toolCall` 块上、结果在独立的 `toolResult` 消息上，
+     * 两者靠 `toolCallId` 配对——这是重建过程区的唯一依据。
+     */
+    const calls = new Map<string, ToolItemView>();
+    /** 关掉当前回合：历史里没有回合结束事件，用「下一条消息的时间」当结束时间。 */
+    const close = (endedAt: number, status: TurnItemView["status"] = this.turnStatus): void => {
+      if (this.currentTurn === 0) return;
+      this.closeTurn(status, endedAt);
+    };
+    const stamp = (value: unknown): number => {
+      const time = typeof value === "string" ? Date.parse(value) : NaN;
+      return Number.isFinite(time) ? time : Date.now();
+    };
+    /**
+     * 已知的最后一条消息时间。
+     *
+     * 历史里没有回合结束事件，所以**最后一轮**的结束时间只能取这个值——不能用 `Date.now()`：
+     * 会话可能是几天前产生的，那样算出来的「用时」会是几十小时（实测 3 天前的会话显示
+     * 「用时 86 小时 36 分」）。中间那些轮次用「下一条消息的时间」封口，不受影响。
+     */
+    let lastTimestamp = 0;
+
     for (const entry of this.runtime.session.sessionManager.buildContextEntries()) {
+      const at = stamp(entry.timestamp);
+      if (at > lastTimestamp) lastTimestamp = at;
       // 扩展注入的结构化内容落盘为 `custom_message` 条目（而不是 `message` 条目），走同一份
       // 映射：会话切换或重启后这些卡片能从历史重建，而不是只在产生它的那一轮可见。
       // 它现在投影成"只含一个块的助手条目"——旧的顶层内容条目已经退场，但这条通道仍然
       // 必要，因为落盘格式由 Pi 决定，重建时必须认得出来。
       if (entry.type === "custom_message") {
+        const turn = this.currentTurn;
+        const step = this.currentStep || 1;
         if (entry.customType === 'bangumi/recovery-result' && typeof entry.content === 'string') {
           try {
             const summary = JSON.parse(entry.content) as { completedContent?: unknown; error?: unknown };
             const blocks = blocksFromContent(summary.completedContent);
-            if (hasRenderableBlock(blocks)) this.push({ id: this.nextItemId++, kind: 'assistant', content: blocks, origin: 'extension' });
+            if (hasRenderableBlock(blocks)) this.push({ id: this.nextItemId++, kind: 'assistant', content: blocks, origin: 'extension', turn, step });
             if (isErrorDiagnostic(summary.error)) this.push({ id: this.nextItemId++, kind: 'error', text: `${summary.error.code}：恢复已停止，已完成部分保留。`, diagnostic: summary.error });
           } catch { /* 不将损坏的历史数据冒充完整恢复结果。 */ }
           continue;
@@ -585,6 +761,8 @@ export class WebSession {
             kind: "assistant",
             content: blocks,
             origin: "extension",
+            turn,
+            step,
           });
         continue;
       }
@@ -592,40 +770,144 @@ export class WebSession {
       const message = entry.message;
       if (message.role === "user") {
         const text = messageText(message);
-        if (text.trim())
-          this.push({ id: this.nextItemId++, kind: "user", text });
-      } else if (message.role === "assistant") {
-        const blocks = blocksFromMessage(message);
-        if (hasRenderableBlock(blocks))
-          this.push({ id: this.nextItemId++, kind: "assistant", content: blocks });
-        if (message.stopReason === "error" && message.errorMessage) {
-          // 这里拿到的是字符串而非 Error；safeError 会把它压成通用文案，模型错误
-          // （401、模型不存在、余额不足）就看不到原因了，只做凭据脱敏即可。
-          this.push({
-            id: this.nextItemId++,
-            kind: "error",
-            ...assistantErrorView(message),
-          });
-        }
-      } else if (
-        message.role === "toolResult" &&
-        message.toolName === "execute_write_batch"
-      ) {
-        const projected = projectWriteActivity(message, true);
-        if (projected)
-          this.push({
-            id: this.nextItemId++,
-            kind: "activity",
-            label: "执行修改计划",
-            ...projected,
-            detail: redact(projected.detail, credentialValues()),
-          });
+        if (!text.trim()) continue;
+        // 落盘条目没有轮次字段（`SessionEntryBase` 只有 id/parentId/timestamp），所以历史
+        // 轮次只能**推导**：一条 user 消息开启一个用户回合。规则与实时路径（Pi 的
+        // `agent_start`）一致，于是新旧轮次在界面上同构。
+        close(at);
+        this.openTurn(at);
+        this.push({ id: this.nextItemId++, kind: "user", text });
+        continue;
       }
+      if (message.role === "assistant") {
+        // 历史里没有 `turn_start`，步序号按「该回合内第几条 assistant 消息」推导。
+        this.currentStep += 1;
+        const reasoning = reasoningTextFrom(message.content);
+        if (reasoning)
+          this.push({
+            id: this.nextItemId++,
+            kind: "reasoning",
+            turn: this.currentTurn,
+            step: this.currentStep,
+            text: reasoning,
+            state: "done",
+            startedAt: at,
+            endedAt: at,
+          });
+        for (const call of toolCallsFrom(message.content)) {
+          const argsText = toolArgsText(call.args);
+          calls.set(
+            call.callId,
+            this.push({
+              id: this.nextItemId++,
+              kind: "tool",
+              turn: this.currentTurn,
+              step: this.currentStep,
+              callId: call.callId,
+              name: call.name,
+              title: toolTitle(call.name),
+              family: toolFamily(call.name),
+              summary: toolSummary(call.name, call.args),
+              ...(argsText === undefined ? {} : { argsText }),
+              // 结果还没配上：先标成「进行中」，配对成功或被判定为缺口时才改。
+              state: "running",
+              access: toolAccess(call.name),
+              startedAt: at,
+              endedAt: 0,
+              durationMs: 0,
+            }) as ToolItemView,
+          );
+          this.noteToolCall();
+        }
+        const blocks = blocksFromMessage(message);
+        const usage = usageView(message.usage);
+        this.accumulateUsage(message.usage);
+        if (hasRenderableBlock(blocks))
+          this.push({
+            id: this.nextItemId++,
+            kind: "assistant",
+            content: blocks,
+            turn: this.currentTurn,
+            step: this.currentStep,
+            // 历史没有逐 chunk 时间戳，三步时间都取这条消息的时间：TTFT 在历史轮次里无意义，
+            // 但「这一步何时结束」是可用的。
+            timing: { stepStartTime: at, firstTokenTime: at, completedTime: at },
+            ...(usage === undefined ? {} : { usage }),
+          });
+        this.noteAssistantStep();
+        if (message.stopReason === "error") {
+          this.turnStatus = "error";
+          if (message.errorMessage) {
+            // 这里拿到的是字符串而非 Error；safeError 会把它压成通用文案，模型错误
+            // （401、模型不存在、余额不足）就看不到原因了，只做凭据脱敏即可。
+            this.push({
+              id: this.nextItemId++,
+              kind: "error",
+              ...assistantErrorView(message),
+            });
+          }
+        } else if (message.stopReason === "aborted") this.turnStatus = "aborted";
+        continue;
+      }
+      if (message.role === "toolResult") {
+        const at2 = typeof message.timestamp === "number" ? message.timestamp : at;
+        const outcome = toolOutcome(
+          message.toolName,
+          { content: message.content, ...(message.details === undefined ? {} : { details: message.details }) },
+          message.isError === true,
+        );
+        const item = calls.get(message.toolCallId);
+        if (item !== undefined) {
+          item.state = outcome.state ?? (message.isError ? "error" : "ok");
+          item.result = this.sanitizeResult(outcome.result);
+          if (outcome.showDetail !== undefined) item.showDetail = outcome.showDetail;
+          item.endedAt = at2;
+          item.durationMs = Math.max(0, at2 - item.startedAt);
+          item.version += 1;
+          calls.delete(message.toolCallId);
+        } else {
+          // 调用头被压缩裁剪掉了，结果还在。不能把结果丢掉：单独立一条工具条目，
+          // 摘要留空（浏览器会显示调用 ID），这是可用信息与"假装完整"之间的取舍。
+          this.push({
+            id: this.nextItemId++,
+            kind: "tool",
+            turn: this.currentTurn,
+            step: this.currentStep || 1,
+            callId: message.toolCallId,
+            name: message.toolName,
+            title: toolTitle(message.toolName),
+            family: toolFamily(message.toolName),
+            summary: "",
+            state: outcome.state ?? (message.isError ? "error" : "ok"),
+            access: toolAccess(message.toolName),
+            startedAt: at2,
+            endedAt: at2,
+            durationMs: 0,
+            result: this.sanitizeResult(outcome.result),
+            ...(outcome.showDetail === undefined ? {} : { showDetail: outcome.showDetail }),
+          } as ToolItemView);
+        }
+        continue;
+      }
+      // 其余 role（例如 Pi 的 `bashExecution`）在浏览器侧没有对应视图，明确忽略而不是猜形态。
     }
+    // 一直没有配上结果的调用（中断、或结果落在窗口之外）：标成「结果待核实」，
+    // 而不是让历史里的工具行永远停在「进行中」。
+    for (const item of calls.values()) {
+      item.state = "unknown";
+      item.version += 1;
+    }
+    // 最后一轮的结束时间：取已知的最后一条消息时间（见 `lastTimestamp` 的说明）。
+    // 会话仍在运行时保持「进行中」，否则按已收敛的状态封口。
+    close(lastTimestamp || Date.now(), this.busy ? "open" : this.turnStatus);
   }
 
   private handleEvent = (event: AgentSessionEvent): void => {
-    console.log("event", JSON.stringify(event));
+    // 只记非流式事件的类型。`message_update` 每个 delta 触发一次，而 `event.message` 是
+    // **全量** partial 快照，逐条 `JSON.stringify` 会在一次长回答里写出 MB 级日志（实测
+    // 单轮 0.7～9.8MB）——那是在 event loop 上按 delta 执行的 O(n²) 开销。诊断见
+    // `artifacts/web-streaming-diagnosis-and-plan.md`。
+    if (event.type !== AgentSessionEventType.MessageUpdate) console.log("event", event.type);
 
     switch (event.type) {
       case 'entry_appended': {
@@ -642,6 +924,14 @@ export class WebSession {
         this.cancelling = false;
         this.startedAt = Date.now();
         this.status = "正在处理";
+        // 一次提交 = 一个用户回合；浏览器按这个回合切分轮次，不再按 user 条目猜。
+        this.openTurn();
+        break;
+      case AgentSessionEventType.TurnStart:
+        // 一次模型响应开始：步序号递增，并记下本步起点（首 token 延迟的基准）。
+        this.currentStep += 1;
+        this.stepStartedAt = Date.now();
+        this.firstTokenTime = 0;
         break;
       case AgentSessionEventType.MessageStart: {
         const message = event.message;
@@ -654,6 +944,10 @@ export class WebSession {
           const text = messageText(message);
           if (text.trim())
             this.push({ id: this.nextItemId++, kind: "user", text });
+        } else if (message.role === "assistant" && this.currentStep === 0) {
+          // `turn_start` 缺失时的兜底：步序号至少为 1，否则条目会落到「第 0 步」。
+          this.currentStep = 1;
+          this.stepStartedAt = Date.now();
         }
         break;
       }
@@ -670,9 +964,13 @@ export class WebSession {
           if (event.message.role === 'assistant' && this.updateRecoveryReply(event.message, blocks)) this.liveBlocks = [];
           else this.liveBlocks = blocks;
         }
-        // 思考不在块序列里（前端是独立的折叠区），仍按增量累加。
-        if (update.type === "thinking_delta")
+        // 思考不在块序列里（过程区的一条独立行），仍按增量累加；同时记下首 token 与这段思考
+        // 的起点——前者算 TTFT，后者算思考条目的起止时间。
+        if (this.firstTokenTime === 0) this.firstTokenTime = Date.now();
+        if (update.type === "thinking_delta") {
+          if (this.thinkingStartedAt === 0) this.thinkingStartedAt = Date.now();
           this.liveThinking += update.delta;
+        }
         break;
       }
       case AgentSessionEventType.MessageEnd: {
@@ -688,22 +986,45 @@ export class WebSession {
               kind: "assistant",
               content: blocks,
               origin: "extension",
+              turn: this.currentTurn,
+              step: this.currentStep || 1,
             });
           break;
         }
         if (message.role === "assistant") {
           const blocks = blocksFromMessage(message);
           const recovered = this.updateRecoveryReply(message, blocks, true);
+          const completedTime = Date.now();
+          // 思考先落条目：这一帧之后 `liveThinking` 就被清空，不落条目它便只存在于流式期。
+          this.flushReasoning(completedTime);
+          const timing: AssistantTimingView = {
+            stepStartTime: this.stepStartedAt || completedTime,
+            firstTokenTime: this.firstTokenTime || completedTime,
+            completedTime,
+          };
+          const usage = usageView(message.usage);
+          this.accumulateUsage(message.usage);
           if (!recovered && hasRenderableBlock(blocks))
-            this.push({ id: this.nextItemId++, kind: "assistant", content: blocks });
+            this.push({
+              id: this.nextItemId++,
+              kind: "assistant",
+              content: blocks,
+              turn: this.currentTurn,
+              step: this.currentStep || 1,
+              timing,
+              ...(usage === undefined ? {} : { usage }),
+            });
+          this.noteAssistantStep();
           this.liveBlocks = [];
           this.liveThinking = "";
           if (message.stopReason === "error") {
+            this.turnStatus = "error";
             const chain = this.recoveryChain(message), state = chain ? this.recoveryReplies.get(chain) : undefined;
             const index = state?.errorId === undefined ? -1 : this.items.findIndex(item => item.id === state.errorId);
             if (index >= 0) this.items[index] = { id: this.items[index]!.id, version: this.items[index]!.version + 1, kind: 'error', ...assistantErrorView(message) };
             else { const item = this.push({ id: this.nextItemId++, kind: 'error', ...assistantErrorView(message) }); if (state) state.errorId = item.id; }
           } else if (message.stopReason === "aborted") {
+            this.turnStatus = "aborted";
             this.push({
               id: this.nextItemId++,
               kind: "notice",
@@ -714,65 +1035,57 @@ export class WebSession {
         break;
       }
       case AgentSessionEventType.ToolExecutionStart: {
-        this.activities.set(
-          event.toolCallId,
-          this.push({
-            id: this.nextItemId++,
-            kind: "activity",
-            label:
-              event.toolName === "execute_write_batch"
-                ? "执行修改计划"
-                : event.toolName,
-            state: "running",
-            detail: "",
-          }),
-        );
+        const argsText = toolArgsText(event.args);
+        const item = this.push({
+          id: this.nextItemId++,
+          kind: "tool",
+          turn: this.currentTurn,
+          step: this.currentStep || 1,
+          callId: event.toolCallId,
+          name: event.toolName,
+          title: toolTitle(event.toolName),
+          family: toolFamily(event.toolName),
+          summary: toolSummary(event.toolName, event.args),
+          ...(argsText === undefined ? {} : { argsText }),
+          state: "running",
+          access: toolAccess(event.toolName),
+          startedAt: Date.now(),
+          endedAt: 0,
+          durationMs: 0,
+        }) as ToolItemView;
+        this.activities.set(event.toolCallId, item);
+        this.noteToolCall();
         break;
       }
       case AgentSessionEventType.ToolExecutionUpdate: {
         const item = this.activities.get(event.toolCallId);
-        const projected =
-          event.toolName === "execute_write_batch"
-            ? projectWriteActivity(event.partialResult)
-            : undefined;
-        if (item?.kind === "activity" && projected) {
-          Object.assign(item, projected, {
-            detail: redact(projected.detail, credentialValues()),
-          });
-          item.version++;
-          this.status =
-            projected.state === "waiting"
-              ? "正在等待写入额度"
-              : "正在执行修改计划";
-        }
+        if (item === undefined) break;
+        // 只有批量写入的中间回执带可用的业务进展（批次计数、额度等待）；其它工具的
+        // `partialResult` 形状由各工具自己定义，浏览器没有可依据的通用语义，因此沿用最终结果。
+        if (event.toolName !== "execute_write_batch") break;
+        const outcome = toolOutcome(event.toolName, event.partialResult, false, false);
+        if (outcome.state !== undefined) item.state = outcome.state;
+        item.result = this.sanitizeResult(outcome.result);
+        if (outcome.showDetail !== undefined) item.showDetail = outcome.showDetail;
+        // 原地更新必须递增版本，否则增量帧不会再下发这一条，界面会停在「进行中」。
+        item.version += 1;
+        this.status =
+          outcome.state === "waiting"
+            ? "正在等待写入额度"
+            : "正在执行修改计划";
         break;
       }
       case AgentSessionEventType.ToolExecutionEnd: {
         const item = this.activities.get(event.toolCallId);
-        if (item?.kind === "activity") {
-          const value = (
-            event.result as { details?: { value?: { state?: string } } }
-          )?.details?.value;
-          const projected =
-            event.toolName === "execute_write_batch"
-              ? projectWriteActivity(event.result, true)
-              : undefined;
-          if (projected)
-            Object.assign(item, projected, {
-              detail: redact(projected.detail, credentialValues()),
-            });
-          else {
-            item.state =
-              event.isError ||
-              value?.state === "failed" ||
-              value?.state === "unknown"
-                ? "error"
-                : "ok";
-            item.detail = resultDetail(event.result);
-          }
+        if (item !== undefined) {
+          const outcome = toolOutcome(event.toolName, event.result, event.isError);
+          item.state = outcome.state ?? (event.isError ? "error" : "ok");
+          item.result = this.sanitizeResult(outcome.result);
+          if (outcome.showDetail !== undefined) item.showDetail = outcome.showDetail;
+          item.endedAt = Date.now();
+          item.durationMs = Math.max(0, item.endedAt - item.startedAt);
           this.status = "正在处理";
-          // 原地更新必须递增版本，否则增量帧不会再下发这一条，界面会停在「进行中」。
-          item.version++;
+          item.version += 1;
         }
         this.activities.delete(event.toolCallId);
         break;
@@ -780,6 +1093,8 @@ export class WebSession {
       case AgentSessionEventType.AgentEnd:
         this.busy = this.recoveryPending;
         if (!this.recoveryPending) this.status = "";
+        // 定向恢复尚未结束时不关回合：它会继续跑，提前关掉会让后续条目落到「第 0 回合」。
+        if (!this.recoveryPending) this.closeTurn(this.turnStatus);
         // 本轮的 token 用量此时已经写入会话条目，重算一次让顶栏跟着增长。
         this.recomputeTokenUsage();
         break;
@@ -839,7 +1154,10 @@ export class WebSession {
     const state = this.recoveryReplies.get(chain) ?? {}; this.recoveryReplies.set(chain, state);
     const reply = state.replyId === undefined ? undefined : this.items.find(item => item.id === state.replyId);
     if (reply?.kind === 'assistant') { if (JSON.stringify(reply.content) !== JSON.stringify(blocks)) { reply.content = blocks; reply.version++; } }
-    else if (hasRenderableBlock(blocks)) state.replyId = this.push({ id: this.nextItemId++, kind: 'assistant', content: blocks }).id;
+    else if (hasRenderableBlock(blocks)) state.replyId = this.push({
+      id: this.nextItemId++, kind: 'assistant', content: blocks,
+      turn: this.currentTurn, step: this.currentStep || 1,
+    }).id;
     if (final && message.stopReason === 'stop' && state.errorId !== undefined) {
       const index = this.items.findIndex(item => item.id === state.errorId);
       if (index >= 0) this.items[index] = { id: state.errorId, version: this.items[index]!.version + 1, kind: 'notice', text: '此前输出已按错误反馈恢复。' };

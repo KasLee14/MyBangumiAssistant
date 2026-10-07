@@ -61,6 +61,9 @@
 3. **样式不写裸值、不越界声明**：颜色走令牌；每个样式文件只负责它那一类元素，同一元素同一属性只声明一次。违反后果：改一处不生效，出问题无法定位来源。详见 [styles/readme.md](docs/agents/styles/readme.md)。
 4. **高度模块化处用「表」，不用「分支」**：新增一种形态只应改一张表 + 一份类型。违反后果：每加一种形态都要回来改多处且容易漏。范例：`components/content/registry.tsx`、`components/mainPage/composer/ComposerSeat.tsx`。
 5. **助手消息的正文只有一个渲染入口（`components/content/MessageBlocks`）**：流式区（`Streaming`）与历史条目（`Turn`）都必须把 `MessageBlock[]` 交给它渲染，不得各自处理块、也不得绕过它直接渲染文本。违反后果：流式期与历史条目的形态会不一致（文本写完那一瞬跳变），并把「骨架 / 降级 / 未知块丢弃」三套分支复制到两处，迟早各自漂移。
+6. **流式正文有两份，界面只读「显示投影」；收尾播放期间历史条目必须让位**：`stream.liveContent` 是宿主下发的**权威值**，`stream.displayedContent` 是**屏幕上的那一份**（由 [store/pacing.ts](src/store/pacing.ts) 按时间逐字推进，约 60 字/秒），`pacedTarget` 是它追赶的目标。组件一律经 `selectDisplayedContent` 读投影；判「这一轮是否还在进行」看权威值。宿主在流式结束那一帧把权威正文清空，而屏幕上的字还没播完——这段**收尾播放**期间由 `Stage` 的 `pacedTail` 让最后一轮 `Turn` 隐藏自己的助手正文（`hideAssistant`），播完再由历史条目无缝接管。违反后果：上游的突发批次直接上屏（一次冒出十几个字，这正是本次要解决的问题），或收尾期间屏幕上同时出现两份同样的回答。
+7. **过程区与正文的边界来自宿主下发的轮次，前端只分组、不判定**：`assistant` / `reasoning` / `tool` 三类条目都带 `turn`（用户回合）与 `step`（该回合内第几次模型响应），轮次边界由 `kind:'turn'` 条目给出（宿主在 `agent_start`/`agent_end` 发；历史重建时按 user 消息推导，因为落盘条目没有轮次字段）。[utils/turns.ts](src/utils/turns.ts) 只按这些字段把平铺条目切成轮次，[utils/process.ts](src/utils/process.ts) 只把 `reasoning` 与 `tool` 收进过程区——**谁算「最终回答」、哪条属于过程，都不在浏览器判定**。回退规则只有一条：条目带轮次号却没有对应轮次条目时，按「user 开新轮」兜底。违反后果：宿主换了分组规则界面不跟，或前端又长出一套与宿主不一致的轮次语义（改造前正是「按 user 条目猜轮次」）。
+8. **工具结果走与助手正文同一个渲染入口**：`ToolResultView.blocks` 就是 `MessageBlock[]`，工具行展开体把它交给 `MessageBlocks`，因此 Bangumi 工具结果里的 `presentation`（`prepare_candidate_output` / `prepare_candidate_table` 那类载荷）与正文用的是同一套 12 种内容块。宿主侧由 [bangumi/src/web/tool-view.ts](../../bangumi/src/web/tool-view.ts) 做投影。违反后果：过程区另长出一套卡片族，同一份载荷在正文里能渲染、在工具行里渲染不出来。
 
 ### 技术栈约束
 
@@ -167,7 +170,7 @@ styles/       样式：10 个文件，令牌驱动，按作用对象分文件（
 
 ```
 page/mainPage/
-  index.tsx    薄壳：四个生命周期订阅 + 装配 Shell（订阅必须留在这里，见文件注释）
+  index.tsx    薄壳：五个生命周期订阅（含 [store/pacing.ts](src/store/pacing.ts) 的 `usePacing`）+ 装配 Shell（订阅必须留在这里，见文件注释）
   Shell.tsx    外壳装配：取 store 数据 → 按槽位交给组件
 page/debug/
   index.tsx    调试页：左侧输入 event/frame、右侧预览；自带独立 store（与主 store 隔离）
@@ -194,8 +197,18 @@ components/mainPage/
                  实心主色「开启新对话」、分组列表、底部用户行与齿轮设置入口（C45：原「···」菜单已删）；收起态的两个胶囊在
                  CollapseBubbles.tsx。Header.tsx 已随 C01 删除——主界面不再有顶栏）
   conversation/  Stage / Turn / Streaming / Hero（会话容器、轮次、流式区、首屏；Hero 的 props 是
-                 onPick（填草稿）与 onOpenSettings（开设置弹窗），都由 `page/mainPage/Shell.tsx` 注入）
+                 onPick（填草稿）与 onOpenSettings（开设置弹窗），都由 `page/mainPage/Shell.tsx` 注入。
+                 Stage 另有 `pacedTail`（收尾播放）——此时让最后一轮 Turn 用 `hideAssistant` 藏起助手正文，
+                 避免与流式区同时显示同一段回答；贴底跟随由 ResizeObserver 观察 `.appStageFlow` 驱动，
+                 不再每帧读 `scrollHeight`。Streaming 的 `cursor`（= busy）为假时不渲染流式光标；
+                 思考块走 `ReasoningRow` 的流式形态——与历史条目**同一个组件**，只是数据来自标量
+                 `liveThinking`（用一个合成条目喂它），因此流式期与历史期的思考行形态一致）
+                 过程区：ProcessGroup（`TurnProcessBar` 轮首控制行 + 过程行列表，两者是同一级折叠——
+                 本项目一轮只对应一个过程组）/ ProcessRows（`ReasoningRow` / `ToolRow` / `ProcessRow`
+                 + `useUntilFound` 的折叠容器）/ ProcessIcons（按工具族的 14px 图标）/ TurnActions
+                 （轮尾复制 + 每轮用量面板；面板材质直接引共享类 `.appGlass`）
                  MessageParts / ConfirmationCard（props 驱动的共享原子行与确认卡）
+                 （`ToolActivity.tsx` 已删除：工具行由 `ToolRow` 取代，旧的「一行文字 + 三字符串」不再存在）
   composer/      Composer / ComposerSeat / StatsDock / ThinkingPicker（输入区、座位、读数、思考强度）
   overlays/      DialogStage / Toast（浮层的挂载点）
 components/motion/
@@ -215,7 +228,7 @@ styles/           10 个文件：tokens / common / frame / composer / cards / mo
 
 两个 HTML 入口：`index.html`（主界面与调试页，按 hash 分流）与 `library.html`（组件库文档页，不连宿主）。
 
-**命名规则**：外壳与容器类用 `app*` 前缀（`.appFrame`、`.appStage`、`.appComposerCard`…）；会话流里的原子行、过程折叠块、确认卡、思考块、统计底栏、内容条目沿用**共享渲染器的类名**（`.userRow`、`.bubble`、`.processTitle`、`.planCard`、`.contentTable`…），组件与样式两边改一处即可。
+**命名规则**：外壳与容器类用 `app*` 前缀（`.appFrame`、`.appStage`、`.appComposerCard`…）；会话流里的原子行、过程行、轮控制行、确认卡、统计底栏、内容条目沿用**共享渲染器的类名**（`.userRow`、`.bubble`、`.processBarTitle` / `.processRowTitle`、`.reasoningRow` / `.toolRow`、`.planCard`、`.contentTable`…），组件与样式两边改一处即可。
 
 ### 样式文件的职责与引入顺序
 
@@ -229,7 +242,7 @@ tokens → common → frame → composer → cards → modal → bgm → content
 |---|---|---|
 | `tokens.css` | **外观层令牌**（`--app-*`：时长、缓动、位移、阴影、表面、圆角四档、玻璃、字体阶梯、间距刻度、侧栏宽与抽屉内容宽、spring 与错峰）；另保留唯一一条上游令牌 `--dsw-corner-shape`（超椭圆曲率） | 定义 `--app-*` |
 | `common.css` | **共享的表面原语**：顶栏骨架 `.appTopBar*`（只服务调试页与文档页）、品牌组合类 `.appBrandAction`、玻璃 `.appGlass`、导航行 `.appNavRow`、空态、微标签、胶囊、错峰入场、视口入场 | 消费 `--bgm-*` / `--app-*` |
-| `frame.css` | 外壳网格（`.appFrame`）、侧栏（品牌行 / 新建 / 分组列表 / 用户行 / 菜单 / 收起态胶囊 / **抽屉式收起**）、提示条、会话容器与轮次、首屏、轮次导航，以及共享渲染器（消息行、过程折叠、思考块、流式区、Markdown） | 消费 `--bgm-*` / `--app-*` |
+| `frame.css` | 外壳网格（`.appFrame`）、侧栏（品牌行 / 新建 / 分组列表 / 用户行 / 菜单 / 收起态胶囊 / **抽屉式收起**）、提示条、会话容器与轮次、首屏、轮次导航，以及共享渲染器（消息行、**过程区**：轮首控制行 `.processBar*` / 思考行 `.reasoningRow` / 工具行 `.toolRow` / 参数与结果体、**轮尾操作行** `.turnActions` 与用量面板、流式区、Markdown） | 消费 `--bgm-*` / `--app-*` |
 | `composer.css` | 输入卡、命令候选、发送按钮、思考强度菜单、统计底栏与其浮层 | 消费 `--bgm-*` / `--app-*` |
 | `cards.css` | 写入确认卡与按钮基元 | 消费 `--bgm-*` / `--app-*` |
 | `modal.css` | 弹窗：共享表面（`.modalOverlay` / `.modalSurface`）+ **`.dlg*` 表单骨架**（`.dlgPane` / `.dlgHead` / `.dlgField` / `.dlgInput` / `.dlgList` / `.dlgRow` / `.dlgCombo` / `.dlgChoices` / `.dlgActions` / `.dlgBtn*` …） | 消费 `--bgm-*` / `--app-*` |
@@ -242,7 +255,9 @@ tokens → common → frame → composer → cards → modal → bgm → content
 
 ### 现状：已完成 / 已知未做
 
-**已完成**：外壳（框架 / 侧栏 / 顶栏，含「待确认 / 待登录 / 运行中 / 当前」状态展示）；会话区（轮次、流式区光标、轮次导航、首屏 `BlurText`）；输入区（`BorderGlow` + `Magnet` + 命令候选，草稿按会话保存在 `ui.drafts`，切换中/未就绪/断线时禁用）；`Modal` 的进出过渡与 `DialogStage` 的留场管理（**2026-10-10 起**：进出动画改由 `modal.css` 的 CSS keyframes 给、只动 `transform`，弹窗**不做 `opacity` 淡入**——`opacity < 1` 会让 `backdrop-filter` 失效，presence 也不再由 `AnimatePresence` 提供，见 [G09](docs/design/decisions/G09-overlay.md) §补充与 [C41](docs/design/decisions/C41-dialog-stage.md)）；`Toast` 进出过渡；思考菜单、统计底栏、确认卡的观感（待授权只在输入区呈现一次，历史模式只呈现结果）；`CountUp`（统计底栏的**精确**读数；胶囊上的缩写读数不滚动）；`AnimatedContent`（内容条目入场，`container="#app-stage-scroll"`）；12 种内容条目的皮肤（`styles/content.css`）；回归用例（[regression/readme.md](docs/agents/regression/readme.md) 的 `L` 组与 `A` 组）；**12 种内容条目已用真实载荷逐个实机渲染核对**（组件库文档页与调试页两条入口）；**3 个 ReactBits 动效落点**接入内容条目（`GlareHover` / `StarBorder` / `Counter`；`SpotlightCard`、`ShinyText` 与 `Magnet` 已按「A · 只精修状态反馈」移除，见 §规则「外观层硬约定」第 6 条）；**组件库文档页 `library.html` 改为自绘骨架**（与主界面、调试页共用 `AppTopBar` 与同一套令牌：总览页 + 一组件一页 + 搜索过滤 + 详情页四块；12 种条目仍是真实 `ContentItem` 渲染 + 参数表 + 可直接粘进调试页的 event / frame）。**全仓 UI 重构完成**（方案见 `docs/ui-restyle-plan.md`）：8 组沉淀令牌（玻璃、底光、圆角四档、超椭圆、字体阶梯、间距刻度、spring 与错峰、行高）、`components/common/` 共享层与 `styles/common.css`、主界面在第七轮改为 **C44b 的「无顶栏 + 侧栏承载」结构**（品牌行、折叠钮、新建、会话列表、底部用户行与三入口菜单全在侧栏；顶栏已按 C01 删除；粘性会话头已在 C34 决策中删除）、12 种内容条目按定稿改版（含共享基类的选择器列表收敛）、调试页与文档页与主界面**同构**、**antd 全量移除**、ReactBits 全部按新曲线重调参。
+**已完成**：外壳（框架 / 侧栏 / 顶栏，含「待确认 / 待登录 / 运行中 / 当前」状态展示）；会话区（轮次、流式区光标、轮次导航、首屏 `BlurText`）；输入区（`BorderGlow` + `Magnet` + 命令候选，草稿按会话保存在 `ui.drafts`，切换中/未就绪/断线时禁用）；`Modal` 的进出过渡与 `DialogStage` 的留场管理（**2026-10-10 起**：进出动画改由 `modal.css` 的 CSS keyframes 给、只动 `transform`，弹窗**不做 `opacity` 淡入**——`opacity < 1` 会让 `backdrop-filter` 失效，presence 也不再由 `AnimatePresence` 提供，见 [G09](docs/design/decisions/G09-overlay.md) §补充与 [C41](docs/design/decisions/C41-dialog-stage.md)）；`Toast` 进出过渡；思考菜单、统计底栏、确认卡的观感（待授权只在输入区呈现一次，历史模式只呈现结果）；`CountUp`（统计底栏的**精确**读数；胶囊上的缩写读数不滚动）；`AnimatedContent`（内容条目入场，`container="#app-stage-scroll"`）；12 种内容条目的皮肤（`styles/content.css`）；回归用例（[regression/readme.md](docs/agents/regression/readme.md) 的 `L` 组与 `A` 组）；**12 种内容条目已用真实载荷逐个实机渲染核对**（组件库文档页与调试页两条入口）；**3 个 ReactBits 动效落点**接入内容条目（`GlareHover` / `StarBorder` / `Counter`；`SpotlightCard`、`ShinyText` 与 `Magnet` 已按「A · 只精修状态反馈」移除，见 §规则「外观层硬约定」第 6 条）；**组件库文档页 `library.html` 改为自绘骨架**（与主界面、调试页共用 `AppTopBar` 与同一套令牌：总览页 + 一组件一页 + 搜索过滤 + 详情页四块；12 种条目仍是真实 `ContentItem` 渲染 + 参数表 + 可直接粘进调试页的 event / frame）。**全仓 UI 重构完成**（方案见 `docs/ui-restyle-plan.md`）：8 组沉淀令牌（玻璃、底光、圆角四档、超椭圆、字体阶梯、间距刻度、spring 与错峰、行高）、`components/common/` 共享层与 `styles/common.css`、主界面在第七轮改为 **C44b 的「无顶栏 + 侧栏承载」结构**（品牌行、折叠钮、新建、会话列表、底部用户行与三入口菜单全在侧栏；顶栏已按 C01 删除；粘性会话头已在 C34 决策中删除）、12 种内容条目按定稿改版（含共享基类的选择器列表收敛）、调试页与文档页与主界面**同构**、**antd 全量移除**、ReactBits 全部按新曲线重调参。**2026-10-07 流式输出改造**（诊断见被 gitignore 的 `artifacts/web-streaming-diagnosis-and-plan.md`）：删掉宿主每 delta 的全量 JSON 日志（单轮 stdout 从 MB 级降到 333 字节）、SSE 合并窗口 40ms → 16ms、正文与思考改**增量帧**（下发带宽 O(n²) → O(n)）、会话区贴底跟随改 `ResizeObserver`（生产构建下浏览器长任务 24 个/轮 → 0 个，同毫秒帧簇 104 → 3）、新增 `store/pacing.ts` 的**逐字摊平与收尾播放**（实测 59.5 字/秒）。
+
+**会话输出展示对齐 DeepSeek Harness**（方案见被 gitignore 的 `artifacts/dsh-output-alignment-plan.md`）：思考从「只活在流式期」改为随轮次落条目（历史里也有）；工具从「`label` + `state` + `detail` 一行文字」升级为结构化条目（中文标题 / 工具族 / 参数摘要 / 参数原文 / 结果内容块 / 耗时 / 读写）；轮次边界由宿主下发（`kind:'turn'` 条目，历史重建时按 user 消息推导），每轮带耗时与 token 用量；会话区改为「轮首过程控制行 + 过程行列表（思考行 / 工具行）+ 正文 + 轮尾操作行」；折叠统一走 `hidden="until-found"`，因此 Ctrl+F 能命中折叠内容并自动展开。实机验证覆盖：调试页注入的完整链路（思考 → 工具 → 结构化结果 → 正文 → 轮结束）、**改造前产生的旧会话的回溯**（13 轮思考行与 7 个工具行、耗时、用量全部还原；工具结果里的 `presentation` 载荷渲染成 `SubjectCards` 内容块）、进行中的轮默认展开、状态行「正在读取列表 · 摘要」。**踩到的坑**：`dev:web` 起的宿主跑的是**构建产物** `dist/src/main.js`（`dev-web.mjs` 的 `HOST_ENTRY`），所以改完 `bangumi/src` 必须 `tsc -p tsconfig.json` 重建并重启 dev server——前端有 HMR 会立刻生效，容易让人以为整条链路都更新了（实测症状：界面里没有任何过程控制行，因为宿主还是旧的投影）。
 
 **已知未做 / 未验证**：
 
@@ -251,6 +266,7 @@ tokens → common → frame → composer → cards → modal → bgm → content
 3. 浏览器实测覆盖（**均已实机确认**）：首页与会话渲染、轮次导航、侧栏收放、输入区与命令候选、弹窗进出与 Esc 关闭、统计底栏读数、**对话区白底、侧栏同为白面并靠向右发散阴影（`--app-shadow-edge`）分区**、**`TextType` 用法**（空文本 + `loop={false}` 不启动打字；光标是 6×13px 的实心方块 + 1.06s 硬切闪烁，见 `frame.css` 的 `.appStreamingCursor`）、**`BorderGlow` 指针链路**（`--edge-proximity` 与 `--cursor-angle` 随指针变化）、**`CountUp`**（探针实测渐近到目标值）、**`AnimatedContent`**（`container="#app-stage-scroll"` 被正确解析，元素不会被卡成不可见）、**弹窗进出动画（2026-10-10 复测）**：进场 `animationName = modalIn`、退场 `modalOut`，表面 `opacity` 全程为 `1`（不做淡入），退场由 `data-leaving` 触发、播完约 400ms 才从 DOM 移除；同时实测确认 **Chromium 在 `opacity < 1` 时会跳过 `backdrop-filter`**（同一条 `blur(20px)`，`opacity: 1` 时背后文字糊掉、`opacity: .5` 时清晰可读；`will-change` / `translateZ(0)` / 子层承载模糊 / 祖辈承载透明度，四种写法都无效）——这条是弹窗不做淡入的直接依据。
 4. **仍未实机验证**：写入确认卡接管——它需要宿主发起 `pending` 确认，即一次真实写入流程，不能在自动化里安全触发。三条环境限制：(a) `BorderGlow` 的 `edge-light` 与 `GlareHover` 的掠光都依赖真实 `:hover`，而 CDP 驱动下 `element.matches(':hover')` 恒为 false，自动化只能验证到「CSS 变量 → 透明度公式」这一环；(b) Windows 上 Vite 的 watcher 会因编辑工具的「临时文件 + rename」保存方式报 EBUSY 而漏检改动（见 §规则 的「技术栈约束」第 4 条），所以样式改动后要重启 dev server 再验证；(c) 本机浏览器与 harness **都访问不了外网**（`bgm.tv` / `lain.bgm.tv` 全部 fetch 失败），因此链接「能真实打开」只验证到 `href` / `target` / `rel` 契约与域名路径，图片走的是加载失败回落。
 5. **文档页的右侧页内目录是自绘的**：目录项若直接写 `location.hash`，会与「一组件一页」的 hash 路由（`#/components/<kind>`）互相覆盖。取舍是**保路由**（前进后退、可直连 URL 都已实机确认），目录用 `PageToc` + `IntersectionObserver` 自己实现——代价是平滑滚动与目标高亮都要自己写。
+6. **逐字摊平只在注入帧下完整验证过，真实模型的完整一轮尚未跑通**：验证时用 React fiber 拿到 store 后注入模拟帧（state 帧 + 增量帧 + 结束帧），逐字速率（59.5 字/秒）、收尾播放（流式结束后继续播完 164 字）、条目隐藏（收尾期 `.assistantBody` 计数为 0）与无缝交接都已确认；但几次真实提交恰好都落在「模型只输出思考、正文为空」的情形上，因此**真实 SSE 帧下的端到端一轮仍待复测**。另外两点有意为之、不要当 bug：**思考文本不摊平**（思考动辄上千字，逐字播要几十秒），**摊平速度与显示器刷新率解耦**（按经过的毫秒数折算，120Hz 屏幕上仍是 60 字/秒）。
 
 ### 设计历史与外部文档
 

@@ -183,20 +183,17 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------------------------------------------------------------- 过程折叠 */
+/* ---------------------------------------------------------------- 过程区
+ * 结构：轮首控制行（`.processBar`）+ 过程行列表（`.processGroupBody` → `.reasoningRow` /
+ * `.toolRow`）。视觉语言对齐 DSH 的「流水行」——图标 + 标题 + 圆点 + 截断摘要 + 状态记号，
+ * 但配色、圆角与阴影一律走本项目令牌（不引入上游 `--dsw-*`）。
+ * ---------------------------------------------------------------- */
 
-.processGroup {
-  border: 0;
-  background: transparent;
+.processBar {
   display: flex;
-  flex-direction: column;
 }
 
-.processTitle {
-  /* 原先这里还有一条 `border-bottom: 0.5px solid …`，但被下面 `border: 0` 的简写整体清掉
-     ——实测 computed 是 `0px none`，那条描边从来没出现过。折叠头的形态由
-     **左侧 2px 主色条 + 6% 主色浅底 + 右侧两角圆角**表达（[C40](../../docs/design/decisions/C40-tool-activity.md)
-     的四个候选正是围绕它展开的）。 */
+.processBarTitle {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -213,30 +210,41 @@ body {
   transition: background var(--app-dur-fast) var(--app-ease-out), border-color var(--app-dur-fast) var(--app-ease-out), color var(--app-dur-fast) var(--app-ease-out);
 }
 
-.processTitle:hover {
+.processBarTitle:hover {
   background: color-mix(in srgb, var(--bgm-primary) 11%, var(--app-surface));
   color: var(--bgm-text);
 }
 
-.processTitle .chevron {
+.processBarText {
   flex: none;
-  transition: transform var(--app-dur-base) var(--app-ease-out);
+  color: var(--bgm-text);
 }
 
-.processGroup[data-open='true'] .processTitle .chevron {
-  transform: rotate(180deg);
+/* 进行中与失败由文字着色表态：标题本身就是状态行。 */
+.processBar[data-state='running'] .processBarText {
+  color: var(--bgm-primary-text);
 }
 
-.processTitle .count {
+.processBar[data-state='error'] .processBarText {
+  color: var(--bgm-danger);
+}
+
+.processBarSummary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bgm-text-weak);
+}
+
+.processBarCount {
+  flex: none;
   margin-left: auto;
   color: var(--bgm-text-weak);
   font: var(--app-font-note);
 }
 
-.processBody {
-  /* 原先在这里把滚动条重绑到上游 l2 那一档；两级滑块取值本来就相同，
-     令牌层清理时已合并成一枚 `--app-scrollbar-thumb`（`tokens.css`），故不再重绑。 */
-  border-left: 0;
+.processGroupBody {
   display: flex;
   flex-direction: column;
   gap: var(--app-space-6);
@@ -246,25 +254,273 @@ body {
   overflow-y: auto;
 }
 
-.activityRow {
-  border-bottom: 1px dotted var(--bgm-dotted);
+/* 过程行：折叠态就是一行流水（图标 + 标题 + 圆点 + 摘要 + 状态记号）。 */
+.reasoningRow,
+.toolRow {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  color: var(--bgm-text-muted);
-  font: var(--app-font-sub);
+  flex-direction: column;
 }
 
-/* 失败的工具调用才标红；running/ok 走默认与成功色 */
-.activityRow[data-state='error'] {
+.processRowTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bgm-text-muted);
+  font: var(--app-font-sub);
+  text-align: left;
+  cursor: pointer;
+}
+
+.processRowTitle:hover {
+  color: var(--bgm-text);
+}
+
+/* 不可展开的行（例如已经没有结果的工具）：保留排布但换回默认光标。 */
+.processRowTitle:disabled {
+  cursor: default;
+}
+
+.processIcon {
+  flex: none;
+  color: var(--bgm-primary-text);
+}
+
+.processLabel {
+  flex: none;
+  color: var(--bgm-text);
+}
+
+/* 2×2 圆点分隔符：形状取自 DSH 的流水行，颜色用主色派生的描边档（不引入中性灰表面）。 */
+.processSep {
+  flex: none;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--bgm-dotted);
+}
+
+.processSummary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bgm-text-weak);
+}
+
+.processState {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--bgm-mono);
+  color: var(--bgm-primary-text);
+}
+
+/* 状态着色沿用改造前活动条目的语义：成功用成功色，只有失败标红，
+   进行中/等待/部分完成走主色与警示色（未结束的调用不该读成已成功）。 */
+.toolRow[data-state='ok'] .processState {
+  color: var(--bgm-success);
+}
+
+.toolRow[data-state='error'] .processState {
   color: var(--bgm-danger);
 }
 
-.activityRow .mark {
-  font-family: var(--bgm-mono);
+.toolRow[data-state='partial'] .processState,
+.toolRow[data-state='unknown'] .processState,
+.toolRow[data-state='waiting'] .processState {
+  color: var(--bgm-warn);
+}
+
+.processChevron {
   flex: none;
-  width: 12px;
-  color: var(--bgm-primary-text);
+  color: var(--bgm-text-weak);
+  transition: transform var(--app-dur-base) var(--app-ease-out);
+}
+
+/* 折叠态朝右、展开态朝下：只动 transform（外观层硬约定第 3 条）。 */
+.processBar[data-open='true'] .processChevron,
+.reasoningRow[data-open='true'] .processChevron,
+.toolRow[data-open='true'] .processChevron {
+  transform: rotate(90deg);
+}
+
+/* 展开体：思考是等宽原文（缩进对齐标题，不画左侧竖线——与 DSH 的思考行一致）。 */
+.reasoningText {
+  margin: 0;
+  padding: var(--app-space-6) 0 var(--app-space-6) 22px;
+  color: var(--bgm-text-muted);
+  font: var(--app-font-sub);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.processBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+  margin-top: 4px;
+  padding-left: 22px;
+}
+
+/* 参数、结果文本与行内进度共用同一张「等宽浅面」的皮。 */
+.toolArgsText,
+.toolText,
+.toolInlineText {
+  margin: 0;
+  padding: var(--app-space-6) var(--app-space-10);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--app-radius-cell);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  font-family: var(--bgm-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+/* 行内进度贴着标题，与展开体留出区分。 */
+.toolInlineText {
+  margin-top: 4px;
+}
+
+.toolArgs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toolArgsLabel {
+  color: var(--bgm-text-weak);
+  font: var(--app-font-note);
+}
+
+.toolResult {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+}
+
+.toolError {
+  padding: var(--app-space-6) var(--app-space-10);
+  border-left: 2px solid var(--bgm-danger-border);
+  border-radius: 0 var(--app-radius-cell) var(--app-radius-cell) 0;
+  background: var(--bgm-danger-soft);
+  color: var(--bgm-danger);
+  font: var(--app-font-sub);
+}
+
+.toolTruncated,
+.toolEmpty {
+  color: var(--bgm-text-weak);
+  font: var(--app-font-note);
+}
+
+/* 子调用：缩进 + 左侧细线表达层级（与 DSH 的 subCalls 同构）。 */
+.toolSubCalls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 2px 8px;
+  padding-left: 8px;
+  border-left: 1px solid var(--bgm-border-soft);
+}
+
+/* ---------------------------------------------------------------- 轮尾操作行
+ * 形态对齐 DSH 的 turn tail：平时不显形，指针进入这一轮（或键盘焦点落在里面）才出现；
+ * 该轮以正文结尾时由 `data-actions-reveal='always'` 恒显。 */
+
+.turnActions {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--app-dur-fast) var(--app-ease-out);
+}
+
+.appTurn:hover .turnActions,
+.turnActions:focus-within,
+.turnActions[data-actions-reveal='always'] {
+  opacity: 1;
+}
+
+.turnAction {
+  padding: 2px var(--app-space-8);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-pill);
+  background: var(--bgm-surface-alt);
+  color: var(--bgm-text-muted);
+  font: var(--app-font-note);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-out), border-color var(--app-dur-fast) var(--app-ease-out);
+}
+
+.turnAction:hover {
+  border-color: var(--bgm-border);
+  color: var(--bgm-text);
+}
+
+.turnAction:focus-visible {
+  outline: none;
+  box-shadow: var(--bgm-focus);
+}
+
+.turnUsage {
+  position: relative;
+}
+
+/* 用量面板：材质来自共享类 `.appGlass`（玻璃只有那一处定义），这里只补定位与几何。 */
+.usagePanel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 4;
+  min-width: 200px;
+  padding: var(--app-space-10) var(--app-space-12);
+  transform-origin: bottom right;
+}
+
+.usageList {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px var(--app-space-12);
+  margin: 0;
+}
+
+.usageRow {
+  display: contents;
+}
+
+.usageRow dt {
+  color: var(--bgm-text-weak);
+  font: var(--app-font-note);
+}
+
+.usageRow dd {
+  margin: 0;
+  text-align: right;
+  color: var(--bgm-text);
+  font: var(--app-font-note);
+  font-variant-numeric: tabular-nums;
+}
+
+.usageHint {
+  color: var(--bgm-text-weak);
+}
+
+.usageCost {
+  margin-top: var(--app-space-6);
+  padding-top: var(--app-space-6);
+  border-top: 1px solid var(--bgm-border-soft);
+  color: var(--bgm-text-weak);
+  font: var(--app-font-note);
 }
 
 /* ---------------------------------------------------------------- Markdown */
@@ -366,7 +622,19 @@ body {
   font-size: 0.875em;
 }
 
+/* 代码围栏的语言标记：贴在右上角，纯提示（不做语法高亮，只帮读者分清 ts / json）。 */
+.markdown .markdownCodeLang {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  color: var(--bgm-text-weak);
+  font: var(--app-font-note);
+  user-select: none;
+}
+
 .markdown pre {
+  /* 语言标记绝对定位到右上角，所以这里要成为它的定位上下文。 */
+  position: relative;
   margin: 16px 0;
   padding: 16px;
   /* 代码块字号走上游的最小一档意图，但收进项目的字号阶梯（note 12px）——
@@ -446,11 +714,6 @@ body {
 .assistantRow .assistantBody {
   border-left: 2px solid var(--bgm-border-soft);
   padding-left: var(--app-space-10);
-}
-
-.activityRow > span:last-child {
-  word-break: break-all;
-  line-height: 1.7;
 }
 
 .errorRow .stateDot::after {
@@ -1090,13 +1353,10 @@ body {
   color: var(--bgm-danger);
 }
 
-.processTitle:focus-visible {
+.processBarTitle:focus-visible,
+.processRowTitle:focus-visible {
   outline: none;
   box-shadow: var(--bgm-focus);
-}
-
-.activityRow[data-state='error'] .mark {
-  color: var(--bgm-danger);
 }
 
 /* 流式区与历史条目（`.appTurnStack` / `.assistantBody`）必须**同参数**：正文写完那一瞬

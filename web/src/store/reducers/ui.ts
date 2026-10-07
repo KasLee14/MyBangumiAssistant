@@ -43,6 +43,17 @@ export interface UiState {
   pinned: string[];
   /** `/details` 递增的展开计数：每次递增都强制展开过程折叠块。 */
   reveal: number;
+  /**
+   * 过程区的展开状态，键由 `utils/process.ts` 的两个 helper 给出：`` `${turn}` `` 是整轮过程
+   * （`turnProcessKey`），`` `${turn}:${条目 id}` `` 是单个思考行或工具行（`processRowKey`）。
+   *
+   * 单行键用**条目 id** 而不是 `step`：同一步里思考行与工具行会同时存在，用 step 会撞键。
+   *
+   * 放在 store 而不是组件的 `useState`：这些行会随流式帧反复重渲染，而轮次在会话切换时
+   * 会整体重建，组件私有状态会在重建时丢掉。另外 `undefined`（没记录过）与 `false`
+   * （用户显式折叠过）必须区分开——前者走「进行中的轮展开、历史轮折叠」的默认值。
+   */
+  processOpen: Record<string, boolean>;
   notice: string | null;
   problem: string | null;
   /** 设置行显示的提供方；null 表示按目录里的当前提供方推导。 */
@@ -60,6 +71,7 @@ export const INITIAL_UI_STATE: UiState = {
   // 真实的初始值在 `store/index.ts` 里从 localStorage 读入（这里只给同样的空默认值）。
   pinned: [],
   reveal: 0,
+  processOpen: {},
   notice: null,
   problem: null,
   credentialProvider: null,
@@ -78,6 +90,7 @@ export type UiAction =
   | { type: 'ui/collapsedToggled' }
   | { type: 'ui/pinnedToggled'; sessionId: string }
   | { type: 'ui/revealIncremented' }
+  | { type: 'ui/processToggled'; key: string; open: boolean }
   | { type: 'ui/credentialProviderSet'; provider: string };
 
 export function uiReducer(state: UiState = INITIAL_UI_STATE, action: AppAction): UiState {
@@ -118,6 +131,11 @@ export function uiReducer(state: UiState = INITIAL_UI_STATE, action: AppAction):
     }
     case 'ui/revealIncremented':
       return { ...state, reveal: state.reveal + 1 };
+    case 'ui/processToggled':
+      // 同值即无变化：展开状态由用户点击驱动，重复派发不该引起一次渲染。
+      return state.processOpen[action.key] === action.open
+        ? state
+        : { ...state, processOpen: { ...state.processOpen, [action.key]: action.open } };
     case 'ui/credentialProviderSet':
       return { ...state, credentialProvider: action.provider };
     default:

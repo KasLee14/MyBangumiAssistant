@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { openStream, rememberSession } from '../utils/api';
-import { connectionChanged, frameReceived, streamFatal, sessionsUpdated } from './actions';
+import { connectionChanged, deltaReceived, frameReceived, streamFatal, sessionsUpdated } from './actions';
 import { useStore } from 'react-redux';
 import type { RootState, AppStore } from './index';
 import type { AppAction } from './actions';
@@ -19,6 +19,12 @@ export function useStreamSubscription(): void {
     onFrame: frame => {
       if (frame.type === 'fatal') { dispatch(streamFatal(frame.message)); return; }
       if (frame.type === 'sessions') { dispatch(sessionsUpdated(frame.sessions)); return; }
+      // 增量帧与全量帧走不同的 action：全量帧整体覆盖（自愈），增量帧只累加。
+      if (frame.type === 'stream') {
+        dispatch(deltaReceived(frame));
+        rememberSession(store.getState().stream.sessionId);
+        return;
+      }
       dispatch(frameReceived(frame));
       rememberSession(store.getState().stream.sessionId);
     },

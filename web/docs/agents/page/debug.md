@@ -13,7 +13,7 @@
 | 文件 | 职责 |
 |---|---|
 | `index.tsx` | 装配：建调试专用 store、解析两个输入框、按字符播放；外壳**复用主界面的同一套类**——`.appFrame[data-mode='debug']` 上装配共享 `AppTopBar`（品牌双击返回主界面 + 栏目「调试页」+ 动作区「组件库」/「返回主界面」），下面是「输入列 `aside.appSidebar` \| 预览」两列。导出 `DebugPage`（内部是 `DebugShell`） |
-| `simulator.ts` | 纯映射：event（或一个 flush 窗口的 event 数组）→ frame，是宿主 `handleEvent` 加 `server.ts` 合并行为的复刻；不碰 React、不碰 DOM、不读 store。内容块的投影**不在这里实现**，它调宿主侧共享的 `message-blocks.ts` |
+| `simulator.ts` | 纯映射：event（或一个 flush 窗口的 event 数组）→ frame，是宿主 `handleEvent` 加 `server.ts` 合并行为的复刻；不碰 React、不碰 DOM、不读 store。内容块的投影**不在这里实现**，它调宿主侧共享的 `message-blocks.ts`；工具条目的文案与结果投影同理，调宿主侧共享的 `tool-view.ts` |
 | `DebugInputPanel.tsx` | 左侧输入区：两个 textarea、8 个 mock 用例按钮、预览 / 清空并重置、状态栏；纯 props 驱动。品牌、顶栏入口与「返回主界面」都**不在**这里了（见 `index.tsx`） |
 | `DebugPreview.tsx` | 右侧预览区：依据提示条（预览 / 通道 / 计数 / 展开过程 / 跳过动画）与 `<Stage>` 接线，渲染 `<main className="appConversation">`；空态 `DebugHero` 也在本文件 |
 
@@ -31,7 +31,7 @@
 - **想把某条宿主事件加进调试页**：先读 §规则「`simulator.ts` 是宿主 `handleEvent` 的复刻」里的三步，再查 §索引 的「符号一览」。
 - **只想查某个符号在哪、某条 event 映射成什么**：直接查 §索引 的三张表（文件 → 场景、符号一览、章节 → 场景），不必通读 §规则。
 - **只改外观或入口**：外观去 [../styles/debug.md](../styles/debug.md)，入口开关去 [../utils/debugMode.md](../utils/debugMode.md)。
-- **想模拟一次 40ms 合并窗口**：event 框填**数组**，整批会在预览时合并成**一帧**（对应宿主 `server.ts` 的 flush），所以界面只呈现批次结束时的状态——中间态（工具「进行中」、流式半成品）本来就到不了浏览器。想看清中间态就一次只喂一条。规则见 §规则「event 数组 = 一个 flush 窗口，合并成一帧」。
+- **想模拟一次 16ms 合并窗口**：event 框填**数组**，整批会在预览时合并成**一帧**（对应宿主 `server.ts` 的 flush），所以界面只呈现批次结束时的状态——中间态（工具「进行中」、流式半成品）本来就到不了浏览器。想看清中间态就一次只喂一条。规则见 §规则「event 数组 = 一个 flush 窗口，合并成一帧」。
 - **想在调试页看内容块（12 种 kind）**：event 框粘一条 `message_end`，`message.content` 里放这个块即可，不必先发 user 消息（预览区会自建一个轮次）：
 
   ```json
@@ -39,6 +39,8 @@
   ```
 
   把 `type` 换成上面那 12 个**组件名**之一，载荷放在 `props` 里——定制组件的块形状统一为 `{ type, pending?, props }`（`TagCloud` 的 `props` 是数组本身）。**加 `"pending": true` 就是骨架态**：预览区渲染骨架而不是真实数据，去掉它（或置 `false`）才校验并渲染——这是回归用例 `S12` 的核心。也可以粘 custom 消息（`{"role":"custom","customType":"infobox","display":true,"details":{…}}`）：宿主把它投影成只含一个块的条目，`display` 为 `false` 时不产生条目。映射逻辑见 §规则「内容块的投影走共享纯函数，不复刻」。未知 `type` 在预览区什么都不显示，但会在控制台留一条 `[content] 未登记的内容块 type「…」，该块已丢弃。`（同一个 type 只报一次）。
+
+- **想在调试页看过程区（思考行 / 工具行 / 轮控制行）**：左侧样例的「2 工具开始」与「3 工具结束」按顺序点（`tool_execution_start` → 工具行出现，标题「搜索作品」+ 参数摘要 + 进行中；`tool_execution_end` → 同一条原地更新为完成，结果里的 `presentation` 渲染成 `SubjectCards` 内容块）。也可以只喂一条 `turn_start`（步序号递增）或一条带 `thinking_delta` 的 `message_update`（流式思考行）。**先在 `agent_start` 之后喂**：轮次条目与步序号都靠这些事件建立，单喂一条工具事件会落到「第 0 回合」的兜底上。文案与结果投影都由宿主的 `tool-view.ts` 生成（见 §规则「工具条目的文案与结果投影也走宿主纯函数」）。
 
 ## 规则
 
@@ -61,7 +63,7 @@ createStore(rootReducer, {
 
 ### 预览必须复用 `<Stage>`，不得另写一套渲染
 
-右侧预览直接渲染 `components/mainPage/conversation/Stage`，props 与 `Shell` 给的那一组同形：`items` / `liveContent` / `liveThinking` / `busy` / `status` / `cancelling` / `startedAt` / `sessionId` / `reveal` / `hero` / `onConfirm` / `onReject`。与主界面不同的是 `composer` 槽位**不传**——调试页没有输入区（粘性会话头已在 C34 决策中删除，`Stage` 上不再有对应槽位）。左侧「展开过程」按钮自增 `reveal`，等价于会话里的 `/details`。
+右侧预览直接渲染 `components/mainPage/conversation/Stage`，props 与 `Shell` 给的那一组同形：`items` / `liveContent` / `liveThinking` / `busy` / `status` / `cancelling` / `startedAt` / `sessionId` / `reveal` / **`pacedTail`（必填，调试页恒传 `false`：逐字播放由本页自己的受控播放驱动，不存在「历史条目与流式区同时显示同一段」的收尾阶段）** / `hero` / `onConfirm` / `onReject`。与主界面不同的是 `composer` 槽位**不传**——调试页没有输入区（粘性会话头已在 C34 决策中删除，`Stage` 上不再有对应槽位）。左侧「展开过程」按钮自增 `reveal`，等价于会话里的 `/details`。
 
 **为什么**：`Stage` 连同 `Turn` / `Streaming` / `MessageBlocks` / `ContentBlock` / `Markdown` 都是 props 驱动的展示组件（[../components/readme.md](../components/readme.md) §规则「展示组件一律 props 驱动」）。复用它们，调试页才真的在"预览真实渲染"；另写一套渲染，预览只是一张示意图，第一处漂移之后就再也对不上。
 
@@ -71,9 +73,13 @@ createStore(rootReducer, {
 
 ### `simulator.ts` 是宿主 `handleEvent` 的复刻
 
-`applyEvent(state, event)` 逐条对照 `bangumi/src/web/session.ts` 的 `handleEvent` 写：条目生成、标量改写、`message_start` 的 user 去重（`echoPending`）、`tool_execution_end` 对同一条 activity 的**原地更新并 `version + 1`**（不递增版本，增量帧不会重发，界面就停在「进行中」）。
+`applyEvent(state, event)` 逐条对照 `bangumi/src/web/session.ts` 的 `handleEvent` 写：条目生成、标量改写、`message_start` 的 user 去重（`echoPending`）、`tool_execution_end` 对同一条工具条目的**原地更新并 `version + 1`**（不递增版本，增量帧不会重发，界面就停在「进行中」）。
+
+**轮次与过程同样是复刻的一部分**（对应宿主的那几个私有方法，这里是与宿主同名的自由函数）：`agent_start` 开一轮并发出 `turn` 条目（`openTurn`）、`turn_start` 递增步序号、`message_end` 先把流式思考落成 `reasoning` 条目（`flushReasoning`）再累加用量（`accumulateUsage`）、每次助手消息与工具调用各记一次计数（`noteTurnCount`）、`agent_end` 封口轮次（`closeTurn`：补齐 `endedAt` / `status` / `usage`）。因此调试页里的轮控制行（耗时与「N 步」）、思考行、工具行与用量面板读的都是宿主下发的同形数据，而不是另算一份。
 
 **两处刻意差异**（文件注释里也写了）：notice 文案只保留与调试相关的少数几条；`redactText` 是简化实现（调试页不经手真实凭据，只挡 `sk-…` / `Bearer …` 形状）。另有一处**结构性差异**：宿主把内容块的投影与 `emit()` 分开（`message_update` 不单独下发），调试页一次只喂一个 event，所以让每次投影也产出一帧，否则看不到变化。
+
+**两处已知不等价**（改宿主这两处时要一起核）：宿主有 `tool_execution_update` 分支（只处理 `execute_write_batch` 的中间回执），**调试页没有这个 case**——粘它会落到 `default` 抛「未支持的事件类型」；批次进度要在离线侧看，走 `node --test test/web-write-activity.test.mjs`（见 [../regression/session-flow.md](../regression/session-flow.md) 的 `S11`）。另外宿主 `agent_end` 里还带着 `recoveryPending`（定向恢复未结束时不关回合）与 `recomputeTokenUsage`，调试页把 `tokenUsage` / `contextUsage` 固定为 `null`（界面不显示这两项）。
 
 **改宿主逻辑时这份要跟着核**：动了 `handleEvent` 的分支、字段名或 `emit` 时机，就要回来确认这里是否还等价。新增一条 event 支持走三步：
 
@@ -87,7 +93,7 @@ createStore(rootReducer, {
 
 ### event 数组 = 一个 flush 窗口，合并成一帧
 
-event 输入框接受两种形状：单个 `AgentSessionEvent` 对象，或它的**数组**。数组表示**一个 flush 窗口内的一批事件**，语义对应宿主：`handleEvent` 每收到一条就改会话状态，`server.ts` 的 `schedule()` 用 40ms 定时器把窗口内的改动合并成**一帧**（`flush()` → `flushClient()` → `writeEvent()`）经 SSE 下发。所以一批 N 条事件在预览区只产**一帧**，"已处理 event" 计数按元素个数累加，而"已提交帧"只 +1。
+event 输入框接受两种形状：单个 `AgentSessionEvent` 对象，或它的**数组**。数组表示**一个 flush 窗口内的一批事件**，语义对应宿主：`handleEvent` 每收到一条就改会话状态，`server.ts` 的 `schedule()` 用 16ms 定时器（`FLUSH_MS`）把窗口内的改动合并成**一帧**（`flush()` → `flushClient()` → `writeEvent()`）经 SSE 下发。所以一批 N 条事件在预览区只产**一帧**，"已处理 event" 计数按元素个数累加，而"已提交帧"只 +1。
 
 实现是 `simulator.ts` 的 `applyEvents`：多条时依次复用 `applyEvent`（同一个 state 连续生效），**只保留最后一步**。每一步的 `emit` 都基于 `state.items` 的全量快照，因此最后一帧天然包含整批变更；被丢弃的中间帧在真实链路上本来也会被后续帧覆盖。流式区同理——批次末尾若清空了流式区（如 `message_end`），`play` 就是空数组。
 
@@ -112,6 +118,16 @@ event 输入框接受两种形状：单个 `AgentSessionEvent` 对象，或它�
 
 **违反后果**：两处各自维护一份投影，判定条件漂移（例如一处认 `pending === true`、另一处不看），调试结论不再可信。
 
+### 工具条目的文案与结果投影也走宿主纯函数
+
+这是上一条的**同一做法**，共用的是 `bangumi/src/web/tool-view.ts`：`tool_execution_start` 的标题 / 工具族 / 参数摘要 / 参数原文 / 读写（`toolTitle` / `toolFamily` / `toolSummary` / `toolArgsText` / `toolAccess`）与 `tool_execution_end` 的结果投影（`toolOutcome`）都直接调宿主那一份。
+
+**为什么**：中文标题、工具族与结果形态（`presentation` → 内容块；`execute_write_batch` 的批次文本与状态）在宿主是**一张表加一套判定**。调试页自己抄一份对照，加一个工具时两边就会不一致——而调试页的全部价值就在于"预览所见 = 真实会话所见"。
+
+两处细节与宿主对齐：`toolOutcome` 的 `final` 在调试页走默认值 `true`（调试页只有最终结果这条入口，中间回执见 §规则「`simulator.ts` 是宿主 `handleEvent` 的复刻」的两处已知不等价）；结果文本与失败原因过一遍本页的简化 `redactText`（宿主那边是真实凭据脱敏，见 `session.ts` 的 `sanitizeResult`）。
+
+**违反后果**：调试页显示的标题或摘要与真实会话不同，据此判断界面行为会得出错误结论。
+
 ### `play` 的语义：`KEEP` 哨兵与空数组
 
 `applyEvent` 返回 `SimStep[]`，每步带一个 `play`：这一帧**播放完之后**流式区应该显示的块数组。
@@ -129,7 +145,7 @@ event 输入框接受两种形状：单个 `AgentSessionEvent` 对象，或它�
 ### 逐字播放由 `playBlocks` 驱动，`displayBlocks` 是受控 prop
 
 - `displayBlocks` 是**受控**的流式块数组：`<Stage liveContent={displayBlocks}>` 显示它，而不是读 store 里的 `liveContent`——逐字播放发生在 reducer 之外，store 里只保留「已提交帧」的状态。
-- `playBlocks` **只逐字演最后一个文本块**，其余块（更早的文本块、内容块与骨架）直接显示：流式期增长的只有最后那一段文本；内容块的 `pending` 变化是一次状态切换，不做补间。每 `TICK_MS`（24ms）提交 `CHARS_PER_TICK`（2）个字符，对应宿主约 40ms 一帧的观感；`frame` 通道不做补间（那一帧本来就是最终状态）。
+- `playBlocks` **只逐字演最后一个文本块**，其余块（更早的文本块、内容块与骨架）直接显示：流式期增长的只有最后那一段文本；内容块的 `pending` 变化是一次状态切换，不做补间。每 `TICK_MS`（24ms）提交 `CHARS_PER_TICK`（1）个字符，对着宿主一帧的观感调（宿主现在是 `FLUSH_MS = 16`，改造前是 40ms）；`frame` 通道不做补间（那一帧本来就是最终状态）。
 - `playToken`（ref）是**取消令牌**：`runPreview` 开始时自增并记下 token，`playBlocks` 每步比对，不一致立刻 `return`；组件卸载时也自增一次，避免对已卸载组件 setState。
 - `commit(frame, showInInput)` 在提交后将帧的 JSON 写回 frame 输入框；`resetAll` 会先停止播放、重建 `simulator`、提交一帧空快照，再清空全部输入与计数。
 
@@ -205,17 +221,19 @@ const items = switched || frame.full ? frame.items : mergeItems(state.items, fra
 | `parseInputs` | `index.tsx` | 解析两个输入框，event 优先，返回帧或错误；event 支持对象或数组（数组逐项校验） | 改输入校验、报错文案时 |
 | `commit` / `resetAll` | `index.tsx` | 提交帧（并回写输入框）/ 停播 + 重置全部；`resetAll` 的 `revision` 接上当前编号 | 改提交与重置语义时 |
 | `playBlocks` / `playToken` / `CHARS_PER_TICK` / `TICK_MS` | `index.tsx` | 块级逐字播放（只演最后一个文本块）与取消令牌、播放节奏常量 | 调播放节奏、改取消逻辑、改骨架/内容块的呈现时机时 |
-| `applyEvent` | `simulator.ts` | event → `SimStep[]`（13 种事件 + `default` 抛错） | 加事件、核对宿主映射时 |
-| `applyEvents` | `simulator.ts` | 一批 event → `SimStep[]`：单条原样走 `applyEvent`，多条合并成一帧（对应宿主 40ms flush） | 改批量语义、排查"数组预览只出一帧"时 |
-| `createSimulatorState` / `SimulatorState` | `simulator.ts` | 模拟器的私有状态（`nextItemId`、`items`、`activities`、`echoPending`、标量）；第二参数是帧编号起点，重置时要接上当前编号 | 改状态字段、看 `activities` 索引时 |
+| `applyEvent` | `simulator.ts` | event → `SimStep[]`（14 种事件 + `default` 抛错；宿主有而这里没有的是 `tool_execution_update`） | 加事件、核对宿主映射时 |
+| `applyEvents` | `simulator.ts` | 一批 event → `SimStep[]`：单条原样走 `applyEvent`，多条合并成一帧（对应宿主 16ms flush） | 改批量语义、排查"数组预览只出一帧"时 |
+| `createSimulatorState` / `SimulatorState` | `simulator.ts` | 模拟器的私有状态（`nextItemId`、`items`、`activities`（工具条目索引，`toolCallId` → 条目 id）、`echoPending`、`currentTurn` / `currentStep` / `turnItems` / `turnUsage` / `turnStatus`（轮次与用量）、标量）；第二参数是帧编号起点，重置时要接上当前编号 | 改状态字段、看工具条目索引与轮次推导时 |
 | `SimStep` / `KEEP` | `simulator.ts` | 一步的结果与「不改动流式区」哨兵 | 改 `play` 语义时 |
 | `DEBUG_INSTANCE_ID` | `simulator.ts` | 首帧与每帧的 `instanceId` | 改帧的实例标识时 |
-| `SUPPORTED_EVENTS` | `simulator.ts` | 13 种已知事件名的清单；**当前没有调用方**（`applyEvent` 的 `default` 用的是字面量报错），加事件时按它对齐 | 加事件、核对清单时 |
-| `messageText` / `resultDetail` / `redactText` | `simulator.ts` | 对应宿主同名辅助函数；`redactText` 是简化脱敏 | 核对文本提取与脱敏时 |
+| `SUPPORTED_EVENTS` | `simulator.ts` | 14 种已知事件名的清单（含 `turn_start`）；**当前没有调用方**（`applyEvent` 的 `default` 用的是字面量报错），加事件时按它对齐 | 加事件、核对清单时 |
+| `messageText` / `redactText` | `simulator.ts` | 对应宿主同名辅助函数；`redactText` 是简化脱敏（宿主那边是真实凭据脱敏） | 核对文本提取与脱敏时 |
+| `openTurn` / `closeTurn` / `flushReasoning` / `noteTurnCount` / `accumulateUsage` | `simulator.ts` | 与宿主同名私有方法同构的轮次与过程处理：开/关轮次、把流式思考落成条目、维护轮控制行计数、累加每轮用量 | 核对轮次边界、耗时与用量来源时 |
 | `blocksFromContent` / `blocksFromMessage` / `customContentBlocks` | `bangumi/src/web/message-blocks.ts`（宿主侧，被 `simulator.ts` 调用） | 内容快照 → `MessageBlock[]` 的投影（含结构共享），以及 custom 消息 → 单块；**宿主与调试页共用这一份** | 加内容来源、核对块投影、调试页内容块不显示或一直停在骨架时 |
+| `toolTitle` / `toolFamily` / `toolSummary` / `toolArgsText` / `toolAccess` / `toolOutcome` | `bangumi/src/web/tool-view.ts`（宿主侧，被 `simulator.ts` 调用） | 工具条目的文案与结果投影（标题 / 族 / 摘要 / 参数原文 / 读写，以及 `presentation` → 内容块与批次文本状态）；**宿主与调试页共用这一份** | 加工具、改工具标题或摘要、调试页工具行不显示或停在「进行中」时 |
 | `DebugInputPanel` / `DebugInputPanelProps` | `DebugInputPanel.tsx` | 左侧输入区组件与它的 props 契约（只有输入区：两个框、用例、动作、状态栏，没有顶栏入口） | 改 props、加输入控件时 |
 | `DebugPreview` / `DebugPreviewProps` | `DebugPreview.tsx` | 右侧预览区：提示条 + `<Stage>` 接线 + 空态 `DebugHero`；渲染 `<main className="appConversation">` | 改预览条、空态、或预览的 props 时 |
-| `SAMPLES` | `DebugInputPanel.tsx` | 8 个 mock 用例（用例 2、3 必须按顺序；用例 5 走 frame 通道，会先清空 event；用例 6 是 event 数组，演示一个 flush 窗口；用例 7、8 按顺序点，演示内容块的骨架 → 真实数据 → 落条目） | 加或改用例时 |
+| `SAMPLES` | `DebugInputPanel.tsx` | 8 个 mock 用例（用例 2、3 必须按顺序：`search_subjects` 的 `tool_execution_start` → `tool_execution_end` 与结果里的 `presentation` 渲染成内容块；用例 5 走 frame 通道，会先清空 event；用例 6 是 event 数组，演示一个 flush 窗口（含 `turn_start`）；用例 7、8 按顺序点，演示内容块的骨架 → 真实数据 → 落条目） | 加或改用例时 |
 | `MODE_LABEL` | `DebugInputPanel.tsx` | 「当前依据」三态文案（`event` / `frame` / `none`） | 改状态栏措辞时 |
 
 ### 章节 → 场景
@@ -229,6 +247,7 @@ const items = switched || frame.full ? frame.items : mergeItems(state.items, fra
 | §规则「`simulator.ts` 是宿主 `handleEvent` 的复刻」 | **改了宿主 `handleEvent`、或要加一条 event 支持时必读** |
 | §规则「event 数组 = 一个 flush 窗口，合并成一帧」 | **改批量输入、纳闷"数组为什么只出一帧"时必读** |
 | §规则「内容块的投影走共享纯函数，不复刻」 | 内容块在调试页不出现、一直停在骨架、或要给宿主加内容来源时 |
+| §规则「工具条目的文案与结果投影也走宿主纯函数」 | 加工具、改工具标题或摘要、调试页工具行不显示或停在「进行中」时 |
 | §规则「`play` 的语义：`KEEP` 哨兵与空数组」 | 流式区没有按预期变化时 |
 | §规则「逐字播放由 `playBlocks` 驱动，`displayBlocks` 是受控 prop」 | 调播放节奏、改取消逻辑、改骨架/内容块的呈现时机时 |
 | §规则「首帧 `instanceId` 必须是 `DEBUG_INSTANCE_ID`，重置时 `revision` 必须接上」 | 首帧条目被合并而不是替换时；点了重置/预览却像没反应时 |

@@ -26,6 +26,7 @@
 4. **reducer 无变化时返回原 state**：违反后果：无关组件被无谓重渲染。见 [reducers.md](reducers.md)。
 5. **不引入中间件**：异步动作是闭包 `dispatch` 的普通函数。违反后果：与既有约定分叉，两种异步风格并存。见 §没有中间件的后果。
 6. **持久化不写进 reducer**：需要落盘的偏好必须由 `operations` 里的动作 `dispatch` + 在**一处订阅**里写 `localStorage`，reducer 只改内存；读取也放在 action 创建之前（首屏初值）。违反后果：reducer 产生副作用，时序与可测性同时变差。**当前 store 只有一例落盘：会话置顶**（`ui.pinned`）——reducer 只负责返回新数组，写到 `localStorage` 的是 `store/index.ts` 里的一处 `store.subscribe`，读写封装在 `utils/pinnedStorage.ts`，组件与 reducer 都不直接碰 `localStorage`。原先的另一例（外观版本 `variant`）已随整套双外观机制移除（见 §状态边界「已移除的机制」）。
+7. **流式正文有两份，组件只读「显示投影」**：`stream.liveContent` 是宿主下发的**权威值**，`stream.displayedContent` 是**屏幕上的那一份**（由 `pacing.ts` 按时间逐字推进），`stream.pacedTarget` 是它正在追赶的目标。组件一律经 `selectDisplayedContent` 读投影；判「这一轮是否还在进行」要看权威值（`selectHeroPhase` 就是这么做的）。违反后果：上游的突发批次直接上屏，一次冒出十几个字（这正是本层要解决的问题）。
 
 ## 这一层的职责
 
@@ -41,20 +42,21 @@
 | `reducers/index.ts` | 根 reducer、`AppAction`、`RootState`、`INITIAL_ROOT_STATE` | [reducers.md](reducers.md) |
 | `reducers/stream.ts` | 会话流切片 + `mergeItems` + `INITIAL_SCALARS` | [reducers.md](reducers.md) |
 | `reducers/catalog.ts` | 目录切片（模型/会话/提供方/命令） | [reducers.md](reducers.md) |
-| `reducers/ui.ts` | 界面切片（弹窗、侧栏、置顶、`reveal`、提示） | [reducers.md](reducers.md) |
+| `reducers/ui.ts` | 界面切片（弹窗、侧栏、置顶、`reveal`、**过程展开状态表 `processOpen`**、提示） | [reducers.md](reducers.md) |
 | `actions.ts` | 同步 action creators | [actions-and-operations.md](actions-and-operations.md) |
 | `operations.ts` | 异步动作编排（请求 + 提示 + 状态写入） | [actions-and-operations.md](actions-and-operations.md) |
 | `selectors.ts` | 读取函数 | [selectors-and-instance.md](selectors-and-instance.md) |
 | `hooks.ts` | 类型化 hooks、`useActions`、三个生命周期 hook | [hooks-and-stream.md](hooks-and-stream.md) |
-| `stream.ts` | SSE 订阅 hook | [hooks-and-stream.md](hooks-and-stream.md) |
+| `stream.ts` | SSE 订阅 hook（含 `stream` 增量帧的路由） | [hooks-and-stream.md](hooks-and-stream.md) |
+| `pacing.ts` | 流式正文的**逐字摊平**：`advanceFrame` / `hasCaughtUp` / `usePacing` | [hooks-and-stream.md](hooks-and-stream.md) |
 
 ## 三个切片
 
 | 切片 | 装什么 | 典型字段 |
 |---|---|---|
-| `stream` | 宿主下发的会话状态与条目（外加一个前端本地字段 `answering`） | `items`、`busy`、`liveText`、`pending`、`connected`、`pendingEcho`、`answering` |
+| `stream` | 宿主下发的会话状态与条目（外加三个前端本地字段：`answering`、`displayedContent`、`pacedTarget`） | `items`、`busy`、`liveContent`、`liveThinking`、`displayedContent`、`pacedTarget`、`pending`、`connected`、`pendingEcho`、`answering` |
 | `catalog` | 目录类数据（属于"有哪些东西可选"） | `models`、`sessions`、`providers`、`commands`、`canPersistCredentials` |
-| `ui` | 纯界面状态 | `settingsOpen`、`settingsPane`、`lastSettingsPane`、`sessionsOpen`、`collapsed`、`pinned`、`reveal`、`notice`、`problem`、`credentialProvider`、`switching`、`drafts` |
+| `ui` | 纯界面状态 | `settingsOpen`、`settingsPane`、`lastSettingsPane`、`sessionsOpen`、`collapsed`、`pinned`、`reveal`、`processOpen`、`notice`、`problem`、`credentialProvider`、`switching`、`drafts` |
 
 ## 状态边界（最容易犯错的地方）
 
@@ -65,9 +67,11 @@
 | **`lastSettingsPane`**（屏幕上已渲染的那一屏） | `ui` | 设置弹窗的退场动画期间要照它继续渲染原来那一屏——否则渲染分支一换，旧 `Modal` 连同动画一起被卸载，弹窗既不播退场也永不消失。取值口径是 `leaving ? lastSettingsPane : settingsPane`，见 [components/dialog.md](../components/dialog.md) |
 | `notice` / `problem` | `ui` | 提示与输入区不在同一棵子树 |
 | `reveal`（`/details`） | `ui` | 命令（store）触发、会话视图消费 |
+| **过程区的展开状态（`processOpen`）** | `ui.processOpen: Record<string, boolean>` | 键由 [../utils/process.md](../utils/process.md) 的两个 helper 定义（整轮 / 单个思考行或工具行）。放 store 有两个理由：这些行随流式帧反复重渲染，且**轮次在会话切换时会整体重建**，组件私有状态会跟着丢；另外 `undefined`（没记录过 → 走「进行中的轮展开、历史轮折叠」的默认值）与 `false`（用户显式折叠过）必须区分。工具行**子调用**的开合是例外，留在 `ToolRow` 的 `useState`——粒度太细。见 [reducers.md](reducers.md) §规则 |
 | **会话置顶（`pinned`）** | `ui.pinned: string[]` | **纯前端状态**：宿主协议里没有「置顶」字段，它只存在浏览器本地；侧栏分组与菜单读写它，落盘由 `store/index.ts` 的一处订阅负责（`utils/pinnedStorage.ts`） |
 | **输入草稿** | `ui.drafts[sessionId]` | 由唯一的输入卡 `Composer` 读写，切换会话或授权接管（确认卡替换掉输入卡）都不丢文字；组件私有状态只承载提交标记、补全与菜单，切换会话时重建 |
 | **确认应答在途（`answering`）** | `stream` | 确认卡座位（`ComposerSeat`，容器是 `.appSeat`）读、`operations` 写，且必须随帧撤下（宿主给出结论时解禁）——见 [reducers.md](reducers.md) 的「应答在途的撤下条件」 |
+| **流式正文的显示进度** | `stream.displayedContent` + `stream.pacedTarget` | 上游以突发批次下发（实测一批 10~90 字符），权威值一帧就能长出十几个字；屏幕上的那份由 `pacing.ts` 按时间摊平（约 60 字/秒，500 字回答写完后再播约 6~7 秒）。`pacedTarget` 在流式结束那一帧被冻住，让剩下的字播完再交回历史条目——见 [reducers.md](reducers.md) 的「收尾播放」 |
 | **弹窗内输入框、busy、error** | 各弹窗自己的 `useState` | 组件私有，只服务这一次编辑 |
 | **菜单开合、滚动位置、当前轮次** | 组件自己的 `useState` / `useRef` | 纯视觉细节，没有第二个读者 |
 | **命令补全游标** | `Composer` 自己的 `useState` | 仅服务当前输入卡 |

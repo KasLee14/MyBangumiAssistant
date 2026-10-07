@@ -4,14 +4,16 @@ import {
   useEscapeShortcut,
   useResponsiveCollapse,
 } from '../../store/hooks';
+import { usePacing } from '../../store/pacing';
 import { useStreamSubscription } from '../../store/stream';
 import { Shell } from './Shell';
 
 /**
- * 主界面薄壳：四个生命周期订阅 + 外壳装配。
+ * 主界面薄壳：五个生命周期订阅 + 外壳装配。
  *
- * 四个订阅各管一件事，且都只在主界面挂载时生效：
+ * 五个订阅各管一件事，且都只在主界面挂载时生效：
  * - `useStreamSubscription` 建立宿主事件流；
+ * - `usePacing` 把突发的流式正文按帧摊平（逐字显示）；
  * - `useCatalogSync` 在首屏与会话切换后重取目录；
  * - `useResponsiveCollapse` 按窗口宽度收放侧栏；
  * - `useEscapeShortcut` 处理 Esc 的「停止本轮 / 拒绝确认」。
@@ -22,6 +24,7 @@ import { Shell } from './Shell';
  */
 export function MainPage(): ReactNode {
   useStreamSubscription();
+  usePacing();
   useCatalogSync();
   useResponsiveCollapse();
   useEscapeShortcut();

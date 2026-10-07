@@ -13,7 +13,9 @@ import { Turn } from './Turn';
  * - `.appStage` 带 `container-type: inline-size`，`.appStageColumn` 的宽度按 `100cqw` 算；
  * - 屏外优化依赖完整祖先链 `.appStageScroll > .appStageFlow > .appStageColumn > .appTurn`
  *   （见 `styles/frame.css`），所以这三层不能被替换或省略；
- * - 贴底要在一个短窗口内贴三次：屏外轮次分批算出真实高度，只贴一次会被推回中段。
+ * - 贴底跟随由 `ResizeObserver` 观察 `.appStageFlow` 的**尺寸**驱动（理由见下面贴底 effect 的注释）：
+ *   屏外轮次的高度是分批算出来的，观察尺寸天然表达这件事，因此不需要在一个短窗口里反复读
+ *   `scrollHeight`——那是强制同步布局，实测单次 52~286ms。
  */
 export interface StageProps {
   /** 条目列表：与生产同一形状。 */
@@ -27,8 +29,25 @@ export interface StageProps {
   startedAt: number;
   /** 会话标识：变化时复位滚动位置与当前轮次高亮。 */
   sessionId: string;
+  /**
+   * 收尾播放：流式已经结束，但屏幕上的字还没播完。
+   *
+   * 此时宿主已经把这一轮的回答落成条目，而流式区还在逐字显示同一段正文——所以要把
+   * **最后一轮**的助手正文藏起来，由流式区独占。这也是它能无缝交接的原因：位置不变、
+   * 文本相同（流式区与条目走同一个 `MessageBlocks`）。
+   */
+  pacedTail: boolean;
   /** `/details` 递增的展开计数。 */
   reveal: number;
+  /**
+   * 过程区的展开状态表（键见 `utils/process.ts`）。
+   *
+   * 从 store 一路传进来而不是在这里读 store：`Stage` 是 props 驱动的会话容器，
+   * 内容组件不读 store 是跨层约束（`web/AGENTS.md` 第 1 条）。
+   */
+  openMap: Readonly<Record<string, boolean>>;
+  onToggleProcess(key: string, open: boolean): void;
+  onToggleRow(key: string, open: boolean): void;
   onConfirm(id: string): void;
   onReject(id: string): void;
   /** 输入区槽位；不传则不渲染。 */
@@ -41,10 +60,13 @@ export interface StageProps {
 
 export function Stage({
   items, liveContent, liveThinking, busy, status, cancelling, startedAt,
-  sessionId, reveal, onConfirm, onReject, composer, hero, pendingEcho,
+  sessionId, reveal, pacedTail, openMap, onToggleProcess, onToggleRow, onConfirm, onReject,
+  composer, hero, pendingEcho,
 }: StageProps): ReactNode {
   const [activeTurn, setActiveTurn] = useState<number | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
+  /** 内容容器：贴底跟随观察的是它的尺寸，而不是每一帧的数据（理由见下面的贴底 effect）。 */
+  const flow = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
   /** rAF 句柄与「滚动停止」防抖句柄。 */
   const pendingFrame = useRef(0);
@@ -57,10 +79,8 @@ export function Stage({
   // （C34 决策删掉了会话头，所以这里不再有「会话头占据内容流前导」这件事。）
   const railTurns = useMemo(() => turns.filter(turn => turn.user !== null), [turns]);
 
-  // 槽位是每次渲染都会重建的元素对象，直接进依赖数组会让贴底副作用每帧都跑一次
-  // 强制布局，因此这里只取「有没有」这个稳定布尔值。
+  // 槽位是每次渲染都会重建的元素对象，这里只取「有没有」这个稳定布尔值。
   const heroPhase = hero !== undefined && hero !== null;
-  const hasPendingEcho = pendingEcho !== undefined && pendingEcho !== null;
 
   /**
    * 切换会话：当前轮次高亮要清掉、视图要在下一帧拉回底部。
@@ -73,19 +93,32 @@ export function Stage({
     setActiveTurn(null);
   }, [sessionId]);
 
-  /** 只在用户停留在底部时跟随新内容。读 `scrollHeight` 是一次强制布局，故只在内容变化时执行。 */
+  /**
+   * 贴底跟随：由内容容器的**尺寸变化**驱动，而不是由每一帧的数据驱动。
+   *
+   * 原来这个 effect 依赖 `[items, liveContent, liveThinking, busy, hasPendingEcho]`，于是每个流式
+   * 帧都要读一次 `scrollHeight`。而读 `scrollHeight` 是一次**强制同步布局**：`.appTurn` 带
+   * `content-visibility: auto`，屏外轮次本应被跳过，但一读总高度就要求把它们全部真实布局——
+   * 实测单次 52~286ms，正是它把均匀到达的流式帧在浏览器里攒成「一顿一顿、一次冒几十字」的
+   * 爆发（诊断见 `artifacts/web-streaming-diagnosis-and-plan.md`）。
+   *
+   * `ResizeObserver` 的回调发生在布局之后，此时 `scrollHeight` 已是现成结果，不会再触发第二次
+   * 布局；它同时天然表达了「屏外轮次的高度是分批算出来的」——高度每稳定一次就贴一次，取代
+   * 原来「立即 + rAF + 120ms」的三连贴。切会话时重建观察并贴一次，避免新会话停在旧位置。
+   */
   useEffect(() => {
-    const node = scroller.current;
-    if (!node || !pinned.current) return;
+    const scrollerNode = scroller.current;
+    const content = flow.current;
+    if (!scrollerNode || !content) return;
     const pin = (): void => {
-      const target = scroller.current;
-      if (target) target.scrollTop = target.scrollHeight;
+      if (!pinned.current) return;
+      scrollerNode.scrollTop = scrollerNode.scrollHeight;
     };
+    const observer = new ResizeObserver(pin);
+    observer.observe(content);
     pin();
-    const raf = requestAnimationFrame(pin);
-    const timer = setTimeout(pin, 120);
-    return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
-  }, [items, liveContent, liveThinking, busy, hasPendingEcho]);
+    return () => observer.disconnect();
+  }, [heroPhase, sessionId]);
 
   const recomputeActiveTurn = useCallback((force = false): void => {
     if (pendingFrame.current && !force) return;
@@ -147,14 +180,19 @@ export function Stage({
         {/* id 供 `AnimatedContent`（gsap ScrollTrigger）定位滚动容器，见 Turn 的注释。 */}
         <div className="appStageScroll" id="app-stage-scroll" ref={scroller} onScroll={onScroll} data-phase={heroPhase ? 'hero' : 'active'}>
           {heroPhase ? hero : (
-            <div className="appStageFlow">
+            <div className="appStageFlow" ref={flow}>
               <div className="appStageColumn">
                 {turns.map((turn, index) => (
                   <Turn
                     key={turn.id}
                     turn={turn}
                     running={busy && index === turns.length - 1}
+                    // 收尾播放只为最后一轮让位：更早的轮次与流式区无关。
+                    hideAssistant={pacedTail && index === turns.length - 1}
                     reveal={reveal}
+                    openMap={openMap}
+                    onToggleProcess={onToggleProcess}
+                    onToggleRow={onToggleRow}
                     onConfirm={onConfirm}
                     onReject={onReject}
                   />

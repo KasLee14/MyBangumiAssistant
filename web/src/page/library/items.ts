@@ -50,8 +50,11 @@ export function frameText(section: LibrarySection): string {
     revision: 1,
     full: true,
     items: [
-      { id: 1, version: 1, kind: 'user', text: `查看${section.title}` },
-      { id: 2, version: 1, kind: 'assistant', content: [blockOf(section.kind, section.payload)] },
+      // 轮次条目 + user + assistant 的组合与真实会话一致：这三样缺一，粘进调试页
+      // 就看不到「一个轮次」的完整形态（`projectTurns` 按轮次条目切分）。
+      { id: 1, version: 1, kind: 'turn', turn: 1, startedAt: 0, endedAt: 0, status: 'completed', messageCount: 1, toolCallCount: 0 },
+      { id: 2, version: 1, kind: 'user', text: `查看${section.title}` },
+      { id: 3, version: 1, kind: 'assistant', content: [blockOf(section.kind, section.payload)], turn: 1, step: 1 },
     ],
     state: FRAME_STATE,
   };

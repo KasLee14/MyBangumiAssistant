@@ -61,7 +61,7 @@
 
 | 前缀 | 文档 | 覆盖 |
 |---|---|---|
-| `S` | [session-flow.md](session-flow.md) | 会话主链路：提交、流式、工具活动、确认卡、会话切换、轮次导航、内容条目 |
+| `S` | [session-flow.md](session-flow.md) | 会话主链路：提交、流式、过程区（思考 / 工具）、轮控制行与轮尾、确认卡、会话切换、轮次导航、内容条目、历史回溯 |
 | `C` | [settings-and-credentials.md](settings-and-credentials.md) | 设置四格（`BentoGrid`）、模型配置与凭据持久化、模型选择、代理、登录 |
 | `K` | [commands-and-shortcuts.md](commands-and-shortcuts.md) | 命令补全与本地命令、Esc 行为、思考强度、toast |
 | `L` | [shell-and-layout.md](shell-and-layout.md) | 外壳与布局：首屏、侧栏、连接状态、DOM/类名契约、宽度轴、品牌外观 |
@@ -78,7 +78,11 @@
 | 改样式文件 | `L1`、`L5`、`L6`、`L7`（动令牌（`--app-*` / `--bgm-*`，含唯一的 `--dsw-corner-shape`）则全量 `L`） |
 | 改 `utils/api.ts` 或协议 | 对应端点的用例（`C*` / `S*`）+ `L4` |
 | 改消息渲染 / 内容组件 | `S2`、`S3`、`S9` + [../components/content.md](../components/content.md) 的"新增 kind 清单"核对 |
-| 改批次活动 / 额度进度 | `S11`（离线展示通过与真实账户写入分别记录）；原 `V3`、`V4` 随 v2 作废 |
+| 改流式渲染 / 逐字摊平 / 贴底跟随 / 帧节奏 | `S13`（逐字与收尾播放，**需模型**）、`S12`（骨架与落定，离线走调试页）+ `S2`、`S3`；再按 [../components/main-page.md](../components/main-page.md) 的两条流式规则核对（`ResizeObserver` 贴底、收尾期让位与光标） |
+| 改批次活动 / 额度进度 | `S11`（离线展示通过与真实账户写入分别记录）+ `S15`（工具行的展开体与结果内容块）；原 `V3`、`V4` 随 v2 作废 |
+| 改思考条目 / 工具条目 / 轮次边界（协议、宿主投影或前端分组） | `S3`、`S15`、`S16`（工具与轮控制行）、`S14`（思考历史化）、`S19`（历史回溯）+ [../utils/turns.md](../utils/turns.md) 与 [../utils/process.md](../utils/process.md) 的规则核对 |
+| 改过程区折叠 / 展开状态 | `S18`（`hidden="until-found"` 与 Ctrl+F）、`S3`、`S4`（`/details`）+ `K7` |
+| 改轮尾操作行 / 每轮用量 | `S17`（复制范围与用量面板）+ `S13`（收尾期让位） |
 | 改 `page/mainPage/*`、`components/mainPage/**`、`components/common/**`、`styles/common.css`、`components/motion/**` | `L1`–`L10` + `A1`–`A7`（其中 `L5`、`L6`、`A2` 是关键项）；原 `components/v2/**`、`styles/v2/**` 与 `V1`–`V10` 已作废 |
 | 改**共享组件**（`Modal`、`StatsDock`、`MessageParts`、`content/**`） | 该组件所在链路的用例；浮层类（`Modal` / `StatsDock`）补 `A5`，内容条目（`MessageParts` / `content/**`）补 `A2` |
 | 加动效或改动效令牌 | `A3`、`A4` + [../styles/readme.md](../styles/readme.md) 的引入顺序核对 |

@@ -2,7 +2,7 @@
 
 ## 简介
 
-`MainPage`（薄壳）与 `Shell`（外壳）的装配细节：构建入口、四个生命周期订阅、从 store 到 props 的接线契约，以及常见改动场景。
+`MainPage`（薄壳）与 `Shell`（外壳）的装配细节：构建入口、五个生命周期订阅、从 store 到 props 的接线契约，以及常见改动场景。
 
 **不覆盖**：本层的通用规则（见 [readme.md](readme.md) 的 §规则）、组件内部的实现（见 [../components/main-page.md](../components/main-page.md)）。
 
@@ -60,7 +60,7 @@ div.appFrame[data-sidebar=collapsed|expanded]     两列网格：grid-template-a
 
 - **改 `main.tsx`、订阅或槽位接线之前先读 §规则**：样式引入顺序、`composer` 槽位只给组件、接管卡片只换 `.appSeat` 内部内容都在那里；违反会让部分颜色不生效，或让 textarea 丢掉焦点与 IME 组合态。
 - **只想查「某个字段从哪来」「某个浮层挂在哪」「某件事改哪里」**：直接查 §索引 的「`Shell` 从 store 取出的数据」「常见改动场景」，以及 §简介 的「`Shell` 的 JSX 骨架」，不必通读 §规则。
-- **加或改全局副作用（订阅、快捷键、resize）**：先读 §索引 的「四个订阅，一行一个」，再读 [../store/hooks-and-stream.md](../store/hooks-and-stream.md)；四个订阅必须留在 `index.tsx` 这条硬约束在 [readme.md](readme.md) 的 §规则。
+- **加或改全局副作用（订阅、快捷键、resize）**：先读 §索引 的「五个订阅，一行一个」，再读 [../store/hooks-and-stream.md](../store/hooks-and-stream.md)；五个订阅必须留在 `index.tsx` 这条硬约束在 [readme.md](readme.md) 的 §规则。
 - **动输入区接管**：先读 §规则「`composer` 槽位只给组件，不写分支」，再接 [../components/main-page.md](../components/main-page.md) 的座位分支表。
 
 ## 规则
@@ -100,24 +100,27 @@ composer={<ComposerSeat />}
 | §规则「`composer` 槽位只给组件，不写分支」 | 动输入区接管逻辑之前 |
 | §规则「接管卡片替换 `.appSeat` 内部内容，容器本身不换」 | 改座位结构、遇到 textarea 丢焦点时 |
 | §规则「样式引入顺序在 `main.tsx` 固定」 | 加样式文件、调换引入顺序时 |
-| §索引「四个订阅，一行一个」 | **加或改全局副作用（订阅、快捷键、resize）时必读** |
+| §索引「五个订阅，一行一个」 | **加或改全局副作用（订阅、快捷键、resize）时必读** |
 | §索引「`Shell` 从 store 取出的数据」 | 给会话容器加字段、调整 props 接线时 |
 | §索引「常见改动场景」 | 不知道从哪下手时的入口表 |
 
-### 四个订阅，一行一个（`page/mainPage/index.tsx`）
+### 五个订阅，一行一个（`page/mainPage/index.tsx`）
 
 | hook | 作用 | 备注 |
 |---|---|---|
-| `useStreamSubscription()` | 建立宿主事件流（`EventSource`），把帧 dispatch 进 store | 只在页面挂载期间存在；卸载即关闭 |
+| `useStreamSubscription()` | 建立宿主事件流（`EventSource`），把帧 dispatch 进 store | 只在页面挂载期间存在；卸载即关闭。全量 `state` 帧与 `stream` 增量帧走不同 action |
+| `usePacing()` | 把突发的流式正文按时间**逐字摊平**（约 60 字/秒）并驱动收尾播放 | 用 `requestAnimationFrame` 循环；后台标签页会暂停，切回前台按经过时间追平。理由与代价见 [../store/reducers.md](../store/reducers.md) 的「流式正文的显示投影与收尾播放」 |
 | `useCatalogSync()` | 首屏、会话切换与标题变化后重取目录（模型/会话/提供方/命令） | 失败不提示：打开设置或会话弹窗时还会再取一次 |
 | `useResponsiveCollapse()` | `innerWidth <= 1024` 时强制收起侧栏，否则强制展开 | 是**强制**语义：手动展开后下一次 resize 仍会重置 |
 | `useEscapeShortcut()` | Esc：有待确认写入→拒绝本次写入；否则本轮进行中→停止本轮 | **顺序不能反**：待确认时 `busy` 也为真。弹窗与思考菜单各自在捕获阶段拦截并 `stopPropagation` |
 
-它们都定义在 `store/`（`hooks.ts`、`stream.ts`），页面只负责调用。
+它们都定义在 `store/`（`hooks.ts`、`stream.ts`、`pacing.ts`），页面只负责调用。
 
 ### `Shell` 从 store 取出的数据（`page/mainPage/Shell.tsx`）
 
-纯展示字段（`items`、`liveContent`、`liveThinking`、`busy`、`status`、`cancelling`、`startedAt`、`sessionId`）、交互字段（`pendingEcho`、`reveal`、`collapsed`）与派生布尔 `heroPhase`（`selectHeroPhase`）。动作取 `actions.confirm` / `actions.reject`。
+纯展示字段（`items`、`liveContent`、`liveThinking`、`busy`、`status`、`cancelling`、`startedAt`、`sessionId`）、交互字段（`pendingEcho`、`reveal`、`collapsed`、`openMap` = `ui.processOpen`）与两个派生布尔：`heroPhase`（`selectHeroPhase`，看**权威值**）与 `pacedTail`（`selectPacedTail`，收尾播放）。动作取 `actions.confirm` / `actions.reject`；过程区的开合是唯一的例外——它不用 `useActions`，而是 `dispatch(processToggled)` 并用 `useCallback` 包一层（`Turn` 与 `ProcessGroup` 都是 `memo`，回调引用必须稳定，见 [../components/main-page.md](../components/main-page.md) §规则）。
+
+**注意 `liveContent` 这个 prop 名对应的不是 `state.stream.liveContent`**：`Shell` 读的是**显示投影** `state.stream.displayedContent`（逐字摊平后的那一份），权威值只在判「这一轮是否还在进行」时用；`pacedTail` 则由两个字段一起算出。三者分工见 [../store/reducers.md](../store/reducers.md) 的「流式正文的显示投影与收尾播放」。
 
 **为什么这些字段在 `Shell` 读、而不是让 `Stage` 自己读**：`Stage` 与 `Turn` / `Streaming` / `MessageParts` / `content/**` 是 props 驱动的展示组件，脱离 store 也能渲染（这是它们可被单独复用与测试的前提）。`Shell` 是唯一"知道 store 存在"的那一层。
 
