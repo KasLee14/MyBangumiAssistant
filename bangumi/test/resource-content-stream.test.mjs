@@ -40,7 +40,7 @@ for (const api of ['openai-responses', 'openai-completions']) test(`${api}真正
   const answer = events.at(-1).message.content;
   assert.equal(answer[0].text, '选择理由'); assert.equal(answer[0].nextType, 'SubjectCards');
   assert.equal(answer[1].pending, false); assert.equal(answer[1].props.items[0].image, subject.image);
-  assert.ok(events.some(event => event.partial?.content.some(part => part.type === 'SubjectCards' && part.pending === true)));
+  assert.equal(events.some(event => event.partial?.content.some(part => part.type === 'SubjectCards' && part.pending === true)), false);
   assert.ok(events.some(event => event.partial?.content.some(part => part.type === 'SubjectCards' && part.pending === false)));
   assert.equal(JSON.stringify(answer).includes(ref), false);
 });
@@ -128,6 +128,8 @@ test('真实会话宿主在轮次缓存清理前保存展开快照，重开会�
   const faux = fauxProvider({ api: 'openai-responses', provider: 'resource-runtime' });
   let returnedRef, readContext, thirdAudit;
   faux.setResponses([
+    fauxAssistantMessage([fauxToolCall('read_component_index', { query: 'SubjectCards' }, { id: 'component-index' })], { stopReason: 'toolUse' }),
+    fauxAssistantMessage([fauxToolCall('read_component_spec', { names: ['SubjectCards'], representation: 'reference' }, { id: 'component-spec' })], { stopReason: 'toolUse' }),
     fauxAssistantMessage([fauxToolCall('get_subject_details', { subject_id: 1 }, { id: 'read-resource' })], { stopReason: 'toolUse' }),
     transcript => {
       const toolText = transcript.messages.findLast(message => message.role === 'toolResult').content[0].text;
@@ -168,5 +170,5 @@ test('真实会话宿主在轮次缓存清理前保存展开快照，重开会�
   const reloaded = restored.getBranch().findLast(entry => entry.type === 'message' && entry.message.role === 'assistant').message;
   assert.deepEqual(reloaded.content, answer.content);
   await runtime.session.prompt('继续讨论这部作品'); await runtime.session.waitForIdle();
-  assert.equal(faux.state.callCount, 3, JSON.stringify({ thirdAudit, errors: manager.getBranch().filter(entry => entry.type === 'message' && entry.message.errorMessage).map(entry => entry.message.errorMessage) }));
+  assert.equal(faux.state.callCount, 5, JSON.stringify({ thirdAudit, errors: manager.getBranch().filter(entry => entry.type === 'message' && entry.message.errorMessage).map(entry => entry.message.errorMessage) }));
 });

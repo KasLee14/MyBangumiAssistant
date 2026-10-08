@@ -37,13 +37,19 @@ async function fixture(t, mode) {
     const data = feedback(transcript); assert.equal(data.goal.strategy, 'replan_read'); assert.equal(data.referenceSource.tool, 'get_subject_details'); assert.equal(data.referenceSource.args.subject_id, 2);
     assert.equal(data.referenceSource.args.include, undefined);
     assert.deepEqual(data.referenceSource.memberIds, [2]); assert.equal(data.checkpoint.completedParts, 1);
-    assert.deepEqual(getCurrentTools(transcript.messages).map(tool => tool.name), ['get_subject_details']);
+    assert.deepEqual(getCurrentTools(transcript.messages).map(tool => tool.name).sort(), ['get_subject_details', 'read_component_index', 'read_component_spec'].sort());
     return fauxAssistantMessage([fauxToolCall('get_subject_details', { subject_id: mode === 'scope' ? 3 : 2 }, { id: `retry-${calls.length}` })], { stopReason: 'toolUse' });
   };
-  faux.setResponses(mode === 'success' ? [initial, expired, retry, () => response([card(refs.get(2), 2)])]
+  const planned = mode === 'success' ? [initial, expired, retry, () => response([card(refs.get(2), 2)])]
     : mode === 'stuck' ? [initial, expired, retry, () => response([card(oldRef, 2)]), retry, () => response([card(oldRef, 2)])]
     : mode === 'scope' ? [initial, expired, retry, transcript => { assert.equal(feedback(transcript).goal.strategy, 'report_failure'); return response([{ type: 'text', text: '查询范围改变已被拒绝，保留已完成部分。' }]); }]
-    : [initial, expired, transcript => { assert.equal(feedback(transcript).goal.strategy, 'report_failure'); return response([{ type: 'text', text: '账户已改变，仅保留已完成部分，未重新读取。' }]); }]);
+    : [initial, expired, transcript => { assert.equal(feedback(transcript).goal.strategy, 'report_failure'); return response([{ type: 'text', text: '账户已改变，仅保留已完成部分，未重新读取。' }]); }];
+  // 这组测试关注引用恢复；先完成真实组件目录工具读取，随后保持原故障/恢复脚本。
+  faux.setResponses([
+    fauxAssistantMessage([fauxToolCall('read_component_index', { query: 'SubjectCards' }, { id: 'index' })], { stopReason: 'toolUse' }),
+    fauxAssistantMessage([fauxToolCall('read_component_spec', { names: ['SubjectCards'], representation: 'reference' }, { id: 'spec' })], { stopReason: 'toolUse' }),
+    ...planned,
+  ]);
   const modelRuntime = await ModelRuntime.create({ authPath: join(root, 'auth.json'), modelsPath: null, allowModelNetwork: false }); modelRuntime.registerNativeProvider(faux.provider); await modelRuntime.setRuntimeApiKey(faux.getModel().provider, 'offline-placeholder');
   const manager = SessionManager.create(root, join(root, 'sessions')); manager.appendSessionInfo('引用恢复验证');
   const runtime = await createBangumiRuntime({ cwd: root, agentDir: root, modelRuntime, sessionManager: manager, provider: faux.getModel().provider, model: 'faux-1', extension: createBangumiExtension({ authDir: join(root, 'auth'), timeoutMs: 1000, proxy: null, client, channel: { canConfirm: () => true, confirm: async () => true, canLogin: () => false, notify: () => {} } }) });
@@ -57,12 +63,12 @@ test('引用失效只重读原source原参数，新引用仅补未完成成员�
   assert.equal(f.answer.stopReason, 'stop', JSON.stringify(f.answer.diagnostics));
   assert.deepEqual(f.answer.content.filter(part => part.type === 'SubjectCards').flatMap(part => part.props.items.map(item => item.id)), [1, 2]);
   assert.deepEqual(f.calls.map(call => call.args.subject_id), [1, 2, 2]);
-  assert.equal(f.faux.state.callCount, 4); assert.ok(f.records.some(row => row.strategy === 'replan_read' && row.stage === 'scheduled'));
+  assert.equal(f.faux.state.callCount, 6); assert.ok(f.records.some(row => row.strategy === 'replan_read' && row.stage === 'scheduled'));
 });
 
 test('重复失效引用没有进展时受现有恢复预算限制并明确停止，不无限重取', async t => {
   const f = await fixture(t, 'stuck');
-  assert.equal(f.answer.stopReason, 'error'); assert.equal(f.faux.state.callCount, 6);
+  assert.equal(f.answer.stopReason, 'error'); assert.equal(f.faux.state.callCount, 8);
   assert.deepEqual(f.calls.map(call => call.args.subject_id), [1, 2, 2, 2]);
   assert.ok(f.records.some(row => row.stage === 'stopped' && row.attempt <= 2));
 });

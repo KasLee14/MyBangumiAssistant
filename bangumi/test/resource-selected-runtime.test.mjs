@@ -32,22 +32,27 @@ test('未完成候选池的六个已选成员经Pi宿主展开封面，流式完
     rmSync(root, { recursive: true, force: true });
   });
   const faux = fauxProvider({ api: 'openai-completions', provider: 'selected-runtime', tokenSize: { min: 1, max: 2 } });
-  const modelValue = transcript => {
-    const result = JSON.parse(transcript.messages.findLast(message => message.role === 'toolResult').content[0].text);
+  const modelValue = (transcript, toolName) => {
+    const result = JSON.parse(transcript.messages.findLast(message => message.role === 'toolResult' && message.toolName === toolName).content[0].text);
     assert.ok(result.value, JSON.stringify(result));
     return result.value;
   };
   faux.setResponses([
+    fauxAssistantMessage([
+      fauxToolCall('discover_bangumi_tools', { tool_names: ['search_subjects', 'refine_subject_candidates'], load: true }),
+      fauxToolCall('read_component_index', { query: 'SubjectCards' }),
+      fauxToolCall('read_component_spec', { names: ['SubjectCards'], representation: 'reference' }),
+    ], { stopReason: 'toolUse' }),
     fauxAssistantMessage([fauxToolCall('search_subjects', {
       keyword: '百合', subject_type: 2, limit: 68, result_mode: 'candidates',
       fields: ['id', 'name', 'subjectType', 'score', 'image'],
     })], { stopReason: 'toolUse' }),
     transcript => fauxAssistantMessage([fauxToolCall('refine_subject_candidates', {
-      candidate_ref: modelValue(transcript).resultRef, filter: { rating: { min: 8 } },
+      candidate_ref: modelValue(transcript, 'search_subjects').resultRef, filter: { rating: { min: 8 } },
       fields: ['id', 'name', 'subjectType', 'score', 'image'], limit: 6,
     })], { stopReason: 'toolUse' }),
     transcript => {
-      selectedPage = modelValue(transcript); selectedRef = selectedPage.resourceRef;
+      selectedPage = modelValue(transcript, 'refine_subject_candidates'); selectedRef = selectedPage.resourceRef;
       assert.ok(selectedPage.stage.remainingCount > 0);
       assert.equal(selectedPage.data.length, 6);
       readsBeforeDisplay = requests.length;
@@ -89,10 +94,10 @@ test('未完成候选池的六个已选成员经Pi宿主展开封面，流式完
   assert.deepEqual(cards.props.items.map(({ id }) => id), [1, 2, 3, 4, 5, 6]);
   assert.ok(cards.props.items.every(item => item.image?.startsWith('https://example.invalid/selected-')));
   assert.deepEqual(receivedSelection, { subjectIds: [1, 2, 3, 4, 5, 6] });
-  assert.equal(faux.state.callCount, 3, '无需恢复模型调用或重做召回');
+  assert.equal(faux.state.callCount, 4, '一次目录加载加三次业务模型响应，无恢复调用或重做召回');
   assert.ok(readsBeforeDisplay > 0);
   assert.equal(requests.length, readsBeforeDisplay, '缓存卡片展开不追加上游读取');
-  assert.ok(updates.some(message => message?.content?.some(part => part.type === 'SubjectCards' && part.pending === true)));
+  assert.equal(updates.some(message => message?.content?.some(part => part.type === 'SubjectCards' && part.pending === true)), false, '未校验占位不得进入可见快照');
   assert.ok(updates.some(message => message?.content?.some(part => part.type === 'SubjectCards' && part.pending === false && part.props.items.every(item => item.image))));
   const restored = SessionManager.open(manager.getSessionFile());
   assert.deepEqual(restored.getBranch().findLast(entry => entry.type === 'message' && entry.message.role === 'assistant').message.content, answer.content);

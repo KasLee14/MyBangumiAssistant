@@ -1,16 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { lazyStream } from '@earendil-works/pi-ai';
-import { fauxProvider, fauxAssistantMessage } from '@earendil-works/pi-ai/providers/faux';
+import { fauxProvider, fauxAssistantMessage, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 import { fixture, eventually } from './web-fixture.mjs';
 import { withProviderFetch } from '../dist/src/pi-host.js';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { anonymousContext } from '../dist/src/mcp/access-context.js';
 import { bindResourceResolver } from '../dist/src/output/resource-content.js';
 import { CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
+import { ComponentCatalogState, bindComponentCatalog } from '../dist/src/output/component-catalog.js';
+import { createComponentReadTools } from '../dist/src/output/component-tools.js';
 
-test('部分候选页的已选封面经过真实Web SSE占位、完成与历史恢复', async t => {
-  const f = await fixture(t);
+test('部分候选页的已选封面经真实目录读取后Web SSE只发布合法完成块并保持历史一致', async t => {
+  const catalog = new ComponentCatalogState(); catalog.reset();
+  const f = await fixture(t, { additionalExtension: pi => createComponentReadTools(catalog).forEach(tool => pi.registerTool(tool)) });
   const context = anonymousContext(), read = { turnId: 'selected-web' };
   const binding = { turnId: read.turnId, accountId: null, scopeKey: 'public:sfw' };
   const rows = Array.from({ length: 23 }, (_, i) => ({ id: i + 1, facts: {
@@ -27,7 +30,12 @@ test('部分候选页的已选封面经过真实Web SSE占位、完成与历史�
     data: rows.map(row => ({ id: row.id, ...row.facts })), stage, accessContext: context,
   }, null, read.turnId, context);
   const faux = fauxProvider({ api: 'openai-completions', provider: 'selected-web' });
-  faux.setResponses([fauxAssistantMessage(JSON.stringify({ content: [
+  faux.setResponses([
+    fauxAssistantMessage([
+      fauxToolCall('read_component_index', { query: 'SubjectCards' }),
+      fauxToolCall('read_component_spec', { names: ['SubjectCards'], representation: 'reference' }),
+    ], { stopReason: 'toolUse' }),
+    fauxAssistantMessage(JSON.stringify({ content: [
     { type: 'text', text: '这些成员已核实，候选池其他条目尚未处理。' },
     { type: 'SubjectCards', props: { resourceRef: ref, layout: 'grid', items: [1, 2, 3, 4, 5, 6].map(id => ({ id })) } },
   ] }))]);
@@ -42,6 +50,7 @@ test('部分候选页的已选封面经过真实Web SSE占位、完成与历史�
         { role: 'system', content: CONTENT_OUTPUT_INSTRUCTION, timestamp: 1 }, ...context.messages,
       ] };
       bindResourceResolver(transcript, (ref, signal, selection) => service.readCachedResource(ref, read, signal, selection));
+      bindComponentCatalog(transcript, catalog);
       const seen = new Set();
       for await (const event of wrapped.streamSimple(faux.getModel(), transcript, options)) {
         yield event;
@@ -63,8 +72,10 @@ test('部分候选页的已选封面经过真实Web SSE占位、完成与历史�
   const cards = reply.content.find(part => part.type === 'SubjectCards');
   assert.equal(cards.pending, false); assert.equal(cards.props.layout, 'grid');
   assert.equal(cards.props.items.length, 6);
+  assert.deepEqual(cards.props.items.map(item => item.id), [1, 2, 3, 4, 5, 6]);
   assert.ok(cards.props.items.every(item => item.image?.startsWith('https://example.invalid/web-')));
-  assert.ok(stream.frames.some(frame => frame.state?.liveContent?.some(part => part.type === 'SubjectCards' && part.pending === true)));
+  assert.equal(stream.frames.some(frame => frame.state?.liveContent?.some(part => part.type === 'SubjectCards' && part.pending === true)), false, '未校验占位不能进入可见正文');
+  assert.equal(faux.state.callCount, 2, '一次真实目录工具读取与一次正文生成，无恢复');
   assert.ok(stream.frames.some(frame => frame.state?.liveContent?.some(part => part.type === 'SubjectCards' && part.pending === false && part.props.items.every(item => item.image))));
   await f.post('selected-web-tab', 'session', { action: 'new' });
   await f.post('selected-web-tab', 'session', { action: 'resume', sessionId });

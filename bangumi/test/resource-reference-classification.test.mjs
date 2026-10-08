@@ -59,29 +59,56 @@ for (const [code, reason] of [
 
 function host() {
   const handlers = new Map(); let activeTools = ['get_subject_details', 'continue_subject_query', 'prepare_candidate_output', 'search_subjects'];
+  const registeredTools = activeTools.map(name => ({ name }));
+  const events = [];
   let final = message([]);
   const session = {
-    agent: { streamFunction: () => ({ async *[Symbol.asyncIterator]() { yield { type: 'done', reason: 'stop', message: final }; } }) },
+    agent: { streamFunction: () => ({ async *[Symbol.asyncIterator]() {
+      if (final.content[0]?.type === 'thinking') {
+        yield { type: 'start', partial: { ...final, content: [] } };
+        yield { type: 'thinking_delta', contentIndex: 0, delta: final.content[0].thinking, partial: { ...final, content: [final.content[0]] } };
+      }
+      yield { type: 'done', reason: 'stop', message: final };
+    } }) },
     abort: async () => {}, abortRetry: () => {},
     getActiveToolNames: () => [...activeTools], setActiveToolsByName: names => { activeTools = [...names]; },
+    getAllTools: () => registeredTools,
   };
   const controller = new RecoveryController(() => ({ enabled: true, maxRetries: 2, baseDelayMs: 1 }));
   controller.bind(session); controller.register({ on: (name, callback) => handlers.set(name, callback) });
   const end = (assistant, toolResults = []) => handlers.get('turn_end')({ message: assistant, toolResults, messageEntryId: 'assistant-error' });
   return {
-    session, end, tools: () => activeTools,
+    session, end, events, tools: () => activeTools,
     remember: (tool, args, value) => end(fauxAssistantMessage([fauxToolCall(tool, args, { id: 'source-call' })], { stopReason: 'toolUse' }),
       [{ toolName: tool, toolCallId: 'source-call', details: { value } }]),
     fail: (reason, draft, prefix = []) => end(attachOutputCheckpoint(withAssistantDiagnostic(message(prefix, 'error'), diagnostic(reason)),
       { prefix, ...(draft ? { draft } : {}), jsonComplete: true, failureScope: 'host' })),
     finish: async parts => {
       final = message(parts); let terminal;
+      events.length = 0;
       const model = fauxProvider({ api: 'openai-responses', provider: 'recovery-host-classification' }).getModel();
-      for await (const event of session.agent.streamFunction(model, { messages: [] }, {})) terminal = event;
+      for await (const event of session.agent.streamFunction(model, { messages: [] }, {})) { terminal = event; events.push(structuredClone(event)); }
       return terminal;
     },
   };
 }
+
+test('恢复读取契约保留原生COT与签名在完成前缀之前，thinking事件索引仍指向原生思考', async () => {
+  const h = host(), prefix = [{ type: 'text', nextType: null, text: '此前已经验证的正文' }];
+  h.fail('schema_invalid', undefined, prefix);
+  const thinking = { type: 'thinking', thinking: '离线provider返回的原生思考哨兵', thinkingSignature: 'native-signature-sentinel' };
+  const tool = fauxToolCall('read_component_spec', { names: ['SubjectCards'] });
+  const terminal = await h.finish([thinking, tool]);
+  assert.equal(terminal.type, 'done');
+  assert.deepEqual(terminal.message.content.map(part => part.type), ['thinking', 'text', 'toolCall']);
+  assert.deepEqual(terminal.message.content[0], thinking, '原生思考和签名逐字段原样保留，宿主不合成COT');
+  assert.deepEqual(terminal.message.content[1], prefix[0]);
+  assert.deepEqual(terminal.message.content[2], tool);
+  const delta = h.events.find(event => event.type === 'thinking_delta');
+  assert.equal(delta.contentIndex, 0);
+  assert.deepEqual(delta.partial.content[delta.contentIndex], thinking);
+  assert.deepEqual(delta.partial.content.filter(part => part.type === 'text'), prefix);
+});
 
 test('候选阶段未完成报告原引用的17条剩余，保留完整性缺口且不开放查询工具', () => {
   const h = host();
@@ -159,6 +186,21 @@ test('失败报告text后缀能够保留已完成canonical卡片并说明未完�
   const terminal = await h.finish([{ type: 'text', nextType: null, text: '原范围尚有17条未处理，本次展示未完成。' }]);
   assert.equal(terminal.type, 'done'); assert.deepEqual(terminal.message.content[0], prefix[0]);
   assert.match(terminal.message.content[1].text, /未完成/);
+});
+
+for (const name of ['read_component_index', 'read_component_spec']) test(`报告失败阶段不能借${name}绕过工具禁用和正文合并校验`, async () => {
+  const h = host(), prefix = [completeCards([1])];
+  h.fail('resource_reference_access_denied', undefined, prefix);
+  assert.deepEqual(h.tools(), [], '权限绑定失败的报告阶段禁止全部工具');
+  const terminal = await h.finish([fauxToolCall(name, name === 'read_component_index' ? {} : { names: ['SubjectCards'] })]);
+  assert.equal(terminal.type, 'error');
+  assert.equal(assistantErrorDiagnostic(terminal.error).reason, 'recovery_result_invalid');
+  assert.deepEqual(terminal.error.content, prefix);
+  assert.deepEqual(outputCheckpoint(terminal.error).prefix, prefix);
+  assert.deepEqual(h.tools(), [], '模型声称调用读取工具不能激活或执行它');
+  const stopped = h.end(terminal.error);
+  assert.ok(stopped.entries.some(entry => entry.customType === 'bangumi/recovery-result'
+    && JSON.parse(entry.content).status === 'stopped'), '失败报告不能继续恢复循环');
 });
 
 test('模型投影只有准备计数和部分理由时不能猜全体成员或开放失效引用重读', () => {

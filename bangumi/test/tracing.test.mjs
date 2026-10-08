@@ -26,8 +26,8 @@ const text = content => typeof content === 'string' ? content : content.filter(p
 const message = (content, options) => {
   const assistant = fauxAssistantMessage(content, options);
   // 模拟最终文字走默认 provider 契约；工具调用和思考仍走原生通道。
-  const blocks = assistant.stopReason === 'stop' ? assistant.content.map(part => part.type === 'text'
-    ? { ...part, text: JSON.stringify({ content: [{ type: 'text', nextType: null, text: part.text }] }) } : part) : assistant.content;
+  const blocks = assistant.content.map(part => part.type === 'text'
+    ? { ...part, text: JSON.stringify({ content: [{ type: 'text', nextType: null, text: part.text }] }) } : part);
   return { ...assistant, content: blocks,
     usage: { input: 8, output: 3, cacheRead: 2, cacheWrite: 0, totalTokens: 13, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } };
 };
@@ -91,12 +91,15 @@ async function fixture(t, { responses = [message('离线回答')], client, named
   const create = async (manager = SessionManager.create(root, join(root, 'sessions')), selectedClient = client) => {
     if (named && !manager.getSessionName()) manager.appendSessionInfo('离线日志测试');
     const runtime = await createBangumiRuntime({ cwd: root, agentDir: root, sessionManager: manager, modelRuntime,
-      provider: 'faux', model: 'faux-1', thinkingLevel: 'low', extension: createBangumiExtension({ authDir: join(root, 'auth'), timeoutMs: 1000,
+      provider: 'faux', model: 'faux-1', thinkingLevel: 'low', extension: pi => { createBangumiExtension({ authDir: join(root, 'auth'), timeoutMs: 1000,
         proxy: null, ...(trace ? { trace: { directory: typeof trace === 'string' ? trace : traceDir, onWarning: code => warnings.push(code) } } : {}),
         client: selectedClient ?? { call: async (name, args, signal, guard) => { calls.push({ name, args }); return defaultService.call(name, args, signal, guard); }, close: async () => {} },
         channel: { canConfirm: () => true, confirm: async () => true, canLogin: () => false, notify: () => {} },
         ...(title ? { generateSessionTitle: title } : {}),
-      }) });
+      })(pi);
+        // 日志测试固定核实账户入口；能力发现本身由独立真实 Pi 用例验证。
+        pi.on('before_agent_start', () => pi.setActiveTools([...new Set([...pi.getActiveTools(), 'get_current_user'])]));
+      } });
     runtimes.push(runtime);
     return runtime;
   };

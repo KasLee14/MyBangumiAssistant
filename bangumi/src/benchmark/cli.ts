@@ -15,7 +15,7 @@ import { record, validateCases, type BenchmarkCase, type RunObservation, type Wo
 export const PROJECT_ROOT = resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 const flags = new Set(['model', 'thinking', 'suite', 'case', 'tag', 'repeats', 'label', 'out', 'root', 'control-root',
   'agent-dir', 'proxy', 'mode', 'cases', 'timeout-ms', 'max-model-requests', 'max-tools', 'max-total-requests', 'baseline', 'candidate',
-  'baseline-variant', 'candidate-variant']);
+  'baseline-variant', 'candidate-variant', 'recovery']);
 export function parseArguments(args: string[]): { command: string; values: Record<string, string>; offline: boolean; help: boolean } {
   const command = args[0]?.startsWith('--') ? 'run' : args.shift() ?? 'run', values: Record<string, string> = {};
   let offline = false, help = false;
@@ -133,7 +133,10 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
   let cases = catalog.filter(test => ids ? ids.includes(test.id) : suite === 'smoke' ? test.id === 'facts-basic' : suite === 'core' ? test.core : true);
   if (tags) cases = cases.filter(test => tags.some(tag => test.tags.includes(tag)));
   if (!cases.length) throw new Error('案例筛选结果为空。');
-  if (offline && cases.some(test => test.id !== 'facts-basic')) throw new Error('offline仅执行脚本模型facts-basic，不替代真实模型benchmark。');
+  if (offline && cases.some(test => test.id !== 'facts-basic' && !test.offlineScript)) throw new Error('offline只能执行facts-basic或已登记offlineScript，不替代真实模型benchmark。');
+  if (!offline && cases.some(test => test.offlineScript)) throw new Error('offlineScript只能在--offline中执行，不混入真实模型结果。');
+  const recovery = values.recovery ?? 'disabled';
+  if (!['enabled', 'disabled'].includes(recovery)) throw new Error('recovery必须是enabled或disabled。');
   if (mode === 'live-read' && cases.some(test => test.tags.includes('write') || test.confirmation === 'approve')) throw new Error('live-read不接受写入场景。');
   const model = values.model ?? (offline ? 'faux/faux-1' : '');
   if (!/^[^/\s]+\/\S+$/.test(model) || offline && model !== 'faux/faux-1') throw new Error('必须用 --model 显式指定 provider/model。');
@@ -158,7 +161,7 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
   const protocol = { schemaVersion: 1, cases: catalog, effectiveCases: cases, fixtures,
     harnessHash: traceHash(fileHashes(dirname(fileURLToPath(import.meta.url)))), model, thinking, mode, offline,
     modelConfigHash: !offline && existsSync(modelsPath) ? traceHash(traceRedact(JSON.parse(readFileSync(modelsPath, 'utf8')))) : null,
-    proxy, repeats, maxRequests, retry: 'disabled', sessions: 'fresh-per-case', cache: 'cold-application-cache', helperTitles: 'disabled',
+    proxy, repeats, maxRequests, retry: recovery, sessions: 'fresh-per-case', cache: 'cold-application-cache', helperTitles: 'disabled',
     runtimeEnvironment: { node: process.version, platform: process.platform, arch: process.arch, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
     budgetOverrides: { timeoutMs: values['timeout-ms'] ? Number(values['timeout-ms']) : null,
       modelRequests: values['max-model-requests'] ? Number(values['max-model-requests']) : null, tools: values['max-tools'] ? Number(values['max-tools']) : null } };
@@ -182,7 +185,8 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
     const versionHash = task.variant === 'control' ? versions.control!.hash : versions.candidate.hash;
     const config: WorkerConfig = { runtimeRoot, outputDir: join(output, 'runs', task.variant, task.test.id, String(task.repeat)),
       case: task.test, fixture: fixtures[task.test.fixture]!, variant: task.variant, repeat: task.repeat,
-      protocolHash, versionHash, model, thinking, mode: mode as WorkerConfig['mode'], agentDir, proxy, offline };
+      protocolHash, versionHash, model, thinking, mode: mode as WorkerConfig['mode'], agentDir, proxy, offline,
+      recovery: recovery as 'enabled' | 'disabled' };
     let result: RunObservation;
     if (spent >= maxRequests) { result = fallback(config, 'not_run', 'global_model_request_budget_exhausted');
       mkdirSync(config.outputDir, { recursive: true }); atomicJson(join(config.outputDir, 'result.json'), result); }
@@ -211,7 +215,7 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const { command, values, offline, help } = parseArguments([...args]);
   if (help) {
-    process.stdout.write('benchmark run --model provider/model [--thinking off] [--suite core|full] [--case id,id] [--tag tag] [--repeats 3] [--control-root PATH] [--out PATH] [--agent-dir PATH] [--mode fixture|live-read] [--proxy direct] [--max-total-requests 500]\nbenchmark run --offline\nbenchmark compare --baseline RESULTS_JSON --candidate RESULTS_JSON --out PATH\nbenchmark list [--cases PATH]\n'); return;
+    process.stdout.write('benchmark run --model provider/model [--thinking off] [--suite core|full] [--case id,id] [--tag tag] [--repeats 3] [--control-root PATH] [--out PATH] [--agent-dir PATH] [--mode fixture|live-read] [--proxy direct] [--recovery disabled|enabled] [--max-total-requests 500]\nbenchmark run --offline [--cases benchmarks/component-tools-cases.json --suite full --tag offline-script --recovery enabled]\nbenchmark compare --baseline RESULTS_JSON --candidate RESULTS_JSON --out PATH\nbenchmark list [--cases PATH]\n'); return;
   }
   if (command === 'list') {
     const cases = validateCases(JSON.parse(await readFile(resolve(values.cases ?? join(PROJECT_ROOT, 'bangumi/benchmarks/cases.json')), 'utf8')));

@@ -10,11 +10,15 @@ export type Rule =
   | { kind: 'coverage'; turn?: number; tool: string; scope?: 'source' | 'result' }
   | { kind: 'confirmations'; count: number; accepted: boolean }
   | { kind: 'writes'; subjectIds: number[]; count: number; collectionType?: number; comment?: string; verify?: boolean; preserveOtherFields?: boolean }
-  | { kind: 'no_write_retry' };
+  | { kind: 'no_write_retry' }
+  | { kind: 'recovery'; expectedTerminal: 'success' | 'error'; prefix?: string };
+export type OfflineScript = 'bare_component' | 'blank_output' | 'text_field' | 'component_field' | 'prefix_then_invalid' | 'exhausted';
 export interface BenchmarkCase {
   id: string; version: number; family: string; tags: string[]; core: boolean;
   fixture: string; turns: string[]; rules: Rule[]; semanticRubric?: string;
   confirmation: 'approve' | 'reject';
+  offlineScript?: OfflineScript;
+  expectedTerminal?: 'success' | 'error';
   budget: { timeoutMs: number; modelRequests: number; toolExecutions: number; mcpCalls: number };
 }
 export interface FixtureSubject {
@@ -60,6 +64,12 @@ export interface RunMetrics {
   usageUnavailableRequests: number; modelToolResultBytes: number;
   firstTextMs: number | null; firstCompleteResultMs: number | null; confirmationsMs: number;
   duplicateReads: number; requests: RequestMetric[];
+  outputErrors: number; blankOutputErrors: number; schemaOutputErrors: number; jsonOutputErrors: number;
+  modelErrors: number; terminalModelErrors: number;
+  recoveryScheduled: number; recoveryRunning: number; recoveryRecovered: number; recoveryStopped: number;
+  strictToolsSent: number; toolDeclarationsSent: number; initialToolCount: number | null;
+  initialToolSchemaBytes: number | null; initialProviderPayloadBytes: number | null;
+  validatedFinals: number; prefixMonotonic: boolean; prefixDuplications: number;
 }
 export interface CheckResult { rule: Rule; passed: boolean; detail: string }
 export interface Grade {
@@ -79,6 +89,7 @@ export interface WorkerConfig {
   variant: string; repeat: number; protocolHash: string; versionHash: string;
   model: string; thinking: string; mode: 'fixture' | 'live-read'; agentDir: string;
   proxy: string | null; offline: boolean;
+  recovery?: 'enabled' | 'disabled';
 }
 export function record(value: unknown): Data {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Data : {};
@@ -94,6 +105,8 @@ export function validateCases(value: unknown): BenchmarkCase[] {
     const row = record(raw);
     if (typeof row.id !== 'string' || !/^[a-z][a-z0-9-]{0,79}$/.test(row.id) || ids.has(row.id)) throw new Error('案例ID无效或重复。');
     ids.add(row.id);
+    if (row.offlineScript !== undefined && !['bare_component', 'blank_output', 'text_field', 'component_field', 'prefix_then_invalid', 'exhausted'].includes(String(row.offlineScript))) throw new Error('离线故障脚本必须是已登记枚举。');
+    if (row.expectedTerminal !== undefined && !['success', 'error'].includes(String(row.expectedTerminal))) throw new Error('预期终态必须是success或error。');
     if (!Number.isSafeInteger(row.version) || Number(row.version) < 1 || typeof row.family !== 'string' || !row.family
       || typeof row.fixture !== 'string' || !/^[a-z][a-z0-9-]{0,79}$/.test(row.fixture)
       || typeof row.core !== 'boolean' || !Array.isArray(row.tags) || row.tags.some(tag => typeof tag !== 'string')
@@ -112,6 +125,7 @@ export function validateCases(value: unknown): BenchmarkCase[] {
         evidence: ['kind', 'turn', 'subjectIds', 'fields', 'selected'], called: ['kind', 'turn', 'names', 'successful'], visible_text: ['kind', 'turn', 'text'],
         coverage: ['kind', 'turn', 'tool', 'scope'], confirmations: ['kind', 'count', 'accepted'],
         writes: ['kind', 'subjectIds', 'count', 'collectionType', 'comment', 'verify', 'preserveOtherFields'], no_write_retry: ['kind'],
+        recovery: ['kind', 'expectedTerminal', 'prefix'],
       };
       if (typeof kind !== 'string' || !allowed[kind] || Object.keys(rule).some(key => !allowed[kind]!.includes(key))) throw new Error('判分规则类型或字段无效：' + row.id);
       if (rule.turn !== undefined && (!Number.isSafeInteger(rule.turn) || Number(rule.turn) < 0 || Number(rule.turn) >= row.turns.length)) throw new Error('规则轮次越界。');
@@ -129,6 +143,8 @@ export function validateCases(value: unknown): BenchmarkCase[] {
       for (const key of ['absent', 'selected', 'successful', 'accepted', 'verify', 'preserveOtherFields'])
         if (rule[key] !== undefined && typeof rule[key] !== 'boolean') throw new Error('规则布尔参数无效。');
       if (rule.comment !== undefined && typeof rule.comment !== 'string') throw new Error('短评规则无效。');
+      if (kind === 'recovery' && (!['success', 'error'].includes(String(rule.expectedTerminal))
+        || rule.prefix !== undefined && (typeof rule.prefix !== 'string' || !rule.prefix.length || rule.prefix.length > 500))) throw new Error('恢复规则无效。');
     }
     return raw as BenchmarkCase;
   });

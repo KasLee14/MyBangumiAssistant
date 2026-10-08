@@ -23,7 +23,8 @@ test('宿主SSE在恢复时更新同一回答ID，失败停止后历史仍保留
     f.initial.session.agent.prepareRequest = async (request, signal) => {
       const result = await prepare(request, signal), context = result?.context ?? request.context, messages = [...context.messages];
       const index = messages.findLastIndex(message => message.role === 'system'), system = getCurrentSystemMessage(messages);
-      messages[index] = { ...system, sections: { ...system.sections, bangumi_content_output: CONTENT_OUTPUT_INSTRUCTION } };
+      const instruction = { ...system, role: 'system', content: system?.content ?? '', sections: { ...system?.sections, bangumi_content_output: CONTENT_OUTPUT_INSTRUCTION }, timestamp: Date.now() };
+      if (index >= 0) messages[index] = instruction; else messages.unshift(instruction);
       return { ...result, context: { ...context, messages } };
     };
     const stream = await f.stream('recovery-tab'), id = (await f.state('recovery-tab')).sessionId;
@@ -50,14 +51,15 @@ test('结构化错误诊断经实际Web SSE和历史恢复保留，原文debug�
   }, options);
   const stream = await f.stream('diagnostic-tab'), id = (await f.state('diagnostic-tab')).sessionId;
   await f.post('diagnostic-tab', 'submit', { input: '模拟组件错误' }, id); await f.initial.session.waitForIdle();
-  const state = await f.state('diagnostic-tab'), error = state.items.find(item => item.kind === 'error');
-  assert.match(error.text, /^CONTENT_SCHEMA_INVALID/); assert.equal(error.diagnostic.code, 'CONTENT_SCHEMA_INVALID');
-  assert.ok(error.diagnostic.issues.some(issue => issue.path === '/content/0/props/tone'));
-  await eventually(() => stream.frames.some(frame => frame.items?.some(item => item.diagnostic?.errorId === error.diagnostic.errorId)));
+  const state = await f.state('diagnostic-tab'), error = state.items.find(item => item.kind === 'reasoning' && item.source === 'host');
+  assert.match(error.text, /CONTENT_SCHEMA_INVALID/);
+  assert.match(error.text, /\/content\/0\/props\/tone/);
+  assert.equal(state.items.some(item => item.kind === 'error'), false);
+  await eventually(() => stream.frames.some(frame => frame.items?.some(item => item.id === error.id)));
   assert.equal(JSON.stringify(state).includes('responseText'), false);
   await f.post('diagnostic-tab', 'session', { action: 'new' }); await f.post('diagnostic-tab', 'session', { action: 'resume', sessionId: id });
-  const restored = (await f.state('diagnostic-tab')).items.find(item => item.kind === 'error');
-  assert.equal(restored.diagnostic.errorId, error.diagnostic.errorId);
+  const restored = (await f.state('diagnostic-tab')).items.find(item => item.kind === 'reasoning' && item.source === 'host');
+  assert.equal(restored.text, error.text);
 });
 
 function webStream(provider, model, context, options, stream) {
@@ -96,7 +98,7 @@ test('模型输入规范化经真实SSE更新占位，最终和历史不残留�
   const state = await f.state('normalized'), answer = state.items.find(item => item.kind === 'assistant');
   assert.deepEqual(answer.content, [{ type: 'text', text: '前言' }, { ...table, pending: false }, { type: 'text', text: '结语' }]);
   assert.equal(state.items.some(item => item.kind === 'error'), false); assert.equal(faux.state.callCount, 1);
-  assert.ok(stream.frames.some(frame => frame.state?.liveContent?.some(part => part.type === 'DataTable' && part.pending === true)));
+  assert.equal(stream.frames.some(frame => frame.state?.liveContent?.some(part => part.type === 'DataTable' && part.pending === true)), false);
   await f.post('normalized', 'session', { action: 'new' }); await f.post('normalized', 'session', { action: 'resume', sessionId: id });
   assert.deepEqual((await f.state('normalized')).items.find(item => item.kind === 'assistant').content, answer.content);
 });
@@ -131,8 +133,8 @@ test('原生组件经实际 Web SSE 保留前后文字、true占位和false完�
   assert.deepEqual(body[0].content, expected);
   assert.deepEqual(state.liveContent, []);
   assert.equal(body[0].content.some(part => part.type === 'text' && part.text.includes('"content"')), false);
-  assert.ok(stream.frames.some(frame => frame.type === 'state'
-    && frame.state.liveContent?.some(part => part.type === 'Callout' && part.pending === true)));
+  assert.equal(stream.frames.some(frame => frame.type === 'state'
+    && frame.state.liveContent?.some(part => part.type === 'Callout' && part.pending === true)), false);
   await f.post('native-tab', 'session', { action: 'new' });
   await f.post('native-tab', 'session', { action: 'resume', sessionId: id });
   const restored = (await f.state('native-tab')).items.filter(item => item.kind === 'assistant');
@@ -168,8 +170,8 @@ test('全部12种前端样例经 Provider 解码、Web SSE 和历史回放可被
   };
   const expected = assertComponents(await f.state('all-components'));
   for (const part of components) {
-    assert.ok(stream.frames.some(frame => frame.type === 'state'
-      && frame.state.liveContent.some(block => block.type === part.type && block.pending === true)), part.type);
+    assert.equal(stream.frames.some(frame => frame.type === 'state'
+      && frame.state.liveContent.some(block => block.type === part.type && block.pending === true)), false, part.type);
   }
   await f.post('all-components', 'session', { action: 'new' });
   await f.post('all-components', 'session', { action: 'resume', sessionId: id });

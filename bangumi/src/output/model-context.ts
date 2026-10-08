@@ -42,6 +42,8 @@ export function projectTranscriptForModel(context: TranscriptContext, resolver?:
       delete visible.details; delete visible.structuredContent;
       return { ...visible, content: message.content.map(part => {
       if (part.type !== 'text') return part;
+      // 本地组件契约中的 resourceRef 是Schema字段名，不能当过期事实引用剔除。
+      if (message.toolName === 'read_component_index' || message.toolName === 'read_component_spec') return part;
       try { return { ...part, text: JSON.stringify(pruneExpiredReferences(JSON.parse(part.text), resolver)) }; } catch { return part; }
       }) };
     }

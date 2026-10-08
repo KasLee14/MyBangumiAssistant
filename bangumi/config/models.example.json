@@ -7,6 +7,29 @@
       "models": [
         { "id": "your-model", "name": "你的兼容模型", "reasoning": false, "input": ["text"], "contextWindow": 32000, "maxTokens": 4096 }
       ]
+    },
+    "deepseek": {
+      "baseUrl": "https://api.deepseek.com",
+      "api": "openai-responses",
+      "apiKey": "${DEEPSEEK_API_KEY}",
+      "models": [
+        {
+          "id": "deepseek-flash",
+          "name": "DeepSeek Flash（Responses）",
+          "api": "openai-responses",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 1000000,
+          "maxTokens": 20000,
+          "compat": {
+            "supportsDeveloperRole": false,
+            "supportsStrictMode": false,
+            "supportsAdditionalTools": false,
+            "supportsToolSearch": false,
+            "supportsLongCacheRetention": false
+          }
+        }
+      ]
     }
   }
 }

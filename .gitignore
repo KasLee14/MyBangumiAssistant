@@ -12,6 +12,11 @@
 bangumi/tests/
 bangumi/scripts/
 bangumi/benchmarks/
+!bangumi/benchmarks/
+bangumi/benchmarks/*
+!bangumi/benchmarks/component-tools-cases.json
+bangumi/artifacts/benchmarks/component-tools-*
+bangumi/artifacts/prepare-deepseek-responses.ps1
 !bangumi/scripts/
 bangumi/scripts/*
 !bangumi/scripts/copy-strategy-skills.mjs

@@ -1,9 +1,11 @@
 import type { ExtensionAPI, ExtensionFactory } from '@earendil-works/pi-coding-agent';
+import type { Api, Model } from '@earendil-works/pi-ai';
 import { randomUUID } from 'node:crypto';
 import { AccountSessionStore, login } from './login/index.js';
 import { createTerminalChannel, type InteractionChannel } from './interaction.js';
 import { LocalMcpClient, type McpCallClient } from './mcp/client.js';
 import { createReadTools } from './mcp/pi-tools.js';
+import { createBangumiToolDiscovery, resetBangumiToolLoadout, TOOL_DISCOVERY_INSTRUCTION } from './mcp/tool-discovery.js';
 import { CollectionQueryInputState } from './mcp/collection-query-input.js';
 import { createWriteBoundary } from './mcp/write-boundary.js';
 import { createBatchWriteTool } from './mcp/batch-write.js';
@@ -23,9 +25,13 @@ import { clearReadRecoveryScope } from './mcp/read-recovery.js';
 import { CONTENT_OUTPUT_INSTRUCTION } from './output/provider-content.js';
 import { COMPONENT_SELECTION_INSTRUCTION } from './output/component-selection.js';
 import type { ResourceContentResolver } from './output/resource-content.js';
+import { createComponentCatalogState, type ComponentCatalogState } from './output/component-catalog.js';
+import { createComponentReadTools } from './output/component-tools.js';
 
 const extensionResolvers = new WeakMap<ExtensionAPI, ResourceContentResolver>();
 export function extensionResourceResolver(pi: ExtensionAPI): ResourceContentResolver | undefined { return extensionResolvers.get(pi); }
+const extensionCatalogs = new WeakMap<ExtensionAPI, ComponentCatalogState>();
+export function extensionComponentCatalog(pi: ExtensionAPI): ComponentCatalogState | undefined { return extensionCatalogs.get(pi); }
 
 export interface BangumiExtensionConfig {
   authDir: string;
@@ -60,6 +66,9 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     const proxy = config.proxy instanceof ProxyController ? config.proxy : new ProxyController(policyFor(config.proxy));
     const channel = config.channel ?? createTerminalChannel();
     const trace = new TraceRecorder(config.trace);
+    const componentCatalog = createComponentCatalogState();
+    extensionCatalogs.set(pi, componentCatalog);
+    let currentModel: Model<Api> | undefined;
     registerSessionTitles(pi, config.generateSessionTitle, (ctx, message, type) => channel.notify(ctx, message, type), trace);
     const createClient = () => new LocalMcpClient({ authDir: config.authDir, timeoutMs: config.timeoutMs, proxy: proxy.current,
       onTrace: event => trace.mcpDiagnostic(event) });
@@ -72,6 +81,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       return client.readCachedResource(ref, signal, { turnId: activeReadTurnId }, selection);
     };
     resolver.isCurrent = ref => activeResourceRefs.has(ref);
+    componentCatalog.setReferenceValidator(ref => activeResourceRefs.has(ref));
     extensionResolvers.set(pi, resolver);
     const collectionQueries = new CollectionQueryInputState();
     const clearReadTurn = () => {
@@ -129,7 +139,13 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       ...(resetClient ? { resetClient } : {}),
     });
     // 固定MCP写映射只在宿主计划内执行，模型不能拆成逐项写调用绕过整批政策。
-    for (const tool of createReadTools(facade, { collectionQueries, owner: () => activeReadTurnId })) pi.registerTool(trace.wrapTool(tool));
+    for (const tool of createReadTools(facade, { collectionQueries, owner: () => activeReadTurnId }, { model: () => currentModel })) pi.registerTool(trace.wrapTool(tool));
+    pi.registerTool(trace.wrapTool(createBangumiToolDiscovery(pi, () => currentModel)));
+    for (const tool of createComponentReadTools(componentCatalog)) pi.registerTool(trace.wrapTool(tool));
+    pi.on('tool_result', event => {
+      if (!event.isError && activeReadTurnId && TOOL_DEFINITIONS.some(tool => tool.name === event.toolName && tool.effect === 'read'))
+        componentCatalog.observeResource(event.structuredContent ?? event.details, event.toolName);
+    });
     const batchTool = createBatchWriteTool(boundary, record => {
       config.writeJournal?.append({ kind: 'bangumi-batch', ...record });
       pi.appendEntry('bangumi/batch', record);
@@ -156,17 +172,23 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     pi.registerTool(trace.wrapTool(createSkillReadTool(process.cwd())));
 
     pi.on('input', event => {
-      if (event.source !== 'extension') clearReadTurn();
+      if (event.source !== 'extension') {
+        clearReadTurn();
+        componentCatalog.reset();
+        resetBangumiToolLoadout(pi, ['get_subject_details']);
+      }
       input = { text: event.source === 'extension' ? '' : redact(event.text, credentialValues()), generation: input.generation + 1, requestId: randomUUID() };
       if (event.source !== 'extension') activeReadTurnId = input.requestId;
     });
-    pi.on('before_agent_start', event => {
+    pi.on('before_agent_start', (event, ctx) => {
+      currentModel = ctx.model;
       // 默认启用，可替换的命名 section 避免恢复会话后重复累积输出契约。
       event.systemPromptOptions.sections.bangumi = instructions;
       event.systemPromptOptions.sections.bangumi_content_output = `${CONTENT_OUTPUT_INSTRUCTION}\n${COMPONENT_SELECTION_INSTRUCTION}`;
+      event.systemPromptOptions.sections.bangumi_tool_discovery = TOOL_DISCOVERY_INSTRUCTION;
     });
     pi.on('agent_settled', () => { clearReadTurn(); });
-    pi.on('session_start', () => { clearReadTurn(); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; });
+    pi.on('session_start', (_event, ctx) => { clearReadTurn(); componentCatalog.reset(); currentModel = ctx.model; resetBangumiToolLoadout(pi, ['get_subject_details']); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; });
     pi.on('session_shutdown', async () => { clearReadTurn(); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; unsubscribeProxy?.(); await client.close?.(); });
     if (config.trace) registerTraceHooks(pi, trace);
 

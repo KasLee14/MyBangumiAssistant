@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AssistantMessage } from '@earendil-works/pi-ai';
-import { isErrorDiagnostic } from '../support/error-diagnostic.js';
+import { assistantErrorDiagnostic, isErrorDiagnostic } from '../support/error-diagnostic.js';
 import type {
   AgentMessage,
   ThinkingLevel,
@@ -26,7 +26,7 @@ import {
   type ProxyController,
 } from "../support/proxy-controller.js";
 import { sessionDisplayName } from "../session-title.js";
-import { assistantErrorView, exceptionErrorView } from './error-view.js';
+import { exceptionErrorView } from './error-view.js';
 import {
   blocksFromContent,
   blocksFromMessage,
@@ -295,6 +295,8 @@ export class WebSession {
   private items: TranscriptItemView[] = [];
   private nextItemId = 1;
   private readonly recoveryReplies = new Map<string, { replyId?: number; errorId?: number }>();
+  private readonly hostDiagnosticIds = new Set<string>();
+  private terminalReported = false;
   /** 进行中的工具条目：结束时原地更新同一个对象并递增版本。 */
   private readonly activities = new Map<string, ToolItemView>();
   /**
@@ -607,6 +609,7 @@ export class WebSession {
     this.currentStep = 0;
     this.turnUsage = emptyUsage();
     this.turnStatus = 'completed';
+    this.terminalReported = false;
     this.stepStartedAt = 0;
     this.firstTokenTime = 0;
     this.thinkingStartedAt = 0;
@@ -703,6 +706,7 @@ export class WebSession {
   private rebuild(): void {
     this.items = [];
     this.recoveryReplies.clear();
+    this.hostDiagnosticIds.clear();
     this.turnItems.clear();
     this.currentTurn = 0;
     this.currentStep = 0;
@@ -738,6 +742,11 @@ export class WebSession {
     for (const entry of this.runtime.session.sessionManager.buildContextEntries()) {
       const at = stamp(entry.timestamp);
       if (at > lastTimestamp) lastTimestamp = at;
+      if (entry.type === 'custom' && entry.customType === 'bangumi/recovery') {
+        const data = entry.data as { diagnostic?: unknown } | undefined;
+        if (isErrorDiagnostic(data?.diagnostic)) this.noteHostDiagnostic(data.diagnostic, at);
+        continue;
+      }
       // 扩展注入的结构化内容落盘为 `custom_message` 条目（而不是 `message` 条目），走同一份
       // 映射：会话切换或重启后这些卡片能从历史重建，而不是只在产生它的那一轮可见。
       // 它现在投影成"只含一个块的助手条目"——旧的顶层内容条目已经退场，但这条通道仍然
@@ -746,12 +755,7 @@ export class WebSession {
         const turn = this.currentTurn;
         const step = this.currentStep || 1;
         if (entry.customType === 'bangumi/recovery-result' && typeof entry.content === 'string') {
-          try {
-            const summary = JSON.parse(entry.content) as { completedContent?: unknown; error?: unknown };
-            const blocks = blocksFromContent(summary.completedContent);
-            if (hasRenderableBlock(blocks)) this.push({ id: this.nextItemId++, kind: 'assistant', content: blocks, origin: 'extension', turn, step });
-            if (isErrorDiagnostic(summary.error)) this.push({ id: this.nextItemId++, kind: 'error', text: `${summary.error.code}：恢复已停止，已完成部分保留。`, diagnostic: summary.error });
-          } catch { /* 不将损坏的历史数据冒充完整恢复结果。 */ }
+          this.applyRecoveryResult(entry.content);
           continue;
         }
         const blocks = customContentBlocks(entry);
@@ -822,7 +826,8 @@ export class WebSession {
         const blocks = blocksFromMessage(message);
         const usage = usageView(message.usage);
         this.accumulateUsage(message.usage);
-        if (hasRenderableBlock(blocks))
+        const recovered = this.updateRecoveryReply(message, blocks, true);
+        if (!recovered && hasRenderableBlock(blocks))
           this.push({
             id: this.nextItemId++,
             kind: "assistant",
@@ -837,16 +842,9 @@ export class WebSession {
         this.noteAssistantStep();
         if (message.stopReason === "error") {
           this.turnStatus = "error";
-          if (message.errorMessage) {
-            // 这里拿到的是字符串而非 Error；safeError 会把它压成通用文案，模型错误
-            // （401、模型不存在、余额不足）就看不到原因了，只做凭据脱敏即可。
-            this.push({
-              id: this.nextItemId++,
-              kind: "error",
-              ...assistantErrorView(message),
-            });
-          }
+          this.noteHostFailure(message, at);
         } else if (message.stopReason === "aborted") this.turnStatus = "aborted";
+        else if (this.recoveryChain(message)) this.turnStatus = this.recoveryStatus(message) === 'reported' ? 'error' : 'completed';
         continue;
       }
       if (message.role === "toolResult") {
@@ -915,7 +913,11 @@ export class WebSession {
           const data = event.entry.data as { stage?: string; attempt?: number; maxAttempts?: number } | undefined;
           if (data && ['scheduled', 'running'].includes(data.stage ?? '')) {
             this.recoveryPending = true; this.busy = true; this.status = `正在定向恢复（${data.attempt}/${data.maxAttempts}）`;
-          } else if (data && ['stopped', 'cancelled', 'recovered', 'reported', 'checkpoint_conflict', 'tool_recovery_stopped'].includes(data.stage ?? '')) this.recoveryPending = false;
+          } else if (data && ['stopped', 'cancelled', 'recovered', 'reported', 'checkpoint_conflict', 'tool_recovery_stopped'].includes(data.stage ?? '')) {
+            this.recoveryPending = false;
+            if (['stopped', 'reported', 'checkpoint_conflict', 'tool_recovery_stopped'].includes(data.stage ?? '')) this.turnStatus = 'error';
+            else if (data.stage === 'recovered') this.turnStatus = 'completed';
+          }
         }
         break;
       }
@@ -925,7 +927,7 @@ export class WebSession {
         this.startedAt = Date.now();
         this.status = "正在处理";
         // 一次提交 = 一个用户回合；浏览器按这个回合切分轮次，不再按 user 条目猜。
-        this.openTurn();
+        if (!this.recoveryPending) this.openTurn();
         break;
       case AgentSessionEventType.TurnStart:
         // 一次模型响应开始：步序号递增，并记下本步起点（首 token 延迟的基准）。
@@ -979,6 +981,9 @@ export class WebSession {
         // 由接收侧决定渲染还是丢弃（见 message-blocks.ts）。Pi 对 custom 消息是
         // `message_start` / `message_end` 连发，所以只在 end 处落条目，start 处不处理。
         if (message.role === "custom") {
+          if (message.customType === 'bangumi/recovery-result' && typeof message.content === 'string') {
+            this.applyRecoveryResult(message.content); break;
+          }
           const blocks = customContentBlocks(message);
           if (blocks)
             this.push({
@@ -1019,10 +1024,9 @@ export class WebSession {
           this.liveThinking = "";
           if (message.stopReason === "error") {
             this.turnStatus = "error";
-            const chain = this.recoveryChain(message), state = chain ? this.recoveryReplies.get(chain) : undefined;
-            const index = state?.errorId === undefined ? -1 : this.items.findIndex(item => item.id === state.errorId);
-            if (index >= 0) this.items[index] = { id: this.items[index]!.id, version: this.items[index]!.version + 1, kind: 'error', ...assistantErrorView(message) };
-            else { const item = this.push({ id: this.nextItemId++, kind: 'error', ...assistantErrorView(message) }); if (state) state.errorId = item.id; }
+            this.noteHostFailure(message, completedTime);
+          } else if (this.recoveryChain(message) && message.stopReason === 'stop') {
+            this.turnStatus = this.recoveryStatus(message) === 'reported' ? 'error' : 'completed';
           } else if (message.stopReason === "aborted") {
             this.turnStatus = "aborted";
             this.push({
@@ -1104,11 +1108,13 @@ export class WebSession {
         this.cancelling = false;
         this.startedAt = 0;
         this.status = "";
+        if (this.turnStatus === 'error' && !this.terminalReported) this.finishIncomplete();
+        this.closeTurn(this.turnStatus);
         // 本轮可能执行过 /bangumi-login 或 /bangumi-logout，结束后刷新本机登录元数据。
         void this.refreshLogin();
         break;
       case AgentSessionEventType.CompactionStart:
-        this.pushNotice(
+        this.hostProcess(
           event.reason === "manual"
             ? "正在压缩会话上下文…"
             : "上下文接近上限，正在自动压缩…",
@@ -1116,25 +1122,15 @@ export class WebSession {
         break;
       case AgentSessionEventType.CompactionEnd:
         if (event.errorMessage)
-          this.pushNotice(
-            `会话压缩失败：${safeError(event.errorMessage).message}`,
-            "error",
-          );
-        else if (event.aborted) this.pushNotice("会话压缩已停止。");
-        else this.pushNotice("会话上下文已压缩。");
+          this.hostProcess('会话上下文整理未完成，宿主保留已有内容。');
+        else if (event.aborted) this.hostProcess("会话上下文整理已停止。");
+        else this.hostProcess("会话上下文已整理。");
         break;
       case AgentSessionEventType.AutoRetryStart:
-        this.pushNotice(
-          `请求失败，正在重试（第 ${event.attempt}/${event.maxAttempts} 次）…`,
-        );
+        this.hostProcess(`请求未完成，正在内部重试（${event.attempt}/${event.maxAttempts}）。`);
         break;
       case AgentSessionEventType.AutoRetryEnd:
-        this.pushNotice(
-          event.success
-            ? "重试成功。"
-            : `重试失败：${event.finalError ?? "未提供原因"}`,
-          event.success ? "notice" : "error",
-        );
+        this.hostProcess(event.success ? '内部重试已完成。' : '内部重试仍未完成。');
         break;
       case AgentSessionEventType.SessionInfoChanged:
         break;
@@ -1148,20 +1144,62 @@ export class WebSession {
     const value = message.diagnostics?.findLast(item => item.type === 'application_recovery')?.details?.chainId;
     return typeof value === 'string' ? value : undefined;
   }
+  private recoveryStatus(message: AssistantMessage): string | undefined {
+    const value = message.diagnostics?.findLast(item => item.type === 'application_recovery')?.details?.status;
+    return typeof value === 'string' ? value : undefined;
+  }
+  private hostProcess(text: string, at = Date.now()): void {
+    this.push({ id: this.nextItemId++, kind: 'reasoning', source: 'host', label: '宿主校验过程',
+      turn: this.currentTurn, step: this.currentStep || 1, text: `【宿主校验过程】${text}`,
+      state: 'done', startedAt: at, endedAt: at });
+  }
+  private noteHostFailure(message: AssistantMessage, at: number): void {
+    const diagnostic = assistantErrorDiagnostic(message);
+    if (diagnostic) this.noteHostDiagnostic(diagnostic, at);
+    else this.hostProcess('当前响应未完成；已完成部分保留。', at);
+  }
+  private noteHostDiagnostic(diagnostic: import('../support/error-diagnostic.js').ErrorDiagnostic, at = Date.now()): void {
+    if (this.hostDiagnosticIds.has(diagnostic.errorId)) return;
+    this.hostDiagnosticIds.add(diagnostic.errorId);
+    this.hostProcess(`${diagnostic.code}：当前响应未通过内部校验；已完成部分保留。${diagnostic.issues.map(issue => `${issue.path}：${issue.message}`).join('；')}`, at);
+  }
+  private finishIncomplete(chainId?: string, content?: MessageBlock[]): void {
+    this.turnStatus = 'error'; this.terminalReported = true;
+    const suffix: MessageBlock = { type: 'text', text: '本次回答未能完整生成，已完成的内容保留。' };
+    const state = chainId ? this.recoveryReplies.get(chainId) : [...this.recoveryReplies.values()].at(-1);
+    const reply = state?.replyId === undefined ? undefined : this.items.find(item => item.id === state.replyId);
+    if (reply?.kind === 'assistant') {
+      const prefix = content && content.length >= reply.content.length ? content : reply.content;
+      reply.content = [...prefix, suffix]; reply.version++;
+    } else {
+      const item = this.push({ id: this.nextItemId++, kind: 'assistant', content: [...(content ?? []), suffix], turn: this.currentTurn, step: this.currentStep || 1 });
+      if (chainId) this.recoveryReplies.set(chainId, { replyId: item.id });
+    }
+  }
+  private applyRecoveryResult(text: string): void {
+    try {
+      const summary = JSON.parse(text) as { completedContent?: unknown; error?: unknown; chainId?: string };
+      if (isErrorDiagnostic(summary.error) && !this.hostDiagnosticIds.has(summary.error.errorId)) {
+        this.noteHostDiagnostic(summary.error);
+      }
+      this.finishIncomplete(summary.chainId, blocksFromContent(summary.completedContent));
+    } catch { this.hostProcess('历史恢复结果无法读取，无法确认回答完整性。'); }
+  }
   /** 宿主用既有条目ID/version更新同一回答，SSE消费者无需新增前端逻辑。 */
   private updateRecoveryReply(message: AssistantMessage, blocks: MessageBlock[], final = false): boolean {
     const chain = this.recoveryChain(message); if (!chain) return false;
     const state = this.recoveryReplies.get(chain) ?? {}; this.recoveryReplies.set(chain, state);
     const reply = state.replyId === undefined ? undefined : this.items.find(item => item.id === state.replyId);
-    if (reply?.kind === 'assistant') { if (JSON.stringify(reply.content) !== JSON.stringify(blocks)) { reply.content = blocks; reply.version++; } }
+    if (reply?.kind === 'assistant') {
+      // 只有扩展既有完成前缀的快照才进入用户正文，起始/工具帧不能回退已交付内容。
+      const advances = blocks.length >= reply.content.length && reply.content.every((part, index) => JSON.stringify(part) === JSON.stringify(blocks[index]));
+      if (advances && JSON.stringify(reply.content) !== JSON.stringify(blocks)) { reply.content = blocks; reply.version++; }
+    }
     else if (hasRenderableBlock(blocks)) state.replyId = this.push({
       id: this.nextItemId++, kind: 'assistant', content: blocks,
       turn: this.currentTurn, step: this.currentStep || 1,
     }).id;
-    if (final && message.stopReason === 'stop' && state.errorId !== undefined) {
-      const index = this.items.findIndex(item => item.id === state.errorId);
-      if (index >= 0) this.items[index] = { id: state.errorId, version: this.items[index]!.version + 1, kind: 'notice', text: '此前输出已按错误反馈恢复。' };
-    }
+    if (final && this.recoveryStatus(message) === 'reported') this.terminalReported = true;
     return true;
   }
 
@@ -1399,7 +1437,9 @@ export class WebSession {
     void session
       .prompt(text, options)
       .catch((error) => {
-        this.push({ id: this.nextItemId++, kind: 'error', ...exceptionErrorView(error) });
+        this.hostProcess(exceptionErrorView(error).text);
+        if (!this.terminalReported) this.finishIncomplete();
+        this.closeTurn('error');
         this.emit();
       })
       // 本轮结束后复位：user 消息一定在本轮内出现，残留标记会影响下一轮。

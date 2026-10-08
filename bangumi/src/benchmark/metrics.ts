@@ -9,7 +9,11 @@ export function blankMetrics(): RunMetrics {
     contextInputTokensMax: null, contextInputTokensSum: null, reasoningTokensSum: null,
     outputTokensSum: null, cacheReadTokensSum: null, cacheWriteTokensSum: null, totalTokensSum: null,
     estimatedCost: null, usageUnavailableRequests: 0, modelToolResultBytes: 0, firstTextMs: null,
-    firstCompleteResultMs: null, confirmationsMs: 0, duplicateReads: 0, requests: [] };
+    firstCompleteResultMs: null, confirmationsMs: 0, duplicateReads: 0, requests: [],
+    outputErrors: 0, blankOutputErrors: 0, schemaOutputErrors: 0, jsonOutputErrors: 0,
+    modelErrors: 0, terminalModelErrors: 0, recoveryScheduled: 0, recoveryRunning: 0, recoveryRecovered: 0, recoveryStopped: 0,
+    strictToolsSent: 0, toolDeclarationsSent: 0, initialToolCount: null, initialToolSchemaBytes: null,
+    initialProviderPayloadBytes: null, validatedFinals: 0, prefixMonotonic: true, prefixDuplications: 0 };
 }
 /** 只计数和打时间点；不保存流片段、凭据或假造不可见思考。 */
 export class MetricsCollector {
@@ -22,8 +26,17 @@ export class MetricsCollector {
     this.value.providerHttpRequests = offline ? 0 : 0;
   }
   payload(bytes: number): void {
+    this.value.initialProviderPayloadBytes ??= bytes;
     if (this.active) this.active.metric.providerPayloadBytes = bytes;
     else this.pendingPayloadBytes = bytes;
+  }
+  payloadTools(payload: unknown): void {
+    const tools = Array.isArray(record(payload).tools) ? record(payload).tools as unknown[] : [];
+    this.value.initialToolCount ??= tools.length;
+    this.value.initialToolSchemaBytes ??= Buffer.byteLength(JSON.stringify(tools.map(tool =>
+      record(tool).parameters ?? record(record(tool).function).parameters ?? record(tool).input_schema ?? {})));
+    this.value.toolDeclarationsSent += tools.length;
+    this.value.strictToolsSent += tools.filter(tool => record(tool).strict === true || record(record(tool).function).strict === true).length;
   }
   private finishRequest(message: Record<string, unknown>): void {
     if (!this.active) return;
@@ -44,6 +57,15 @@ export class MetricsCollector {
   }
   event(value: unknown): void {
     const event = record(value), message = record(event.message), now = performance.now();
+    if (event.type === 'entry_appended') {
+      const entry = record(event.entry), data = record(entry.data);
+      if (entry.type === 'custom' && entry.customType === 'bangumi/recovery') {
+        if (data.stage === 'scheduled') this.value.recoveryScheduled++;
+        if (data.stage === 'running') this.value.recoveryRunning++;
+        if (data.stage === 'recovered') this.value.recoveryRecovered++;
+        if (['stopped', 'cancelled', 'checkpoint_conflict', 'tool_recovery_stopped'].includes(String(data.stage))) this.value.recoveryStopped++;
+      }
+    }
     if (event.type === 'message_start' && message.role === 'assistant') {
       if (this.active) this.finishRequest({});
       this.value.modelRequests++;
@@ -70,6 +92,29 @@ export class MetricsCollector {
       this.value.modelToolResultBytes += Buffer.byteLength(JSON.stringify(message.content ?? []));
     }
     if (event.type === 'message_end' && message.role === 'assistant') {
+      if (message.stopReason === 'error' || message.stopReason === 'aborted') {
+        this.value.modelErrors++;
+        const diagnostics = Array.isArray(message.diagnostics) ? message.diagnostics : [];
+        const structured = diagnostics.map(item => record(record(record(item).details).diagnostic));
+        const diagnostic = structured.find(row => typeof row.code === 'string' && row.code.startsWith('CONTENT_'))
+          ?? structured.find(row => row.origin === 'content' || row.origin === 'output');
+        const code = typeof diagnostic?.code === 'string' ? diagnostic.code : undefined;
+        if (code !== undefined) {
+          // 原因可细分为资源引用等业务类别；格式分类始终以宿主固定错误码为准。
+          if (code.startsWith('CONTENT_') || diagnostic?.origin === 'content' || diagnostic?.origin === 'output') this.value.outputErrors++;
+          if (code === 'CONTENT_OUTPUT_EMPTY') this.value.blankOutputErrors++;
+          if (code === 'CONTENT_SCHEMA_INVALID') this.value.schemaOutputErrors++;
+          if (code.startsWith('CONTENT_JSON_')) this.value.jsonOutputErrors++;
+        } else {
+          const description = String(message.errorMessage ?? '') + ' ' + String(diagnostic?.reason ?? '') + ' ' + JSON.stringify(diagnostic?.issues ?? []);
+          if (/CONTENT_|content_|json_|schema_|blank|empty_output|output_/i.test(description)) this.value.outputErrors++;
+          if (/blank|empty_output|empty_response|whitespace|CONTENT_OUTPUT_EMPTY/i.test(description)) this.value.blankOutputErrors++;
+          if (/schema|field|component|type_mismatch/i.test(description)) this.value.schemaOutputErrors++;
+          // 旧格式没有结构化诊断时，已识别空白仍归为空输出，不能同时误算未闭合 JSON。
+          if (!/blank|empty_output|empty_response|whitespace|CONTENT_OUTPUT_EMPTY/i.test(description)
+            && /json|syntax|unclosed|incomplete/i.test(description)) this.value.jsonOutputErrors++;
+        }
+      }
       const calls = Array.isArray(message.content) ? message.content.filter(part => record(part).type === 'toolCall') : [];
       this.value.proposedToolCalls += calls.length;
       if (message.stopReason === 'stop' && calls.length === 0) this.value.firstCompleteResultMs ??= now - this.started;

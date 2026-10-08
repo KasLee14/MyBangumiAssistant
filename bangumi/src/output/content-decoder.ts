@@ -4,11 +4,11 @@ import {
   isComponentKind, isContentKind,
   type MixedContent, type MixedPart, type TextPart, type CompleteComponentPart, type ComponentKind,
 } from './content-schema.js';
-import { normalizeProviderContent, normalizeProviderPart, type OutputAdjustment } from './provider-content.js';
+import { normalizeProviderContent, normalizeProviderPart, normalizeProviderReferenceProps, projectProviderComponentProps, type OutputAdjustment } from './provider-content.js';
 import { deriveNextTypes } from './content-normalize.js';
 import type { FailureScope } from './recovery-checkpoint.js';
 import { credentialValues, redact } from '../support/errors.js';
-import { isResourceReference, normalizeResourceReference, type ResourceReferenceProps } from './resource-content.js';
+import { isResourceReference, type ResourceReferenceProps } from './resource-content.js';
 
 export type ContentDelta =
   | { type: 'text'; index: number; delta: string }
@@ -89,6 +89,8 @@ export class ContentDecoder {
   diagnosticState(): { bytes: number; completedParts: number; jsonComplete: boolean } {
     return { bytes: this.byteLength, completedParts: this.completedCount, jsonComplete: this.rootComplete && this.frames.length === 0 && this.token === null };
   }
+  /** 正文交付边界：字符串、字段草稿和预测占位只留在解析器内部。 */
+  completedParts(): MixedPart[] { return clone(this.parts.slice(0, this.completedCount)); }
   recoveryCheckpoint(): { prefix: MixedPart[]; draft?: unknown; jsonComplete: boolean; failureScope: FailureScope; failedPartIndex?: number } {
     let draft: unknown;
     try { draft = (JSON.parse(this.raw) as { content?: unknown[] }).content?.[this.completedCount]; }
@@ -113,6 +115,8 @@ export class ContentDecoder {
   finish(): MixedContent {
     this.assertActive();
     try {
+      if (!this.raw.trim()) throw new ContentOutputError('模型没有生成有效正文。', 'schema', [],
+        [{ path: '/content', rule: 'empty_output', message: '正文为空或仅包含空白' }], 'empty_output');
       if (this.token?.kind === 'number' || this.token?.kind === 'literal') this.finishScalar();
       if (this.token || this.frames.length || !this.rootComplete) this.fail('incomplete', '混合内容 JSON 未完整结束');
       const answer = this.mode === 'provider' ? normalizeProviderContent(this.root, adjustment => this.adjustment(adjustment)) : validateMixedContent(this.root);
@@ -377,13 +381,13 @@ export class ContentDecoder {
     let props;
     try {
       if (this.mode === 'provider' && isResourceReference(source)) {
-        normalizeResourceReference(source, true, kind); props = kind === 'TagCloud' ? [] : {};
+        normalizeProviderReferenceProps(kind, source, true); props = kind === 'TagCloud' ? [] : {};
       } else {
-        try { props = normalizePartialComponentProps(kind, source); }
+        try { props = normalizePartialComponentProps(kind, this.mode === 'provider' ? projectProviderComponentProps(kind, source) : source); }
         catch (error) {
           // 引用键可以最后生成；仅接受另一套已声明的部分输入契约。
           if (this.mode !== 'provider' || source === null || typeof source !== 'object' || Array.isArray(source)) throw error;
-          try { normalizeResourceReference(source, true, kind); props = kind === 'TagCloud' ? [] : {}; }
+          try { normalizeProviderReferenceProps(kind, source, true); props = kind === 'TagCloud' ? [] : {}; }
           catch { throw error; }
         }
       }
@@ -407,7 +411,7 @@ export class ContentDecoder {
     } else {
       const raw = value as { props?: unknown };
       if (part.pending === true && this.mode === 'provider' && isResourceReference(raw.props)) {
-        this.references.set(index, { kind: part.type, props: normalizeResourceReference(raw.props, false, part.type) });
+        this.references.set(index, { kind: part.type, props: normalizeProviderReferenceProps(part.type, raw.props) });
         this.output.push({ type: 'update', index, part: clone(part) });
       } else {
         if (part.pending === true) this.fail('schema', '完整组件仍处于占位状态');

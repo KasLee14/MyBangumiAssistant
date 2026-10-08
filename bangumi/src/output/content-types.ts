@@ -10,6 +10,9 @@ export const COMPONENT_KINDS = [
   'TagCloud', 'Gallery', 'CompareTable', 'QuoteBlock', 'Callout', 'LinkList',
 ] as const satisfies readonly (keyof ComponentPropsMap)[];
 export type ComponentKind = keyof ComponentPropsMap;
+type AssertNever<T extends never> = T;
+/** 协议新增组件而运行时目录未登记时必须编译失败。 */
+export type ComponentKindCoverage = AssertNever<Exclude<ComponentKind, typeof COMPONENT_KINDS[number]>>;
 export type ContentKind = 'text' | ComponentKind;
 export interface TextPart { type: 'text'; nextType: ContentKind | null; text: string }
 

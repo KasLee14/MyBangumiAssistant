@@ -65,7 +65,9 @@ test('生成与内部契约分离，13分支复用严格载荷，状态由宿主
   assert.equal(resourceReferenceSchema('Gallery').properties.items.maxItems, 50);
   assert.equal(resourceReferenceSchema('SubjectCards').properties.items.maxItems, 50);
   assert.equal(resourceReferenceSchema('DataTable').properties.items.maxItems, 200);
-  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes(JSON.stringify(PROVIDER_CONTENT_SCHEMA)));
+  assert.equal(CONTENT_OUTPUT_INSTRUCTION.includes(JSON.stringify(PROVIDER_CONTENT_SCHEMA)), false);
+  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('read_component_index'));
+  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('read_component_spec'));
 });
 
 test('内部组件必须完成，模型状态字段不控制完成，载荷不转换类型', () => {
@@ -79,9 +81,13 @@ test('内部组件必须完成，模型状态字段不控制完成，载荷不�
     { type: 'QuoteBlock', pending: false, props: { text: null, mono: false } },
     { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: 'false' } },
     { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: false, arbitrary: true } },
-    { type: 'QuoteBlock', pending: false, props: { title: null, text: '引文', mono: false } },
+    { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: false, arbitrary: null } },
     { type: 'QuoteBlock', pending: false, quote: { text: '引文', mono: false } },
   ]) assert.throws(() => normalizeProviderPart(value), ContentOutputError);
+  const optionalNull = { type: 'QuoteBlock', pending: false, props: { title: null, text: '引文', mono: false } };
+  assert.deepEqual(normalizeProviderPart(optionalNull), { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: false } });
+  // strict生成的可选null仅在provider边界省略；内部完成契约依旧拒绝null。
+  assert.throws(() => validateMixedPart(optionalNull), ContentOutputError);
   for (const pending of [undefined, true, false, 'false']) assert.deepEqual(normalizeProviderPart({ type: 'QuoteBlock', ...(pending === undefined ? {} : { pending }), props: { text: '引文', mono: false } }), { type: 'QuoteBlock', pending: false, props: { text: '引文', mono: false } });
   assert.throws(() => validateMixedPart({ type: 'text', nextType: null, text: 'hello', id: 1 }), ContentOutputError);
   assert.throws(() => validateMixedPart({ type: 'rend', props: {} }), ContentOutputError);

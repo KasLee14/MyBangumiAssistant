@@ -9,7 +9,7 @@ import { traceHash, traceRedact } from '../tracing/redact.js';
 import { analyzeTrace } from '../tracing/analyze.js';
 import { registerCredentials } from '../support/errors.js';
 import { MetricsCollector } from './metrics.js';
-import { gradeCase, outputText } from './scoring.js';
+import { canonicalBenchmarkContent, gradeCase, outputText } from './scoring.js';
 import type { WorkerConfig, RunObservation, TurnObservation, NetworkEvent, Outcome } from './schema.js';
 import { record } from './schema.js';
 
@@ -26,7 +26,8 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
   let runtime: AgentSessionRuntime | undefined, unsubscribe: (() => void) | undefined, currentTurn: TurnObservation | undefined;
   let deadline: ReturnType<typeof setTimeout> | undefined, reason: 'timeout' | 'budget_exceeded' | undefined;
   let error: string | null = null, outcome: Outcome = 'errored', rpcDispatches = 0, invalidOutput = false;
-  let modelErrors = 0, finalMessages = 0;
+  let modelErrors = 0, finalMessages = 0, visiblePrefix = '';
+  const recoveryEnabled = config.recovery === 'enabled';
   let initializationStart: number | undefined;
   const checkpoint = () => atomicJson(join(config.outputDir, 'progress.json'), { metrics: collector.value });
   const networkTransport = createPiTransport(config.offline ? null : config.proxy);
@@ -46,10 +47,23 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
       modelsPath: config.offline ? null : join(config.agentDir, 'models.json'), allowModelNetwork: false,
     });
     if (config.offline) {
-      if (config.case.id !== 'facts-basic') throw new Error('离线 smoke 仅支持 facts-basic；其输出为脚本，不计为真实模型评测。');
+      if (config.case.id !== 'facts-basic' && !config.case.offlineScript) throw new Error('离线仅支持facts-basic和登记的故障脚本；不计为真实模型评测。');
       const fauxApi = await dependency('@earendil-works/pi-ai/providers/faux'), ai = await dependency('@earendil-works/pi-ai');
       const faux = fauxApi.fauxProvider({ api: 'openai-responses' });
-      faux.setResponses([
+      const finalWire = JSON.stringify({ content: [{ type: 'text', text: '验收完成。' }] });
+      const failures: Record<string, string> = {
+        bare_component: '{"type":"Callout","props":{"tone":"info","text":"正文草稿"}}\n后接普通文字',
+        blank_output: ' '.repeat(382),
+        text_field: '{"content":[{"type":"text","text":123}]}',
+        component_field: '{"content":[{"type":"Callout","props":{"tone":"invalid","text":"失败草稿"}}]}',
+        prefix_then_invalid: '{"content":[{"type":"text","text":"保留前缀。"},{"type":"Callout","props":{"tone":"invalid","text":"失败草稿"}}]}',
+        exhausted: '{"content":[{"type":"text","text":123}]}',
+      };
+      faux.setResponses(config.case.offlineScript
+        ? [fauxApi.fauxAssistantMessage(failures[config.case.offlineScript]),
+          ...Array.from({ length: config.case.offlineScript === 'exhausted' ? 12 : 1 }, () => fauxApi.fauxAssistantMessage(
+            config.case.offlineScript === 'exhausted' ? failures.exhausted : finalWire))]
+        : [
         fauxApi.fauxAssistantMessage([fauxApi.fauxToolCall('get_subject_details', {
           subject_id: 1001, fields: ['nameCn', 'score', 'date', 'totalEpisodes'],
         })], { stopReason: 'toolUse' }),
@@ -58,9 +72,10 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
       ]);
       modelRuntime.registerNativeProvider({ ...faux.provider, streamSimple: (model: unknown, context: unknown, options: Record<string, unknown>) =>
         ai.lazyStream(model, async () => {
-          const payload = { model: record(model).id, messages: record(context).messages };
-          collector.payload(Buffer.byteLength(JSON.stringify(payload)));
+          const payload = { model: record(model).id, messages: record(context).messages,
+            tools: ai.getCurrentTools(record(context).messages) };
           if (typeof options?.onPayload === 'function') await options.onPayload(payload, model);
+          collector.payload(Buffer.byteLength(JSON.stringify(payload))); collector.payloadTools(payload);
           return faux.provider.streamSimple(model, context, options);
         }) });
       await modelRuntime.setRuntimeApiKey('faux', 'benchmark-offline-placeholder');
@@ -122,19 +137,27 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
           const value = headers.get(key); if (value) registerCredentials([value, value.replace(/^Bearer\s+/i, '')]);
         }
         checkpoint();
-        if (typeof init?.body === 'string') collector.payload(Buffer.byteLength(init.body));
+        if (typeof init?.body === 'string') {
+          collector.payload(Buffer.byteLength(init.body));
+          try { collector.payloadTools(JSON.parse(init.body)); } catch { captureIssues.push('provider_payload_unreadable'); }
+        }
         const timeoutSignal = AbortSignal.timeout(config.case.budget.timeoutMs);
         return networkTransport.fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal });
       },
     }) as AgentSessionRuntime;
     runtime.session.sessionManager.appendSessionInfo('Benchmark');
-    runtime.session.setAutoRetryEnabled(false);
+    runtime.session.setAutoRetryEnabled(recoveryEnabled);
     unsubscribe = runtime.session.subscribe(event => {
       collector.event(event);
       const row = record(event), message = record(row.message);
       if (row.type === 'message_start' && message.role === 'assistant' || row.type === 'tool_execution_start') checkpoint();
       if (collector.value.modelRequests > config.case.budget.modelRequests || collector.value.toolExecutions > config.case.budget.toolExecutions) stop('budget_exceeded');
       if (row.type === 'tool_execution_start') pendingCalls.set(String(row.toolCallId), traceRedact(row.args));
+      if (row.type === 'message_update' && currentTurn) {
+        const parts = Array.isArray(message.content) ? message.content : [];
+        const visible = parts.filter(part => record(part).type === 'text').map(part => String(record(part).text ?? '')).join('');
+        if (visible) { if (!visible.startsWith(visiblePrefix)) collector.value.prefixMonotonic = false; else visiblePrefix = visible; }
+      }
       if (row.type === 'message_end' && message.role === 'toolResult' && currentTurn) {
         let value: unknown = null;
         const parts = Array.isArray(message.content) ? message.content : [];
@@ -151,9 +174,10 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
         }
         const parts = Array.isArray(message.content) ? message.content : [];
         if (message.stopReason === 'stop' && !parts.some(part => record(part).type === 'toolCall') && currentTurn) {
-          const content = parts.filter(part => !['thinking', 'toolCall'].includes(String(record(part).type)));
-          try { validateMixedContent({ content }); } catch { invalidOutput = true; }
+          const content = canonicalBenchmarkContent(parts);
+          try { validateMixedContent({ content }); collector.value.validatedFinals++; } catch { invalidOutput = true; }
           currentTurn.final = traceRedact({ content }); currentTurn.text = outputText({ content }); finalMessages++;
+          if (visiblePrefix && !parts.filter(part => record(part).type === 'text').map(part => String(record(part).text ?? '')).join('').startsWith(visiblePrefix)) collector.value.prefixMonotonic = false;
         }
       }
     });
@@ -161,12 +185,16 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     deadline = setTimeout(() => stop('timeout'), config.case.budget.timeoutMs);
     for (const prompt of config.case.turns) {
       const start = performance.now();
+      visiblePrefix = '';
       currentTurn = { prompt, final: null, text: '', tools: [], durationMs: 0 }; turns.push(currentTurn);
       await runtime.session.prompt(prompt); await runtime.session.waitForIdle();
       currentTurn.durationMs = performance.now() - start;
       if (reason) break;
     }
-    outcome = reason ?? (modelErrors ? 'errored' : 'failed');
+    const terminalError = turns.some(turn => turn.final === null);
+    collector.value.terminalModelErrors = turns.filter(turn => turn.final === null).length;
+    outcome = reason ?? ((recoveryEnabled ? terminalError : modelErrors > 0) ? 'errored' : 'failed');
+    if (recoveryEnabled && !terminalError) error = null;
   } catch (caught) { error = String(traceRedact(caught instanceof Error ? caught.message : 'BENCHMARK_ERROR')); outcome = reason ?? 'errored'; }
   finally {
     if (deadline) clearTimeout(deadline);
@@ -182,10 +210,16 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     try { const analysis = await analyzeTrace(directory); if (!analysis.complete) captureIssues.push('trace_incomplete'); } catch { captureIssues.push('trace_unreadable'); }
   }
   if (!traceDirectories.length) captureIssues.push('trace_missing');
-  const grade = gradeCase(config.case, turns, config.fixture, network, confirmations, state);
-  if (invalidOutput || finalMessages !== config.case.turns.length) grade.passed = false;
+  if (config.case.offlineScript === 'prefix_then_invalid') collector.value.prefixDuplications = Math.max(0, (turns.at(-1)?.text.split('保留前缀。').length ?? 1) - 2);
+  const gradingCase: WorkerConfig['case'] = config.case.offlineScript ? { ...config.case, rules: [...config.case.rules, {
+    kind: 'recovery' as const, expectedTerminal: config.case.expectedTerminal ?? 'success',
+    ...(config.case.offlineScript === 'prefix_then_invalid' ? { prefix: '保留前缀。' } : {}),
+  }] } : config.case;
+  const grade = gradeCase(gradingCase, turns, config.fixture, network, confirmations, state, collector.value);
+  const expectedError = config.case.expectedTerminal === 'error';
+  if (invalidOutput || finalMessages !== config.case.turns.length && !expectedError) grade.passed = false;
   if (invalidOutput) error ??= '输出未通过当前版本组件契约校验。';
-  if (!reason && outcome !== 'errored') outcome = grade.passed ? 'passed' : 'failed';
+  if (!reason && (outcome !== 'errored' || expectedError)) outcome = grade.passed ? 'passed' : 'failed';
   if (!reason && network.some(event => event.fixtureMiss)) outcome = 'invalid_fixture';
   if (!reason && captureIssues.length) outcome = 'incomplete_capture';
   collector.value.rpcDispatches = rpcDispatches;

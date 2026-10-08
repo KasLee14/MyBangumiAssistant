@@ -41,6 +41,16 @@
 
 **违反后果**：把过期描述当事实依据，会直接产出错误改动；更糟的是错误会被「文档就是这么写的」掩盖，事后极难发现。
 
+### 按需能力目录与正文发布
+
+- 组件用途索引及字段读取在 `output/component-catalog.ts`、`output/component-tools.ts`；字段与引用契约直接派生自原校验 Schema。模型先读取用途索引，再读取实际所选组件字段，系统提示不再拼入全部组件字段。字段读取选择 `auto/reference/inline`，本次生成只使用一种 `props` 契约；同轮成功读取及时登记仍有效的引用，不能把直接字段混入引用。协议新增类型而运行时目录漏登记时 `ComponentKindCoverage` 必须编译失败。
+- 组件字段属于纯定义，同版本、完整且仍实际可见的最新契约可跨用户轮复用；读取审计区分 `sourceTurn/reused` 与本轮调用次数。事实引用及引用观测仍按真实用户轮次、账户和 NSFW 范围隔离，旧事实不能借纯定义复用。压缩遗失、版本变化、精简说明或已被新样式替代的契约必须重新读取。首次组件交付在进入可见正文前检查读取状态，恢复保留的已完成前缀不重新判缺契约。
+- 业务工具在本地完整登记，模型初始只声明小范围 active 工具。`mcp/tool-discovery.ts` 用中文用途、分类及可遍历索引发现后，通过 Pi active tool set 加载下一次请求的真实 Schema。`createAgentSessionFromServices.tools` 是允许能力集合，不能用初始可见集合替代，否则工具被永久排除。
+- `support/provider-tool-arguments.ts` 只按明确提供方能力处理严格采样；兼容 Schema 可启用，复杂条件契约保留明确 fallback 和完整业务校验。可选 `null` 只在已约定严格线路映回省略，未知、必填及非法字段继续拒绝。
+- 解码草稿、未闭合文字及未验证引用保留在内部；正文只发布稳定完成块。恢复续接保留已完成前缀和同一真实用户回合，可恢复错误投影成 `source:host` 的独立思考过程，原诊断仍留会话与 trace。耗尽时保留前缀并如实说明未完整生成。
+- 恢复前缀插在原生 leading thinking 之后，思考事件索引按真实插入位置映射，原生思考和签名不得改写。`output/deepseek-responses-replay.ts` 只在同一旧恢复消息的签名与既有 reasoning item 完全一致时纠正顺序，不能生成思考或跨普通消息移动；DeepSeek 官方 Responses 请求保留系统权限及完整输入，Chat 旧历史跨协议回放属于单独验证范围。
+- Benchmark 使用 `--recovery enabled|disabled` 显式控制恢复；新套件为 `benchmarks/component-tools-cases.json`。离线故障脚本、真实模型加固定本地上游、真实 Bangumi 网络及浏览器显示属于不同证据层，不能互相替代。新指标和报告保留中间错误、终态错误、恢复次数及实际请求约束。
+
 ### 缓存引用与候选展示
 
 - 缓存读取的内部 RPC 使用互斥的 `{ resource }` / `{ error }` 信封；业务错误码、诊断和来源工具经过校验后透传，不能统一包装成权限问题。访问继续绑定当前轮次、账户及 NSFW 范围。

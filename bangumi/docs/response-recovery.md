@@ -24,7 +24,9 @@ Pi原生diagnostics中的application_recovery标记autoRetry=host，通用重试
 
 bangumi/recovery记录scheduled/running/recovered/reported/stopped/cancelled及预算、保留块数和错误ID，trace同时记录recovery.state。停止时省略失败投影，追加不含恢复指令的bangumi/recovery-result，保存已完成事实和诊断。新任务不投影旧恢复指令。
 
-宿主SSE使用原回答条目ID/version更新，恢复不会追加整份相同回答；错误行更新为当前诊断，恢复完成后转为既有notice。等待期间busy/status保持一致，取消接口可用。历史重建从原生最终回答或停止记录还原完成部分。前端源码、样式和交互不修改。
+宿主SSE使用原回答条目ID/version单调更新，恢复不会追加整份相同回答，也不会重新打开真实用户回合。解码草稿、未闭合文字和未展开引用不进入正文；可恢复错误作为独立source=host的思考过程保留，原始诊断继续保存，不投影正文错误或重试notice。等待期间busy/status保持一致，取消接口可用。停止记录保存完整canonical前缀，耗尽时如实说明回答未完整生成，终态仍为error；历史重建与实时投影一致。前端组件与样式不修改。
+
+组件字段按需读取后，正文修复阶段只开放read_component_index/read_component_spec；原业务读取和写入权限不会随修复扩展。读取后的新组件仍在可见交付前经过字段读取门禁和完整校验，已有稳定前缀不重新判缺契约。空白或只有思考而没有正文的响应识别为CONTENT_OUTPUT_EMPTY并重新生成，不能把空白当作有JSON断点的续写。
 
 ## 验收
 

@@ -17,9 +17,11 @@ import { withContentConstraint } from './output/provider-options.js';
 import { decodeProviderOutput } from './output/provider-output.js';
 import { assistantErrorDiagnostic, classifyProviderFailure, rememberErrorDebug, withAssistantDiagnostic } from './support/error-diagnostic.js';
 import { RecoveryController } from './output/recovery.js';
-import { extensionResourceResolver } from './extension.js';
+import { extensionResourceResolver, extensionComponentCatalog } from './extension.js';
 import { bindResourceResolver, resourceResolverFor } from './output/resource-content.js';
 import { projectTranscriptForModel } from './output/model-context.js';
+import { bindComponentCatalog } from './output/component-catalog.js';
+import { effectiveToolConstraintModel } from './support/provider-tool-arguments.js';
 
 export interface BangumiRuntimeOptions {
   cwd: string;
@@ -58,6 +60,7 @@ export function withProviderFetch(provider: Provider, fetch?: FetchFunction): Pr
   return {
     ...provider,
     stream: <T extends Api>(model: Model<T>, context: TranscriptContext, options?: ApiStreamOptions<T>) => {
+      model = effectiveToolConstraintModel(model);
       const resolver = resourceResolverFor(context), projected = projectTranscriptForModel(context, resolver);
       return protectProviderErrors(model, () => decodeProviderOutput(model, context, options, observePayload => provider.stream(model, projected,
         withContentConstraint(model, context, { ...options, ...(fetch ? { fetch } : {}), maxRetries: 0,
@@ -65,6 +68,7 @@ export function withProviderFetch(provider: Provider, fetch?: FetchFunction): Pr
         } as ApiStreamOptions<T>)), resolver), options?.apiKey);
     },
     streamSimple: (model, context, options) => {
+      model = effectiveToolConstraintModel(model);
       const resolver = resourceResolverFor(context), projected = projectTranscriptForModel(context, resolver);
       return protectProviderErrors(model,
       () => decodeProviderOutput(model, context, options, observePayload => provider.streamSimple(model, projected,
@@ -123,19 +127,27 @@ export async function createBangumiRuntime(options: BangumiRuntimeOptions): Prom
       ...(options.thinkingLevel === undefined ? {} : { cliThinking: options.thinkingLevel }), modelRuntime,
     });
     if (resolved.error) throw new Error(resolved.error);
-    const toolNames = services.resourceLoader.getExtensions().extensions.flatMap(ext => [...ext.tools.keys()]);
+    // tools 是可登记能力白名单；初始模型可见集合在创建后单独收敛。
+    const registeredTools = services.resourceLoader.getExtensions().extensions.flatMap(ext => [...ext.tools.values()]);
+    const initialTools = registeredTools
+      .filter(({ definition }) => definition.defaultActive !== false && ['direct', 'model-only'].includes(definition.exposure ?? 'direct'))
+      .map(({ definition }) => definition.name);
+    initialTools.push('get_subject_details');
     const created = await createAgentSessionFromServices({
-      services, sessionManager, tools: toolNames,
+      services, sessionManager, tools: registeredTools.map(({ definition }) => definition.name),
       ...(sessionStartEvent === undefined ? {} : { sessionStartEvent }),
       ...(resolved.model === undefined ? {} : { model: resolved.model }),
       ...((options.thinkingLevel ?? resolved.thinkingLevel) === undefined ? {} : { thinkingLevel: options.thinkingLevel ?? resolved.thinkingLevel! }),
     });
+    created.session.setActiveToolsByName(initialTools);
     created.session.agent.toolExecution = 'sequential';
     recovery.bind(created.session);
     const stream = created.session.agent.streamFunction;
     created.session.agent.streamFunction = (model, context, streamOptions) => {
       const resolver = sessionExtension && extensionResourceResolver(sessionExtension);
       if (resolver) bindResourceResolver(context, resolver);
+      const catalog = sessionExtension && extensionComponentCatalog(sessionExtension);
+      if (catalog) bindComponentCatalog(context, catalog);
       return stream(model, context, streamOptions);
     };
     return { ...created, services, diagnostics: services.diagnostics };

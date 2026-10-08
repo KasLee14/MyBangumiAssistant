@@ -14,9 +14,14 @@ import { projectModelResult } from './model-projection.js';
 import { schemaArguments } from '../support/tool-schema.js';
 import { stripResourceRef } from './resource-contract.js';
 import { CollectionQueryInputState } from './collection-query-input.js';
+import { normalizeStrictOptionalNulls, toolConstraintState, type ToolProviderModel } from '../support/provider-tool-arguments.js';
 export interface ReadToolInputContext {
   collectionQueries: CollectionQueryInputState;
   owner: () => string | undefined;
+}
+export interface McpToolOptions {
+  /** 当前请求的模型能力；未提供时不宽容任何 null 参数。 */
+  model?: () => ToolProviderModel | undefined;
 }
 /** 写入接入由应用宿主实现，不向模型开放账户guard或授权标记。 */
 export type McpWriteHandler = (
@@ -39,19 +44,25 @@ function jsonResult(value: Record<string, unknown>, isError = false, name?: stri
   };
 }
 /** Pi会再次用公开schema校验prepare结果；内部默认字段只在execute补入。 */
-export function prepareModelToolArguments(name: string, raw: unknown): Record<string, unknown> {
+export function prepareModelToolArguments(name: string, raw: unknown, model?: ToolProviderModel): Record<string, unknown> {
   const definition = TOOL_DEFINITIONS.find(tool => tool.name === name);
   if (!definition) throw new AppError('UNKNOWN_TOOL', '未登记的Bangumi工具。');
-  const publicArgs = schemaArguments(definition.modelInputSchema ?? definition.inputSchema, raw);
+  const schema = definition.modelInputSchema ?? definition.inputSchema;
+  const normalized = normalizeStrictOptionalNulls(schema, raw, toolConstraintState(schema, model).provider === 'enabled');
+  const publicArgs = schemaArguments(schema, normalized);
   validateToolArguments(name, publicArgs);
   return publicArgs;
 }
 /** Pi只负责原生工具循环；此桥接保留原始参数严格校验及MCP结果契约。 */
-export function createMcpTools(client: McpCallClient, writeHandler?: McpWriteHandler, inputContext?: ReadToolInputContext): ToolDefinition[] {
+export function createMcpTools(client: McpCallClient, writeHandler?: McpWriteHandler, inputContext?: ReadToolInputContext, options: McpToolOptions = {}): ToolDefinition[] {
   return TOOL_DEFINITIONS.filter(definition => definition.effect === 'read' || writeHandler !== undefined).map(definition => ({
     name: definition.name,
     label: definition.name,
     description: definition.description,
+    exposure: 'deferred' as const,
+    defaultActive: false,
+    // Pi 根据服务能力和 strict 子集转换决定启用；复杂契约回退并继续完整宿主校验。
+    constrainedSampling: { type: 'json_schema' as const, strict: 'prefer' as const },
     parameters: structuredClone(definition.modelInputSchema ?? definition.inputSchema) as ToolDefinition['parameters'],
     ...(definition.effect === 'read' && definition.outputSchema
       ? { outputSchema: structuredClone(definition.modelOutputSchema) as ToolDefinition['parameters'] } : {}),
@@ -59,7 +70,7 @@ export function createMcpTools(client: McpCallClient, writeHandler?: McpWriteHan
     // 在Pi的兼容类型转换之前执行；不删除非法字段、不转换类型、不回显原始值。
     prepareArguments: (raw: unknown) => {
       try {
-        const publicArgs = prepareModelToolArguments(definition.name, raw);
+        const publicArgs = prepareModelToolArguments(definition.name, raw, options.model?.());
         const args = validateToolArguments(definition.name, publicArgs);
         inputContext?.collectionQueries.validate(definition.name, args, inputContext.owner());
         return publicArgs;
@@ -117,4 +128,4 @@ export function createMcpTools(client: McpCallClient, writeHandler?: McpWriteHan
     },
   }));
 }
-export function createReadTools(client: McpCallClient, inputContext?: ReadToolInputContext): ToolDefinition[] { return createMcpTools(client, undefined, inputContext); }
+export function createReadTools(client: McpCallClient, inputContext?: ReadToolInputContext, options?: McpToolOptions): ToolDefinition[] { return createMcpTools(client, undefined, inputContext, options); }

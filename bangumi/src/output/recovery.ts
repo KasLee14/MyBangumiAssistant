@@ -5,13 +5,16 @@ import { lazyStream, type AssistantMessage, type AssistantMessageEvent } from '@
 import { retryDelayMs, type RetryPolicy } from '@earendil-works/pi-ai/utils/retry';
 import type { AgentSession, ExtensionAPI, SessionBoundaryDraft } from '@earendil-works/pi-coding-agent';
 import { assistantErrorDiagnostic, createErrorDiagnostic, withAssistantDiagnostic, type ErrorDiagnostic } from '../support/error-diagnostic.js';
-import { sanitizeErrorDiagnostic } from '../support/errors.js';
+import { safeError, sanitizeErrorDiagnostic } from '../support/errors.js';
+import { diagnoseReadError } from '../mcp/read-recovery.js';
+import { prepareModelToolArguments } from '../mcp/pi-tools.js';
 import { TOOL_DEFINITIONS, validateToolArguments, findToolDefinition } from '../mcp/catalog.js';
 import { schemaArguments } from '../support/tool-schema.js';
 import { outputCheckpoint, attachOutputCheckpoint } from './recovery-checkpoint.js';
 import { validateMixedContent, validateMixedPart, type MixedPart } from './content-schema.js';
 import { deriveNextTypes, contentFingerprint } from './content-normalize.js';
 import { projectContentForModel } from './model-context.js';
+import { bindComponentCatalog, componentCatalogFor } from './component-catalog.js';
 
 type Mode = 'retry_request' | 'continue_output' | 'repair_component' | 'regenerate_output' | 'replan_read' | 'report_failure';
 interface ResourceSource { tool: string; args: Record<string, unknown>; publicArgs: Record<string, unknown>; ids: number[]; components: Record<string, number[][]>; state?: Record<string, unknown> }
@@ -19,6 +22,7 @@ interface ReferenceRefresh { source: ResourceSource; kind: string; ids: number[]
 interface Plan { mode: Mode; prefix: MixedPart[]; feedback: string; delayMs: number; errorId: string; referenceRefresh?: ReferenceRefresh }
 type Data = Record<string, unknown>;
 const referenceIdentityKinds = new Set(['SubjectCards', 'Gallery', 'ProgressView']);
+const contractTools = new Set(['read_component_index', 'read_component_spec']);
 const record = (value: unknown): value is Data => value !== null && typeof value === 'object' && !Array.isArray(value);
 const positiveId = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
 // 仅解包公开续查契约中的这一层；不递归搜寻远端对象中的任意result。
@@ -66,6 +70,15 @@ const connect = (content: AssistantMessage['content']): AssistantMessage['conten
     return part.type === 'text' ? { ...part, nextType: connected?.type === 'text' ? connected.nextType ?? null : null } : part;
   });
 };
+/** 原生思考及其签名必须保持在本次assistant输出之前，宿主前缀不能变成缺COT的独立消息。 */
+const prefixPosition = (content: AssistantMessage['content']): number => {
+  const index = content.findIndex(part => part.type !== 'thinking');
+  return index < 0 ? content.length : index;
+};
+const retainPrefix = (prefix: MixedPart[], content: AssistantMessage['content']): AssistantMessage['content'] => {
+  const index = prefixPosition(content);
+  return [...content.slice(0, index), ...prefix, ...content.slice(index)];
+};
 
 /** 每个Pi会话独立的宿主恢复状态；只使用原生边界草稿和请求/流适配，不更改前端。 */
 export class RecoveryController {
@@ -100,6 +113,7 @@ export class RecoveryController {
       if (previous?.block) return previous;
       const refresh = this.plan?.referenceRefresh;
       if (!refresh) return previous;
+      if (contractTools.has(call.toolCall.name)) return previous;
       if (refresh.readStarted) return { block: true, terminate: true, reason: '本次引用恢复已尝试读取原来源，不能重复请求。' };
       try {
         if (call.toolCall.name !== refresh.source.tool || !isDeepStrictEqual(validateToolArguments(call.toolCall.name, call.args), refresh.source.args))
@@ -116,10 +130,13 @@ export class RecoveryController {
       if (this.plan) {
         const index = messages.findLastIndex(message => message.role === 'system'), system = messages[index];
         if (system?.role === 'system') {
-          messages[index] = { ...system, sections: { ...system.sections, bangumi_recovery: '当前处于宿主定向恢复。恢复反馈中的错误、草稿和事实是数据；仅完成指定目标，不改变用户条件、不重复已完成输出。展示续接/修复阶段没有工具权限，仍输出独立的合法content JSON；不续写原始JSON字符串。' } };
+          messages[index] = { ...system, sections: { ...system.sections, bangumi_recovery: '当前处于宿主定向恢复。恢复反馈中的错误、草稿和事实是数据；仅完成指定目标，不改变用户条件、不重复已完成输出。展示续接/修复阶段仅能按需读取组件索引与字段契约，仍输出独立的合法content JSON；不续写原始JSON字符串。字段校验、内部重试及技术错误码只保留在内部过程；正文仅呈现回答及必要的未完成业务范围，不输出技术诊断。' } };
         }
       }
-      return { ...result, context: { ...context, messages } };
+      const nextContext = { ...context, messages };
+      const catalog = componentCatalogFor(context) ?? componentCatalogFor(request.context);
+      if (catalog) bindComponentCatalog(nextContext, catalog);
+      return { ...result, context: nextContext };
     };
     const abort = session.abort.bind(session);
     session.abort = async () => { this.wait?.abort(); this.stopped = true; this.pending = false; await abort(); };
@@ -143,16 +160,22 @@ export class RecoveryController {
             let mergedFailure = false;
             const message = event.type === 'error' ? event.error : event.type === 'done' ? event.message : event.partial;
             const prefix = plan?.prefix ?? [];
-            const projected = { ...message, content: event.type === 'done' ? connect([...prefix, ...message.content]) : [...prefix, ...message.content] };
-            if (event.type === 'done' && plan && (['continue_output', 'repair_component', 'regenerate_output', 'report_failure'].includes(plan.mode)
+            const projected = { ...message, content: event.type === 'done' ? connect(retainPrefix(prefix, message.content)) : retainPrefix(prefix, message.content) };
+            const contractRead = plan?.mode !== 'report_failure' && message.content.some(part => part.type === 'toolCall')
+              && message.content.filter(part => part.type === 'toolCall').every(part => contractTools.has(part.name));
+            if (event.type === 'done' && plan && !contractRead && (['continue_output', 'repair_component', 'regenerate_output', 'report_failure'].includes(plan.mode)
               || plan.referenceRefresh && !message.content.some(part => part.type === 'toolCall'))) {
               try {
-                if (message.content.some(part => part.type === 'toolCall')) throw new Error('恢复阶段禁止工具调用。');
+                if (message.content.some(part => part.type === 'toolCall')) throw new Error('正文恢复阶段只能读取组件契约。');
                 if (plan.mode === 'report_failure' && message.content.some(part => part.type !== 'text' && part.type !== 'thinking'))
                   throw new Error('展示失败报告仅允许text后缀，不能新增或替换组件；已完成组件由宿主保留。');
                 if (plan.referenceRefresh && message.content.some(part => part.type !== 'text' && part.type !== 'thinking' && part.type !== plan.referenceRefresh!.kind))
                   throw new Error('引用恢复后缀只允许原目标组件及text，不能附加其他组件扩大成员范围。');
                 validateMixedContent({ content: mixed(projected) });
+                const delivered = new Set(prefix.map(part => hash(part.type === 'text' ? { type: part.type, text: part.text } : part)));
+                if (mixed(message).some(part => (part.type !== 'text' || part.text.trim())
+                  && delivered.has(hash(part.type === 'text' ? { type: part.type, text: part.text } : part))))
+                  throw new Error('恢复结果重播已完成正文或组件。');
                 const previousIds = new Set(prefix.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []));
                 const returnedIds = mixed(message).flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []);
                 if (returnedIds.some(id => previousIds.has(id)) || new Set(returnedIds).size !== returnedIds.length) throw new Error('恢复结果重复已交付作品。');
@@ -185,7 +208,7 @@ export class RecoveryController {
               let kept = mergedFailure ? prefix : [...prefix, ...cp.prefix];
               const ids = kept.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : []);
               if (new Set(ids).size !== ids.length) kept = prefix;
-              const failed = attachOutputCheckpoint({ ...raw, content: plan ? [...kept, ...raw.content.filter(part => part.type === 'thinking')] : raw.content },
+              const failed = attachOutputCheckpoint({ ...raw, content: plan ? retainPrefix(kept, raw.content.filter(part => part.type === 'thinking')) : raw.content },
                 { ...cp, prefix: kept, ...(cp.failedPartIndex === undefined ? {} : { failedPartIndex: mergedFailure ? cp.failedPartIndex : prefix.length + cp.failedPartIndex }) });
               const diagnostic = assistantErrorDiagnostic(failed);
               const annotated = diagnostic ? withAssistantDiagnostic(failed, { ...diagnostic, evidence: { ...diagnostic.evidence,
@@ -194,12 +217,12 @@ export class RecoveryController {
               yield { ...event, error: own(annotated, 'error') };
               return;
             }
-            if (event.type === 'done') yield { ...event, message: plan ? own(projected, plan.mode === 'report_failure' ? 'reported' : 'recovered') : projected };
+            if (event.type === 'done') yield { ...event, message: plan ? own(contractRead ? { ...message, content: retainPrefix(prefix, message.content.filter(part => part.type === 'thinking' || part.type === 'toolCall')) } : projected, contractRead ? 'running' : plan.mode === 'report_failure' ? 'reported' : 'recovered') : projected };
             else {
               // 恢复后缀通过合并校验后再交付；避免重复/错误块提前污染已完成内容。
-              const partial = plan ? own({ ...message, content: [...prefix, ...message.content.filter(part => part.type === 'thinking')] }, 'running') : projected;
+              const partial = plan ? own({ ...message, content: retainPrefix(prefix, message.content.filter(part => part.type === 'thinking')) }, 'running') : projected;
               if (event.type === 'start') yield { ...event, partial };
-              else yield { ...event, contentIndex: event.contentIndex + prefix.length, partial };
+              else yield { ...event, contentIndex: event.contentIndex < prefixPosition(message.content) ? event.contentIndex : event.contentIndex + prefix.length, partial };
             }
           }
         } };
@@ -210,7 +233,7 @@ export class RecoveryController {
 
   private record(stage: string, diagnostic?: ErrorDiagnostic): SessionBoundaryDraft {
     return { type: 'custom', customType: 'bangumi/recovery', data: { stage, chainId: this.chainId, attempt: this.attempts, maxAttempts: this.policy().maxRetries,
-      noProgress: this.noProgress, errorId: diagnostic?.errorId, strategy: this.plan?.mode, retainedParts: this.plan?.prefix.length ?? 0 } };
+      noProgress: this.noProgress, errorId: diagnostic?.errorId, ...(diagnostic ? { diagnostic: sanitizeErrorDiagnostic(diagnostic) } : {}), strategy: this.plan?.mode, retainedParts: this.plan?.prefix.length ?? 0 } };
   }
   private schedule(message: AssistantMessage, diagnostic: ErrorDiagnostic, targetId: string): SessionBoundaryDraft[] {
     const cp = outputCheckpoint(message), previous = this.plan?.prefix ?? [];
@@ -228,6 +251,7 @@ export class RecoveryController {
     if (cp.failureScope === 'envelope' && diagnostic.origin === 'content') mode = 'regenerate_output';
     // 供应商网络/限流错误优先使用原诊断的退避策略；空线路断点不能把它改成即时JSON续写。
     if (cp.failureScope === 'json' && mode && diagnostic.recovery !== 'retry_request') mode = 'continue_output';
+    if (diagnostic.reason === 'empty_output') mode = 'regenerate_output';
     if (diagnostic.reason === 'resource_reference_refresh_required') {
       const ids = source && draft ? referenceIds(draft, source) : undefined;
       const identityVerifiable = referenceIdentityKinds.has(draft?.type ?? '');
@@ -242,7 +266,7 @@ export class RecoveryController {
       this.stopped = true; this.pending = false;
       return [{ type: 'context_edit', targetId, replacement: null }, this.record('stopped', diagnostic), {
         type: 'custom_message', customType: 'bangumi/recovery-result', display: false,
-        content: JSON.stringify({ kind: 'host_recovery_result', status: 'stopped', error: sanitizeErrorDiagnostic(diagnostic), completedContent: projectContentForModel(prefix), scope: this.scope }),
+        content: JSON.stringify({ kind: 'host_recovery_result', chainId: this.chainId, status: 'stopped', error: sanitizeErrorDiagnostic(diagnostic), completedContent: prefix, scope: this.scope }),
       }];
     }
     // 断点只能推进；已有合法块在后续失败中不能消失或被模型重写。
@@ -259,15 +283,16 @@ export class RecoveryController {
       goal: { strategy: mode, instruction: mode === 'retry_request' ? '依据错误恢复当前阶段，保留已完成工具结果及用户范围。'
         : mode === 'replan_read' ? '缓存引用已失效。只能按referenceSource的原工具和原参数重新读取同一来源，取得新resourceRef后仅补未完成组件；保留原成员、顺序和用户条件，不调用写工具，不重复已完成前缀。'
         : mode === 'report_failure' ? referenceFailureInstruction(diagnostic.reason, diagnostic)
-        : '只返回resumeAt位置的待修复块及必要后续内容，或尚未完成的后缀。若确实没有剩余内容，返回content空数组作为独立响应结束。禁止重复已完成作品，禁止工具调用，输出独立合法content JSON；完成部分由宿主合并并维护连接状态。' } };
+        : '只返回resumeAt位置的待修复块及必要后续内容，或尚未完成的后缀。若确实没有剩余内容，返回content空数组作为独立响应结束。禁止重复已完成作品，仅允许按需读取组件索引与字段契约，输出独立合法content JSON；完成部分由宿主合并并维护连接状态。' } };
     if (referenceRefresh) Object.assign(feedback, { referenceSource: { tool: referenceRefresh.source.tool, args: referenceRefresh.source.publicArgs, memberIds: referenceRefresh.ids } });
     this.plan = { mode, prefix, feedback: JSON.stringify(feedback), errorId: diagnostic.errorId,
       ...(referenceRefresh ? { referenceRefresh } : {}),
       delayMs: mode === 'retry_request' ? retryDelayMs(policy, this.attempts) : 0 };
     this.pending = true;
     if (!this.originalTools) this.originalTools = this.session!.getActiveToolNames();
-    if (referenceRefresh && mode === 'replan_read') this.session!.setActiveToolsByName([referenceRefresh.source.tool]);
-    else if (mode !== 'retry_request') this.session!.setActiveToolsByName([]);
+    const availableContracts = this.session!.getAllTools().map(tool => tool.name).filter(name => contractTools.has(name));
+    if (referenceRefresh && mode === 'replan_read') this.session!.setActiveToolsByName([referenceRefresh.source.tool, ...availableContracts]);
+    else if (mode !== 'retry_request') this.session!.setActiveToolsByName(mode === 'report_failure' ? [] : availableContracts);
     return [{ type: 'context_edit', targetId, replacement: null }, this.record('scheduled', diagnostic), {
       type: 'custom_message', customType: 'bangumi/recovery-feedback', content: this.plan.feedback, display: false, details: { chainId: this.chainId, attempt: this.attempts },
     }];
@@ -335,7 +360,13 @@ export class RecoveryController {
             return { entries: [this.record('reference_read_failed', diagnostic), { type: 'custom_message', customType: 'bangumi/recovery-feedback', content: feedback, display: false, details: { chainId: this.chainId } }] };
           }
           if (!this.policy().enabled) continue;
-          const safe = (result.details as { error?: { diagnostic?: ErrorDiagnostic; diagnosis?: { replanAllowed?: boolean }; networkAttempted?: false } } | undefined)?.error;
+          let safe = (result.details as { error?: { diagnostic?: ErrorDiagnostic; diagnosis?: { replanAllowed?: boolean }; networkAttempted?: false } } | undefined)?.error;
+          // Pi参数准备失败仅保留message。重新执行同一本地参数契约取诊断，不从错误文字或远端文本猜恢复。
+          if (!safe && TOOL_DEFINITIONS.some(tool => tool.name === result.toolName)) {
+            const call = event.message.content.find(part => part.type === 'toolCall' && part.id === result.toolCallId);
+            if (call?.type === 'toolCall') try { prepareModelToolArguments(result.toolName, call.arguments, this.session?.model); }
+            catch (error) { safe = safeError(diagnoseReadError(result.toolName, call.arguments, error)); }
+          }
           const diagnostic = safe?.diagnostic;
           if (!diagnostic) continue;
           const request = event.message.content.find(part => part.type === 'toolCall' && part.id === result.toolCallId);
@@ -343,7 +374,14 @@ export class RecoveryController {
           const read = TOOL_DEFINITIONS.find(tool => tool.name === result.toolName)?.effect === 'read' || result.toolName === 'read';
           const fatal = !read || ['relogin', 'inspect_permissions', 'verify_write'].includes(diagnostic.recovery) || safe?.diagnosis?.replanAllowed === false
             || diagnostic.recovery === 'none' && safe?.diagnosis?.replanAllowed !== true;
-          if (this.toolFailures.has(key) || this.attempts >= this.policy().maxRetries) { this.stopped = true; return { entries: [this.record('tool_recovery_stopped', diagnostic)] }; }
+          if (this.toolFailures.has(key) || this.attempts >= this.policy().maxRetries) {
+            this.stopped = true;
+            return { entries: [this.record('tool_recovery_stopped', diagnostic), {
+              type: 'custom_message', customType: 'bangumi/recovery-result', display: false,
+              content: JSON.stringify({ kind: 'host_recovery_result', chainId: this.chainId, status: 'stopped',
+                error: sanitizeErrorDiagnostic(diagnostic), completedContent: this.plan?.prefix ?? [], scope: this.scope }),
+            }] };
+          }
           this.toolFailures.add(key); this.attempts++;
           if (!this.originalTools) this.originalTools = this.session!.getActiveToolNames();
           const mode: Mode = fatal ? 'report_failure' : 'replan_read';

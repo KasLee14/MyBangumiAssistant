@@ -107,6 +107,9 @@ export interface ToolItemView extends TranscriptItemBase {
 /** 思考条目：一段思考的开始与结束。 */
 export interface ReasoningItemView extends TranscriptItemBase {
   kind: 'reasoning';
+  /** 宿主诊断与模型原始思考分开记录，兼容历史未标注思考。 */
+  source?: 'model' | 'host';
+  label?: string;
   turn: number;
   step: number;
   text: string;

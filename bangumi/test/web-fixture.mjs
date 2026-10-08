@@ -32,7 +32,7 @@ function text(content) {
   return typeof content === 'string' ? content : content.filter(part => part.type === 'text').map(part => part.text).join('');
 }
 
-export async function fixture(t, { persisted = true, toolName = 'hold' } = {}) {
+export async function fixture(t, { persisted = true, toolName = 'hold', additionalExtension = () => {} } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'bangumi-web-sessions-'));
   const gates = new Map();
   const runtimes = new Map();
@@ -54,6 +54,7 @@ export async function fixture(t, { persisted = true, toolName = 'hold' } = {}) {
     await creation.before(sessionManager);
     const runtime = await createBangumiRuntime({ cwd: root, agentDir: root, sessionManager, modelRuntime,
       provider: 'faux', model: 'faux-1', extension: pi => {
+        additionalExtension(pi);
         pi.on('session_shutdown', () => { shutdowns.push(sessionManager.getSessionId()); });
         pi.registerTool({ name: toolName, label: 'Hold', description: 'Controlled offline tool',
           parameters: { type: 'object', properties: { key: { type: 'string' } }, required: ['key'], additionalProperties: false },
@@ -144,4 +145,3 @@ export async function fixture(t, { persisted = true, toolName = 'hold' } = {}) {
   };
   return { manager, initial, runtimes, shutdowns, post, request, state, stream, begin, root, sessionDir, creation, gates, terminal };
 }
-

@@ -68,6 +68,8 @@
 
 ### 技术栈约束
 
+宿主恢复的呈现约定：错误诊断进入独立 `reasoning` 条目，`source:host` 与 `label:宿主校验过程` 标明来源；原始诊断不进入正文错误气泡。正文仅接收完成校验的稳定块，恢复沿既有条目 ID/version 增长并保留同一真实用户回合。终止未完成的回答保留正文前缀及自然说明，回合终态仍为 `error`。此边界由宿主 `bangumi/src/web/session.ts` 与输出恢复层维护，前端组件不得通过隐藏条目自行推断恢复成功。
+
 依赖**只装在** `bangumi/node_modules`：`web/` 没有自己的 `package.json`，而 Node/Vite/tsc 都从 importer 逐级向上找 `node_modules`、不会拐进兄弟目录。因此：
 
 1. **新增任何第三方包，都要在 `bangumi/vite.config.ts` 的 `resolve.alias` 与 `web/tsconfig.json` 的 `paths` 各注册一次**——现有 `react`、`react-dom`、`redux`、`react-redux`、`motion`、`motion/react`、`gsap`、`gsap/ScrollTrigger` 就是这么接的。违反后果：类型能过、运行时解析失败，或反之。

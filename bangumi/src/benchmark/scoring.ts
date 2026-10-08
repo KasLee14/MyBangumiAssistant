@@ -1,4 +1,4 @@
-import type { BenchmarkCase, Data, FixtureDefinition, Grade, NetworkEvent, Rule, TurnObservation } from './schema.js';
+import type { BenchmarkCase, Data, FixtureDefinition, Grade, NetworkEvent, Rule, TurnObservation, RunMetrics } from './schema.js';
 import { record, walk } from './schema.js';
 import { accountSubject } from './fixtures.js';
 
@@ -24,7 +24,7 @@ export function selectedSubjects(turn: TurnObservation | undefined, fixture: Fix
   return [...ids].sort((a, b) => a - b);
 }
 export function gradeCase(test: BenchmarkCase, turns: TurnObservation[], fixture: FixtureDefinition,
-  network: NetworkEvent[], confirmations: Array<{ accepted: boolean; timestampMs?: number }>, state: unknown): Grade {
+  network: NetworkEvent[], confirmations: Array<{ accepted: boolean; timestampMs?: number }>, state: unknown, metrics?: RunMetrics): Grade {
   const checks = test.rules.map(rule => {
     const turn = turns[('turn' in rule ? rule.turn : undefined) ?? turns.length - 1], values = visibleValues(turn);
     let passed = false, detail = '';
@@ -101,16 +101,34 @@ export function gradeCase(test: BenchmarkCase, turns: TurnObservation[], fixture
         const keys = network.filter(event => event.write).map(event => event.method + ':' + event.path);
         passed = new Set(keys).size === keys.length; detail = '未知提交不得重发'; break;
       }
+      case 'recovery': {
+        const prefixCopies = rule.prefix ? (turn?.text ?? '').split(rule.prefix).length - 1 : 0;
+        passed = metrics !== undefined && metrics.outputErrors > 0 && metrics.recoveryScheduled > 0 && metrics.prefixMonotonic
+          && (rule.expectedTerminal === 'error' ? metrics.terminalModelErrors > 0 && metrics.recoveryStopped > 0
+            : metrics.recoveryRecovered > 0 && metrics.terminalModelErrors === 0 && metrics.validatedFinals === test.turns.length)
+          && (rule.prefix === undefined || prefixCopies === 1);
+        detail = '宿主恢复：预期终态=' + rule.expectedTerminal + '；中间输出错误=' + (metrics?.outputErrors ?? '不可用')
+          + '；终态错误=' + (metrics?.terminalModelErrors ?? '不可用') + '；前缀次数=' + prefixCopies + '。runtime证据不替代浏览器SSE验证。';
+        break;
+      }
     }
     return { rule, passed, detail };
   });
   return { passed: checks.every(check => check.passed), checks, semanticReview: test.semanticRubric ? 'pending' : 'not_required', rubric: test.semanticRubric ?? null };
 }
+/** Pi 的原生 text 签名属于协议元数据；组件对象仍按原值交给闭合契约校验。 */
+export function canonicalBenchmarkContent(parts: readonly unknown[]): unknown[] {
+  return parts.filter(part => !['thinking', 'toolCall'].includes(String(record(part).type))).map(part => {
+    const row = record(part);
+    return row.type === 'text' ? { type: 'text', text: row.text,
+      ...(Object.hasOwn(row, 'nextType') ? { nextType: row.nextType } : {}) } : part;
+  });
+}
 /** 自动硬判与人工语义评审分开；工具结果不能替代最终交付。 */
 export function outputText(value: unknown): string {
   const chunks: string[] = [];
   const hidden = new Set(['type', 'nextType', 'pending', 'resourceRef', 'resource_ref', 'entity', 'layout', 'tone',
-    'image', 'images', 'fit', 'mono', 'keyColumn', 'currentRow']);
+    'image', 'images', 'fit', 'mono', 'keyColumn', 'currentRow', 'textSignature']);
   const visit = (item: unknown, key = ''): void => {
     if (hidden.has(key)) return;
     if (typeof item === 'string' || typeof item === 'number') chunks.push(String(item));

@@ -11,11 +11,13 @@ import { deriveNextTypes } from './content-normalize.js';
 import { createErrorDiagnostic, errorCauses, rememberErrorDebug, withAssistantDiagnostic, type ErrorDiagnostic } from '../support/error-diagnostic.js';
 import { sanitizeErrorDiagnostic } from '../support/errors.js';
 import { expandResourceContent, type ResourceContentResolver } from './resource-content.js';
+import { componentCatalogFor, validateLoadedComponents } from './component-catalog.js';
 
 type TextSlot = {
   kind: 'mixed'; sourceIndex: number; decoder: ContentDecoder; final?: MixedContent;
   signature?: string; started: Set<number>; ended: Set<number>;
   resolved: Map<number, MixedContent['content'][number]>;
+  approved: number;
 };
 type NativeSlot = { kind: 'native'; sourceIndex: number; part: ThinkingContent | ToolCall };
 type Slot = TextSlot | NativeSlot;
@@ -40,6 +42,7 @@ export function decodeProviderOutput(
       async *[Symbol.asyncIterator](): AsyncGenerator<AssistantMessageEvent> {
         const slots: Slot[] = [];
         const active = new Map<number, Slot>();
+        const catalog = componentCatalogFor(context);
         let lastSource: AssistantMessage | undefined;
         let parseError: unknown;
         let parseErrorSlot: TextSlot | undefined;
@@ -51,7 +54,7 @@ export function decodeProviderOutput(
           const content = visible(message).content;
           const state = slots.filter((slot): slot is TextSlot => slot.kind === 'mixed').map(slot => slot.decoder.diagnosticState());
           const error = cause instanceof ContentOutputError ? cause : parseError instanceof ContentOutputError ? parseError : undefined;
-          let code = error?.code === 'syntax' ? 'CONTENT_JSON_SYNTAX' : error?.code === 'truncated' ? 'CONTENT_JSON_INCOMPLETE'
+          let code = error?.reason === 'empty_output' ? 'CONTENT_OUTPUT_EMPTY' : error?.code === 'syntax' ? 'CONTENT_JSON_SYNTAX' : error?.code === 'truncated' ? 'CONTENT_JSON_INCOMPLETE'
             : error?.code === 'size' ? 'CONTENT_LIMIT_EXCEEDED' : 'CONTENT_SCHEMA_INVALID';
           let detail = error?.reason ?? 'schema_invalid', certainty: ErrorDiagnostic['certainty'] = 'confirmed';
           if (reason === 'length') { code = 'LLM_OUTPUT_TRUNCATED'; detail = requestMaxTokens !== null && message.usage.output >= requestMaxTokens ? 'output_budget_exhausted' : 'provider_length_stop'; certainty = detail === 'output_budget_exhausted' ? 'inferred' : 'confirmed'; }
@@ -61,7 +64,7 @@ export function decodeProviderOutput(
             outputTokens: message.usage.output, inputTokens: message.usage.input, contextWindow: model.contextWindow,
             bytes: state.reduce((sum, item) => sum + item.bytes, 0), byteLimit: MAX_CONTENT_BYTES,
             partCount: content.filter(part => part.type !== 'thinking' && part.type !== 'toolCall').length, partLimit: MAX_CONTENT_PARTS,
-            completedParts: state.reduce((sum, item) => sum + item.completedParts, 0),
+            completedParts: content.filter(part => part.type !== 'thinking' && part.type !== 'toolCall').length,
             completedComponents: content.filter(part => 'pending' in part && part.pending === false).length,
             pendingComponents: content.filter(part => 'pending' in part && part.pending === true).length,
             subjectCount: new Set(content.flatMap(part => part.type === 'SubjectCards' && part.pending === false ? part.props.items.map(item => item.id) : [])).size,
@@ -92,7 +95,7 @@ export function decodeProviderOutput(
           rememberErrorDebug(diagnostic, error ?? cause, message.content.filter(part => part.type === 'text').map(part => part.text).join(''));
           const summaries: Record<string, string> = { LLM_OUTPUT_TRUNCATED: '模型输出被长度限制截断，已完成组件保留。',
             LLM_STREAM_INTERRUPTED: '模型流未正常结束，已完成内容保留。', CONTENT_JSON_SYNTAX: '模型输出不是合法 JSON。',
-            CONTENT_JSON_INCOMPLETE: '模型输出的 JSON 未完整闭合。', CONTENT_SCHEMA_INVALID: '模型输出字段不符合组件契约。', CONTENT_LIMIT_EXCEEDED: '模型输出超过本地内容容量。' };
+            CONTENT_JSON_INCOMPLETE: '模型输出的 JSON 未完整闭合。', CONTENT_OUTPUT_EMPTY: '模型没有生成有效正文。', CONTENT_SCHEMA_INVALID: '模型输出字段不符合组件契约。', CONTENT_LIMIT_EXCEEDED: '模型输出超过本地内容容量。' };
           // 解码器只记录错误；会话宿主根据结构化诊断决定恢复，独立流保留错误标记。
           const legacy = reason === 'incomplete' ? 'CONTENT_OUTPUT_INCOMPLETE' : 'CONTENT_OUTPUT_INVALID';
           const failed = withAssistantDiagnostic({ ...visible(message), stopReason: 'error', rawStopReason: message.rawStopReason ?? reason,
@@ -104,18 +107,19 @@ export function decodeProviderOutput(
           const localBadIndex = parseError instanceof ContentOutputError ? Number(parseError.issueDetails[0]?.path.match(/^\/content\/(\d+)(?:\/|$)/)?.[1]) : NaN;
           const badIndex = Number.isInteger(localBadIndex) ? precedingParts() + localBadIndex : NaN;
           const prefix = slots.filter((slot): slot is TextSlot => slot.kind === 'mixed').flatMap(slot => {
-            const parts = slot.decoder.recoveryCheckpoint().prefix.map((part, index) => slot.resolved.get(index) ?? part);
+            const parts = slot.decoder.recoveryCheckpoint().prefix.slice(0, slot.approved).map((part, index) => slot.resolved.get(index) ?? part);
             const firstPending = parts.findIndex(part => part.type !== 'text' && part.pending);
             return firstPending < 0 ? parts : parts.slice(0, firstPending);
           });
           // 错误块之前的真实完成前缀才可保留；预测占位不属于断点。
           const kept = Number.isInteger(badIndex) && badIndex < prefix.length ? prefix.slice(0, badIndex) : prefix;
           const failedReference = Number.isInteger(localBadIndex) ? parseErrorSlot?.decoder.resourceReferences().find(([index]) => index === localBadIndex)?.[1] : undefined;
+          const failedPartDraft = Number.isInteger(localBadIndex) ? parseErrorSlot?.decoder.completedParts()[localBadIndex] : undefined;
           return attachOutputCheckpoint(message, { prefix: kept, jsonComplete: states.length > 0 && states.every(item => item.jsonComplete),
             failureScope: parseError instanceof ContentOutputError ? states.find(item => item.failedPartIndex !== undefined)?.failureScope
               ?? states.find(item => item.failureScope !== 'host')?.failureScope ?? 'host' : 'transport',
             ...(Number.isInteger(badIndex) ? { failedPartIndex: badIndex } : {}),
-            ...(failedReference ? { draft: { type: failedReference.kind, props: failedReference.props } } : kept.length < prefix.length ? { draft: prefix[kept.length] } : states.find(item => item.draft !== undefined)?.draft === undefined ? {}
+            ...(failedReference ? { draft: { type: failedReference.kind, props: failedReference.props } } : failedPartDraft ? { draft: failedPartDraft } : kept.length < prefix.length ? { draft: prefix[kept.length] } : states.find(item => item.draft !== undefined)?.draft === undefined ? {}
               : { draft: states.find(item => item.draft !== undefined)!.draft }) });
         };
         const beginText = (index: number): TextSlot => {
@@ -123,7 +127,7 @@ export function decodeProviderOutput(
           if (previous?.kind === 'mixed' && !previous.final && !parseError) {
             try { previous.final = previous.decoder.finish(); } catch (error) { parseError = error; parseErrorSlot = previous; }
           }
-          const slot: TextSlot = { kind: 'mixed', sourceIndex: index, decoder: new ContentDecoder(), started: new Set(), ended: new Set(), resolved: new Map() };
+          const slot: TextSlot = { kind: 'mixed', sourceIndex: index, decoder: new ContentDecoder(), started: new Set(), ended: new Set(), resolved: new Map(), approved: 0 };
           active.set(index, slot);
           slots.push(slot);
           return slot;
@@ -144,12 +148,34 @@ export function decodeProviderOutput(
           }
           return slot;
         };
-        const slotLength = (slot: Slot): number => slot.kind === 'native' ? 1 : slot.decoder.snapshot().content.length;
+        const approveClosed = (slot: TextSlot): void => {
+          const parts = slot.decoder.completedParts();
+          if (parts.length <= slot.approved) return;
+          try {
+            const references = new Map(slot.decoder.resourceReferences());
+            if (catalog) validateLoadedComponents({ content: parts.map((part, index) => index < slot.approved ? { type: 'text' }
+              : references.has(index) ? { ...part, props: references.get(index)!.props } : part) }, catalog);
+            slot.approved = parts.length;
+          } catch (error) {
+            const index = error instanceof ContentOutputError ? Number(error.issueDetails[0]?.path.match(/^\/content\/(\d+)/)?.[1]) : NaN;
+            if (Number.isInteger(index)) slot.approved = index;
+            throw error;
+          }
+        };
+        const feed = (slot: TextSlot, delta: string): ContentDelta[] => {
+          try { return slot.decoder.feed(delta); } finally { approveClosed(slot); }
+        };
+        const stableParts = (slot: TextSlot): MixedContent['content'] => {
+          const parts = slot.decoder.completedParts().slice(0, slot.approved).map((part, index) => slot.resolved.get(index) ?? part);
+          const pending = parts.findIndex(part => part.type !== 'text' && part.pending === true);
+          return pending < 0 ? parts : parts.slice(0, pending);
+        };
+        const slotLength = (slot: Slot): number => slot.kind === 'native' ? 1 : stableParts(slot).length;
         const offset = (slot: Slot): number => slots.slice(0, slots.indexOf(slot)).reduce((size, item) => size + slotLength(item), 0);
         const visible = (message: AssistantMessage): AssistantMessage => {
           const content: AssistantContent[] = slots.flatMap<AssistantContent>(slot => {
             if (slot.kind === 'native') return [structuredClone(slot.part)];
-            return slot.decoder.snapshot().content.map((input, index) => { const part = slot.resolved.get(index) ?? input; return part.type === 'text' && slot.signature
+            return stableParts(slot).map(part => { return part.type === 'text' && slot.signature
               ? { ...part, textSignature: slot.signature } : structuredClone(part);
             });
           });
@@ -159,15 +185,17 @@ export function decodeProviderOutput(
         };
         const updates = function* (slot: TextSlot, changes: ContentDelta[], message: AssistantMessage): Generator<AssistantMessageEvent> {
           for (const change of changes) {
+            // 未闭合文字和组件草稿不是用户正文，不发送其 delta/占位。
+            if (change.type === 'text' || change.type === 'update') continue;
             const index = offset(slot) + change.index;
-            const part = slot.decoder.snapshot().content[change.index];
+            const part = stableParts(slot)[change.index];
+            if (!part) continue;
             if (part?.type === 'text' && !slot.started.has(change.index)) {
               slot.started.add(change.index);
               yield { type: 'text_start', contentIndex: index, partial: visible(message) };
             }
-            if (change.type === 'text') {
-              yield { type: 'text_delta', contentIndex: index, delta: change.delta, partial: visible(message) };
-            } else if (change.type === 'text_end') {
+            if (change.type === 'text_end') {
+              yield { type: 'text_delta', contentIndex: index, delta: change.part.text, partial: visible(message) };
               if (!slot.ended.has(change.index)) {
                 slot.ended.add(change.index);
                 yield { type: 'text_end', contentIndex: index, content: change.part.text, partial: visible(message) };
@@ -199,7 +227,7 @@ export function decodeProviderOutput(
           } else if (event.type === 'text_delta') {
             const slot = textAt(event.contentIndex);
             if (!parseError) {
-              try { yield* updates(slot, slot.decoder.feed(event.delta), event.partial); yield* resolveReferences(slot, event.partial); }
+              try { yield* updates(slot, feed(slot, event.delta), event.partial); yield* resolveReferences(slot, event.partial); }
               catch (error) { parseError = error; parseErrorSlot = slot; }
             }
           } else if (event.type === 'text_end') {
@@ -218,7 +246,7 @@ export function decodeProviderOutput(
               else if (part.type === 'text' && !active.has(index) && !parseError) {
                 const slot = beginText(index);
                 if (part.textSignature) slot.signature = part.textSignature;
-                try { yield* updates(slot, slot.decoder.feed(part.text), event.message); yield* resolveReferences(slot, event.message); slot.final = slot.decoder.finish(); }
+                try { yield* updates(slot, feed(slot, part.text), event.message); yield* resolveReferences(slot, event.message); slot.final = slot.decoder.finish(); }
                 catch (error) { parseError = error; parseErrorSlot = slot; }
               }
             }
@@ -229,6 +257,8 @@ export function decodeProviderOutput(
             if (event.reason === 'deferred') { yield { ...event, message: visible(event.message) }; return; }
             try {
               if (parseError) throw parseError;
+              if (!slots.some(slot => slot.kind === 'mixed')) throw new ContentOutputError('模型没有生成有效正文。', 'schema', [],
+                [{ path: '/content', rule: 'empty_output', message: '响应没有正文内容' }], 'empty_output');
               const content = deriveNextTypes(slots.flatMap(slot => slot.kind === 'mixed' ? (slot.final ?? slot.decoder.finish()).content.map((part, index) => slot.resolved.get(index) ?? part) : []));
               validateMixedContent({ content });
               if (event.reason !== 'stop' && event.reason !== 'length') throw new ContentOutputError('模型输出未正常结束。', 'truncated');

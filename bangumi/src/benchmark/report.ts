@@ -20,6 +20,9 @@ export interface CaseComparison {
 export const COMPARISON_METRICS: Array<keyof RunMetrics> = [
   'mcpCalls', 'mcpMs', 'mcpInitializationMs', 'upstreamRequests', 'contextInputTokensMax', 'contextInputTokensSum', 'inputTokensSum', 'outputTokensSum',
   'cacheReadTokensSum', 'modelToolResultBytes', 'totalMs', 'modelMs', 'estimatedCost',
+  'outputErrors', 'blankOutputErrors', 'schemaOutputErrors', 'jsonOutputErrors', 'modelErrors', 'terminalModelErrors',
+  'recoveryScheduled', 'recoveryRunning', 'recoveryRecovered', 'recoveryStopped', 'strictToolsSent',
+  'initialToolCount', 'initialToolSchemaBytes', 'initialProviderPayloadBytes', 'validatedFinals', 'prefixDuplications',
 ];
 export function median(values: number[]): number | null {
   if (!values.length) return null;
@@ -132,6 +135,8 @@ export async function writeReport(directory: string, suite: SuiteResult, baselin
   const evidence = protocol.offline === true ? '脚本模型＋固定上游（离线 smoke）'
     : suite.observations[0]?.mode === 'live-read' || protocol.mode === 'live-read' ? '真实模型＋在线只读上游' : '真实模型＋固定上游';
   const data = { schemaVersion: 1, protocolHash: suite.protocolHash,
+    evidenceNotes: ['runtime 输出及恢复计数不替代浏览器 SSE 验证；UI 证据须使用专属 Web 测试。',
+      'strictToolsSent 只统计实际模型请求声明的 strict 标记，脚本模型不证明服务端遵守 Schema。'],
     summary: { ...summarize(suite.observations), plannedRuns, pendingRuns }, comparison };
   await writeFile(join(directory, 'comparison.json'), JSON.stringify(traceRedact(data), null, 2) + '\n');
   const cards = suite.observations.map((run, index) => {
@@ -160,6 +165,7 @@ export async function writeReport(directory: string, suite: SuiteResult, baselin
     + '<p class="meta">' + escape(record(suite.manifest).label ?? 'benchmark') + ' · ' + escape(suite.observations[0]?.model)
     + ' · thinking=' + escape(suite.observations[0]?.thinking) + ' · ' + escape(suite.startedAt) + '</p>'
     + '<p>' + escape(evidence) + (pendingRuns ? '；尚有' + pendingRuns + '项计划未完成，不能作为完整套件基线。' : '') + '</p>'
+    + '<p>恢复模式：' + escape(protocol.retry ?? 'disabled') + '。中间错误单独计数，成功恢复不视为终态失败。runtime指标不替代浏览器SSE和前端展示验证；脚本模型不证明服务端执行strict约束。</p>'
     + '<div class="stats"><div>已记录 / 计划<b>' + data.summary.runs + ' / ' + plannedRuns + '</b></div><div>自动硬判通过率<b>'
     + (data.summary.passRate === null ? '不可用' : (data.summary.passRate * 100).toFixed(0) + '%')
     + '</b></div><div>按场景宏平均<b>' + (data.summary.macroFamilyPassRate === null ? '不可用' : (data.summary.macroFamilyPassRate * 100).toFixed(0) + '%')

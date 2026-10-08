@@ -155,12 +155,14 @@ test('本人认证障碍不换关键词绕过，但公共SFW与新真实用户�
 });
 
 test('extension同一真实用户任务复用turnId，结束清理，新输入换范围', async () => {
-  const events = new Map(); const tools = new Map(); const calls = []; const ended = [];
+  const events = new Map(); const tools = new Map(); const calls = []; const ended = []; let activeTools = [];
   const client = { call: async (...args) => { calls.push(args); throw new AppError('BGM_HTTP_404', '固定失败'); },
     endReadContext: async turnId => { ended.push(turnId); }, close: async () => {} };
   createBangumiExtension({ authDir: 'unused', timeoutMs: 1000, proxy: null, client })({
     on: (event, handler) => { const rows = events.get(event) ?? []; rows.push(handler); events.set(event, rows); },
     registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {}, appendEntry: () => {},
+    getAllTools: () => [...tools.values()], getActiveTools: () => activeTools,
+    setActiveTools: names => { activeTools = names; },
     getSessionName: () => 'offline test', setSessionName: () => {},
   });
   const emit = async (event, payload = {}) => { for (const handler of events.get(event) ?? []) await handler(payload, {}); };
