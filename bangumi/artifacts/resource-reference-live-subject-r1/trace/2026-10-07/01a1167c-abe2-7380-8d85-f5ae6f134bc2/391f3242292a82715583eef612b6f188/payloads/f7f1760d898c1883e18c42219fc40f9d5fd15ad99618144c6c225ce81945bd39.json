@@ -1,1 +1,0 @@
-{"content":[{"text":"这是只读验收。查询 Bangumi 作品 253 的详情，先用默认字段查询，再从本轮资源缓存按需读取名称和评分（至少调用一次 read_cached_resource）。最后用 SubjectCards 的资源引用 props 展示它，卡片要有缓存中的封面、简介、评分与链接；不要在最终模型 JSON 中抄写缓存展示字段。请简要说明作品名称和评分，不修改账户数据。","type":"text"}],"role":"user","timestamp":1791378634558}

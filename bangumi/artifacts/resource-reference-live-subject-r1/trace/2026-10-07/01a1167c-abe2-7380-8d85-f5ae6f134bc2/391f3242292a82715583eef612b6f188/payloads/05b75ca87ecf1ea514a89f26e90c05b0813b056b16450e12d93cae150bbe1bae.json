@@ -1,1 +1,0 @@
-{"content":[{"text":"Validation failed for tool \"get_subject_details\":\n  - include: schema is false\n  - root: must not have additional properties\n\nReceived arguments:\n{\n  \"subject_id\": 253,\n  \"include\": [\n    \"summary\"\n  ]\n}","type":"text"}],"details":{}}

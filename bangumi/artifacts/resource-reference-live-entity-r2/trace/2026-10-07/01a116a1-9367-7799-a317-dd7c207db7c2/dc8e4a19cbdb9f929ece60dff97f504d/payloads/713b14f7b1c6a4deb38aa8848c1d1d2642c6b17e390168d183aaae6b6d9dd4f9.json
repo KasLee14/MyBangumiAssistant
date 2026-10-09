@@ -1,1 +1,0 @@
-{"content":[{"text":"这是只读验收。查询 Bangumi 人物 1 和角色 1 的公开详情，使用字段读取取得名称，至少对一个资源调用 read_cached_resource，然后用 Gallery 的资源引用 props 展示两者的图片、名称和链接。最后说明各自实体类型，保持人物与角色的身份区别。不修改账户数据。","type":"text"}],"role":"user","timestamp":1791381051124}

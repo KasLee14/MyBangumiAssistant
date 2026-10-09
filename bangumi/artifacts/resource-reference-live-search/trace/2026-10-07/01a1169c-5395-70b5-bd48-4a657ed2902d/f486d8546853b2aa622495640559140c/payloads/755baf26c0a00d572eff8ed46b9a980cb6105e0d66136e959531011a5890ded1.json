@@ -1,1 +1,0 @@
-{"thinking":"Let me start by searching for the anime \"星际牛仔\".\n\nI'll call search_subjects with keyword \"星际牛仔\", subject_type 2, limit maybe 10 (default 30). Let me use fields for default primary key projection - \"先读取默认主键投影\" means default fields (id). Then use read_cached_resource to get name and score.\n\nLet me do the search first.","type":"thinking"}
