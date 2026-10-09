@@ -1,0 +1,155 @@
+{
+  "caseId": "card-style-followup",
+  "repeat": 2,
+  "outcome": "failed",
+  "captureIssues": [],
+  "failedRules": [
+    {
+      "rule": {
+        "kind": "component",
+        "turn": 0,
+        "type": "SubjectCards"
+      },
+      "passed": false,
+      "detail": "完整组件：SubjectCards"
+    }
+  ],
+  "modelRequests": 12,
+  "toolErrors": 5,
+  "displayLoadoutMismatches": 6,
+  "renderedComponents": 0,
+  "activatedDisplaySets": [
+    {
+      "userTurn": 1,
+      "names": [
+        "render_SubjectCards"
+      ],
+      "responseBytes": 83,
+      "containsSchema": false
+    }
+  ],
+  "turns": [
+    {
+      "status": "completed",
+      "completion": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 10,
+        "httpAtSettled": 10,
+        "modelAtCommit": 10,
+        "modelAtSettled": 10
+      },
+      "canonicalTypes": [
+        "text"
+      ],
+      "jsonLiteral": true,
+      "renderLiteral": true,
+      "tools": [
+        {
+          "name": "read_component_spec",
+          "error": false,
+          "issue": null
+        },
+        {
+          "name": "get_subject_details",
+          "error": false,
+          "issue": null
+        },
+        {
+          "name": "read",
+          "error": false,
+          "issue": null
+        },
+        {
+          "name": "discover_bangumi_tools",
+          "error": false,
+          "issue": null
+        },
+        {
+          "name": "get_subject_comments",
+          "error": true,
+          "issue": "/include：最多1项"
+        },
+        {
+          "name": "get_subject_reviews",
+          "error": false,
+          "issue": null
+        },
+        {
+          "name": "get_subject_comments",
+          "error": false,
+          "issue": null
+        },
+        {
+          "name": "discover_bangumi_tools",
+          "error": true,
+          "issue": "Tool discover_bangumi_tools not found"
+        },
+        {
+          "name": "discover_bangumi_tools",
+          "error": true,
+          "issue": "Tool discover_bangumi_tools not found"
+        },
+        {
+          "name": "read_component_spec",
+          "error": true,
+          "issue": "Tool read_component_spec not found"
+        },
+        {
+          "name": "read_component_spec",
+          "error": true,
+          "issue": "Tool read_component_spec not found"
+        }
+      ]
+    },
+    {
+      "status": "completed",
+      "completion": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 11,
+        "httpAtSettled": 11,
+        "modelAtCommit": 11,
+        "modelAtSettled": 11
+      },
+      "canonicalTypes": [
+        "text"
+      ],
+      "jsonLiteral": false,
+      "renderLiteral": false,
+      "tools": []
+    },
+    {
+      "status": "completed",
+      "completion": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 12,
+        "httpAtSettled": 12,
+        "modelAtCommit": 12,
+        "modelAtSettled": 12
+      },
+      "canonicalTypes": [
+        "text"
+      ],
+      "jsonLiteral": false,
+      "renderLiteral": false,
+      "tools": []
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\candidate\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11cf4-4389-7781-820f-868ece4d8a8e\\1813ad9332e3dfa6acd5a664acf9cab9",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\candidate\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11cf4-4389-7781-820f-868ece4d8a8e\\19f242b83047fbf34e9fac6a60c63111",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\candidate\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11cf4-4389-7781-820f-868ece4d8a8e\\ff3a51143748d2429c4f2a33ac77e996"
+  ],
+  "inferredRootCause": "Business read-recovery allowlist in output/recovery.ts:411 drops pure presentation and component-definition active tools. Initial selected render declaration exists then disappears after business INVALID_INPUT; loader not found and literal text replaces required card."
+}

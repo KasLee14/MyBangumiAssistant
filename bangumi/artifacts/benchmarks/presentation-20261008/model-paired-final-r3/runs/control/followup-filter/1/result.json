@@ -1,0 +1,1142 @@
+{
+  "schemaVersion": 1,
+  "caseId": "followup-filter",
+  "family": "multi-turn",
+  "variant": "control",
+  "repeat": 1,
+  "protocolHash": "a3a071371b27bf6abaa37a9f17241c9e8f725f06e8491123913cc152535b50eb",
+  "versionHash": "06fe7fd155181c366aaab1ad2394a260041b9bdfd863c4c2c3279773a4ab35f6",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "介绍条目1001、1002和1005的名称、评分及作品形式，给出链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "已查到条目 1001、1002、1005，按此顺序给出作品卡片：",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1002,
+                  "name": "玻璃海的回声",
+                  "kind": "anime",
+                  "nameCn": "玻璃海的回声",
+                  "image": "https://example.invalid/benchmark/1002.png",
+                  "score": 8.1,
+                  "scoreCount": 3000,
+                  "rank": 2,
+                  "date": "2024-04-12",
+                  "summary": "玻璃海的回声讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1002"
+                }
+              ]
+            }
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1005,
+                  "name": "星港追踪 第二季",
+                  "kind": "anime",
+                  "nameCn": "星港追踪 第二季",
+                  "image": "https://example.invalid/benchmark/1005.png",
+                  "score": 7.6,
+                  "scoreCount": 3000,
+                  "rank": 5,
+                  "date": "2024-10-05",
+                  "summary": "星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1005"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "**评分**：依次为 8.4（条目1001）、8.1（条目1002）、7.6（条目1005），对应排名第 1、2、5 位，三者评分人数均约 3000。\n\n**作品形式**：三者条目类型均为动画（subjectType=2）；其中条目1001 与条目1005 为 TV 系列（各 12 集），条目1002 为剧场版（Movie）。\n\n**链接**：依次为 https://bgm.tv/subject/1001 、 https://bgm.tv/subject/1002 、 https://bgm.tv/subject/1005 。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "已查到条目 1001、1002、1005，按此顺序给出作品卡片：\n1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n1002\n玻璃海的回声\nanime\n玻璃海的回声\n8.1\n3000\n2\n2024-04-12\n玻璃海的回声讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1002\n1005\n星港追踪 第二季\nanime\n星港追踪 第二季\n7.6\n3000\n5\n2024-10-05\n星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1005\n**评分**：依次为 8.4（条目1001）、8.1（条目1002）、7.6（条目1005），对应排名第 1、2、5 位，三者评分人数均约 3000。\n\n**作品形式**：三者条目类型均为动画（subjectType=2）；其中条目1001 与条目1005 为 TV 系列（各 12 集），条目1002 为剧场版（Movie）。\n\n**链接**：依次为 https://bgm.tv/subject/1001 、 https://bgm.tv/subject/1002 、 https://bgm.tv/subject/1005 。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "ratingCount",
+              "rank",
+              "subjectType",
+              "platform",
+              "date",
+              "url",
+              "totalEpisodes"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:35:55.641Z"
+              },
+              "resourceRef": "rr_b20b42acd91582e871a8ca26d74a94e6",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "ratingCount",
+                "rank",
+                "subjectType",
+                "platform",
+                "date",
+                "url",
+                "totalEpisodes"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1002,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "ratingCount",
+              "rank",
+              "subjectType",
+              "platform",
+              "date",
+              "url",
+              "totalEpisodes"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1002,
+              "subjectType": 2,
+              "name": "玻璃海的回声",
+              "nameCn": "玻璃海的回声",
+              "date": "2024-04-12",
+              "platform": "Movie",
+              "score": 8.1,
+              "rank": 2,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "url": "https://bgm.tv/subject/1002",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:35:55.727Z"
+              },
+              "resourceRef": "rr_3c62bebf9837339dfb484d1aa97ac1f8",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "ratingCount",
+                "rank",
+                "subjectType",
+                "platform",
+                "date",
+                "url",
+                "totalEpisodes"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1005,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "ratingCount",
+              "rank",
+              "subjectType",
+              "platform",
+              "date",
+              "url",
+              "totalEpisodes"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1005,
+              "subjectType": 2,
+              "name": "星港追踪 第二季",
+              "nameCn": "星港追踪 第二季",
+              "date": "2024-10-05",
+              "platform": "TV",
+              "score": 7.6,
+              "rank": 5,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "url": "https://bgm.tv/subject/1005",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:35:55.740Z"
+              },
+              "resourceRef": "rr_e1ce4618552b8b36e5ab705014c314ab",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "ratingCount",
+                "rank",
+                "subjectType",
+                "platform",
+                "date",
+                "url",
+                "totalEpisodes"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品卡片 名称 评分"
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "entries": [],
+            "total": 0,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "category": "作品",
+            "limit": 12
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 2,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ],
+            "representation": "reference"
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用",
+                "representation": "reference",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "selectionReason": "模型明确选择此形式",
+                "required": [
+                  "resourceRef"
+                ],
+                "props": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "subjectId": {
+                            "type": "number"
+                          },
+                          "episodeId": {
+                            "type": "number"
+                          },
+                          "characterId": {
+                            "type": "number"
+                          },
+                          "personId": {
+                            "type": "number"
+                          },
+                          "revisionId": {
+                            "type": "number"
+                          },
+                          "targetId": {
+                            "type": "number"
+                          },
+                          "relationId": {
+                            "type": "number"
+                          },
+                          "ownerId": {
+                            "type": "number"
+                          },
+                          "entity": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "targetKind": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "username": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "partIndex": {
+                      "type": "number"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    }
+                  }
+                },
+                "canonicalContract": "宿主完成结果独立使用严格COMPONENT_PAYLOAD_SCHEMAS校验；内部展开字段不是本次生成props字段。只填写上面唯一props契约，禁止混用reference与inline。",
+                "requestedFacts": "用户要求的事实若没有此props合法字段（例如SubjectCards没有总集数字段），在text或另读InfoBox等组件交付；不能新增字段，也不能把组件合法当成请求全部完成。修复时保留未完成事实要求。",
+                "envelopeExample": {
+                  "content": [
+                    {
+                      "type": "SubjectCards",
+                      "props": {
+                        "resourceRef": "rr_example"
+                      }
+                    }
+                  ]
+                },
+                "exampleNote": "示例仅说明content根对象和组件嵌套形状，不是事实。rr_example须替换为本轮适用缓存引用；inline示例值须替换为已获得信息。",
+                "representationUsage": "只填引用props允许的字段，禁止加入inline的total、hint等字段；items仅选择本引用的主键成员，不能抄入name等实体事实。已准备presentation仅提供resourceRef和必要的partIndex，不覆盖快照。需要直接字段时重新读取representation=inline。",
+                "constraints": [
+                  "推荐少量作品优先layout=grid；紧凑核对列表可用list",
+                  "items仅填写props.items声明的成员主键，不填名称、媒体类型、图片等实体事实"
+                ]
+              }
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 2,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [
+                "SubjectCards"
+              ],
+              "representations": {
+                "SubjectCards": "reference"
+              },
+              "contracts": {
+                "SubjectCards": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 23767.674600000002
+    },
+    {
+      "prompt": "还是刚才这三部，只保留TV动画，给出名称和链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "按“仅 TV 动画”筛选后，条目1002（剧场版 Movie）已排除，余下两部为：",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1005,
+                  "name": "星港追踪 第二季",
+                  "kind": "anime",
+                  "nameCn": "星港追踪 第二季",
+                  "image": "https://example.invalid/benchmark/1005.png",
+                  "score": 7.6,
+                  "scoreCount": 3000,
+                  "rank": 5,
+                  "date": "2024-10-05",
+                  "summary": "星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1005"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "链接：\n- https://bgm.tv/subject/1001\n- https://bgm.tv/subject/1005",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "按“仅 TV 动画”筛选后，条目1002（剧场版 Movie）已排除，余下两部为：\n1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n1005\n星港追踪 第二季\nanime\n星港追踪 第二季\n7.6\n3000\n5\n2024-10-05\n星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1005\n链接：\n- https://bgm.tv/subject/1001\n- https://bgm.tv/subject/1005",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "subjectType",
+              "platform",
+              "url",
+              "score"
+            ],
+            "subject_id": 1001
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "platform": "TV",
+              "score": 8.4,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:36:08.913Z"
+              },
+              "resourceRef": "rr_9946951aae486115800188e6f7616994",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "subjectType",
+                "platform",
+                "url",
+                "score"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "subjectType",
+              "platform",
+              "url",
+              "score"
+            ],
+            "subject_id": 1005
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1005,
+              "subjectType": 2,
+              "name": "星港追踪 第二季",
+              "nameCn": "星港追踪 第二季",
+              "platform": "TV",
+              "score": 7.6,
+              "url": "https://bgm.tv/subject/1005",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:36:08.926Z"
+              },
+              "resourceRef": "rr_72e1149417aa04e5193a43b4d382cadd",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "subjectType",
+                "platform",
+                "url",
+                "score"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 6015.279999999999
+    }
+  ],
+  "metrics": {
+    "totalMs": 29884.1894,
+    "startupMs": 8753.9679,
+    "modelRequests": 7,
+    "providerHttpRequests": 7,
+    "proposedToolCalls": 8,
+    "toolExecutions": 8,
+    "toolErrors": 0,
+    "mcpCalls": 5,
+    "mcpMs": 10727.1513,
+    "mcpInitializationMs": 10634.3771,
+    "cacheRpcCalls": 5,
+    "rpcDispatches": 10,
+    "upstreamRequests": 5,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 2.745199999997567,
+    "modelMs": 17617.7497,
+    "providerPayloadBytesMax": 50199,
+    "inputTokensMax": 6876,
+    "inputTokensSum": 19745,
+    "contextInputTokensMax": 12835,
+    "contextInputTokensSum": 69793,
+    "reasoningTokensSum": 2468,
+    "outputTokensSum": 3624,
+    "cacheReadTokensSum": 50048,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 73417,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 9065,
+    "firstTextMs": 23020.8549,
+    "firstCompleteResultMs": 23752.5477,
+    "providerFirstTextMs": 23020.8549,
+    "firstPublishedBlockMs": null,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 6876,
+        "contextInputTokens": 7516,
+        "reasoningTokens": 241,
+        "outputTokens": 541,
+        "cacheReadTokens": 640,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8057,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 28047,
+        "durationMs": 2343.3446000000004,
+        "firstTextMs": null,
+        "firstThinkingMs": 377.27189999999973,
+        "visibleThinkingMs": 1225.5361000000012,
+        "thinkingChars": 610,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 1057,
+        "contextInputTokens": 8993,
+        "reasoningTokens": 42,
+        "outputTokens": 98,
+        "cacheReadTokens": 7936,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9091,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 33967,
+        "durationMs": 760.6640999999981,
+        "firstTextMs": null,
+        "firstThinkingMs": 326.0583000000006,
+        "visibleThinkingMs": 293.72069999999803,
+        "thinkingChars": 93,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 162,
+        "contextInputTokens": 9250,
+        "reasoningTokens": 77,
+        "outputTokens": 137,
+        "cacheReadTokens": 9088,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9387,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 35086,
+        "durationMs": 928.891300000003,
+        "firstTextMs": null,
+        "firstThinkingMs": 366.89620000000286,
+        "visibleThinkingMs": 427.8936999999969,
+        "thinkingChars": 204,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 735,
+        "contextInputTokens": 10079,
+        "reasoningTokens": 1539,
+        "outputTokens": 1825,
+        "cacheReadTokens": 9344,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11904,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 38856,
+        "durationMs": 8127.3321,
+        "firstTextMs": 7395.599399999999,
+        "firstThinkingMs": 398.28670000000056,
+        "visibleThinkingMs": 6885.711599999999,
+        "thinkingChars": 3045,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 3781,
+        "contextInputTokens": 11845,
+        "reasoningTokens": 363,
+        "outputTokens": 513,
+        "cacheReadTokens": 8064,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12358,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 46039,
+        "durationMs": 2640.1910999999964,
+        "firstTextMs": null,
+        "firstThinkingMs": 498.1892999999982,
+        "visibleThinkingMs": 1794.0354999999981,
+        "thinkingChars": 794,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 547,
+        "contextInputTokens": 12835,
+        "reasoningTokens": 118,
+        "outputTokens": 277,
+        "cacheReadTokens": 12288,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13112,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 50199,
+        "durationMs": 1543.9105000000054,
+        "firstTextMs": null,
+        "firstThinkingMs": 336.3365000000049,
+        "visibleThinkingMs": 698.3646999999983,
+        "thinkingChars": 246,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 6587,
+        "contextInputTokens": 9275,
+        "reasoningTokens": 88,
+        "outputTokens": 233,
+        "cacheReadTokens": 2688,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9508,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 38833,
+        "durationMs": 1273.4159999999974,
+        "firstTextMs": 956.3006000000023,
+        "firstThinkingMs": 320.60089999999764,
+        "visibleThinkingMs": 461.28020000000106,
+        "thinkingChars": 191,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 1,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 1,
+    "modelErrors": 1,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 1,
+    "recoveryRunning": 1,
+    "recoveryRecovered": 1,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 38,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11430,
+    "initialProviderPayloadBytes": 28047,
+    "validatedFinals": 2,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "turn": 0,
+          "exact": [
+            1001,
+            1002,
+            1005
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001,1002,1005"
+      },
+      {
+        "rule": {
+          "kind": "subjects",
+          "turn": 1,
+          "exact": [
+            1001,
+            1005
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001,1005"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791477355644.9338,
+      "elapsedMs": 3112.6986000000006,
+      "durationMs": 1.880299999998897,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791477355728.9617,
+      "elapsedMs": 3196.726300000001,
+      "durationMs": 0.227999999999156,
+      "source": "fixture",
+      "path": "/v0/subjects/1002",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1002,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 3,
+      "timestampMs": 1791477355741.5845,
+      "elapsedMs": 3209.3491999999997,
+      "durationMs": 0.2048000000013417,
+      "source": "fixture",
+      "path": "/v0/subjects/1005",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1005,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 4,
+      "timestampMs": 1791477368914.8032,
+      "elapsedMs": 16382.5678,
+      "durationMs": 0.22249999999985448,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 5,
+      "timestampMs": 1791477368927.3552,
+      "elapsedMs": 16395.120000000003,
+      "durationMs": 0.2095999999983178,
+      "source": "fixture",
+      "path": "/v0/subjects/1005",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1005,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-paired-final-r3\\runs\\control\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c5e-dd5b-7014-ad5c-615881a4003b\\98d4f495b059b245346b7a1383542c16",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-paired-final-r3\\runs\\control\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c5e-dd5b-7014-ad5c-615881a4003b\\e63edd828ef478812371ae02a2bc37fb"
+  ],
+  "captureIssues": []
+}

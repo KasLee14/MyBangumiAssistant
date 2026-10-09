@@ -1,0 +1,128 @@
+[
+  {
+    "variant": "control",
+    "event": "llm.start",
+    "model": {
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "api": "openai-completions"
+    },
+    "thinking": "high"
+  },
+  {
+    "variant": "control",
+    "event": "llm.provider_request",
+    "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-paired-final\\runs\\control\\facts-basic\\1\\tracelog\\2026-10-09\\01a11c3e-50e4-763b-9853-33fbea0097f5\\42237e94ee5901a04cb7a6d59cbf6f48\\payloads\\1d804b3f8569d6d52404398ff93c924a92e62d32101dac90041315c0e8b5033f.json",
+    "model": "deepseek-flash",
+    "responseFormat": "json_object",
+    "tools": [
+      "discover_bangumi_tools",
+      "read_component_index",
+      "read_component_spec",
+      "execute_write_batch",
+      "read",
+      "get_subject_details"
+    ],
+    "presentationTools": []
+  },
+  {
+    "variant": "control",
+    "event": "tool.proposed",
+    "tool": "get_subject_details"
+  },
+  {
+    "variant": "control",
+    "event": "llm.start",
+    "model": {
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "api": "openai-completions"
+    },
+    "thinking": "high"
+  },
+  {
+    "variant": "control",
+    "event": "llm.provider_request",
+    "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-paired-final\\runs\\control\\facts-basic\\1\\tracelog\\2026-10-09\\01a11c3e-50e4-763b-9853-33fbea0097f5\\42237e94ee5901a04cb7a6d59cbf6f48\\payloads\\92956c4457282d8e0ad2d2af76c331389a987666193fc294deab2affa99571bd.json",
+    "model": "deepseek-flash",
+    "responseFormat": "json_object",
+    "tools": [
+      "discover_bangumi_tools",
+      "read_component_index",
+      "read_component_spec",
+      "execute_write_batch",
+      "read",
+      "get_subject_details"
+    ],
+    "presentationTools": []
+  },
+  {
+    "variant": "control",
+    "event": "tool.proposed",
+    "tool": "read_component_index"
+  },
+  {
+    "variant": "control",
+    "event": "tool.proposed",
+    "tool": "read_component_spec"
+  },
+  {
+    "variant": "control",
+    "event": "llm.start",
+    "model": {
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "api": "openai-completions"
+    },
+    "thinking": "high"
+  },
+  {
+    "variant": "control",
+    "event": "llm.provider_request",
+    "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-paired-final\\runs\\control\\facts-basic\\1\\tracelog\\2026-10-09\\01a11c3e-50e4-763b-9853-33fbea0097f5\\42237e94ee5901a04cb7a6d59cbf6f48\\payloads\\6106e7cc7c5022706b1912c94c322aa7a8d22d81b9aba4b098fdfd10d2e078c5.json",
+    "model": "deepseek-flash",
+    "responseFormat": "json_object",
+    "tools": [
+      "discover_bangumi_tools",
+      "read_component_index",
+      "read_component_spec",
+      "execute_write_batch",
+      "read",
+      "get_subject_details"
+    ],
+    "presentationTools": []
+  },
+  {
+    "variant": "candidate",
+    "event": "llm.start",
+    "model": {
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "api": "openai-completions"
+    },
+    "thinking": "high"
+  },
+  {
+    "variant": "candidate",
+    "event": "llm.provider_request",
+    "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-paired-final\\runs\\candidate\\facts-basic\\1\\tracelog\\2026-10-09\\01a11c3e-c79d-7053-b860-c19671bb55f8\\01d51aac988c74d1e9d5a53dc80fa382\\payloads\\549af7798dd3bd573d1721669a30b2d3d82fdf1dc05d6ccd02270d8f9881be0b.json",
+    "model": "deepseek-flash",
+    "responseFormat": null,
+    "tools": [
+      "discover_bangumi_tools",
+      "read_component_index",
+      "read_component_spec",
+      "prepare_component",
+      "present_component",
+      "present_text",
+      "execute_write_batch",
+      "read",
+      "get_subject_details"
+    ],
+    "presentationTools": [
+      "prepare_component",
+      "present_component",
+      "present_text"
+    ]
+  }
+]

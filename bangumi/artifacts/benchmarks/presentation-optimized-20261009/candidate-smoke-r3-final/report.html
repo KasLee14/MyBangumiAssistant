@@ -1,0 +1,1001 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bangumi benchmark</title><style>body{max-width:1100px;margin:32px auto;padding:0 20px;font:15px/1.65 system-ui;color:#172033;background:#f8fafc}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #dbe2eb;text-align:left;overflow-wrap:anywhere}details.run{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:12px;margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:12px;border-radius:6px}input{width:100%;padding:10px;box-sizing:border-box}a{color:#2563eb}strong{color:#334155}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}.stats div{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:14px}.stats b{display:block;font-size:26px}.meta{overflow-wrap:anywhere}</style><h1>Bangumi benchmark</h1><p>自动硬判通过不等于语义评审通过。失败、超时和资料缺失均保留；性能差值只比较双方通过且指标可用的配对。API未返回的思考与token保持不可用。</p><p class="meta">benchmark · deepseek/deepseek-flash · thinking=high · 2026-10-08T19:49:25.885Z</p><p>真实模型＋固定上游</p><p>恢复模式：enabled。中间错误单独计数，成功恢复不视为终态失败。runtime指标不替代浏览器SSE和前端展示验证；脚本模型不证明服务端执行strict约束。</p><div class="stats"><div>已记录 / 计划<b>2 / 2</b></div><div>自动硬判通过率<b>100%</b></div><div>按场景宏平均<b>100%</b></div><div>待语义评审<b>0</b></div></div><details><summary>完整资源消耗与结果状态</summary><pre>{
+  &quot;runs&quot;: 2,
+  &quot;outcomes&quot;: {
+    &quot;passed&quot;: 2
+  },
+  &quot;passRate&quot;: 1,
+  &quot;firstRoundFailureRuns&quot;: 0,
+  &quot;firstRoundFailureRate&quot;: 0,
+  &quot;firstOutputAttemptFailureRuns&quot;: 0,
+  &quot;firstOutputAttemptFailureRate&quot;: 0,
+  &quot;macroFamilyPassRate&quot;: 1,
+  &quot;semanticPending&quot;: 0,
+  &quot;totals&quot;: {
+    &quot;modelRequests&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 7
+    },
+    &quot;proposedToolCalls&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 5
+    },
+    &quot;toolExecutions&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 5
+    },
+    &quot;toolErrors&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;mcpCalls&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 2
+    },
+    &quot;mcpMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 19519.3736
+    },
+    &quot;mcpInitializationMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 19212.6497
+    },
+    &quot;upstreamRequests&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 3
+    },
+    &quot;contextInputTokensMax&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 18823
+    },
+    &quot;contextInputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 62130
+    },
+    &quot;inputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 18610
+    },
+    &quot;outputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 3662
+    },
+    &quot;cacheReadTokensSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 43520
+    },
+    &quot;modelToolResultBytes&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 5082
+    },
+    &quot;totalMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 39968.639599999995
+    },
+    &quot;modelMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 18499.510499999997
+    },
+    &quot;estimatedCost&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;outputErrors&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;blankOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;schemaOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;jsonOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;modelErrors&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;terminalModelErrors&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryScheduled&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryRunning&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryRecovered&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryStopped&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;strictToolsSent&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;initialToolCount&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 12
+    },
+    &quot;initialToolSchemaBytes&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 23216
+    },
+    &quot;initialProviderPayloadBytes&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 53265
+    },
+    &quot;validatedFinals&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 4
+    },
+    &quot;prefixDuplications&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;localArgumentRepairs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;argumentRejections&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;schemaArgumentRejections&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;modelArgumentCorrections&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;preparedComponents&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;publishedComponents&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;providerFirstTextMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 33350.359599999996
+    },
+    &quot;firstTextMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 31920.345699999998
+    },
+    &quot;firstPublishedBlockMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 32338.497899999995
+    },
+    &quot;firstCompleteResultMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 32345.186799999996
+    },
+    &quot;renderedComponents&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 1
+    },
+    &quot;displaySchemaBytesSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 2149
+    },
+    &quot;displaySchemaBytesMax&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 2149
+    },
+    &quot;toolSchemaBytesSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 83404
+    },
+    &quot;toolSchemaBytesMax&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 25364
+    },
+    &quot;contextMessageBytesSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 125563
+    },
+    &quot;contextMessageBytesMax&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 41459
+    },
+    &quot;repeatedMessageBytesSum&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 82365
+    },
+    &quot;displayLoadoutMismatches&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    },
+    &quot;requestsAfterTerminalCommit&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 0
+    }
+  },
+  &quot;plannedRuns&quot;: 2,
+  &quot;pendingRuns&quot;: 0
+}</pre></details><h2>逐例证据</h2><input id="filter" placeholder="筛选案例、场景、版本或结果状态" aria-label="筛选运行记录"><details class="run" data-search="recovery-once recovery passed candidate"><summary>recovery-once · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/recovery-once/1/result.json">原始结果</a> <a href="runs/candidate/recovery-once/1/tracelog/2026-10-09/01a11d10-5b3b-7426-8ce4-ab0a981a2b67/c2735e2bc86e5c9d1e13771ee4c4aea8/summary.json">trace摘要</a></p><p>总耗时 13572ms；模型请求 2；MCP 1；上游 2；含缓存输入token 14897</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,6.9220255826178345 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>查询条目1001的评分和首播日期；若只读接口暂时失败，可以在有限次数内恢复，给出最终核实的信息。</p><pre>条目 1001《星港追踪》的只读查询一次即成功，未触发恢复重试。
+
+- 评分：**8.4**（评分人数 3000）
+- 首播日期：**2024-01-08**
+- 条目类型：动画（subjectType=2）
+
+说明：本次为匿名只读访问，未登录、NSFW 状态未检查；这两项数据均来自接口实际返回值，未做额外推断。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1001,
+      &quot;fields&quot;: [
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;ratingCount&quot;,
+        &quot;date&quot;,
+        &quot;subjectType&quot;,
+        &quot;nsfw&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;nsfw&quot;: false,
+        &quot;score&quot;: 8.4,
+        &quot;ratingCount&quot;: 3000,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T19:49:45.674Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_978ae63e9057525480241d7b66ec3813&quot;,
+        &quot;fields&quot;: [
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;ratingCount&quot;,
+          &quot;date&quot;,
+          &quot;subjectType&quot;,
+          &quot;nsfw&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 13572.0152,
+    &quot;startupMs&quot;: 8131.915599999999,
+    &quot;modelRequests&quot;: 2,
+    &quot;providerHttpRequests&quot;: 2,
+    &quot;proposedToolCalls&quot;: 1,
+    &quot;toolExecutions&quot;: 1,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 1,
+    &quot;mcpMs&quot;: 9893.258699999998,
+    &quot;mcpInitializationMs&quot;: 9657.195200000002,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 1,
+    &quot;upstreamRequests&quot;: 2,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 1.7111000000004424,
+    &quot;modelMs&quot;: 2920.295,
+    &quot;providerPayloadBytesMax&quot;: 28535,
+    &quot;inputTokensMax&quot;: 6709,
+    &quot;inputTokensSum&quot;: 6961,
+    &quot;contextInputTokensMax&quot;: 7676,
+    &quot;contextInputTokensSum&quot;: 14897,
+    &quot;reasoningTokensSum&quot;: 311,
+    &quot;outputTokensSum&quot;: 492,
+    &quot;cacheReadTokensSum&quot;: 7936,
+    &quot;cacheWriteTokensSum&quot;: 0,
+    &quot;totalTokensSum&quot;: 15389,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 905,
+    &quot;firstTextMs&quot;: 13078.212999999998,
+    &quot;firstCompleteResultMs&quot;: 13500.444999999998,
+    &quot;providerFirstTextMs&quot;: 13078.212999999998,
+    &quot;firstPublishedBlockMs&quot;: 13496.365199999998,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 11457,
+        &quot;repeatedMessageBytes&quot;: 0,
+        &quot;inputTokens&quot;: 6709,
+        &quot;contextInputTokens&quot;: 7221,
+        &quot;reasoningTokens&quot;: 131,
+        &quot;outputTokens&quot;: 213,
+        &quot;cacheReadTokens&quot;: 512,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7434,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 26640,
+        &quot;durationMs&quot;: 1012.1041999999998,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 236.65719999999965,
+        &quot;visibleThinkingMs&quot;: 573.7530000000006,
+        &quot;thinkingChars&quot;: 335,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 13352,
+        &quot;repeatedMessageBytes&quot;: 11454,
+        &quot;inputTokens&quot;: 252,
+        &quot;contextInputTokens&quot;: 7676,
+        &quot;reasoningTokens&quot;: 180,
+        &quot;outputTokens&quot;: 279,
+        &quot;cacheReadTokens&quot;: 7424,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7955,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 28535,
+        &quot;durationMs&quot;: 1908.1908000000003,
+        &quot;firstTextMs&quot;: 1487.8079999999973,
+        &quot;firstThinkingMs&quot;: 557.7150000000001,
+        &quot;visibleThinkingMs&quot;: 915.417599999997,
+        &quot;thinkingChars&quot;: 369,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 12,
+    &quot;initialToolCount&quot;: 6,
+    &quot;initialToolSchemaBytes&quot;: 11608,
+    &quot;initialProviderPayloadBytes&quot;: 26640,
+    &quot;validatedFinals&quot;: 1,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: false,
+    &quot;firstOutputAttemptFailed&quot;: false,
+    &quot;localArgumentRepairs&quot;: 0,
+    &quot;argumentRejections&quot;: 0,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 0,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0,
+    &quot;renderedComponents&quot;: 0,
+    &quot;displaySchemaBytesSum&quot;: 0,
+    &quot;displaySchemaBytesMax&quot;: 0,
+    &quot;toolSchemaBytesSum&quot;: 23216,
+    &quot;toolSchemaBytesMax&quot;: 11608,
+    &quot;contextMessageBytesSum&quot;: 24809,
+    &quot;contextMessageBytesMax&quot;: 13352,
+    &quot;repeatedMessageBytesSum&quot;: 11454,
+    &quot;userTurnInitialDisplaySchemas&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      }
+    ],
+    &quot;activatedDisplaySets&quot;: [],
+    &quot;displayLoadoutMismatches&quot;: 0,
+    &quot;requestsAfterTerminalCommit&quot;: 0
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791488985510.571,
+      &quot;elapsedMs&quot;: 2925.8653999999997,
+      &quot;durationMs&quot;: 1.3924000000006345,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 503,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    },
+    {
+      &quot;seq&quot;: 2,
+      &quot;timestampMs&quot;: 1791488985674.9634,
+      &quot;elapsedMs&quot;: 3090.257699999999,
+      &quot;durationMs&quot;: 0.3186999999998079,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: [
+            1001
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;evidence&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ],
+          &quot;fields&quot;: [
+            &quot;score&quot;,
+            &quot;date&quot;
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;实际模型可见字段：[[1001,[\&quot;score\&quot;,\&quot;date\&quot;]]]&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details>
+<details class="run" data-search="card-style-followup component-tools-followup passed candidate"><summary>card-style-followup · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/card-style-followup/1/result.json">原始结果</a> <a href="runs/candidate/card-style-followup/1/tracelog/2026-10-09/01a11d10-b18d-7263-8703-3ca89d762197/d964023175707769012ac004791bfee5/summary.json">trace摘要</a> <a href="runs/candidate/card-style-followup/1/tracelog/2026-10-09/01a11d10-b18d-7263-8703-3ca89d762197/dbfd68349124a8e4020ff5bc6f989229/summary.json">trace摘要</a> <a href="runs/candidate/card-style-followup/1/tracelog/2026-10-09/01a11d10-b18d-7263-8703-3ca89d762197/ec08f2fc99af2b347432b39094ca06d1/summary.json">trace摘要</a></p><p>总耗时 26397ms；模型请求 5；MCP 1；上游 1；含缓存输入token 47233</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,20.938322938322937 50,14.218895818895817 100,10.844444444444441 150,7.862323862323862 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>读取固定条目1001的基本资料和评分，用SubjectCards卡片展示，再讨论它的评分是否偏高。</p><pre>已读取条目 1001 的基本资料与评分字段（匿名公开读取，本次未涉及 NSFW 内容）。
+条目 1001 基本资料与评分
+1001
+星港追踪
+anime
+星港追踪
+8.4
+3000
+1
+2024-01-08
+星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。
+悬疑
+推理
+https://bgm.tv/subject/1001
+关于「8.4 分是否偏高」，按现有资料只能给出有限结论，理由如下：
+
+**支持「高分」的一面**
+- 显示分数 8.4，排名第 1，评分人数 3000，属于 Bangumi 的高分数段；12 集 TV 动画、2024-01-08 开播，标签集中在「悬疑／推理」（各 20 次）。
+
+**不能直接判定「偏高」的原因**
+- 评分分布只出现了「8 分」一档，且该档人数 3000 正好等于评分总人数（其余 1–7、9、10 档均为空）。按这份分布计算的均值应为 8.0，与报告的 8.4 不一致，说明分布字段与总分口径很可能不同，或分布数据本身不完整。因此**无法**据此计算高分（9–10）占比、低分占比或波动程度。
+- 排名第 1 与 8.4 分的组合本身不太寻常：通常分数会更高一些才对应榜首位置。这既可能是样本特殊，也可能是分数／排名口径与常规页面不同，现有字段不足以区分。
+- 判断「偏高」通常需要同类型作品的均分区间、分数分布明细等对照证据，这些尚未取得。
+
+**结论**：可以如实说「该条目显示的 8.4 分与第 1 名处于高分区」，但「评分偏高」这一评价目前证据不足，不宜下断言。如果你需要，我可以再查同类型（悬疑／推理 TV 动画）的分数作横向对照，或进一步核实该条目的评分分布来源。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1001,
+      &quot;fields&quot;: [
+        &quot;id&quot;,
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;image&quot;,
+        &quot;score&quot;,
+        &quot;rank&quot;,
+        &quot;ratingCount&quot;,
+        &quot;ratingDistribution&quot;,
+        &quot;subjectType&quot;,
+        &quot;date&quot;,
+        &quot;platform&quot;,
+        &quot;totalEpisodes&quot;,
+        &quot;summary&quot;,
+        &quot;tagStats&quot;,
+        &quot;tags&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;platform&quot;: &quot;TV&quot;,
+        &quot;score&quot;: 8.4,
+        &quot;rank&quot;: 1,
+        &quot;ratingCount&quot;: 3000,
+        &quot;totalEpisodes&quot;: 12,
+        &quot;tags&quot;: [
+          &quot;悬疑&quot;,
+          &quot;推理&quot;
+        ],
+        &quot;image&quot;: &quot;https://example.invalid/benchmark/1001.png&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;,
+          &quot;ratingDistribution&quot;,
+          &quot;tagStats&quot;
+        ],
+        &quot;summary&quot;: &quot;星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。&quot;,
+        &quot;ratingDistribution&quot;: {
+          &quot;1&quot;: null,
+          &quot;2&quot;: null,
+          &quot;3&quot;: null,
+          &quot;4&quot;: null,
+          &quot;5&quot;: null,
+          &quot;6&quot;: null,
+          &quot;7&quot;: null,
+          &quot;8&quot;: 3000,
+          &quot;9&quot;: null,
+          &quot;10&quot;: null
+        },
+        &quot;tagStats&quot;: [
+          {
+            &quot;name&quot;: &quot;悬疑&quot;,
+            &quot;count&quot;: 20,
+            &quot;totalCount&quot;: null
+          },
+          {
+            &quot;name&quot;: &quot;推理&quot;,
+            &quot;count&quot;: 20,
+            &quot;totalCount&quot;: null
+          }
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T19:50:08.578Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_b3968df43deedb2d5913177fcd812b5e&quot;,
+        &quot;fields&quot;: [
+          &quot;id&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;image&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;ratingDistribution&quot;,
+          &quot;subjectType&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;summary&quot;,
+          &quot;tagStats&quot;,
+          &quot;tags&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;,
+          &quot;ratingDistribution&quot;,
+          &quot;tagStats&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_spec&quot;,
+    &quot;arguments&quot;: {
+      &quot;names&quot;: [
+        &quot;SubjectCards&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;f5c3d8f6ec6530ba&quot;,
+      &quot;status&quot;: &quot;activated&quot;,
+      &quot;tools&quot;: [
+        &quot;render_SubjectCards&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;render_SubjectCards&quot;,
+    &quot;arguments&quot;: {
+      &quot;resourceRef&quot;: &quot;rr_b3968df43deedb2d5913177fcd812b5e&quot;,
+      &quot;subjectIds&quot;: [
+        1001
+      ],
+      &quot;layout&quot;: &quot;grid&quot;,
+      &quot;title&quot;: &quot;条目 1001 基本资料与评分&quot;,
+      &quot;before&quot;: &quot;已读取条目 1001 的基本资料与评分字段（匿名公开读取，本次未涉及 NSFW 内容）。&quot;,
+      &quot;after&quot;: &quot;关于「8.4 分是否偏高」，按现有资料只能给出有限结论，理由如下：\n\n**支持「高分」的一面**\n- 显示分数 8.4，排名第 1，评分人数 3000，属于 Bangumi 的高分数段；12 集 TV 动画、2024-01-08 开播，标签集中在「悬疑／推理」（各 20 次）。\n\n**不能直接判定「偏高」的原因**\n- 评分分布只出现了「8 分」一档，且该档人数 3000 正好等于评分总人数（其余 1–7、9、10 档均为空）。按这份分布计算的均值应为 8.0，与报告的 8.4 不一致，说明分布字段与总分口径很可能不同，或分布数据本身不完整。因此**无法**据此计算高分（9–10）占比、低分占比或波动程度。\n- 排名第 1 与 8.4 分的组合本身不太寻常：通常分数会更高一些才对应榜首位置。这既可能是样本特殊，也可能是分数／排名口径与常规页面不同，现有字段不足以区分。\n- 判断「偏高」通常需要同类型作品的均分区间、分数分布明细等对照证据，这些尚未取得。\n\n**结论**：可以如实说「该条目显示的 8.4 分与第 1 名处于高分区」，但「评分偏高」这一评价目前证据不足，不宜下断言。如果你需要，我可以再查同类型（悬疑／推理 TV 动画）的分数作横向对照，或进一步核实该条目的评分分布来源。&quot;,
+      &quot;final&quot;: true
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;2ddf8952-ba3f-43ff-9f0b-c808decbe729&quot;,
+      &quot;blockIndex&quot;: 1,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><h3>对话轮次 2</h3><p>把刚才那段评分讨论换成贴吧老哥的口吻，事实保持一致，直接用自然文字回答。</p><pre>行，那咱就换个说法，事实一点不动：
+
+先说结论啊兄弟们：这 8.4 分看着是挺唬人的，但要说它「虚高」，我这证据还不够，不敢乱开团。
+
+**看着高的地方**
+- 8.4 分，排名第 1，3000 个人评分——在 Bangumi 这确实是高分段的位置了。
+- 12 集 TV 动画，2024 年 1 月 8 号开播，标签就俩：悬疑、推理，各 20 票。
+
+**为啥我不敢直接喊虚高**
+- 最大的问题是评分分布：整张表里只有「8 分」这一档有人，而且是 3000 人，正好等于评分总人数，1 到 7 分、9 分、10 分全是空的。你拿这张分布去算平均分，算出来是 8.0，可页面上写的是 8.4。这俩对不上，说明分布和总分的口径八成不是一回事，或者分布数据本身就没填全。所以高分占多少、低分占多少、分差大不大，这些我全算不了，硬算就是瞎编。
+- 还有个细节：第 1 名配 8.4 分，这个组合本身有点怪。一般能坐到榜首的分数会更高些。这可能是样本就是这么个样本，也可能是分数／排名的口径跟平时看的不一样，光凭手里这几个字段分不出来。
+- 想判定「偏高」，总得拿同类型的作品均分区间、分数分布明细来对着比吧？这些我现在都还没查。
+
+**所以**
+实话实说就是：这条目显示 8.4、排名第 1，确实在高分区。但「评分偏高」这个结论我暂时不认，证据不够，别急着盖棺定论。
+
+想接着挖的话，我可以去查悬疑／推理类 TV 动画的分数做横向对比，或者再核实一下这个评分分布到底是咋来的。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[]</pre></details><h3>对话轮次 3</h3><p>说得温和一点，用一句普通文字告诉我应不应该补这部作品，不需要再次展示卡片。</p><pre>如果你本来就爱看悬疑推理，那这部 12 集的《星港追踪》（条目 1001）是可以补的——它显示 8.4 分、排名第 1，标签也正好是悬疑和推理；不过它的评分分布只有 8 分一档、你的个人口味我也还没核实，所以这只是个温和的建议，不算笃定的结论。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;read&quot;,
+    &quot;arguments&quot;: {
+      &quot;path&quot;: &quot;E:\\Project\\BangumiAgent-pi-publish\\bangumi\\dist\\src\\strategies\\skills\\bangumi-recommend\\SKILL.md&quot;
+    },
+    &quot;value&quot;: &quot;---\nname: bangumi-recommend\ndescription: 根据当前目标和作品、个人记录等证据选择并解释Bangumi推荐；适用于求推荐、偏好匹配、候选比较及反馈后调整。不用于纯事实检索。\n---\n\n# Bangumi 推荐\n\n围绕用户本次目标选择作品，解释作品如何对应需求、必要取舍及依据。区分必须满足的条件与可权衡的偏好；大众评分、排序或关系本身不能证明个人适配程度。\n\n已有候选和资料时直接比较。需要查找或补证据时，读取 [bangumi-query](../bangumi-query/SKILL.md)，通过候选引用完成召回、事实筛选和字段补全；需要社区观点时按需读取 [bangumi-community-read](../bangumi-community-read/SKILL.md)。软偏好可以帮助发现候选，不必全部拼成同时命中的标签条件。标签为语义线索，内容与体验判断依据本次取得的资料。\n\n根据用户要求的数量和范围完成选择：少量推荐在所选作品的必要条件和理由有充分依据后交付；完整列表则继续处理指定范围。资料未知或读取失败不等于作品不适合，有限样本不代表全部作品或个人完整历史。收藏缺席须有适用的完整范围证据。\n\n回答给出作品名称、链接和针对当前目标的理由，区分核实事实与适配判断，说明影响结论的资料或范围缺口。用户反馈用于调整当前目标；单次偏好不自动成为其他任务的固定条件。\n\n判断依据通过 `fields` 或 `read_cached_resource` 读取；只有ID不足以证明适配。展示组件使用资源引用和该资源窗口中已核实的所选ID，让宿主补齐图片、简介等事实；其他候选尚未处理不阻断已核实成员的少量推荐，也不能据此声称完整覆盖。使用已准备展示快照时只传引用，不重复指定成员、标题或布局。推荐理由仍由模型基于本次读过的证据生成，不用展示简介代替。\n\n少量推荐默认用 `SubjectCards` 的 `grid` 封面布局；准备快照时显式指定 `layout=\&quot;grid\&quot;`，`card_fields` 包含 `image` 及需要展示的评分等字段。已有适用引用时直接交付引用，避免重抄卡片成员遗漏封面和链接。\n&quot;,
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 26396.624399999997,
+    &quot;startupMs&quot;: 8127.4809000000005,
+    &quot;modelRequests&quot;: 5,
+    &quot;providerHttpRequests&quot;: 5,
+    &quot;proposedToolCalls&quot;: 4,
+    &quot;toolExecutions&quot;: 4,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 1,
+    &quot;mcpMs&quot;: 9626.1149,
+    &quot;mcpInitializationMs&quot;: 9555.454500000002,
+    &quot;cacheRpcCalls&quot;: 2,
+    &quot;rpcDispatches&quot;: 3,
+    &quot;upstreamRequests&quot;: 1,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 1.42029999999977,
+    &quot;modelMs&quot;: 15579.215499999997,
+    &quot;providerPayloadBytesMax&quot;: 43290,
+    &quot;inputTokensMax&quot;: 6705,
+    &quot;inputTokensSum&quot;: 11649,
+    &quot;contextInputTokensMax&quot;: 11147,
+    &quot;contextInputTokensSum&quot;: 47233,
+    &quot;reasoningTokensSum&quot;: 1910,
+    &quot;outputTokensSum&quot;: 3170,
+    &quot;cacheReadTokensSum&quot;: 35584,
+    &quot;cacheWriteTokensSum&quot;: 0,
+    &quot;totalTokensSum&quot;: 50403,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 4177,
+    &quot;firstTextMs&quot;: 18842.1327,
+    &quot;firstCompleteResultMs&quot;: 18844.7418,
+    &quot;providerFirstTextMs&quot;: 20272.1466,
+    &quot;firstPublishedBlockMs&quot;: 18842.1327,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 11442,
+        &quot;repeatedMessageBytes&quot;: 0,
+        &quot;inputTokens&quot;: 6705,
+        &quot;contextInputTokens&quot;: 7217,
+        &quot;reasoningTokens&quot;: 362,
+        &quot;outputTokens&quot;: 505,
+        &quot;cacheReadTokens&quot;: 512,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7722,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 26625,
+        &quot;durationMs&quot;: 2256.338099999999,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 336.8775999999998,
+        &quot;visibleThinkingMs&quot;: 1571.240100000001,
+        &quot;thinkingChars&quot;: 1508,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 7,
+        &quot;toolSchemaBytes&quot;: 13756,
+        &quot;displayToolNames&quot;: [
+          &quot;render_SubjectCards&quot;
+        ],
+        &quot;displaySchemaBytes&quot;: 2149,
+        &quot;contextMessageBytes&quot;: 15525,
+        &quot;repeatedMessageBytes&quot;: 11439,
+        &quot;inputTokens&quot;: 1755,
+        &quot;contextInputTokens&quot;: 8923,
+        &quot;reasoningTokens&quot;: 830,
+        &quot;outputTokens&quot;: 1366,
+        &quot;cacheReadTokens&quot;: 7168,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 10289,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 33236,
+        &quot;durationMs&quot;: 6396.427599999999,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 263.6167999999998,
+        &quot;visibleThinkingMs&quot;: 3990.077400000002,
+        &quot;thinkingChars&quot;: 2838,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 2,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 21373,
+        &quot;repeatedMessageBytes&quot;: 13810,
+        &quot;inputTokens&quot;: 1921,
+        &quot;contextInputTokens&quot;: 9601,
+        &quot;reasoningTokens&quot;: 225,
+        &quot;outputTokens&quot;: 655,
+        &quot;cacheReadTokens&quot;: 7680,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 10256,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 36556,
+        &quot;durationMs&quot;: 3363.3384000000005,
+        &quot;firstTextMs&quot;: 1233.1356000000014,
+        &quot;firstThinkingMs&quot;: 218.65869999999995,
+        &quot;visibleThinkingMs&quot;: 1014.4585000000006,
+        &quot;thinkingChars&quot;: 760,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 3,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 24307,
+        &quot;repeatedMessageBytes&quot;: 21365,
+        &quot;inputTokens&quot;: 745,
+        &quot;contextInputTokens&quot;: 10345,
+        &quot;reasoningTokens&quot;: 256,
+        &quot;outputTokens&quot;: 325,
+        &quot;cacheReadTokens&quot;: 9600,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 10670,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 39490,
+        &quot;durationMs&quot;: 1807.9552000000003,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 425.3135999999977,
+        &quot;visibleThinkingMs&quot;: 1214.6526000000013,
+        &quot;thinkingChars&quot;: 1028,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 3,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 28107,
+        &quot;repeatedMessageBytes&quot;: 24297,
+        &quot;inputTokens&quot;: 523,
+        &quot;contextInputTokens&quot;: 11147,
+        &quot;reasoningTokens&quot;: 237,
+        &quot;outputTokens&quot;: 319,
+        &quot;cacheReadTokens&quot;: 10624,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 11466,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 43290,
+        &quot;durationMs&quot;: 1755.1561999999976,
+        &quot;firstTextMs&quot;: 1428.8422999999966,
+        &quot;firstThinkingMs&quot;: 341.34389999999985,
+        &quot;visibleThinkingMs&quot;: 1087.4853000000003,
+        &quot;thinkingChars&quot;: 739,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 31,
+    &quot;initialToolCount&quot;: 6,
+    &quot;initialToolSchemaBytes&quot;: 11608,
+    &quot;initialProviderPayloadBytes&quot;: 26625,
+    &quot;validatedFinals&quot;: 3,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: false,
+    &quot;firstOutputAttemptFailed&quot;: false,
+    &quot;localArgumentRepairs&quot;: 0,
+    &quot;argumentRejections&quot;: 0,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 0,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0,
+    &quot;renderedComponents&quot;: 1,
+    &quot;displaySchemaBytesSum&quot;: 2149,
+    &quot;displaySchemaBytesMax&quot;: 2149,
+    &quot;toolSchemaBytesSum&quot;: 60188,
+    &quot;toolSchemaBytesMax&quot;: 13756,
+    &quot;contextMessageBytesSum&quot;: 100754,
+    &quot;contextMessageBytesMax&quot;: 28107,
+    &quot;repeatedMessageBytesSum&quot;: 70911,
+    &quot;userTurnInitialDisplaySchemas&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      },
+      {
+        &quot;userTurn&quot;: 2,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      },
+      {
+        &quot;userTurn&quot;: 3,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      }
+    ],
+    &quot;activatedDisplaySets&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [
+          &quot;render_SubjectCards&quot;
+        ],
+        &quot;responseBytes&quot;: 83,
+        &quot;containsSchema&quot;: false
+      }
+    ],
+    &quot;displayLoadoutMismatches&quot;: 0,
+    &quot;requestsAfterTerminalCommit&quot;: 0
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791489008580.8606,
+      &quot;elapsedMs&quot;: 2928.4723999999997,
+      &quot;durationMs&quot;: 1.42029999999977,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;turn&quot;: 0,
+          &quot;exact&quot;: [
+            1001
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component&quot;,
+          &quot;turn&quot;: 0,
+          &quot;type&quot;: &quot;SubjectCards&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整组件：SubjectCards&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;turn&quot;: 2,
+          &quot;pattern&quot;: &quot;.+&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details><script>document.getElementById("filter").addEventListener("input",function(){const q=this.value.toLowerCase();document.querySelectorAll(".run").forEach(function(el){el.hidden=!el.dataset.search.toLowerCase().includes(q)})});</script></html>

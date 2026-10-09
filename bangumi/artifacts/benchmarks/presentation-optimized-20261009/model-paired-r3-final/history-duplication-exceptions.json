@@ -1,0 +1,165 @@
+{
+  "note": "Four exact duplicated-text observations remain in r3. Source user had failed member selection followed by successful render with identical before/after text; successful pair folded once but failed call/result retained for diagnostics. No signature fallback, no altered hard grade, no source/harness exemption applied.",
+  "exceptions": [
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "userTurn": 2,
+      "requestIndex": 4,
+      "sourceUserTurn": 1,
+      "replyId": "16ef5703-9cb5-4b5c-bb5c-09923f7b1262",
+      "partIndex": 0,
+      "textHash": "9fd38f1393d29262d9aa62ad43c72c3d7e8a04f75641d864c7da7c9e28f8833b",
+      "textBytes": 148,
+      "nativeOccurrences": 1,
+      "displayArgumentOccurrences": 1,
+      "otherOccurrences": 0,
+      "nativeRepresentations": {
+        "raw": 0,
+        "jsonEncoded": 1
+      },
+      "displayArgumentRepresentations": {
+        "raw": 1,
+        "jsonEncoded": 0
+      },
+      "otherRepresentations": {
+        "raw": 0,
+        "jsonEncoded": 0
+      },
+      "signedFallback": false,
+      "retainedErrorSources": [
+        {
+          "toolName": "render_SubjectCards",
+          "argumentPointer": "/before",
+          "errorReason": "/subjectIds：成员ID必须来自此resourceRef的当前成员，单详情不能选择其他对象；改变layout不能修复成员错配。保留用户完整范围，分别使用已经取得的各自有效引用准备/发布，或先取得包含所需成员的集合引用；不能自动删ID或扩大查询。"
+        }
+      ],
+      "successfulDeliverySources": [
+        {
+          "toolName": "render_SubjectCards",
+          "argumentPointer": "/before"
+        }
+      ]
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "userTurn": 2,
+      "requestIndex": 4,
+      "sourceUserTurn": 1,
+      "replyId": "16ef5703-9cb5-4b5c-bb5c-09923f7b1262",
+      "partIndex": 2,
+      "textHash": "261e726fec356c9b7ba4c4b5d027732ac0d2473717bbbe273c19e4baa5cce1fb",
+      "textBytes": 561,
+      "nativeOccurrences": 1,
+      "displayArgumentOccurrences": 1,
+      "otherOccurrences": 0,
+      "nativeRepresentations": {
+        "raw": 0,
+        "jsonEncoded": 1
+      },
+      "displayArgumentRepresentations": {
+        "raw": 1,
+        "jsonEncoded": 0
+      },
+      "otherRepresentations": {
+        "raw": 0,
+        "jsonEncoded": 0
+      },
+      "signedFallback": false,
+      "retainedErrorSources": [
+        {
+          "toolName": "render_SubjectCards",
+          "argumentPointer": "/after",
+          "errorReason": "/subjectIds：成员ID必须来自此resourceRef的当前成员，单详情不能选择其他对象；改变layout不能修复成员错配。保留用户完整范围，分别使用已经取得的各自有效引用准备/发布，或先取得包含所需成员的集合引用；不能自动删ID或扩大查询。"
+        }
+      ],
+      "successfulDeliverySources": [
+        {
+          "toolName": "render_SubjectCards",
+          "argumentPointer": "/after"
+        }
+      ]
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "userTurn": 2,
+      "requestIndex": 5,
+      "sourceUserTurn": 1,
+      "replyId": "16ef5703-9cb5-4b5c-bb5c-09923f7b1262",
+      "partIndex": 0,
+      "textHash": "9fd38f1393d29262d9aa62ad43c72c3d7e8a04f75641d864c7da7c9e28f8833b",
+      "textBytes": 148,
+      "nativeOccurrences": 1,
+      "displayArgumentOccurrences": 1,
+      "otherOccurrences": 0,
+      "nativeRepresentations": {
+        "raw": 0,
+        "jsonEncoded": 1
+      },
+      "displayArgumentRepresentations": {
+        "raw": 1,
+        "jsonEncoded": 0
+      },
+      "otherRepresentations": {
+        "raw": 0,
+        "jsonEncoded": 0
+      },
+      "signedFallback": false,
+      "retainedErrorSources": [
+        {
+          "toolName": "render_SubjectCards",
+          "argumentPointer": "/before",
+          "errorReason": "/subjectIds：成员ID必须来自此resourceRef的当前成员，单详情不能选择其他对象；改变layout不能修复成员错配。保留用户完整范围，分别使用已经取得的各自有效引用准备/发布，或先取得包含所需成员的集合引用；不能自动删ID或扩大查询。"
+        }
+      ],
+      "successfulDeliverySources": [
+        {
+          "toolName": "render_SubjectCards",
+          "argumentPointer": "/before"
+        }
+      ]
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "userTurn": 2,
+      "requestIndex": 5,
+      "sourceUserTurn": 1,
+      "replyId": "16ef5703-9cb5-4b5c-bb5c-09923f7b1262",
+      "partIndex": 2,
+      "textHash": "261e726fec356c9b7ba4c4b5d027732ac0d2473717bbbe273c19e4baa5cce1fb",
+      "textBytes": 561,
+      "nativeOccurrences": 1,
+      "displayArgumentOccurrences": 1,
+      "otherOccurrences": 0,
+      "nativeRepresentations": {
+        "raw": 0,
+        "jsonEncoded": 1
+      },
+      "displayArgumentRepresentations": {
+        "raw": 1,
+        "jsonEncoded": 0
+      },
+      "otherRepresentations": {
+        "raw": 0,
+        "jsonEncoded": 0
+      },
+      "signedFallback": false,
+      "retainedErrorSources": [
+        {
+          "toolName": "render_SubjectCards",
+          "argumentPointer": "/after",
+          "errorReason": "/subjectIds：成员ID必须来自此resourceRef的当前成员，单详情不能选择其他对象；改变layout不能修复成员错配。保留用户完整范围，分别使用已经取得的各自有效引用准备/发布，或先取得包含所需成员的集合引用；不能自动删ID或扩大查询。"
+        }
+      ],
+      "successfulDeliverySources": [
+        {
+          "toolName": "render_SubjectCards",
+          "argumentPointer": "/after"
+        }
+      ]
+    }
+  ]
+}

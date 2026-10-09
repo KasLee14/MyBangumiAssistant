@@ -1,0 +1,6 @@
+{
+  "evidence": "offline expected budget stop, not successful answer",
+  "expectedOutcome": "budget_exceeded",
+  "versionHash": "f9cc9b55235fa8f8bf364dacb62075e948ff6ee2f8ffb93fd02c8ab7ea792015",
+  "plannedRuns": 1
+}

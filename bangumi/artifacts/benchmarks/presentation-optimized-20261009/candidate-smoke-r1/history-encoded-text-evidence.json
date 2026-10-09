@@ -1,0 +1,78 @@
+{
+  "note": "Separate artifact proof of exact raw text and its JSON.stringify string-interior representation. Identical forms counted once. No substring/line-only inference and no source/harness/grade change.",
+  "rows": [
+    {
+      "caseId": "followup-filter",
+      "userTurn": 2,
+      "sourceUserTurn": 1,
+      "partIndex": 0,
+      "textHash": "161a620c3ede3343a70cb2bcfa17438ae9e6054def9b123dd47728426b7baee8",
+      "textBytes": 77,
+      "rawOccurrences": 1,
+      "jsonEscapedOccurrences": 0,
+      "totalDistinctOccurrences": 1,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r1\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cdb-c9a7-7083-b36f-934560ceffef\\2b44601c924993f10717a4ba6c5abe50\\payloads\\c8fbff6c33b8c807e36532026e6389f56dddab504bbfe697c846e0dd923e7f7f.json"
+    },
+    {
+      "caseId": "followup-filter",
+      "userTurn": 2,
+      "sourceUserTurn": 1,
+      "partIndex": 2,
+      "textHash": "c95efd7b2d88c23ab55b79788a041d12e04acf43571fdb01343f05acd297f6de",
+      "textBytes": 662,
+      "rawOccurrences": 0,
+      "jsonEscapedOccurrences": 1,
+      "totalDistinctOccurrences": 1,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r1\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cdb-c9a7-7083-b36f-934560ceffef\\2b44601c924993f10717a4ba6c5abe50\\payloads\\c8fbff6c33b8c807e36532026e6389f56dddab504bbfe697c846e0dd923e7f7f.json"
+    },
+    {
+      "caseId": "followup-filter",
+      "userTurn": 2,
+      "sourceUserTurn": 1,
+      "partIndex": 0,
+      "textHash": "161a620c3ede3343a70cb2bcfa17438ae9e6054def9b123dd47728426b7baee8",
+      "textBytes": 77,
+      "rawOccurrences": 1,
+      "jsonEscapedOccurrences": 0,
+      "totalDistinctOccurrences": 1,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r1\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cdb-c9a7-7083-b36f-934560ceffef\\2b44601c924993f10717a4ba6c5abe50\\payloads\\35bb10d4c5b598b1a3a47e4e049e5b932b2bdce67412f8851b6b2c782357b576.json"
+    },
+    {
+      "caseId": "followup-filter",
+      "userTurn": 2,
+      "sourceUserTurn": 1,
+      "partIndex": 2,
+      "textHash": "c95efd7b2d88c23ab55b79788a041d12e04acf43571fdb01343f05acd297f6de",
+      "textBytes": 662,
+      "rawOccurrences": 0,
+      "jsonEscapedOccurrences": 1,
+      "totalDistinctOccurrences": 1,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r1\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cdb-c9a7-7083-b36f-934560ceffef\\2b44601c924993f10717a4ba6c5abe50\\payloads\\35bb10d4c5b598b1a3a47e4e049e5b932b2bdce67412f8851b6b2c782357b576.json"
+    },
+    {
+      "caseId": "followup-filter",
+      "userTurn": 2,
+      "sourceUserTurn": 1,
+      "partIndex": 0,
+      "textHash": "161a620c3ede3343a70cb2bcfa17438ae9e6054def9b123dd47728426b7baee8",
+      "textBytes": 77,
+      "rawOccurrences": 1,
+      "jsonEscapedOccurrences": 0,
+      "totalDistinctOccurrences": 1,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r1\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cdb-c9a7-7083-b36f-934560ceffef\\2b44601c924993f10717a4ba6c5abe50\\payloads\\45a35c47fa151d1aaac4c750a93118cbf55ddf6fade1784c791dd9f2312af856.json"
+    },
+    {
+      "caseId": "followup-filter",
+      "userTurn": 2,
+      "sourceUserTurn": 1,
+      "partIndex": 2,
+      "textHash": "c95efd7b2d88c23ab55b79788a041d12e04acf43571fdb01343f05acd297f6de",
+      "textBytes": 662,
+      "rawOccurrences": 0,
+      "jsonEscapedOccurrences": 1,
+      "totalDistinctOccurrences": 1,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r1\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cdb-c9a7-7083-b36f-934560ceffef\\2b44601c924993f10717a4ba6c5abe50\\payloads\\45a35c47fa151d1aaac4c750a93118cbf55ddf6fade1784c791dd9f2312af856.json"
+    }
+  ],
+  "allObservedTextsOnce": true
+}

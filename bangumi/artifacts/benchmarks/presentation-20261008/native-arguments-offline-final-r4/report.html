@@ -1,0 +1,688 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bangumi benchmark</title><style>body{max-width:1100px;margin:32px auto;padding:0 20px;font:15px/1.65 system-ui;color:#172033;background:#f8fafc}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #dbe2eb;text-align:left;overflow-wrap:anywhere}details.run{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:12px;margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:12px;border-radius:6px}input{width:100%;padding:10px;box-sizing:border-box}a{color:#2563eb}strong{color:#334155}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}.stats div{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:14px}.stats b{display:block;font-size:26px}.meta{overflow-wrap:anywhere}</style><h1>Bangumi benchmark</h1><p>自动硬判通过不等于语义评审通过。失败、超时和资料缺失均保留；性能差值只比较双方通过且指标可用的配对。API未返回的思考与token保持不可用。</p><p class="meta">benchmark · faux/faux-1 · thinking=off · 2026-10-08T17:18:35.033Z</p><p>脚本模型＋固定上游（离线 smoke）</p><p>恢复模式：enabled。中间错误单独计数，成功恢复不视为终态失败。runtime指标不替代浏览器SSE和前端展示验证；脚本模型不证明服务端执行strict约束。</p><div class="stats"><div>已记录 / 计划<b>3 / 3</b></div><div>自动硬判通过率<b>100%</b></div><div>按场景宏平均<b>100%</b></div><div>待语义评审<b>0</b></div></div><details><summary>完整资源消耗与结果状态</summary><pre>{
+  &quot;runs&quot;: 3,
+  &quot;outcomes&quot;: {
+    &quot;passed&quot;: 3
+  },
+  &quot;passRate&quot;: 1,
+  &quot;firstRoundFailureRuns&quot;: 2,
+  &quot;firstRoundFailureRate&quot;: 0.6666666666666666,
+  &quot;firstOutputAttemptFailureRuns&quot;: 2,
+  &quot;firstOutputAttemptFailureRate&quot;: 0.6666666666666666,
+  &quot;macroFamilyPassRate&quot;: 1,
+  &quot;semanticPending&quot;: 0,
+  &quot;totals&quot;: {
+    &quot;modelRequests&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 8
+    },
+    &quot;proposedToolCalls&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 5
+    },
+    &quot;toolExecutions&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 5
+    },
+    &quot;toolErrors&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 2
+    },
+    &quot;mcpCalls&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;mcpMs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;mcpInitializationMs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;upstreamRequests&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;contextInputTokensMax&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 42960
+    },
+    &quot;contextInputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 79125
+    },
+    &quot;inputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 21638
+    },
+    &quot;outputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 43
+    },
+    &quot;cacheReadTokensSum&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 35847
+    },
+    &quot;modelToolResultBytes&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 549
+    },
+    &quot;totalMs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 902.9416000000001
+    },
+    &quot;modelMs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 74.71140000000196
+    },
+    &quot;estimatedCost&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;outputErrors&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;blankOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;schemaOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;jsonOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;modelErrors&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;terminalModelErrors&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryScheduled&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryRunning&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryRecovered&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryStopped&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;strictToolsSent&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;initialToolCount&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 27
+    },
+    &quot;initialToolSchemaBytes&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 63207
+    },
+    &quot;initialProviderPayloadBytes&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 185829
+    },
+    &quot;validatedFinals&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 3
+    },
+    &quot;prefixDuplications&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;localArgumentRepairs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 1
+    },
+    &quot;argumentRejections&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 2
+    },
+    &quot;schemaArgumentRejections&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;modelArgumentCorrections&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 2
+    },
+    &quot;preparedComponents&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;publishedComponents&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 0
+    },
+    &quot;providerFirstTextMs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 516.1376999999993
+    },
+    &quot;firstTextMs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 381.7458000000006
+    },
+    &quot;firstPublishedBlockMs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 381.7458000000006
+    },
+    &quot;firstCompleteResultMs&quot;: {
+      &quot;availableRuns&quot;: 3,
+      &quot;total&quot;: 533.6203000000005
+    }
+  },
+  &quot;plannedRuns&quot;: 3,
+  &quot;pendingRuns&quot;: 0
+}</pre></details><h2>逐例证据</h2><input id="filter" placeholder="筛选案例、场景、版本或结果状态" aria-label="筛选运行记录"><details class="run" data-search="script-native-trailing-comma scripted-native-arguments passed candidate"><summary>script-native-trailing-comma · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/script-native-trailing-comma/1/result.json">原始结果</a> <a href="runs/candidate/script-native-trailing-comma/1/tracelog/2026-10-09/01a11c86-44fa-75c2-aeb2-5417ca661c1e/8b8538ffb72483c1b99d69a02af93d68/summary.json">trace摘要</a></p><p>总耗时 243ms；模型请求 2；MCP 0；上游 0；含缓存输入token 21554</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,4.4645709539326575 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>执行固定原生参数故障验收。</p><pre>本地修复完成。
+验收完成。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;present_text&quot;,
+    &quot;arguments&quot;: {
+      &quot;text&quot;: &quot;错误草稿&quot;
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;4d1ad88a-a9e7-4159-b602-5934068fe259&quot;,
+      &quot;blockIndex&quot;: 0,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 243.10570000000007,
+    &quot;startupMs&quot;: 9740.874099999999,
+    &quot;modelRequests&quot;: 2,
+    &quot;providerHttpRequests&quot;: 0,
+    &quot;proposedToolCalls&quot;: 1,
+    &quot;toolExecutions&quot;: 1,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 0,
+    &quot;mcpMs&quot;: 0,
+    &quot;mcpInitializationMs&quot;: 0,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 0,
+    &quot;upstreamRequests&quot;: 0,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 0,
+    &quot;modelMs&quot;: 17.592899999997826,
+    &quot;providerPayloadBytesMax&quot;: 62604,
+    &quot;inputTokensMax&quot;: 7160,
+    &quot;inputTokensSum&quot;: 7197,
+    &quot;contextInputTokensMax&quot;: 14320,
+    &quot;contextInputTokensSum&quot;: 21554,
+    &quot;reasoningTokensSum&quot;: null,
+    &quot;outputTokensSum&quot;: 9,
+    &quot;cacheReadTokensSum&quot;: 7160,
+    &quot;cacheWriteTokensSum&quot;: 7197,
+    &quot;totalTokensSum&quot;: 21563,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 115,
+    &quot;firstTextMs&quot;: 86.39329999999973,
+    &quot;firstCompleteResultMs&quot;: 142.57930000000124,
+    &quot;providerFirstTextMs&quot;: 136.53859999999986,
+    &quot;firstPublishedBlockMs&quot;: 86.39329999999973,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;inputTokens&quot;: 7160,
+        &quot;contextInputTokens&quot;: 14320,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 7,
+        &quot;cacheReadTokens&quot;: 0,
+        &quot;cacheWriteTokens&quot;: 7160,
+        &quot;totalTokens&quot;: 14327,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 61943,
+        &quot;durationMs&quot;: 11.443099999998594,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;inputTokens&quot;: 37,
+        &quot;contextInputTokens&quot;: 7234,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 2,
+        &quot;cacheReadTokens&quot;: 7160,
+        &quot;cacheWriteTokens&quot;: 37,
+        &quot;totalTokens&quot;: 7236,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 62604,
+        &quot;durationMs&quot;: 6.149799999999232,
+        &quot;firstTextMs&quot;: 4.239599999998973,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 18,
+    &quot;initialToolCount&quot;: 9,
+    &quot;initialToolSchemaBytes&quot;: 21069,
+    &quot;initialProviderPayloadBytes&quot;: 61943,
+    &quot;validatedFinals&quot;: 1,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: false,
+    &quot;firstOutputAttemptFailed&quot;: false,
+    &quot;localArgumentRepairs&quot;: 1,
+    &quot;argumentRejections&quot;: 0,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 0,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0
+  },
+  &quot;network&quot;: [],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;本地修复完成&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;错误草稿|未闭合的值&quot;,
+          &quot;absent&quot;: true
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;argument_recovery&quot;,
+          &quot;localRepairs&quot;: 1,
+          &quot;rejections&quot;: 0,
+          &quot;modelCorrections&quot;: 0
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;本地语法修复=1；拒绝=0；后续模型调用成功纠参=0&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details>
+<details class="run" data-search="script-native-duplicate-key scripted-native-arguments passed candidate"><summary>script-native-duplicate-key · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/script-native-duplicate-key/1/result.json">原始结果</a> <a href="runs/candidate/script-native-duplicate-key/1/tracelog/2026-10-09/01a11c86-7087-723c-81a6-7f2745877f89/7f097666506b8a3b00ab9a60a25137b2/summary.json">trace摘要</a></p><p>总耗时 334ms；模型请求 3；MCP 0；上游 0；含缓存输入token 28784</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,4.918767684112353 100,4.470164235018892 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>执行固定原生参数故障验收。</p><pre>模型纠参完成。
+验收完成。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;present_text&quot;,
+    &quot;arguments&quot;: {
+      &quot;text&quot;: &quot;错误草稿&quot;
+    },
+    &quot;value&quot;: &quot;/：展示参数格式不完整或无效，请完整重新提供参数。&quot;,
+    &quot;error&quot;: true
+  },
+  {
+    &quot;name&quot;: &quot;present_text&quot;,
+    &quot;arguments&quot;: {
+      &quot;text&quot;: &quot;模型纠参完成。&quot;
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;fede86fe-3900-4db8-8455-0a01b5ddfed7&quot;,
+      &quot;blockIndex&quot;: 0,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 333.60579999999936,
+    &quot;startupMs&quot;: 10666.6467,
+    &quot;modelRequests&quot;: 3,
+    &quot;providerHttpRequests&quot;: 0,
+    &quot;proposedToolCalls&quot;: 2,
+    &quot;toolExecutions&quot;: 2,
+    &quot;toolErrors&quot;: 1,
+    &quot;mcpCalls&quot;: 0,
+    &quot;mcpMs&quot;: 0,
+    &quot;mcpInitializationMs&quot;: 0,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 0,
+    &quot;upstreamRequests&quot;: 0,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 0,
+    &quot;modelMs&quot;: 31.255200000003242,
+    &quot;providerPayloadBytesMax&quot;: 63263,
+    &quot;inputTokensMax&quot;: 7160,
+    &quot;inputTokensSum&quot;: 7220,
+    &quot;contextInputTokensMax&quot;: 14320,
+    &quot;contextInputTokensSum&quot;: 28784,
+    &quot;reasoningTokensSum&quot;: null,
+    &quot;outputTokensSum&quot;: 17,
+    &quot;cacheReadTokensSum&quot;: 14343,
+    &quot;cacheWriteTokensSum&quot;: 7221,
+    &quot;totalTokensSum&quot;: 28801,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 215,
+    &quot;firstTextMs&quot;: 152.84430000000066,
+    &quot;firstCompleteResultMs&quot;: 200.29039999999986,
+    &quot;providerFirstTextMs&quot;: 194.6188000000002,
+    &quot;firstPublishedBlockMs&quot;: 152.84430000000066,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;inputTokens&quot;: 7160,
+        &quot;contextInputTokens&quot;: 14320,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 7,
+        &quot;cacheReadTokens&quot;: 0,
+        &quot;cacheWriteTokens&quot;: 7160,
+        &quot;totalTokens&quot;: 14327,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 61942,
+        &quot;durationMs&quot;: 16.293100000000777,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;inputTokens&quot;: 23,
+        &quot;contextInputTokens&quot;: 7206,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 8,
+        &quot;cacheReadTokens&quot;: 7160,
+        &quot;cacheWriteTokens&quot;: 23,
+        &quot;totalTokens&quot;: 7214,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 62587,
+        &quot;durationMs&quot;: 7.729000000001179,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;inputTokens&quot;: 37,
+        &quot;contextInputTokens&quot;: 7258,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 2,
+        &quot;cacheReadTokens&quot;: 7183,
+        &quot;cacheWriteTokens&quot;: 38,
+        &quot;totalTokens&quot;: 7260,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 63263,
+        &quot;durationMs&quot;: 7.233100000001286,
+        &quot;firstTextMs&quot;: 5.234400000001187,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 27,
+    &quot;initialToolCount&quot;: 9,
+    &quot;initialToolSchemaBytes&quot;: 21069,
+    &quot;initialProviderPayloadBytes&quot;: 61942,
+    &quot;validatedFinals&quot;: 1,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: true,
+    &quot;firstOutputAttemptFailed&quot;: true,
+    &quot;localArgumentRepairs&quot;: 0,
+    &quot;argumentRejections&quot;: 1,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 1,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0
+  },
+  &quot;network&quot;: [],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;模型纠参完成&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;错误草稿|未闭合的值&quot;,
+          &quot;absent&quot;: true
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;argument_recovery&quot;,
+          &quot;localRepairs&quot;: 0,
+          &quot;rejections&quot;: 1,
+          &quot;modelCorrections&quot;: 1
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;本地语法修复=0；拒绝=1；后续模型调用成功纠参=1&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details>
+<details class="run" data-search="script-native-truncated-value scripted-native-arguments passed candidate"><summary>script-native-truncated-value · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/script-native-truncated-value/1/result.json">原始结果</a> <a href="runs/candidate/script-native-truncated-value/1/tracelog/2026-10-09/01a11c86-9c18-7233-93b1-735f080dab53/81df6f8d49de6dca248a91fa3596ead2/summary.json">trace摘要</a></p><p>总耗时 326ms；模型请求 3；MCP 0；上游 0；含缓存输入token 28787</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,4.921462327522164 100,4.470119647852819 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>执行固定原生参数故障验收。</p><pre>模型纠参完成。
+验收完成。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;present_text&quot;,
+    &quot;arguments&quot;: {
+      &quot;text&quot;: &quot;错误草稿&quot;
+    },
+    &quot;value&quot;: &quot;/text：展示参数格式不完整或无效，请完整重新提供参数。&quot;,
+    &quot;error&quot;: true
+  },
+  {
+    &quot;name&quot;: &quot;present_text&quot;,
+    &quot;arguments&quot;: {
+      &quot;text&quot;: &quot;模型纠参完成。&quot;
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;603f0e75-2fcd-47df-bd7f-863513235760&quot;,
+      &quot;blockIndex&quot;: 0,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 326.2301000000007,
+    &quot;startupMs&quot;: 10222.4286,
+    &quot;modelRequests&quot;: 3,
+    &quot;providerHttpRequests&quot;: 0,
+    &quot;proposedToolCalls&quot;: 2,
+    &quot;toolExecutions&quot;: 2,
+    &quot;toolErrors&quot;: 1,
+    &quot;mcpCalls&quot;: 0,
+    &quot;mcpMs&quot;: 0,
+    &quot;mcpInitializationMs&quot;: 0,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 0,
+    &quot;upstreamRequests&quot;: 0,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 0,
+    &quot;modelMs&quot;: 25.86330000000089,
+    &quot;providerPayloadBytesMax&quot;: 63269,
+    &quot;inputTokensMax&quot;: 7160,
+    &quot;inputTokensSum&quot;: 7221,
+    &quot;contextInputTokensMax&quot;: 14320,
+    &quot;contextInputTokensSum&quot;: 28787,
+    &quot;reasoningTokensSum&quot;: null,
+    &quot;outputTokensSum&quot;: 17,
+    &quot;cacheReadTokensSum&quot;: 14344,
+    &quot;cacheWriteTokensSum&quot;: 7222,
+    &quot;totalTokensSum&quot;: 28804,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 219,
+    &quot;firstTextMs&quot;: 142.50820000000022,
+    &quot;firstCompleteResultMs&quot;: 190.7505999999994,
+    &quot;providerFirstTextMs&quot;: 184.98029999999926,
+    &quot;firstPublishedBlockMs&quot;: 142.50820000000022,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;inputTokens&quot;: 7160,
+        &quot;contextInputTokens&quot;: 14320,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 7,
+        &quot;cacheReadTokens&quot;: 0,
+        &quot;cacheWriteTokens&quot;: 7160,
+        &quot;totalTokens&quot;: 14327,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 61944,
+        &quot;durationMs&quot;: 11.80160000000069,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;inputTokens&quot;: 24,
+        &quot;contextInputTokens&quot;: 7208,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 8,
+        &quot;cacheReadTokens&quot;: 7160,
+        &quot;cacheWriteTokens&quot;: 24,
+        &quot;totalTokens&quot;: 7216,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 62593,
+        &quot;durationMs&quot;: 6.570999999999913,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;inputTokens&quot;: 37,
+        &quot;contextInputTokens&quot;: 7259,
+        &quot;reasoningTokens&quot;: null,
+        &quot;outputTokens&quot;: 2,
+        &quot;cacheReadTokens&quot;: 7184,
+        &quot;cacheWriteTokens&quot;: 38,
+        &quot;totalTokens&quot;: 7261,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 63269,
+        &quot;durationMs&quot;: 7.490700000000288,
+        &quot;firstTextMs&quot;: 5.454299999999421,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 27,
+    &quot;initialToolCount&quot;: 9,
+    &quot;initialToolSchemaBytes&quot;: 21069,
+    &quot;initialProviderPayloadBytes&quot;: 61944,
+    &quot;validatedFinals&quot;: 1,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: true,
+    &quot;firstOutputAttemptFailed&quot;: true,
+    &quot;localArgumentRepairs&quot;: 0,
+    &quot;argumentRejections&quot;: 1,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 1,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0
+  },
+  &quot;network&quot;: [],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;模型纠参完成&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;错误草稿|未闭合的值&quot;,
+          &quot;absent&quot;: true
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;argument_recovery&quot;,
+          &quot;localRepairs&quot;: 0,
+          &quot;rejections&quot;: 1,
+          &quot;modelCorrections&quot;: 1
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;本地语法修复=0；拒绝=1；后续模型调用成功纠参=1&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details><script>document.getElementById("filter").addEventListener("input",function(){const q=this.value.toLowerCase();document.querySelectorAll(".run").forEach(function(el){el.hidden=!el.dataset.search.toLowerCase().includes(q)})});</script></html>

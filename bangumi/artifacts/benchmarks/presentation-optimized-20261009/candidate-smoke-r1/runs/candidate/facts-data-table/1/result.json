@@ -1,0 +1,978 @@
+{
+  "schemaVersion": 1,
+  "caseId": "facts-data-table",
+  "family": "presentation-table",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "051938c4607be9d81fc7c6d0422c3dab8f82c6cd8f3cb36b6d5ac8da1839c863",
+  "versionHash": "7e9bfa2eeb7a3e44020fa95f02a782b31fc6ec772db56e1c50e14f1fc4a3daa2",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "读取条目1001和1002的名称、评分、首播日期，用DataTable表格展示两部作品，各列完整保留这些事实，并在表格下给出这两部条目链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "已读取两部条目的基本资料，名称、评分与首播日期如下：",
+            "nextType": "DataTable"
+          },
+          {
+            "type": "DataTable",
+            "pending": false,
+            "props": {
+              "title": "条目 1001 与 1002 基本信息",
+              "columns": [
+                {
+                  "key": "name",
+                  "label": "名称"
+                },
+                {
+                  "key": "score",
+                  "label": "评分"
+                },
+                {
+                  "key": "date",
+                  "label": "首播日期"
+                }
+              ],
+              "rows": [
+                {
+                  "name": "星港追踪",
+                  "score": "8.4",
+                  "date": "2024-01-08"
+                },
+                {
+                  "name": "玻璃海的回声",
+                  "score": "8.1",
+                  "date": "2024-04-12"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "两部作品均为动画（条目 1001 评分 8.4、首播 2024-01-08；条目 1002 评分 8.1、首播 2024-04-12）。",
+            "nextType": "text"
+          },
+          {
+            "type": "text",
+            "text": "两部条目的 Bangumi 链接：",
+            "nextType": "LinkList"
+          },
+          {
+            "type": "LinkList",
+            "pending": false,
+            "props": {
+              "title": "条目链接",
+              "links": [
+                {
+                  "label": "星港追踪",
+                  "url": "https://bgm.tv/subject/1001"
+                },
+                {
+                  "label": "玻璃海的回声",
+                  "url": "https://bgm.tv/subject/1002"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "以上链接来自条目资料的 url 字段，可直接在 Bangumi 打开对应页面。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "已读取两部条目的基本资料，名称、评分与首播日期如下：\n条目 1001 与 1002 基本信息\nname\n名称\nscore\n评分\ndate\n首播日期\n星港追踪\n8.4\n2024-01-08\n玻璃海的回声\n8.1\n2024-04-12\n两部作品均为动画（条目 1001 评分 8.4、首播 2024-01-08；条目 1002 评分 8.1、首播 2024-04-12）。\n两部条目的 Bangumi 链接：\n条目链接\n星港追踪\nhttps://bgm.tv/subject/1001\n玻璃海的回声\nhttps://bgm.tv/subject/1002\n以上链接来自条目资料的 url 字段，可直接在 Bangumi 打开对应页面。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "url"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "score": 8.4,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T18:52:53.682Z"
+              },
+              "resourceRef": "rr_f3177e190d5535238635153c9eaa56fc",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "date",
+                "url"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1002,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "url"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1002,
+              "subjectType": 2,
+              "name": "玻璃海的回声",
+              "nameCn": "玻璃海的回声",
+              "date": "2024-04-12",
+              "score": 8.1,
+              "url": "https://bgm.tv/subject/1002",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T18:52:53.765Z"
+              },
+              "resourceRef": "rr_11c4b827d4d780b17bdbb2eda13c570b",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "date",
+                "url"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "表格"
+          },
+          "value": {
+            "version": "ceaa10774c6f90a8",
+            "entries": [],
+            "total": 0,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "limit": 12
+          },
+          "value": {
+            "version": "ceaa10774c6f90a8",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              },
+              {
+                "name": "StatsCard",
+                "category": "统计",
+                "purpose": "展示评分、数量分布和指标汇总",
+                "data": "标签及指标值、评分分布"
+              },
+              {
+                "name": "ProgressView",
+                "category": "进度",
+                "purpose": "展示观看进度和章节状态",
+                "data": "进度数值、章节和个人状态"
+              },
+              {
+                "name": "InfoBox",
+                "category": "事实",
+                "purpose": "展示单对象的键值信息",
+                "data": "单个对象的字段、资料信息"
+              },
+              {
+                "name": "DataTable",
+                "category": "事实",
+                "purpose": "按列比较多行事实、季度计数及行列数据",
+                "data": "列定义和对象行"
+              },
+              {
+                "name": "Timeline",
+                "category": "事件",
+                "purpose": "按时间展示事件",
+                "data": "事件时间、正文及参与者"
+              },
+              {
+                "name": "TagCloud",
+                "category": "标签",
+                "purpose": "展示标签及频次",
+                "data": "标签名称、计数、选中状态"
+              },
+              {
+                "name": "Gallery",
+                "category": "人物图片",
+                "purpose": "展示简单人物、角色候选或图片列表",
+                "data": "实体身份、名称及可用图片"
+              },
+              {
+                "name": "CompareTable",
+                "category": "事实",
+                "purpose": "展示前后变化",
+                "data": "同一字段的修改前后值"
+              },
+              {
+                "name": "QuoteBlock",
+                "category": "文字",
+                "purpose": "展示引用正文或代码",
+                "data": "引用文字"
+              },
+              {
+                "name": "Callout",
+                "category": "文字",
+                "purpose": "展示业务提示和结果状态，内部格式错误不放入正文",
+                "data": "业务状态和提示文字"
+              },
+              {
+                "name": "LinkList",
+                "category": "链接",
+                "purpose": "展示链接集合",
+                "data": "链接名称及绝对地址"
+              }
+            ],
+            "total": 12,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "DataTable",
+              "LinkList"
+            ]
+          },
+          "value": {
+            "version": "ceaa10774c6f90a8",
+            "status": "activated",
+            "tools": [
+              "render_DataTable",
+              "render_LinkList"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "render_DataTable",
+          "arguments": {
+            "title": "条目 1001 与 1002 基本信息",
+            "fields": [
+              "name",
+              "score",
+              "date"
+            ],
+            "columns": [
+              {
+                "key": "name",
+                "label": "名称"
+              },
+              {
+                "key": "score",
+                "label": "评分"
+              },
+              {
+                "key": "date",
+                "label": "首播日期"
+              }
+            ],
+            "sources": [
+              {
+                "resourceRef": "rr_f3177e190d5535238635153c9eaa56fc",
+                "subjectIds": [
+                  1001
+                ]
+              },
+              {
+                "resourceRef": "rr_11c4b827d4d780b17bdbb2eda13c570b",
+                "subjectIds": [
+                  1002
+                ]
+              }
+            ],
+            "before": "已读取两部条目的基本资料，名称、评分与首播日期如下：",
+            "after": "两部作品均为动画（条目 1001 评分 8.4、首播 2024-01-08；条目 1002 评分 8.1、首播 2024-04-12）。"
+          },
+          "value": {
+            "error": {
+              "code": "INVALID_INPUT",
+              "message": "/fields：fields与columns只能选择一种。；/columns：fields与columns只能选择一种。",
+              "issues": [
+                {
+                  "path": "/fields",
+                  "rule": "mutually_exclusive",
+                  "hint": "fields与columns只能选择一种。"
+                },
+                {
+                  "path": "/columns",
+                  "rule": "mutually_exclusive",
+                  "hint": "fields与columns只能选择一种。"
+                }
+              ],
+              "networkAttempted": false,
+              "diagnostic": {
+                "schemaVersion": 1,
+                "errorId": "5b433f67-943d-4ccb-b0b9-ef7f2afba49a",
+                "reason": "input_schema_invalid",
+                "certainty": "confirmed",
+                "recovery": "correct_parameters",
+                "issues": [
+                  {
+                    "path": "/fields",
+                    "rule": "mutually_exclusive",
+                    "message": "fields与columns只能选择一种。"
+                  },
+                  {
+                    "path": "/columns",
+                    "rule": "mutually_exclusive",
+                    "message": "fields与columns只能选择一种。"
+                  }
+                ],
+                "evidence": {
+                  "networkAttempted": false
+                },
+                "causes": [],
+                "code": "INVALID_INPUT",
+                "origin": "domain",
+                "stage": "input"
+              }
+            }
+          },
+          "error": true
+        },
+        {
+          "name": "render_DataTable",
+          "arguments": {
+            "after": "两部作品均为动画（条目 1001 评分 8.4、首播 2024-01-08；条目 1002 评分 8.1、首播 2024-04-12）。",
+            "before": "已读取两部条目的基本资料，名称、评分与首播日期如下：",
+            "columns": [
+              {
+                "key": "name",
+                "label": "名称"
+              },
+              {
+                "key": "score",
+                "label": "评分"
+              },
+              {
+                "key": "date",
+                "label": "首播日期"
+              }
+            ],
+            "sources": [
+              {
+                "resourceRef": "rr_f3177e190d5535238635153c9eaa56fc",
+                "subjectIds": [
+                  1001
+                ]
+              },
+              {
+                "resourceRef": "rr_11c4b827d4d780b17bdbb2eda13c570b",
+                "subjectIds": [
+                  1002
+                ]
+              }
+            ],
+            "title": "条目 1001 与 1002 基本信息"
+          },
+          "value": {
+            "replyId": "ee086d9a-57f6-4814-b103-410a4fce0f6d",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "render_LinkList",
+          "arguments": {
+            "after": "以上链接来自条目资料的 url 字段，可直接在 Bangumi 打开对应页面。",
+            "before": "两部条目的 Bangumi 链接：",
+            "final": true,
+            "sources": [
+              {
+                "resourceRef": "rr_f3177e190d5535238635153c9eaa56fc",
+                "members": [
+                  {
+                    "entity": "subject",
+                    "subjectId": 1001
+                  }
+                ]
+              },
+              {
+                "resourceRef": "rr_11c4b827d4d780b17bdbb2eda13c570b",
+                "members": [
+                  {
+                    "entity": "subject",
+                    "subjectId": 1002
+                  }
+                ]
+              }
+            ],
+            "title": "条目链接"
+          },
+          "value": {
+            "replyId": "ee086d9a-57f6-4814-b103-410a4fce0f6d",
+            "blockIndex": 4,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 22123.8963,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "tool_finish_turn",
+        "finalToolCallId": "call_00_0KjopviechTe9TPhYOp84482",
+        "batchCallCount": 1,
+        "batchResultCount": 1,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 6,
+        "httpAtSettled": 6,
+        "modelAtCommit": 6,
+        "modelAtSettled": 6
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 22192.2398,
+    "startupMs": 8858.3259,
+    "modelRequests": 6,
+    "providerHttpRequests": 6,
+    "proposedToolCalls": 8,
+    "toolExecutions": 8,
+    "toolErrors": 1,
+    "mcpCalls": 2,
+    "mcpMs": 10510.978399999998,
+    "mcpInitializationMs": 10430.4305,
+    "cacheRpcCalls": 8,
+    "rpcDispatches": 10,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.7468000000008033,
+    "modelMs": 10315.353299999997,
+    "providerPayloadBytesMax": 46740,
+    "inputTokensMax": 6690,
+    "inputTokensSum": 12701,
+    "contextInputTokensMax": 12673,
+    "contextInputTokensSum": 60317,
+    "reasoningTokensSum": 1049,
+    "outputTokensSum": 2121,
+    "cacheReadTokensSum": 47616,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 62438,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 5422,
+    "firstTextMs": 20171.5924,
+    "firstCompleteResultMs": 22111.7137,
+    "providerFirstTextMs": null,
+    "firstPublishedBlockMs": 20171.5924,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 11385,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 6690,
+        "contextInputTokens": 7202,
+        "reasoningTokens": 216,
+        "outputTokens": 388,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7590,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 26567,
+        "durationMs": 1479.5481999999993,
+        "firstTextMs": null,
+        "firstThinkingMs": 134.94930000000022,
+        "visibleThinkingMs": 915.2920999999988,
+        "thinkingChars": 894,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 15130,
+        "repeatedMessageBytes": 11382,
+        "inputTokens": 576,
+        "contextInputTokens": 8128,
+        "reasoningTokens": 34,
+        "outputTokens": 74,
+        "cacheReadTokens": 7552,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8202,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 30312,
+        "durationMs": 876.6984999999986,
+        "firstTextMs": null,
+        "firstThinkingMs": 544.3274999999994,
+        "visibleThinkingMs": 199.52260000000024,
+        "thinkingChars": 140,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 17592,
+        "repeatedMessageBytes": 15123,
+        "inputTokens": 438,
+        "contextInputTokens": 8630,
+        "reasoningTokens": 258,
+        "outputTokens": 306,
+        "cacheReadTokens": 8192,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8936,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 32774,
+        "durationMs": 1823.2314000000006,
+        "firstTextMs": null,
+        "firstThinkingMs": 482.7998000000007,
+        "visibleThinkingMs": 1216.1754,
+        "thinkingChars": 1001,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 8,
+        "toolSchemaBytes": 18536,
+        "displayToolNames": [
+          "render_DataTable",
+          "render_LinkList"
+        ],
+        "displaySchemaBytes": 6929,
+        "contextMessageBytes": 19213,
+        "repeatedMessageBytes": 17583,
+        "inputTokens": 4442,
+        "contextInputTokens": 11354,
+        "reasoningTokens": 430,
+        "outputTokens": 739,
+        "cacheReadTokens": 6912,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12093,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42069,
+        "durationMs": 3047.1047,
+        "firstTextMs": null,
+        "firstThinkingMs": 299.141599999999,
+        "visibleThinkingMs": 1914.5658000000003,
+        "thinkingChars": 1637,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 8,
+        "toolSchemaBytes": 18536,
+        "displayToolNames": [
+          "render_DataTable",
+          "render_LinkList"
+        ],
+        "displaySchemaBytes": 6929,
+        "contextMessageBytes": 22896,
+        "repeatedMessageBytes": 19202,
+        "inputTokens": 298,
+        "contextInputTokens": 12330,
+        "reasoningTokens": 8,
+        "outputTokens": 293,
+        "cacheReadTokens": 12032,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12623,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 45752,
+        "durationMs": 1370.7122999999992,
+        "firstTextMs": null,
+        "firstThinkingMs": 534.1064000000006,
+        "visibleThinkingMs": 155.9489999999969,
+        "thinkingChars": 40,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 8,
+        "toolSchemaBytes": 18536,
+        "displayToolNames": [
+          "render_DataTable",
+          "render_LinkList"
+        ],
+        "displaySchemaBytes": 6929,
+        "contextMessageBytes": 23884,
+        "repeatedMessageBytes": 22883,
+        "inputTokens": 257,
+        "contextInputTokens": 12673,
+        "reasoningTokens": 103,
+        "outputTokens": 321,
+        "cacheReadTokens": 12416,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12994,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 46740,
+        "durationMs": 1718.0581999999995,
+        "firstTextMs": null,
+        "firstThinkingMs": 548.8087999999989,
+        "visibleThinkingMs": 552.6297999999988,
+        "thinkingChars": 424,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 42,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 26567,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": true,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 1,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 2,
+    "displaySchemaBytesSum": 20787,
+    "displaySchemaBytesMax": 6929,
+    "toolSchemaBytesSum": 90432,
+    "toolSchemaBytesMax": 18536,
+    "contextMessageBytesSum": 110100,
+    "contextMessageBytesMax": 23884,
+    "repeatedMessageBytesSum": 86173,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [
+      {
+        "userTurn": 1,
+        "names": [
+          "render_DataTable",
+          "render_LinkList"
+        ],
+        "responseBytes": 98,
+        "containsSchema": false
+      }
+    ],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001,
+            1002
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001,1002"
+      },
+      {
+        "rule": {
+          "kind": "component",
+          "type": "DataTable"
+        },
+        "passed": true,
+        "detail": "完整组件：DataTable"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "8\\.4"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：8\\.4"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "8\\.1"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：8\\.1"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "2024-01-08"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：2024-01-08"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "2024-04-12"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：2024-04-12"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001,
+            1002
+          ],
+          "fields": [
+            "score",
+            "date"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\"]],[1002,[\"score\",\"date\"]]]"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "星港追踪"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：星港追踪"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "玻璃海的回声"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：玻璃海的回声"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791485573684.7517,
+      "elapsedMs": 3122.3898,
+      "durationMs": 1.4984999999996944,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791485573766.3516,
+      "elapsedMs": 3203.9894999999988,
+      "durationMs": 0.24830000000110886,
+      "source": "fixture",
+      "path": "/v0/subjects/1002",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1002,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r1\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11cdc-4715-7256-b8ec-4bcbb3fa25d8\\a2dcbe8f39cd8037e7e2fbc8f998d886"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 3,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 4,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 5,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 6,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

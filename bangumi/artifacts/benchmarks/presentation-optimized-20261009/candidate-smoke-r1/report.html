@@ -1,0 +1,2679 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bangumi benchmark</title><style>body{max-width:1100px;margin:32px auto;padding:0 20px;font:15px/1.65 system-ui;color:#172033;background:#f8fafc}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #dbe2eb;text-align:left;overflow-wrap:anywhere}details.run{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:12px;margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:12px;border-radius:6px}input{width:100%;padding:10px;box-sizing:border-box}a{color:#2563eb}strong{color:#334155}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}.stats div{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:14px}.stats b{display:block;font-size:26px}.meta{overflow-wrap:anywhere}</style><h1>Bangumi benchmark</h1><p>自动硬判通过不等于语义评审通过。失败、超时和资料缺失均保留；性能差值只比较双方通过且指标可用的配对。API未返回的思考与token保持不可用。</p><p class="meta">benchmark · deepseek/deepseek-flash · thinking=high · 2026-10-08T18:51:32.214Z</p><p>真实模型＋固定上游</p><p>恢复模式：enabled。中间错误单独计数，成功恢复不视为终态失败。runtime指标不替代浏览器SSE和前端展示验证；脚本模型不证明服务端执行strict约束。</p><div class="stats"><div>已记录 / 计划<b>4 / 4</b></div><div>自动硬判通过率<b>100%</b></div><div>按场景宏平均<b>100%</b></div><div>待语义评审<b>1</b></div></div><details><summary>完整资源消耗与结果状态</summary><pre>{
+  &quot;runs&quot;: 4,
+  &quot;outcomes&quot;: {
+    &quot;passed&quot;: 4
+  },
+  &quot;passRate&quot;: 1,
+  &quot;firstRoundFailureRuns&quot;: 0,
+  &quot;firstRoundFailureRate&quot;: 0,
+  &quot;firstOutputAttemptFailureRuns&quot;: 1,
+  &quot;firstOutputAttemptFailureRate&quot;: 0.25,
+  &quot;macroFamilyPassRate&quot;: 1,
+  &quot;semanticPending&quot;: 1,
+  &quot;totals&quot;: {
+    &quot;modelRequests&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 17
+    },
+    &quot;proposedToolCalls&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 23
+    },
+    &quot;toolExecutions&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 23
+    },
+    &quot;toolErrors&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 2
+    },
+    &quot;mcpCalls&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 8
+    },
+    &quot;mcpMs&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 31383.292599999993
+    },
+    &quot;mcpInitializationMs&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 31128.4254
+    },
+    &quot;upstreamRequests&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 8
+    },
+    &quot;contextInputTokensMax&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 40371
+    },
+    &quot;contextInputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 157065
+    },
+    &quot;inputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 45961
+    },
+    &quot;outputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 5673
+    },
+    &quot;cacheReadTokensSum&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 111104
+    },
+    &quot;modelToolResultBytes&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 14239
+    },
+    &quot;totalMs&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 64512.3397
+    },
+    &quot;modelMs&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 28956.66569999999
+    },
+    &quot;estimatedCost&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;outputErrors&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;blankOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;schemaOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;jsonOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;modelErrors&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;terminalModelErrors&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryScheduled&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryRunning&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryRecovered&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryStopped&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;strictToolsSent&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;initialToolCount&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 24
+    },
+    &quot;initialToolSchemaBytes&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 46432
+    },
+    &quot;initialProviderPayloadBytes&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 106075
+    },
+    &quot;validatedFinals&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 5
+    },
+    &quot;prefixDuplications&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;localArgumentRepairs&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;argumentRejections&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;schemaArgumentRejections&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;modelArgumentCorrections&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 1
+    },
+    &quot;preparedComponents&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;publishedComponents&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;providerFirstTextMs&quot;: {
+      &quot;availableRuns&quot;: 2,
+      &quot;total&quot;: 2661.6413999999986
+    },
+    &quot;firstTextMs&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 41203.2162
+    },
+    &quot;firstPublishedBlockMs&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 57503.4595
+    },
+    &quot;firstCompleteResultMs&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 59458.340599999996
+    },
+    &quot;renderedComponents&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 5
+    },
+    &quot;displaySchemaBytesSum&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 27234
+    },
+    &quot;displaySchemaBytesMax&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 11227
+    },
+    &quot;toolSchemaBytesSum&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 224564
+    },
+    &quot;toolSchemaBytesMax&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 57656
+    },
+    &quot;contextMessageBytesSum&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 298084
+    },
+    &quot;contextMessageBytesMax&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 77034
+    },
+    &quot;repeatedMessageBytesSum&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 215593
+    },
+    &quot;displayLoadoutMismatches&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    },
+    &quot;requestsAfterTerminalCommit&quot;: {
+      &quot;availableRuns&quot;: 4,
+      &quot;total&quot;: 0
+    }
+  },
+  &quot;plannedRuns&quot;: 4,
+  &quot;pendingRuns&quot;: 0
+}</pre></details><h2>逐例证据</h2><input id="filter" placeholder="筛选案例、场景、版本或结果状态" aria-label="筛选运行记录"><details class="run" data-search="resource-card resources passed candidate"><summary>resource-card · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/resource-card/1/result.json">原始结果</a> <a href="runs/candidate/resource-card/1/tracelog/2026-10-09/01a11cdb-5ca3-7322-8fe7-4d69eaba047a/936b2f84c350f422e2d8e85865a84e01/summary.json">trace摘要</a></p><p>总耗时 18472ms；模型请求 4；MCP 1；上游 1；含缓存输入token 32295</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,13.170772492460209 66.66666666666667,8.85210068977873 133.33333333333334,7.84830839977306 200,4"/></svg><p>语义评审：pending 卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。</p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>详细介绍条目1006的剧情，用SubjectCards卡片展示作品，并根据你读过的简介解释其悬疑主线。</p><pre>条目 1006 是 TV 动画《山城来信》（2023-10-01 开播，全 12 集，每集 24 分钟，平台 TV）。
+
+按条目简介，剧情主线是一场“调查失踪档案的旅程”：有人（或一群人）循着留下的档案线索追查一桩失踪事件，途中逐步接触与之相关的人物关系网，并不断发现新的线索。简介同时点出叙事强调“身份疑点”，也就是说故事推进的动力不只是“事件发生了什么”，还包括“人到底是谁”。
+
+需要提前说明的是，我能读到的剧情信息仅限于 Bangumi 条目简介本身——本次没有读取角色列表、章节标题或社区长评，所以更细的分集经过、具体人物命运和结局细节我并不掌握，不做推测。
+
+以上资料对应的作品卡片如下：
+条目 1006《山城来信》
+1006
+山城来信
+anime
+山城来信
+8.6
+3000
+6
+2023-10-01
+山城来信讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。虽然标签没有悬疑，但正文明确围绕调查谜案；故事结局温暖。
+成长
+https://bgm.tv/subject/1006
+它的悬疑主线可以这样理解：调查“失踪档案”是整个故事的引擎，而“身份疑点”是悬念的核心形态——即谜题的关键不在外部事件的真伪，而在于参与调查与事件相关的人的身份如何被伪装、错认或重新揭示。简介描述叙事方式为“逐步揭露线索”，说明信息是分层释放的：调查者每推进一层，既获得新的档案事实，也同时改写对人物身份的判断，从而形成“线索—身份重估—新疑问”的循环。简介还提到结局温暖，暗示谜团的解答最终落在人物关系上，而不是走向阴暗收束。
+
+补充两点关于数据本身的说明：一是该条目的标签只列出“成长”，并未包含“悬疑”，简介正文则是明确以调查谜案为核心；二是可核实的剧情来源只有简介文本，评分 8.6、排名第 6、评分人数 3000 属于统计信息，不代表对剧情的描述。本次为匿名 public SFW 读取（NSFW 权限未检查、未应用），因此仅覆盖公开的 SFW 资料范围。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1006,
+      &quot;fields&quot;: [
+        &quot;id&quot;,
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;subjectType&quot;,
+        &quot;date&quot;,
+        &quot;platform&quot;,
+        &quot;summary&quot;,
+        &quot;tags&quot;,
+        &quot;score&quot;,
+        &quot;rank&quot;,
+        &quot;ratingCount&quot;,
+        &quot;totalEpisodes&quot;,
+        &quot;image&quot;,
+        &quot;infobox&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1006,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;山城来信&quot;,
+        &quot;nameCn&quot;: &quot;山城来信&quot;,
+        &quot;date&quot;: &quot;2023-10-01&quot;,
+        &quot;platform&quot;: &quot;TV&quot;,
+        &quot;score&quot;: 8.6,
+        &quot;rank&quot;: 6,
+        &quot;ratingCount&quot;: 3000,
+        &quot;totalEpisodes&quot;: 12,
+        &quot;tags&quot;: [
+          &quot;成长&quot;
+        ],
+        &quot;image&quot;: &quot;https://example.invalid/benchmark/1006.png&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;,
+          &quot;infobox&quot;
+        ],
+        &quot;summary&quot;: &quot;山城来信讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。虽然标签没有悬疑，但正文明确围绕调查谜案；故事结局温暖。&quot;,
+        &quot;infobox&quot;: [
+          {
+            &quot;key&quot;: &quot;放送开始&quot;,
+            &quot;value&quot;: &quot;2023-10-01&quot;
+          },
+          {
+            &quot;key&quot;: &quot;每集时长&quot;,
+            &quot;value&quot;: &quot;24分钟&quot;
+          }
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T18:51:53.507Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_76fd1b695a73bd866b8423ce16ace49a&quot;,
+        &quot;fields&quot;: [
+          &quot;id&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;subjectType&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;summary&quot;,
+          &quot;tags&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;image&quot;,
+          &quot;infobox&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;,
+          &quot;infobox&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_spec&quot;,
+    &quot;arguments&quot;: {
+      &quot;names&quot;: [
+        &quot;SubjectCards&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;error&quot;: {
+        &quot;code&quot;: &quot;COMPONENT_INDEX_REQUIRED&quot;,
+        &quot;message&quot;: &quot;先读取可见的同版本组件索引选择组件，再读取字段。&quot;,
+        &quot;diagnostic&quot;: {
+          &quot;schemaVersion&quot;: 1,
+          &quot;errorId&quot;: &quot;b28b927a-e06d-4a3b-a58b-7cd7827ddee6&quot;,
+          &quot;reason&quot;: &quot;operation_failed&quot;,
+          &quot;certainty&quot;: &quot;confirmed&quot;,
+          &quot;recovery&quot;: &quot;none&quot;,
+          &quot;issues&quot;: [],
+          &quot;evidence&quot;: {},
+          &quot;causes&quot;: [
+            {
+              &quot;name&quot;: &quot;AppError&quot;,
+              &quot;code&quot;: &quot;COMPONENT_INDEX_REQUIRED&quot;
+            }
+          ],
+          &quot;code&quot;: &quot;COMPONENT_INDEX_REQUIRED&quot;,
+          &quot;origin&quot;: &quot;domain&quot;,
+          &quot;stage&quot;: &quot;execution&quot;
+        }
+      }
+    },
+    &quot;error&quot;: true
+  },
+  {
+    &quot;name&quot;: &quot;read_component_index&quot;,
+    &quot;arguments&quot;: {
+      &quot;query&quot;: &quot;作品卡片&quot;
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;ceaa10774c6f90a8&quot;,
+      &quot;entries&quot;: [
+        {
+          &quot;name&quot;: &quot;SubjectCards&quot;,
+          &quot;category&quot;: &quot;作品&quot;,
+          &quot;purpose&quot;: &quot;展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片&quot;,
+          &quot;data&quot;: &quot;作品身份、名称、媒体类型，缓存作品引用&quot;
+        }
+      ],
+      &quot;total&quot;: 1,
+      &quot;offset&quot;: 0,
+      &quot;nextOffset&quot;: null,
+      &quot;categories&quot;: [
+        &quot;作品&quot;,
+        &quot;统计&quot;,
+        &quot;进度&quot;,
+        &quot;事实&quot;,
+        &quot;事件&quot;,
+        &quot;标签&quot;,
+        &quot;人物图片&quot;,
+        &quot;文字&quot;,
+        &quot;链接&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_spec&quot;,
+    &quot;arguments&quot;: {
+      &quot;names&quot;: [
+        &quot;SubjectCards&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;ceaa10774c6f90a8&quot;,
+      &quot;status&quot;: &quot;activated&quot;,
+      &quot;tools&quot;: [
+        &quot;render_SubjectCards&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;render_SubjectCards&quot;,
+    &quot;arguments&quot;: {
+      &quot;resourceRef&quot;: &quot;rr_76fd1b695a73bd866b8423ce16ace49a&quot;,
+      &quot;subjectIds&quot;: [
+        1006
+      ],
+      &quot;layout&quot;: &quot;grid&quot;,
+      &quot;title&quot;: &quot;条目 1006《山城来信》&quot;,
+      &quot;before&quot;: &quot;条目 1006 是 TV 动画《山城来信》（2023-10-01 开播，全 12 集，每集 24 分钟，平台 TV）。\n\n按条目简介，剧情主线是一场“调查失踪档案的旅程”：有人（或一群人）循着留下的档案线索追查一桩失踪事件，途中逐步接触与之相关的人物关系网，并不断发现新的线索。简介同时点出叙事强调“身份疑点”，也就是说故事推进的动力不只是“事件发生了什么”，还包括“人到底是谁”。\n\n需要提前说明的是，我能读到的剧情信息仅限于 Bangumi 条目简介本身——本次没有读取角色列表、章节标题或社区长评，所以更细的分集经过、具体人物命运和结局细节我并不掌握，不做推测。\n\n以上资料对应的作品卡片如下：&quot;,
+      &quot;after&quot;: &quot;它的悬疑主线可以这样理解：调查“失踪档案”是整个故事的引擎，而“身份疑点”是悬念的核心形态——即谜题的关键不在外部事件的真伪，而在于参与调查与事件相关的人的身份如何被伪装、错认或重新揭示。简介描述叙事方式为“逐步揭露线索”，说明信息是分层释放的：调查者每推进一层，既获得新的档案事实，也同时改写对人物身份的判断，从而形成“线索—身份重估—新疑问”的循环。简介还提到结局温暖，暗示谜团的解答最终落在人物关系上，而不是走向阴暗收束。\n\n补充两点关于数据本身的说明：一是该条目的标签只列出“成长”，并未包含“悬疑”，简介正文则是明确以调查谜案为核心；二是可核实的剧情来源只有简介文本，评分 8.6、排名第 6、评分人数 3000 属于统计信息，不代表对剧情的描述。本次为匿名 public SFW 读取（NSFW 权限未检查、未应用），因此仅覆盖公开的 SFW 资料范围。&quot;,
+      &quot;final&quot;: true
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;e8a3ac0e-44b2-4109-94d5-8c5950332414&quot;,
+      &quot;blockIndex&quot;: 1,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 18472.3396,
+    &quot;startupMs&quot;: 8756.7032,
+    &quot;modelRequests&quot;: 4,
+    &quot;providerHttpRequests&quot;: 4,
+    &quot;proposedToolCalls&quot;: 5,
+    &quot;toolExecutions&quot;: 5,
+    &quot;toolErrors&quot;: 1,
+    &quot;mcpCalls&quot;: 1,
+    &quot;mcpMs&quot;: 10495.923100000002,
+    &quot;mcpInitializationMs&quot;: 10412.580899999999,
+    &quot;cacheRpcCalls&quot;: 2,
+    &quot;rpcDispatches&quot;: 3,
+    &quot;upstreamRequests&quot;: 1,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 1.7486000000008062,
+    &quot;modelMs&quot;: 7031.008999999996,
+    &quot;providerPayloadBytesMax&quot;: 33489,
+    &quot;inputTokensMax&quot;: 6675,
+    &quot;inputTokensSum&quot;: 9511,
+    &quot;contextInputTokensMax&quot;: 8970,
+    &quot;contextInputTokensSum&quot;: 32295,
+    &quot;reasoningTokensSum&quot;: 497,
+    &quot;outputTokensSum&quot;: 1285,
+    &quot;cacheReadTokensSum&quot;: 22784,
+    &quot;cacheWriteTokensSum&quot;: 0,
+    &quot;totalTokensSum&quot;: 33580,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 2700,
+    &quot;firstTextMs&quot;: 18369.9824,
+    &quot;firstCompleteResultMs&quot;: 18372.7198,
+    &quot;providerFirstTextMs&quot;: null,
+    &quot;firstPublishedBlockMs&quot;: 18369.9824,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 11327,
+        &quot;repeatedMessageBytes&quot;: 0,
+        &quot;inputTokens&quot;: 6675,
+        &quot;contextInputTokens&quot;: 7187,
+        &quot;reasoningTokens&quot;: 148,
+        &quot;outputTokens&quot;: 287,
+        &quot;cacheReadTokens&quot;: 512,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7474,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 26509,
+        &quot;durationMs&quot;: 1399.6317,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 354.71409999999923,
+        &quot;visibleThinkingMs&quot;: 667.0848999999998,
+        &quot;thinkingChars&quot;: 612,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 14614,
+        &quot;repeatedMessageBytes&quot;: 11324,
+        &quot;inputTokens&quot;: 568,
+        &quot;contextInputTokens&quot;: 7992,
+        &quot;reasoningTokens&quot;: 7,
+        &quot;outputTokens&quot;: 48,
+        &quot;cacheReadTokens&quot;: 7424,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 8040,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 29796,
+        &quot;durationMs&quot;: 378.7625999999982,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 256.34779999999955,
+        &quot;visibleThinkingMs&quot;: 9.261600000001636,
+        &quot;thinkingChars&quot;: 35,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 15378,
+        &quot;repeatedMessageBytes&quot;: 14608,
+        &quot;inputTokens&quot;: 210,
+        &quot;contextInputTokens&quot;: 8146,
+        &quot;reasoningTokens&quot;: 0,
+        &quot;outputTokens&quot;: 44,
+        &quot;cacheReadTokens&quot;: 7936,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 8190,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 30560,
+        &quot;durationMs&quot;: 421.37829999999667,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 7,
+        &quot;toolSchemaBytes&quot;: 13756,
+        &quot;displayToolNames&quot;: [
+          &quot;render_SubjectCards&quot;
+        ],
+        &quot;displaySchemaBytes&quot;: 2149,
+        &quot;contextMessageBytes&quot;: 15779,
+        &quot;repeatedMessageBytes&quot;: 15370,
+        &quot;inputTokens&quot;: 2058,
+        &quot;contextInputTokens&quot;: 8970,
+        &quot;reasoningTokens&quot;: 342,
+        &quot;outputTokens&quot;: 906,
+        &quot;cacheReadTokens&quot;: 6912,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 9876,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 33489,
+        &quot;durationMs&quot;: 4831.236400000002,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 363.0434000000023,
+        &quot;visibleThinkingMs&quot;: 1647.511699999999,
+        &quot;thinkingChars&quot;: 1433,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 25,
+    &quot;initialToolCount&quot;: 6,
+    &quot;initialToolSchemaBytes&quot;: 11608,
+    &quot;initialProviderPayloadBytes&quot;: 26509,
+    &quot;validatedFinals&quot;: 1,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: false,
+    &quot;firstOutputAttemptFailed&quot;: false,
+    &quot;localArgumentRepairs&quot;: 0,
+    &quot;argumentRejections&quot;: 0,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 0,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0,
+    &quot;renderedComponents&quot;: 1,
+    &quot;displaySchemaBytesSum&quot;: 2149,
+    &quot;displaySchemaBytesMax&quot;: 2149,
+    &quot;toolSchemaBytesSum&quot;: 48580,
+    &quot;toolSchemaBytesMax&quot;: 13756,
+    &quot;contextMessageBytesSum&quot;: 57098,
+    &quot;contextMessageBytesMax&quot;: 15779,
+    &quot;repeatedMessageBytesSum&quot;: 41302,
+    &quot;userTurnInitialDisplaySchemas&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      }
+    ],
+    &quot;activatedDisplaySets&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [
+          &quot;render_SubjectCards&quot;
+        ],
+        &quot;responseBytes&quot;: 83,
+        &quot;containsSchema&quot;: false
+      }
+    ],
+    &quot;displayLoadoutMismatches&quot;: 0,
+    &quot;requestsAfterTerminalCommit&quot;: 0
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791485513510.5752,
+      &quot;elapsedMs&quot;: 3208.0481,
+      &quot;durationMs&quot;: 1.7486000000008062,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1006&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1006,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: [
+            1006
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1006&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component&quot;,
+          &quot;type&quot;: &quot;SubjectCards&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整组件：SubjectCards&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;evidence&quot;,
+          &quot;subjectIds&quot;: [
+            1006
+          ],
+          &quot;fields&quot;: [
+            &quot;summary&quot;
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;实际模型可见字段：[[1006,[\&quot;summary\&quot;]]]&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;pending&quot;,
+    &quot;rubric&quot;: &quot;卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。&quot;
+  }
+}</pre></details></details>
+<details class="run" data-search="followup-filter multi-turn passed candidate"><summary>followup-filter · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/followup-filter/1/result.json">原始结果</a> <a href="runs/candidate/followup-filter/1/tracelog/2026-10-09/01a11cdb-c9a7-7083-b36f-934560ceffef/2b44601c924993f10717a4ba6c5abe50/summary.json">trace摘要</a> <a href="runs/candidate/followup-filter/1/tracelog/2026-10-09/01a11cdb-c9a7-7083-b36f-934560ceffef/afcb0bde83dc87b6c2098e57bfee7b4b/summary.json">trace摘要</a></p><p>总耗时 22893ms；模型请求 6；MCP 5；上游 5；含缓存输入token 57262</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,21.368606379330057 40,15.471087229907397 80,12.117891848633818 120,10.90559048816737 160,7.141922945009718 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>介绍条目1001、1002和1005的名称、评分及作品形式，给出链接。</p><pre>以下是条目 1001、1002、1005 的资料卡（按你给出的顺序）：
+三个条目
+1001
+星港追踪
+anime
+星港追踪
+8.4
+3000
+1
+2024-01-08
+星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。
+悬疑
+推理
+https://bgm.tv/subject/1001
+1002
+玻璃海的回声
+anime
+玻璃海的回声
+8.1
+3000
+2
+2024-04-12
+玻璃海的回声讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。
+悬疑
+推理
+https://bgm.tv/subject/1002
+1005
+星港追踪 第二季
+anime
+星港追踪 第二季
+7.6
+3000
+5
+2024-10-05
+星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。
+悬疑
+推理
+https://bgm.tv/subject/1005
+名称、评分与作品形式（含条目链接）如下：
+
+1. 条目 1001《星港追踪》— TV 动画，评分 8.4（评分人数 3000，排名第 1，2024-01-08）｜https://bgm.tv/subject/1001
+2. 条目 1002《玻璃海的回声》— 剧场版动画（Movie），评分 8.1（评分人数 3000，排名第 2，2024-04-12）｜https://bgm.tv/subject/1002
+3. 条目 1005《星港追踪 第二季》— TV 动画，评分 7.6（评分人数 3000，排名第 5，2024-10-05）｜https://bgm.tv/subject/1005
+
+说明：三条均为动画类条目，名称中日文名一致；本次为匿名只读查询，NSFW 状态未检查，未涉及任何写入操作。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1001,
+      &quot;fields&quot;: [
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;platform&quot;,
+        &quot;subjectType&quot;,
+        &quot;url&quot;,
+        &quot;rank&quot;,
+        &quot;ratingCount&quot;,
+        &quot;date&quot;,
+        &quot;image&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;platform&quot;: &quot;TV&quot;,
+        &quot;score&quot;: 8.4,
+        &quot;rank&quot;: 1,
+        &quot;ratingCount&quot;: 3000,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1001&quot;,
+        &quot;image&quot;: &quot;https://example.invalid/benchmark/1001.png&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T18:52:22.305Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_0d56290bfa9feb75b07d2fb2691456ba&quot;,
+        &quot;fields&quot;: [
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;platform&quot;,
+          &quot;subjectType&quot;,
+          &quot;url&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;date&quot;,
+          &quot;image&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1002,
+      &quot;fields&quot;: [
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;platform&quot;,
+        &quot;subjectType&quot;,
+        &quot;url&quot;,
+        &quot;rank&quot;,
+        &quot;ratingCount&quot;,
+        &quot;date&quot;,
+        &quot;image&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1002,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;玻璃海的回声&quot;,
+        &quot;nameCn&quot;: &quot;玻璃海的回声&quot;,
+        &quot;date&quot;: &quot;2024-04-12&quot;,
+        &quot;platform&quot;: &quot;Movie&quot;,
+        &quot;score&quot;: 8.1,
+        &quot;rank&quot;: 2,
+        &quot;ratingCount&quot;: 3000,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1002&quot;,
+        &quot;image&quot;: &quot;https://example.invalid/benchmark/1002.png&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T18:52:22.390Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_56220a95ec25e0eaa6289ef597914478&quot;,
+        &quot;fields&quot;: [
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;platform&quot;,
+          &quot;subjectType&quot;,
+          &quot;url&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;date&quot;,
+          &quot;image&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1005,
+      &quot;fields&quot;: [
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;platform&quot;,
+        &quot;subjectType&quot;,
+        &quot;url&quot;,
+        &quot;rank&quot;,
+        &quot;ratingCount&quot;,
+        &quot;date&quot;,
+        &quot;image&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1005,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪 第二季&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪 第二季&quot;,
+        &quot;date&quot;: &quot;2024-10-05&quot;,
+        &quot;platform&quot;: &quot;TV&quot;,
+        &quot;score&quot;: 7.6,
+        &quot;rank&quot;: 5,
+        &quot;ratingCount&quot;: 3000,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1005&quot;,
+        &quot;image&quot;: &quot;https://example.invalid/benchmark/1005.png&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T18:52:22.404Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_a1937498f63ef6e0448c6fa24d7354a6&quot;,
+        &quot;fields&quot;: [
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;platform&quot;,
+          &quot;subjectType&quot;,
+          &quot;url&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;date&quot;,
+          &quot;image&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_index&quot;,
+    &quot;arguments&quot;: {
+      &quot;query&quot;: &quot;作品卡片&quot;
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;ceaa10774c6f90a8&quot;,
+      &quot;entries&quot;: [
+        {
+          &quot;name&quot;: &quot;SubjectCards&quot;,
+          &quot;category&quot;: &quot;作品&quot;,
+          &quot;purpose&quot;: &quot;展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片&quot;,
+          &quot;data&quot;: &quot;作品身份、名称、媒体类型，缓存作品引用&quot;
+        }
+      ],
+      &quot;total&quot;: 1,
+      &quot;offset&quot;: 0,
+      &quot;nextOffset&quot;: null,
+      &quot;categories&quot;: [
+        &quot;作品&quot;,
+        &quot;统计&quot;,
+        &quot;进度&quot;,
+        &quot;事实&quot;,
+        &quot;事件&quot;,
+        &quot;标签&quot;,
+        &quot;人物图片&quot;,
+        &quot;文字&quot;,
+        &quot;链接&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_spec&quot;,
+    &quot;arguments&quot;: {
+      &quot;names&quot;: [
+        &quot;SubjectCards&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;ceaa10774c6f90a8&quot;,
+      &quot;status&quot;: &quot;activated&quot;,
+      &quot;tools&quot;: [
+        &quot;render_SubjectCards&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;render_SubjectCards&quot;,
+    &quot;arguments&quot;: {
+      &quot;sources&quot;: [
+        {
+          &quot;resourceRef&quot;: &quot;rr_0d56290bfa9feb75b07d2fb2691456ba&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ]
+        },
+        {
+          &quot;resourceRef&quot;: &quot;rr_56220a95ec25e0eaa6289ef597914478&quot;,
+          &quot;subjectIds&quot;: [
+            1002
+          ]
+        },
+        {
+          &quot;resourceRef&quot;: &quot;rr_a1937498f63ef6e0448c6fa24d7354a6&quot;,
+          &quot;subjectIds&quot;: [
+            1005
+          ]
+        }
+      ],
+      &quot;title&quot;: &quot;三个条目&quot;,
+      &quot;before&quot;: &quot;以下是条目 1001、1002、1005 的资料卡（按你给出的顺序）：&quot;,
+      &quot;after&quot;: &quot;名称、评分与作品形式（含条目链接）如下：\n\n1. 条目 1001《星港追踪》— TV 动画，评分 8.4（评分人数 3000，排名第 1，2024-01-08）｜https://bgm.tv/subject/1001\n2. 条目 1002《玻璃海的回声》— 剧场版动画（Movie），评分 8.1（评分人数 3000，排名第 2，2024-04-12）｜https://bgm.tv/subject/1002\n3. 条目 1005《星港追踪 第二季》— TV 动画，评分 7.6（评分人数 3000，排名第 5，2024-10-05）｜https://bgm.tv/subject/1005\n\n说明：三条均为动画类条目，名称中日文名一致；本次为匿名只读查询，NSFW 状态未检查，未涉及任何写入操作。&quot;,
+      &quot;final&quot;: true
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;6dd51370-293d-46a0-b57f-6e1cf49a444a&quot;,
+      &quot;blockIndex&quot;: 1,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><h3>对话轮次 2</h3><p>还是刚才这三部，只保留TV动画，给出名称和链接。</p><pre>按作品形式筛出 TV 动画，已排除剧场版（Movie）的条目 1002《玻璃海的回声》；剩余 2 部如下：
+TV 动画（2 部）
+1001
+星港追踪
+anime
+星港追踪
+8.4
+3000
+1
+2024-01-08
+星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。
+悬疑
+推理
+https://bgm.tv/subject/1001
+1005
+星港追踪 第二季
+anime
+星港追踪 第二季
+7.6
+3000
+5
+2024-10-05
+星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。
+悬疑
+推理
+https://bgm.tv/subject/1005
+名称与链接：
+
+1. 《星港追踪》（条目 1001，TV 动画）— https://bgm.tv/subject/1001
+2. 《星港追踪 第二季》（条目 1005，TV 动画）— https://bgm.tv/subject/1005
+
+筛选依据为条目资料的 platform 字段（TV / Movie），本次为匿名只读查询，未做任何写入。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;fields&quot;: [
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;platform&quot;,
+        &quot;subjectType&quot;,
+        &quot;url&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;,
+        &quot;image&quot;
+      ],
+      &quot;subject_id&quot;: 1001
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;platform&quot;: &quot;TV&quot;,
+        &quot;score&quot;: 8.4,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1001&quot;,
+        &quot;image&quot;: &quot;https://example.invalid/benchmark/1001.png&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T18:52:29.792Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_b0d9ecf2b71c4d703ccba042af800e52&quot;,
+        &quot;fields&quot;: [
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;platform&quot;,
+          &quot;subjectType&quot;,
+          &quot;url&quot;,
+          &quot;score&quot;,
+          &quot;date&quot;,
+          &quot;image&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;fields&quot;: [
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;platform&quot;,
+        &quot;subjectType&quot;,
+        &quot;url&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;,
+        &quot;image&quot;
+      ],
+      &quot;subject_id&quot;: 1005
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1005,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪 第二季&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪 第二季&quot;,
+        &quot;date&quot;: &quot;2024-10-05&quot;,
+        &quot;platform&quot;: &quot;TV&quot;,
+        &quot;score&quot;: 7.6,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1005&quot;,
+        &quot;image&quot;: &quot;https://example.invalid/benchmark/1005.png&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T18:52:29.804Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_549cb919c9d93dc44e6a059fc047e84e&quot;,
+        &quot;fields&quot;: [
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;platform&quot;,
+          &quot;subjectType&quot;,
+          &quot;url&quot;,
+          &quot;score&quot;,
+          &quot;date&quot;,
+          &quot;image&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_spec&quot;,
+    &quot;arguments&quot;: {
+      &quot;names&quot;: [
+        &quot;SubjectCards&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;ceaa10774c6f90a8&quot;,
+      &quot;status&quot;: &quot;activated&quot;,
+      &quot;tools&quot;: [
+        &quot;render_SubjectCards&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;render_SubjectCards&quot;,
+    &quot;arguments&quot;: {
+      &quot;sources&quot;: [
+        {
+          &quot;resourceRef&quot;: &quot;rr_b0d9ecf2b71c4d703ccba042af800e52&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ]
+        },
+        {
+          &quot;resourceRef&quot;: &quot;rr_549cb919c9d93dc44e6a059fc047e84e&quot;,
+          &quot;subjectIds&quot;: [
+            1005
+          ]
+        }
+      ],
+      &quot;title&quot;: &quot;TV 动画（2 部）&quot;,
+      &quot;layout&quot;: &quot;grid&quot;,
+      &quot;before&quot;: &quot;按作品形式筛出 TV 动画，已排除剧场版（Movie）的条目 1002《玻璃海的回声》；剩余 2 部如下：&quot;,
+      &quot;after&quot;: &quot;名称与链接：\n\n1. 《星港追踪》（条目 1001，TV 动画）— https://bgm.tv/subject/1001\n2. 《星港追踪 第二季》（条目 1005，TV 动画）— https://bgm.tv/subject/1005\n\n筛选依据为条目资料的 platform 字段（TV / Movie），本次为匿名只读查询，未做任何写入。&quot;,
+      &quot;final&quot;: true
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;9e623d80-b3a0-4180-9fd3-457e066ccf8c&quot;,
+      &quot;blockIndex&quot;: 1,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 22893.4012,
+    &quot;startupMs&quot;: 9032.7945,
+    &quot;modelRequests&quot;: 6,
+    &quot;providerHttpRequests&quot;: 6,
+    &quot;proposedToolCalls&quot;: 10,
+    &quot;toolExecutions&quot;: 10,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 5,
+    &quot;mcpMs&quot;: 10376.391099999995,
+    &quot;mcpInitializationMs&quot;: 10285.413999999999,
+    &quot;cacheRpcCalls&quot;: 10,
+    &quot;rpcDispatches&quot;: 15,
+    &quot;upstreamRequests&quot;: 5,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 2.265000000003056,
+    &quot;modelMs&quot;: 10992.414599999996,
+    &quot;providerPayloadBytesMax&quot;: 43735,
+    &quot;inputTokensMax&quot;: 6671,
+    &quot;inputTokensSum&quot;: 17070,
+    &quot;contextInputTokensMax&quot;: 11537,
+    &quot;contextInputTokensSum&quot;: 57262,
+    &quot;reasoningTokensSum&quot;: 936,
+    &quot;outputTokensSum&quot;: 2231,
+    &quot;cacheReadTokensSum&quot;: 40192,
+    &quot;cacheWriteTokensSum&quot;: 0,
+    &quot;totalTokensSum&quot;: 59493,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 6117,
+    &quot;firstTextMs&quot;: 1957.3029999999999,
+    &quot;firstCompleteResultMs&quot;: 18043.500099999997,
+    &quot;providerFirstTextMs&quot;: 1957.3029999999999,
+    &quot;firstPublishedBlockMs&quot;: 18039.506999999998,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 11289,
+        &quot;repeatedMessageBytes&quot;: 0,
+        &quot;inputTokens&quot;: 6671,
+        &quot;contextInputTokens&quot;: 7183,
+        &quot;reasoningTokens&quot;: 200,
+        &quot;outputTokens&quot;: 494,
+        &quot;cacheReadTokens&quot;: 512,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7677,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 26471,
+        &quot;durationMs&quot;: 2416.4182,
+        &quot;firstTextMs&quot;: 1657.1574,
+        &quot;firstThinkingMs&quot;: 779.4987999999994,
+        &quot;visibleThinkingMs&quot;: 877.6412,
+        &quot;thinkingChars&quot;: 537,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 17151,
+        &quot;repeatedMessageBytes&quot;: 11286,
+        &quot;inputTokens&quot;: 1065,
+        &quot;contextInputTokens&quot;: 8617,
+        &quot;reasoningTokens&quot;: 84,
+        &quot;outputTokens&quot;: 128,
+        &quot;cacheReadTokens&quot;: 7552,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 8745,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 32333,
+        &quot;durationMs&quot;: 924.1983999999975,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 246.436099999999,
+        &quot;visibleThinkingMs&quot;: 513.0519999999997,
+        &quot;thinkingChars&quot;: 254,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 7,
+        &quot;toolSchemaBytes&quot;: 13756,
+        &quot;displayToolNames&quot;: [
+          &quot;render_SubjectCards&quot;
+        ],
+        &quot;displaySchemaBytes&quot;: 2149,
+        &quot;contextMessageBytes&quot;: 17956,
+        &quot;repeatedMessageBytes&quot;: 17143,
+        &quot;inputTokens&quot;: 2613,
+        &quot;contextInputTokens&quot;: 9525,
+        &quot;reasoningTokens&quot;: 333,
+        &quot;outputTokens&quot;: 773,
+        &quot;cacheReadTokens&quot;: 6912,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 10298,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 35666,
+        &quot;durationMs&quot;: 3473.8807000000015,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 263.78399999999965,
+        &quot;visibleThinkingMs&quot;: 1877.4231,
+        &quot;thinkingChars&quot;: 745,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 2,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 21689,
+        &quot;repeatedMessageBytes&quot;: 12597,
+        &quot;inputTokens&quot;: 2570,
+        &quot;contextInputTokens&quot;: 9738,
+        &quot;reasoningTokens&quot;: 235,
+        &quot;outputTokens&quot;: 391,
+        &quot;cacheReadTokens&quot;: 7168,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 10129,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 36871,
+        &quot;durationMs&quot;: 2274.0879999999997,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 632.9481999999989,
+        &quot;visibleThinkingMs&quot;: 1254.839,
+        &quot;thinkingChars&quot;: 525,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 2,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 25430,
+        &quot;repeatedMessageBytes&quot;: 21677,
+        &quot;inputTokens&quot;: 550,
+        &quot;contextInputTokens&quot;: 10662,
+        &quot;reasoningTokens&quot;: 51,
+        &quot;outputTokens&quot;: 95,
+        &quot;cacheReadTokens&quot;: 10112,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 10757,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 40612,
+        &quot;durationMs&quot;: 563.1615999999995,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 162.20100000000093,
+        &quot;visibleThinkingMs&quot;: 289.95780000000013,
+        &quot;thinkingChars&quot;: 148,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 2,
+        &quot;toolCount&quot;: 7,
+        &quot;toolSchemaBytes&quot;: 13756,
+        &quot;displayToolNames&quot;: [
+          &quot;render_SubjectCards&quot;
+        ],
+        &quot;displaySchemaBytes&quot;: 2149,
+        &quot;contextMessageBytes&quot;: 26025,
+        &quot;repeatedMessageBytes&quot;: 25415,
+        &quot;inputTokens&quot;: 3601,
+        &quot;contextInputTokens&quot;: 11537,
+        &quot;reasoningTokens&quot;: 33,
+        &quot;outputTokens&quot;: 350,
+        &quot;cacheReadTokens&quot;: 7936,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 11887,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 43735,
+        &quot;durationMs&quot;: 1340.6676999999981,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 178.16179999999804,
+        &quot;visibleThinkingMs&quot;: 216.66270000000077,
+        &quot;thinkingChars&quot;: 79,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 38,
+    &quot;initialToolCount&quot;: 6,
+    &quot;initialToolSchemaBytes&quot;: 11608,
+    &quot;initialProviderPayloadBytes&quot;: 26471,
+    &quot;validatedFinals&quot;: 2,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: false,
+    &quot;firstOutputAttemptFailed&quot;: false,
+    &quot;localArgumentRepairs&quot;: 0,
+    &quot;argumentRejections&quot;: 0,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 0,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0,
+    &quot;renderedComponents&quot;: 2,
+    &quot;displaySchemaBytesSum&quot;: 4298,
+    &quot;displaySchemaBytesMax&quot;: 2149,
+    &quot;toolSchemaBytesSum&quot;: 73944,
+    &quot;toolSchemaBytesMax&quot;: 13756,
+    &quot;contextMessageBytesSum&quot;: 119540,
+    &quot;contextMessageBytesMax&quot;: 26025,
+    &quot;repeatedMessageBytesSum&quot;: 88118,
+    &quot;userTurnInitialDisplaySchemas&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      },
+      {
+        &quot;userTurn&quot;: 2,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      }
+    ],
+    &quot;activatedDisplaySets&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [
+          &quot;render_SubjectCards&quot;
+        ],
+        &quot;responseBytes&quot;: 83,
+        &quot;containsSchema&quot;: false
+      },
+      {
+        &quot;userTurn&quot;: 2,
+        &quot;names&quot;: [
+          &quot;render_SubjectCards&quot;
+        ],
+        &quot;responseBytes&quot;: 83,
+        &quot;containsSchema&quot;: false
+      }
+    ],
+    &quot;displayLoadoutMismatches&quot;: 0,
+    &quot;requestsAfterTerminalCommit&quot;: 0
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791485542307.5625,
+      &quot;elapsedMs&quot;: 3003.7081,
+      &quot;durationMs&quot;: 1.4567000000006374,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    },
+    {
+      &quot;seq&quot;: 2,
+      &quot;timestampMs&quot;: 1791485542390.6973,
+      &quot;elapsedMs&quot;: 3086.8428999999996,
+      &quot;durationMs&quot;: 0.2345000000004802,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1002&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1002,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    },
+    {
+      &quot;seq&quot;: 3,
+      &quot;timestampMs&quot;: 1791485542404.483,
+      &quot;elapsedMs&quot;: 3100.6283999999996,
+      &quot;durationMs&quot;: 0.19380000000091968,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1005&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1005,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    },
+    {
+      &quot;seq&quot;: 4,
+      &quot;timestampMs&quot;: 1791485549792.3518,
+      &quot;elapsedMs&quot;: 10488.4973,
+      &quot;durationMs&quot;: 0.20019999999931315,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    },
+    {
+      &quot;seq&quot;: 5,
+      &quot;timestampMs&quot;: 1791485549804.7808,
+      &quot;elapsedMs&quot;: 10500.926399999998,
+      &quot;durationMs&quot;: 0.17980000000170548,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1005&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1005,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;turn&quot;: 0,
+          &quot;exact&quot;: [
+            1001,
+            1002,
+            1005
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001,1002,1005&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;turn&quot;: 1,
+          &quot;exact&quot;: [
+            1001,
+            1005
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001,1005&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details>
+<details class="run" data-search="facts-data-table presentation-table passed candidate"><summary>facts-data-table · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/facts-data-table/1/result.json">原始结果</a> <a href="runs/candidate/facts-data-table/1/tracelog/2026-10-09/01a11cdc-4715-7256-b8ec-4bcbb3fa25d8/a2dcbe8f39cd8037e7e2fbc8f998d886/summary.json">trace摘要</a></p><p>总耗时 22192ms；模型请求 6；MCP 2；上游 2；含缓存输入token 60317</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,22.990415062045358 40,19.464955070603338 80,17.147282841249464 120,8.397175866495509 160,4.930081300813008 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>读取条目1001和1002的名称、评分、首播日期，用DataTable表格展示两部作品，各列完整保留这些事实，并在表格下给出这两部条目链接。</p><pre>已读取两部条目的基本资料，名称、评分与首播日期如下：
+条目 1001 与 1002 基本信息
+name
+名称
+score
+评分
+date
+首播日期
+星港追踪
+8.4
+2024-01-08
+玻璃海的回声
+8.1
+2024-04-12
+两部作品均为动画（条目 1001 评分 8.4、首播 2024-01-08；条目 1002 评分 8.1、首播 2024-04-12）。
+两部条目的 Bangumi 链接：
+条目链接
+星港追踪
+https://bgm.tv/subject/1001
+玻璃海的回声
+https://bgm.tv/subject/1002
+以上链接来自条目资料的 url 字段，可直接在 Bangumi 打开对应页面。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1001,
+      &quot;fields&quot;: [
+        &quot;id&quot;,
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;,
+        &quot;url&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;score&quot;: 8.4,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1001&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T18:52:53.682Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_f3177e190d5535238635153c9eaa56fc&quot;,
+        &quot;fields&quot;: [
+          &quot;id&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;date&quot;,
+          &quot;url&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1002,
+      &quot;fields&quot;: [
+        &quot;id&quot;,
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;,
+        &quot;url&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1002,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;玻璃海的回声&quot;,
+        &quot;nameCn&quot;: &quot;玻璃海的回声&quot;,
+        &quot;date&quot;: &quot;2024-04-12&quot;,
+        &quot;score&quot;: 8.1,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1002&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T18:52:53.765Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_11c4b827d4d780b17bdbb2eda13c570b&quot;,
+        &quot;fields&quot;: [
+          &quot;id&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;date&quot;,
+          &quot;url&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_index&quot;,
+    &quot;arguments&quot;: {
+      &quot;query&quot;: &quot;表格&quot;
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;ceaa10774c6f90a8&quot;,
+      &quot;entries&quot;: [],
+      &quot;total&quot;: 0,
+      &quot;offset&quot;: 0,
+      &quot;nextOffset&quot;: null,
+      &quot;categories&quot;: [
+        &quot;作品&quot;,
+        &quot;统计&quot;,
+        &quot;进度&quot;,
+        &quot;事实&quot;,
+        &quot;事件&quot;,
+        &quot;标签&quot;,
+        &quot;人物图片&quot;,
+        &quot;文字&quot;,
+        &quot;链接&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_index&quot;,
+    &quot;arguments&quot;: {
+      &quot;limit&quot;: 12
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;ceaa10774c6f90a8&quot;,
+      &quot;entries&quot;: [
+        {
+          &quot;name&quot;: &quot;SubjectCards&quot;,
+          &quot;category&quot;: &quot;作品&quot;,
+          &quot;purpose&quot;: &quot;展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片&quot;,
+          &quot;data&quot;: &quot;作品身份、名称、媒体类型，缓存作品引用&quot;
+        },
+        {
+          &quot;name&quot;: &quot;StatsCard&quot;,
+          &quot;category&quot;: &quot;统计&quot;,
+          &quot;purpose&quot;: &quot;展示评分、数量分布和指标汇总&quot;,
+          &quot;data&quot;: &quot;标签及指标值、评分分布&quot;
+        },
+        {
+          &quot;name&quot;: &quot;ProgressView&quot;,
+          &quot;category&quot;: &quot;进度&quot;,
+          &quot;purpose&quot;: &quot;展示观看进度和章节状态&quot;,
+          &quot;data&quot;: &quot;进度数值、章节和个人状态&quot;
+        },
+        {
+          &quot;name&quot;: &quot;InfoBox&quot;,
+          &quot;category&quot;: &quot;事实&quot;,
+          &quot;purpose&quot;: &quot;展示单对象的键值信息&quot;,
+          &quot;data&quot;: &quot;单个对象的字段、资料信息&quot;
+        },
+        {
+          &quot;name&quot;: &quot;DataTable&quot;,
+          &quot;category&quot;: &quot;事实&quot;,
+          &quot;purpose&quot;: &quot;按列比较多行事实、季度计数及行列数据&quot;,
+          &quot;data&quot;: &quot;列定义和对象行&quot;
+        },
+        {
+          &quot;name&quot;: &quot;Timeline&quot;,
+          &quot;category&quot;: &quot;事件&quot;,
+          &quot;purpose&quot;: &quot;按时间展示事件&quot;,
+          &quot;data&quot;: &quot;事件时间、正文及参与者&quot;
+        },
+        {
+          &quot;name&quot;: &quot;TagCloud&quot;,
+          &quot;category&quot;: &quot;标签&quot;,
+          &quot;purpose&quot;: &quot;展示标签及频次&quot;,
+          &quot;data&quot;: &quot;标签名称、计数、选中状态&quot;
+        },
+        {
+          &quot;name&quot;: &quot;Gallery&quot;,
+          &quot;category&quot;: &quot;人物图片&quot;,
+          &quot;purpose&quot;: &quot;展示简单人物、角色候选或图片列表&quot;,
+          &quot;data&quot;: &quot;实体身份、名称及可用图片&quot;
+        },
+        {
+          &quot;name&quot;: &quot;CompareTable&quot;,
+          &quot;category&quot;: &quot;事实&quot;,
+          &quot;purpose&quot;: &quot;展示前后变化&quot;,
+          &quot;data&quot;: &quot;同一字段的修改前后值&quot;
+        },
+        {
+          &quot;name&quot;: &quot;QuoteBlock&quot;,
+          &quot;category&quot;: &quot;文字&quot;,
+          &quot;purpose&quot;: &quot;展示引用正文或代码&quot;,
+          &quot;data&quot;: &quot;引用文字&quot;
+        },
+        {
+          &quot;name&quot;: &quot;Callout&quot;,
+          &quot;category&quot;: &quot;文字&quot;,
+          &quot;purpose&quot;: &quot;展示业务提示和结果状态，内部格式错误不放入正文&quot;,
+          &quot;data&quot;: &quot;业务状态和提示文字&quot;
+        },
+        {
+          &quot;name&quot;: &quot;LinkList&quot;,
+          &quot;category&quot;: &quot;链接&quot;,
+          &quot;purpose&quot;: &quot;展示链接集合&quot;,
+          &quot;data&quot;: &quot;链接名称及绝对地址&quot;
+        }
+      ],
+      &quot;total&quot;: 12,
+      &quot;offset&quot;: 0,
+      &quot;nextOffset&quot;: null,
+      &quot;categories&quot;: [
+        &quot;作品&quot;,
+        &quot;统计&quot;,
+        &quot;进度&quot;,
+        &quot;事实&quot;,
+        &quot;事件&quot;,
+        &quot;标签&quot;,
+        &quot;人物图片&quot;,
+        &quot;文字&quot;,
+        &quot;链接&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_spec&quot;,
+    &quot;arguments&quot;: {
+      &quot;names&quot;: [
+        &quot;DataTable&quot;,
+        &quot;LinkList&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;ceaa10774c6f90a8&quot;,
+      &quot;status&quot;: &quot;activated&quot;,
+      &quot;tools&quot;: [
+        &quot;render_DataTable&quot;,
+        &quot;render_LinkList&quot;
+      ]
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;render_DataTable&quot;,
+    &quot;arguments&quot;: {
+      &quot;title&quot;: &quot;条目 1001 与 1002 基本信息&quot;,
+      &quot;fields&quot;: [
+        &quot;name&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;
+      ],
+      &quot;columns&quot;: [
+        {
+          &quot;key&quot;: &quot;name&quot;,
+          &quot;label&quot;: &quot;名称&quot;
+        },
+        {
+          &quot;key&quot;: &quot;score&quot;,
+          &quot;label&quot;: &quot;评分&quot;
+        },
+        {
+          &quot;key&quot;: &quot;date&quot;,
+          &quot;label&quot;: &quot;首播日期&quot;
+        }
+      ],
+      &quot;sources&quot;: [
+        {
+          &quot;resourceRef&quot;: &quot;rr_f3177e190d5535238635153c9eaa56fc&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ]
+        },
+        {
+          &quot;resourceRef&quot;: &quot;rr_11c4b827d4d780b17bdbb2eda13c570b&quot;,
+          &quot;subjectIds&quot;: [
+            1002
+          ]
+        }
+      ],
+      &quot;before&quot;: &quot;已读取两部条目的基本资料，名称、评分与首播日期如下：&quot;,
+      &quot;after&quot;: &quot;两部作品均为动画（条目 1001 评分 8.4、首播 2024-01-08；条目 1002 评分 8.1、首播 2024-04-12）。&quot;
+    },
+    &quot;value&quot;: {
+      &quot;error&quot;: {
+        &quot;code&quot;: &quot;INVALID_INPUT&quot;,
+        &quot;message&quot;: &quot;/fields：fields与columns只能选择一种。；/columns：fields与columns只能选择一种。&quot;,
+        &quot;issues&quot;: [
+          {
+            &quot;path&quot;: &quot;/fields&quot;,
+            &quot;rule&quot;: &quot;mutually_exclusive&quot;,
+            &quot;hint&quot;: &quot;fields与columns只能选择一种。&quot;
+          },
+          {
+            &quot;path&quot;: &quot;/columns&quot;,
+            &quot;rule&quot;: &quot;mutually_exclusive&quot;,
+            &quot;hint&quot;: &quot;fields与columns只能选择一种。&quot;
+          }
+        ],
+        &quot;networkAttempted&quot;: false,
+        &quot;diagnostic&quot;: {
+          &quot;schemaVersion&quot;: 1,
+          &quot;errorId&quot;: &quot;5b433f67-943d-4ccb-b0b9-ef7f2afba49a&quot;,
+          &quot;reason&quot;: &quot;input_schema_invalid&quot;,
+          &quot;certainty&quot;: &quot;confirmed&quot;,
+          &quot;recovery&quot;: &quot;correct_parameters&quot;,
+          &quot;issues&quot;: [
+            {
+              &quot;path&quot;: &quot;/fields&quot;,
+              &quot;rule&quot;: &quot;mutually_exclusive&quot;,
+              &quot;message&quot;: &quot;fields与columns只能选择一种。&quot;
+            },
+            {
+              &quot;path&quot;: &quot;/columns&quot;,
+              &quot;rule&quot;: &quot;mutually_exclusive&quot;,
+              &quot;message&quot;: &quot;fields与columns只能选择一种。&quot;
+            }
+          ],
+          &quot;evidence&quot;: {
+            &quot;networkAttempted&quot;: false
+          },
+          &quot;causes&quot;: [],
+          &quot;code&quot;: &quot;INVALID_INPUT&quot;,
+          &quot;origin&quot;: &quot;domain&quot;,
+          &quot;stage&quot;: &quot;input&quot;
+        }
+      }
+    },
+    &quot;error&quot;: true
+  },
+  {
+    &quot;name&quot;: &quot;render_DataTable&quot;,
+    &quot;arguments&quot;: {
+      &quot;after&quot;: &quot;两部作品均为动画（条目 1001 评分 8.4、首播 2024-01-08；条目 1002 评分 8.1、首播 2024-04-12）。&quot;,
+      &quot;before&quot;: &quot;已读取两部条目的基本资料，名称、评分与首播日期如下：&quot;,
+      &quot;columns&quot;: [
+        {
+          &quot;key&quot;: &quot;name&quot;,
+          &quot;label&quot;: &quot;名称&quot;
+        },
+        {
+          &quot;key&quot;: &quot;score&quot;,
+          &quot;label&quot;: &quot;评分&quot;
+        },
+        {
+          &quot;key&quot;: &quot;date&quot;,
+          &quot;label&quot;: &quot;首播日期&quot;
+        }
+      ],
+      &quot;sources&quot;: [
+        {
+          &quot;resourceRef&quot;: &quot;rr_f3177e190d5535238635153c9eaa56fc&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ]
+        },
+        {
+          &quot;resourceRef&quot;: &quot;rr_11c4b827d4d780b17bdbb2eda13c570b&quot;,
+          &quot;subjectIds&quot;: [
+            1002
+          ]
+        }
+      ],
+      &quot;title&quot;: &quot;条目 1001 与 1002 基本信息&quot;
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;ee086d9a-57f6-4814-b103-410a4fce0f6d&quot;,
+      &quot;blockIndex&quot;: 1,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;render_LinkList&quot;,
+    &quot;arguments&quot;: {
+      &quot;after&quot;: &quot;以上链接来自条目资料的 url 字段，可直接在 Bangumi 打开对应页面。&quot;,
+      &quot;before&quot;: &quot;两部条目的 Bangumi 链接：&quot;,
+      &quot;final&quot;: true,
+      &quot;sources&quot;: [
+        {
+          &quot;resourceRef&quot;: &quot;rr_f3177e190d5535238635153c9eaa56fc&quot;,
+          &quot;members&quot;: [
+            {
+              &quot;entity&quot;: &quot;subject&quot;,
+              &quot;subjectId&quot;: 1001
+            }
+          ]
+        },
+        {
+          &quot;resourceRef&quot;: &quot;rr_11c4b827d4d780b17bdbb2eda13c570b&quot;,
+          &quot;members&quot;: [
+            {
+              &quot;entity&quot;: &quot;subject&quot;,
+              &quot;subjectId&quot;: 1002
+            }
+          ]
+        }
+      ],
+      &quot;title&quot;: &quot;条目链接&quot;
+    },
+    &quot;value&quot;: {
+      &quot;replyId&quot;: &quot;ee086d9a-57f6-4814-b103-410a4fce0f6d&quot;,
+      &quot;blockIndex&quot;: 4,
+      &quot;reused&quot;: false
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 22192.2398,
+    &quot;startupMs&quot;: 8858.3259,
+    &quot;modelRequests&quot;: 6,
+    &quot;providerHttpRequests&quot;: 6,
+    &quot;proposedToolCalls&quot;: 8,
+    &quot;toolExecutions&quot;: 8,
+    &quot;toolErrors&quot;: 1,
+    &quot;mcpCalls&quot;: 2,
+    &quot;mcpMs&quot;: 10510.978399999998,
+    &quot;mcpInitializationMs&quot;: 10430.4305,
+    &quot;cacheRpcCalls&quot;: 8,
+    &quot;rpcDispatches&quot;: 10,
+    &quot;upstreamRequests&quot;: 2,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 1.7468000000008033,
+    &quot;modelMs&quot;: 10315.353299999997,
+    &quot;providerPayloadBytesMax&quot;: 46740,
+    &quot;inputTokensMax&quot;: 6690,
+    &quot;inputTokensSum&quot;: 12701,
+    &quot;contextInputTokensMax&quot;: 12673,
+    &quot;contextInputTokensSum&quot;: 60317,
+    &quot;reasoningTokensSum&quot;: 1049,
+    &quot;outputTokensSum&quot;: 2121,
+    &quot;cacheReadTokensSum&quot;: 47616,
+    &quot;cacheWriteTokensSum&quot;: 0,
+    &quot;totalTokensSum&quot;: 62438,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 5422,
+    &quot;firstTextMs&quot;: 20171.5924,
+    &quot;firstCompleteResultMs&quot;: 22111.7137,
+    &quot;providerFirstTextMs&quot;: null,
+    &quot;firstPublishedBlockMs&quot;: 20171.5924,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 11385,
+        &quot;repeatedMessageBytes&quot;: 0,
+        &quot;inputTokens&quot;: 6690,
+        &quot;contextInputTokens&quot;: 7202,
+        &quot;reasoningTokens&quot;: 216,
+        &quot;outputTokens&quot;: 388,
+        &quot;cacheReadTokens&quot;: 512,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7590,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 26567,
+        &quot;durationMs&quot;: 1479.5481999999993,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 134.94930000000022,
+        &quot;visibleThinkingMs&quot;: 915.2920999999988,
+        &quot;thinkingChars&quot;: 894,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 15130,
+        &quot;repeatedMessageBytes&quot;: 11382,
+        &quot;inputTokens&quot;: 576,
+        &quot;contextInputTokens&quot;: 8128,
+        &quot;reasoningTokens&quot;: 34,
+        &quot;outputTokens&quot;: 74,
+        &quot;cacheReadTokens&quot;: 7552,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 8202,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 30312,
+        &quot;durationMs&quot;: 876.6984999999986,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 544.3274999999994,
+        &quot;visibleThinkingMs&quot;: 199.52260000000024,
+        &quot;thinkingChars&quot;: 140,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 17592,
+        &quot;repeatedMessageBytes&quot;: 15123,
+        &quot;inputTokens&quot;: 438,
+        &quot;contextInputTokens&quot;: 8630,
+        &quot;reasoningTokens&quot;: 258,
+        &quot;outputTokens&quot;: 306,
+        &quot;cacheReadTokens&quot;: 8192,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 8936,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 32774,
+        &quot;durationMs&quot;: 1823.2314000000006,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 482.7998000000007,
+        &quot;visibleThinkingMs&quot;: 1216.1754,
+        &quot;thinkingChars&quot;: 1001,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 8,
+        &quot;toolSchemaBytes&quot;: 18536,
+        &quot;displayToolNames&quot;: [
+          &quot;render_DataTable&quot;,
+          &quot;render_LinkList&quot;
+        ],
+        &quot;displaySchemaBytes&quot;: 6929,
+        &quot;contextMessageBytes&quot;: 19213,
+        &quot;repeatedMessageBytes&quot;: 17583,
+        &quot;inputTokens&quot;: 4442,
+        &quot;contextInputTokens&quot;: 11354,
+        &quot;reasoningTokens&quot;: 430,
+        &quot;outputTokens&quot;: 739,
+        &quot;cacheReadTokens&quot;: 6912,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 12093,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 42069,
+        &quot;durationMs&quot;: 3047.1047,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 299.141599999999,
+        &quot;visibleThinkingMs&quot;: 1914.5658000000003,
+        &quot;thinkingChars&quot;: 1637,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 8,
+        &quot;toolSchemaBytes&quot;: 18536,
+        &quot;displayToolNames&quot;: [
+          &quot;render_DataTable&quot;,
+          &quot;render_LinkList&quot;
+        ],
+        &quot;displaySchemaBytes&quot;: 6929,
+        &quot;contextMessageBytes&quot;: 22896,
+        &quot;repeatedMessageBytes&quot;: 19202,
+        &quot;inputTokens&quot;: 298,
+        &quot;contextInputTokens&quot;: 12330,
+        &quot;reasoningTokens&quot;: 8,
+        &quot;outputTokens&quot;: 293,
+        &quot;cacheReadTokens&quot;: 12032,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 12623,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 45752,
+        &quot;durationMs&quot;: 1370.7122999999992,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 534.1064000000006,
+        &quot;visibleThinkingMs&quot;: 155.9489999999969,
+        &quot;thinkingChars&quot;: 40,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 8,
+        &quot;toolSchemaBytes&quot;: 18536,
+        &quot;displayToolNames&quot;: [
+          &quot;render_DataTable&quot;,
+          &quot;render_LinkList&quot;
+        ],
+        &quot;displaySchemaBytes&quot;: 6929,
+        &quot;contextMessageBytes&quot;: 23884,
+        &quot;repeatedMessageBytes&quot;: 22883,
+        &quot;inputTokens&quot;: 257,
+        &quot;contextInputTokens&quot;: 12673,
+        &quot;reasoningTokens&quot;: 103,
+        &quot;outputTokens&quot;: 321,
+        &quot;cacheReadTokens&quot;: 12416,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 12994,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 46740,
+        &quot;durationMs&quot;: 1718.0581999999995,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 548.8087999999989,
+        &quot;visibleThinkingMs&quot;: 552.6297999999988,
+        &quot;thinkingChars&quot;: 424,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 42,
+    &quot;initialToolCount&quot;: 6,
+    &quot;initialToolSchemaBytes&quot;: 11608,
+    &quot;initialProviderPayloadBytes&quot;: 26567,
+    &quot;validatedFinals&quot;: 1,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: false,
+    &quot;firstOutputAttemptFailed&quot;: true,
+    &quot;localArgumentRepairs&quot;: 0,
+    &quot;argumentRejections&quot;: 0,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 1,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0,
+    &quot;renderedComponents&quot;: 2,
+    &quot;displaySchemaBytesSum&quot;: 20787,
+    &quot;displaySchemaBytesMax&quot;: 6929,
+    &quot;toolSchemaBytesSum&quot;: 90432,
+    &quot;toolSchemaBytesMax&quot;: 18536,
+    &quot;contextMessageBytesSum&quot;: 110100,
+    &quot;contextMessageBytesMax&quot;: 23884,
+    &quot;repeatedMessageBytesSum&quot;: 86173,
+    &quot;userTurnInitialDisplaySchemas&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      }
+    ],
+    &quot;activatedDisplaySets&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [
+          &quot;render_DataTable&quot;,
+          &quot;render_LinkList&quot;
+        ],
+        &quot;responseBytes&quot;: 98,
+        &quot;containsSchema&quot;: false
+      }
+    ],
+    &quot;displayLoadoutMismatches&quot;: 0,
+    &quot;requestsAfterTerminalCommit&quot;: 0
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791485573684.7517,
+      &quot;elapsedMs&quot;: 3122.3898,
+      &quot;durationMs&quot;: 1.4984999999996944,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    },
+    {
+      &quot;seq&quot;: 2,
+      &quot;timestampMs&quot;: 1791485573766.3516,
+      &quot;elapsedMs&quot;: 3203.9894999999988,
+      &quot;durationMs&quot;: 0.24830000000110886,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1002&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1002,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: [
+            1001,
+            1002
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001,1002&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component&quot;,
+          &quot;type&quot;: &quot;DataTable&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整组件：DataTable&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component_text&quot;,
+          &quot;type&quot;: &quot;DataTable&quot;,
+          &quot;pattern&quot;: &quot;8\\.4&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整DataTable组件内部应含：8\\.4&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component_text&quot;,
+          &quot;type&quot;: &quot;DataTable&quot;,
+          &quot;pattern&quot;: &quot;8\\.1&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整DataTable组件内部应含：8\\.1&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component_text&quot;,
+          &quot;type&quot;: &quot;DataTable&quot;,
+          &quot;pattern&quot;: &quot;2024-01-08&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整DataTable组件内部应含：2024-01-08&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component_text&quot;,
+          &quot;type&quot;: &quot;DataTable&quot;,
+          &quot;pattern&quot;: &quot;2024-04-12&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整DataTable组件内部应含：2024-04-12&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;evidence&quot;,
+          &quot;subjectIds&quot;: [
+            1001,
+            1002
+          ],
+          &quot;fields&quot;: [
+            &quot;score&quot;,
+            &quot;date&quot;
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;实际模型可见字段：[[1001,[\&quot;score\&quot;,\&quot;date\&quot;]],[1002,[\&quot;score\&quot;,\&quot;date\&quot;]]]&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component_text&quot;,
+          &quot;type&quot;: &quot;DataTable&quot;,
+          &quot;pattern&quot;: &quot;星港追踪&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整DataTable组件内部应含：星港追踪&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;component_text&quot;,
+          &quot;type&quot;: &quot;DataTable&quot;,
+          &quot;pattern&quot;: &quot;玻璃海的回声&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;完整DataTable组件内部应含：玻璃海的回声&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details>
+<details class="run" data-search="native-plain-text presentation-native-text passed candidate"><summary>native-plain-text · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/native-plain-text/1/result.json">原始结果</a> <a href="runs/candidate/native-plain-text/1/tracelog/2026-10-09/01a11cdc-c236-7341-b312-9e90c5a28a55/933e90092261f1d1c9f7ab12877be006/summary.json">trace摘要</a></p><p>总耗时 954ms；模型请求 1；MCP 0；上游 0；含缓存输入token 7191</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>只用一句自然文字说明：你可以通过读取Bangumi资料来帮助我比较作品。此轮无需查询作品或展示组件。</p><pre>我可以读取 Bangumi 的条目资料（简介、标签、评分分布、制作信息等），帮你把候选作品放在一起比较，说明它们各自的看点与差异。</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 954.3590999999997,
+    &quot;startupMs&quot;: 8915.709400000002,
+    &quot;modelRequests&quot;: 1,
+    &quot;providerHttpRequests&quot;: 1,
+    &quot;proposedToolCalls&quot;: 0,
+    &quot;toolExecutions&quot;: 0,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 0,
+    &quot;mcpMs&quot;: 0,
+    &quot;mcpInitializationMs&quot;: 0,
+    &quot;cacheRpcCalls&quot;: 0,
+    &quot;rpcDispatches&quot;: 0,
+    &quot;upstreamRequests&quot;: 0,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 0,
+    &quot;modelMs&quot;: 617.8887999999988,
+    &quot;providerPayloadBytesMax&quot;: 26528,
+    &quot;inputTokensMax&quot;: 6679,
+    &quot;inputTokensSum&quot;: 6679,
+    &quot;contextInputTokensMax&quot;: 7191,
+    &quot;contextInputTokensSum&quot;: 7191,
+    &quot;reasoningTokensSum&quot;: 0,
+    &quot;outputTokensSum&quot;: 36,
+    &quot;cacheReadTokensSum&quot;: 512,
+    &quot;cacheWriteTokensSum&quot;: 0,
+    &quot;totalTokensSum&quot;: 7227,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 0,
+    &quot;firstTextMs&quot;: 704.3383999999987,
+    &quot;firstCompleteResultMs&quot;: 930.4069999999992,
+    &quot;providerFirstTextMs&quot;: 704.3383999999987,
+    &quot;firstPublishedBlockMs&quot;: 922.3776999999991,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;toolCount&quot;: 6,
+        &quot;toolSchemaBytes&quot;: 11608,
+        &quot;displayToolNames&quot;: [],
+        &quot;displaySchemaBytes&quot;: 0,
+        &quot;contextMessageBytes&quot;: 11346,
+        &quot;repeatedMessageBytes&quot;: 0,
+        &quot;inputTokens&quot;: 6679,
+        &quot;contextInputTokens&quot;: 7191,
+        &quot;reasoningTokens&quot;: 0,
+        &quot;outputTokens&quot;: 36,
+        &quot;cacheReadTokens&quot;: 512,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7227,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 26528,
+        &quot;durationMs&quot;: 617.8887999999988,
+        &quot;firstTextMs&quot;: 394.8769999999986,
+        &quot;firstThinkingMs&quot;: null,
+        &quot;visibleThinkingMs&quot;: null,
+        &quot;thinkingChars&quot;: 0,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 6,
+    &quot;initialToolCount&quot;: 6,
+    &quot;initialToolSchemaBytes&quot;: 11608,
+    &quot;initialProviderPayloadBytes&quot;: 26528,
+    &quot;validatedFinals&quot;: 1,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0,
+    &quot;firstRoundFailed&quot;: false,
+    &quot;firstOutputAttemptFailed&quot;: false,
+    &quot;localArgumentRepairs&quot;: 0,
+    &quot;argumentRejections&quot;: 0,
+    &quot;schemaArgumentRejections&quot;: 0,
+    &quot;modelArgumentCorrections&quot;: 0,
+    &quot;preparedComponents&quot;: 0,
+    &quot;publishedComponents&quot;: 0,
+    &quot;renderedComponents&quot;: 0,
+    &quot;displaySchemaBytesSum&quot;: 0,
+    &quot;displaySchemaBytesMax&quot;: 0,
+    &quot;toolSchemaBytesSum&quot;: 11608,
+    &quot;toolSchemaBytesMax&quot;: 11608,
+    &quot;contextMessageBytesSum&quot;: 11346,
+    &quot;contextMessageBytesMax&quot;: 11346,
+    &quot;repeatedMessageBytesSum&quot;: 0,
+    &quot;userTurnInitialDisplaySchemas&quot;: [
+      {
+        &quot;userTurn&quot;: 1,
+        &quot;names&quot;: [],
+        &quot;bytes&quot;: 0
+      }
+    ],
+    &quot;activatedDisplaySets&quot;: [],
+    &quot;displayLoadoutMismatches&quot;: 0,
+    &quot;requestsAfterTerminalCommit&quot;: 0
+  },
+  &quot;network&quot;: [],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;Bangumi|作品&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: []
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details><script>document.getElementById("filter").addEventListener("input",function(){const q=this.value.toLowerCase();document.querySelectorAll(".run").forEach(function(el){el.hidden=!el.dataset.search.toLowerCase().includes(q)})});</script></html>

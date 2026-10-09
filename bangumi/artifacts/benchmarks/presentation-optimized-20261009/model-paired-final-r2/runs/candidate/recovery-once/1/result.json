@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "caseId": "recovery-once",
+  "family": "recovery",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "2b88586d0f410c1d028c7737f35a19d0521d3321468db2b86851dbf5afc5f44c",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的评分和首播日期；若只读接口暂时失败，可以在有限次数内恢复，给出最终核实的信息。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "查询一次即成功，未触发重试恢复。\n\n**条目 1001「星港追踪」**（动画）\n- 评分：**8.4**（评分人数 3000）\n- 首播日期：**2024-01-08**\n\n本次为公开只读查询（匿名模式），未涉及需要登录的字段；上述两项资料直接来自该次读取，未做二次回读以外的补写或修改。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "查询一次即成功，未触发重试恢复。\n\n**条目 1001「星港追踪」**（动画）\n- 评分：**8.4**（评分人数 3000）\n- 首播日期：**2024-01-08**\n\n本次为公开只读查询（匿名模式），未涉及需要登录的字段；上述两项资料直接来自该次读取，未做二次回读以外的补写或修改。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "date",
+              "score",
+              "ratingCount",
+              "subjectType"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "score": 8.4,
+              "ratingCount": 3000,
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:16:36.908Z"
+              },
+              "resourceRef": "rr_24fd5760e38177b9bb689a73f5699951",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "date",
+                "score",
+                "ratingCount",
+                "subjectType"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 13808.3196,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 2,
+        "httpAtSettled": 2,
+        "modelAtCommit": 2,
+        "modelAtSettled": 2
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 13865.823600000002,
+    "startupMs": 8125.6941,
+    "modelRequests": 2,
+    "providerHttpRequests": 2,
+    "proposedToolCalls": 1,
+    "toolExecutions": 1,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 9906.9694,
+    "mcpInitializationMs": 9673.4358,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 1,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.7488999999986845,
+    "modelMs": 3417.800699999998,
+    "providerPayloadBytesMax": 28025,
+    "inputTokensMax": 6708,
+    "inputTokensSum": 6986,
+    "contextInputTokensMax": 7574,
+    "contextInputTokensSum": 14794,
+    "reasoningTokensSum": 363,
+    "outputTokensSum": 537,
+    "cacheReadTokensSum": 7808,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 15331,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 888,
+    "firstTextMs": 13381.598100000001,
+    "firstCompleteResultMs": 13797.9141,
+    "providerFirstTextMs": 13381.598100000001,
+    "firstPublishedBlockMs": 13793.777499999998,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 11454,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 6708,
+        "contextInputTokens": 7220,
+        "reasoningTokens": 36,
+        "outputTokens": 117,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7337,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 26637,
+        "durationMs": 1096.7731000000003,
+        "firstTextMs": null,
+        "firstThinkingMs": 705.5311000000002,
+        "visibleThinkingMs": 179.61629999999968,
+        "thinkingChars": 143,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 12842,
+        "repeatedMessageBytes": 11451,
+        "inputTokens": 278,
+        "contextInputTokens": 7574,
+        "reasoningTokens": 327,
+        "outputTokens": 420,
+        "cacheReadTokens": 7296,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7994,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 28025,
+        "durationMs": 2321.0275999999976,
+        "firstTextMs": 1906.6733999999997,
+        "firstThinkingMs": 389.3266999999978,
+        "visibleThinkingMs": 1517.3354,
+        "thinkingChars": 1256,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 12,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 26637,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 0,
+    "displaySchemaBytesSum": 0,
+    "displaySchemaBytesMax": 0,
+    "toolSchemaBytesSum": 23216,
+    "toolSchemaBytesMax": 11608,
+    "contextMessageBytesSum": 24296,
+    "contextMessageBytesMax": 12842,
+    "repeatedMessageBytesSum": 11451,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791486996747.181,
+      "elapsedMs": 2977.8838000000005,
+      "durationMs": 1.4620999999988271,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 503,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791486996908.2764,
+      "elapsedMs": 3138.9792000000007,
+      "durationMs": 0.2867999999998574,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\candidate\\recovery-once\\1\\tracelog\\2026-10-09\\01a11cf2-02d7-7146-8707-c14802aeb10f\\df6a9475eb02a77251e7fffa459e1f68"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

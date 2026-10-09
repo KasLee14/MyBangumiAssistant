@@ -1,0 +1,15 @@
+{
+  "closedAt": "2026-10-08T19:51:05.308Z",
+  "runnerExited": true,
+  "cliExitCode": 0,
+  "planned": 2,
+  "recorded": 2,
+  "passed": 2,
+  "candidateHash": "92d041b491d5c4bf19f89be061cacdd65f45e6f77c1ad9d214fde1583a62be72",
+  "candidateStable": true,
+  "controlHash": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168",
+  "controlStable": true,
+  "modelConfigHash": "62a1b441d29fbfb33eb88f5c87808d672077808d572ed0f10c4215b9fde14c83",
+  "modelConfigStable": true,
+  "captureIssues": []
+}

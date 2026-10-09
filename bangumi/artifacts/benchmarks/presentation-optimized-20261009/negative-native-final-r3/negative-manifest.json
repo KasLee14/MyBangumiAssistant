@@ -1,0 +1,20 @@
+{
+  "evidence": "offline expected failures; not successful-answer baseline",
+  "startedAt": "2026-10-08T19:38:18.178Z",
+  "versionHash": "5abbb5b6f471c3cd51cb00a5ed3ea5dba13552ab26b6bc147b2ea9360e20db49",
+  "plannedRuns": [
+    {
+      "id": "disabled-correction",
+      "script": "native_duplicate_key",
+      "expectedOutcome": "errored",
+      "expectedStatus": "error"
+    },
+    {
+      "id": "budget-stop",
+      "script": "native_terminal_abort",
+      "expectedOutcome": "budget_exceeded",
+      "expectedStatus": "aborted",
+      "modelBudget": 2
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "requests": [
+    {
+      "caseId": "facts-basic",
+      "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-candidate-smoke-r2\\runs\\candidate\\facts-basic\\1\\tracelog\\2026-10-09\\01a11c45-f4f8-7581-a224-3492931bd31b\\fa8f149e7b8d6a95ca62dfd72e97a67c\\payloads\\5aada4f9afca596319feeb46c9ae89f8831504c828812da5521670395f4a316b.json",
+      "model": "deepseek-flash",
+      "responseFormat": null,
+      "prepareRootType": "object",
+      "prepareUnionBranches": 12,
+      "nativeTools": [
+        "prepare_component",
+        "present_component",
+        "present_text"
+      ]
+    },
+    {
+      "caseId": "facts-basic",
+      "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-candidate-smoke-r2\\runs\\candidate\\facts-basic\\1\\tracelog\\2026-10-09\\01a11c45-f4f8-7581-a224-3492931bd31b\\fa8f149e7b8d6a95ca62dfd72e97a67c\\payloads\\cfd5797bc07166bd6ce4fab84e5274ce5a053af6f4771d8fb19501d0dc424d17.json",
+      "model": "deepseek-flash",
+      "responseFormat": null,
+      "prepareRootType": "object",
+      "prepareUnionBranches": 12,
+      "nativeTools": [
+        "prepare_component",
+        "present_component",
+        "present_text"
+      ]
+    },
+    {
+      "caseId": "facts-basic",
+      "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-candidate-smoke-r2\\runs\\candidate\\facts-basic\\1\\tracelog\\2026-10-09\\01a11c45-f4f8-7581-a224-3492931bd31b\\fa8f149e7b8d6a95ca62dfd72e97a67c\\payloads\\6331f978e27fa7537cf002dd426eac9624b9f1b01681c5e7c7f4465de34a9ae5.json",
+      "model": "deepseek-flash",
+      "responseFormat": null,
+      "prepareRootType": null,
+      "prepareUnionBranches": null,
+      "nativeTools": []
+    },
+    {
+      "caseId": "resource-card",
+      "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-candidate-smoke-r2\\runs\\candidate\\resource-card\\1\\tracelog\\2026-10-09\\01a11c46-544c-723e-8e8a-484bd5204594\\2e1508db1ea6a8d506fe225cf2da6e45\\payloads\\1a850def30d3ef1a7883e173d19b6268283817fe2daa68b862958f0cc66fd014.json",
+      "model": "deepseek-flash",
+      "responseFormat": null,
+      "prepareRootType": "object",
+      "prepareUnionBranches": 12,
+      "nativeTools": [
+        "prepare_component",
+        "present_component",
+        "present_text"
+      ]
+    },
+    {
+      "caseId": "resource-card",
+      "payloadRef": "artifacts\\benchmarks\\presentation-20261008\\model-candidate-smoke-r2\\runs\\candidate\\resource-card\\1\\tracelog\\2026-10-09\\01a11c46-544c-723e-8e8a-484bd5204594\\2e1508db1ea6a8d506fe225cf2da6e45\\payloads\\de80a0cfb46437a9f2166853982ffe502331c91872091ff3704fcd37b5048d34.json",
+      "model": "deepseek-flash",
+      "responseFormat": null,
+      "prepareRootType": null,
+      "prepareUnionBranches": null,
+      "nativeTools": []
+    }
+  ],
+  "results": [
+    {
+      "caseId": "facts-basic",
+      "outcome": "passed",
+      "status": [
+        "completed"
+      ],
+      "successfulNativeCalls": [],
+      "providerHttpRequests": 3,
+      "modelRequests": 3,
+      "fixtureMiss": false,
+      "capturedUsageRequests": 3
+    },
+    {
+      "caseId": "resource-card",
+      "outcome": "failed",
+      "status": [
+        "completed"
+      ],
+      "successfulNativeCalls": [],
+      "providerHttpRequests": 2,
+      "modelRequests": 2,
+      "fixtureMiss": false,
+      "capturedUsageRequests": 2
+    }
+  ]
+}

@@ -1,0 +1,924 @@
+{
+  "schemaVersion": 1,
+  "caseId": "recovery-once",
+  "family": "recovery",
+  "variant": "control",
+  "repeat": 2,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的评分和首播日期；若只读接口暂时失败，可以在有限次数内恢复，给出最终核实的信息。",
+      "final": {
+        "content": [
+          {
+            "type": "InfoBox",
+            "pending": false,
+            "props": {
+              "title": "条目 1001 资料",
+              "rows": [
+                {
+                  "label": "name",
+                  "value": "星港追踪"
+                },
+                {
+                  "label": "nameCn",
+                  "value": "星港追踪"
+                },
+                {
+                  "label": "subjectType",
+                  "value": "2"
+                },
+                {
+                  "label": "platform",
+                  "value": "TV"
+                },
+                {
+                  "label": "date",
+                  "value": "2024-01-08"
+                },
+                {
+                  "label": "score",
+                  "value": "8.4"
+                },
+                {
+                  "label": "ratingCount",
+                  "value": "3000"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "条目 1001《星港追踪》的资料已核实完成，首次读取即成功，无需重试：\n\n- **评分（score）**：8.4\n- **首播日期（date）**：2024-01-08\n- 补充：媒体类型为 TV 动画，评分人数 3000 人。\n\n本次读取为匿名公开范围（未登录、NSFW 权限未检查），以上两项目标字段均在返回结果中直接核实。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "条目 1001 资料\nname\n星港追踪\nnameCn\n星港追踪\nsubjectType\n2\nplatform\nTV\ndate\n2024-01-08\nscore\n8.4\nratingCount\n3000\n条目 1001《星港追踪》的资料已核实完成，首次读取即成功，无需重试：\n\n- **评分（score）**：8.4\n- **首播日期（date）**：2024-01-08\n- 补充：媒体类型为 TV 动画，评分人数 3000 人。\n\n本次读取为匿名公开范围（未登录、NSFW 权限未检查），以上两项目标字段均在返回结果中直接核实。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "name",
+              "nameCn",
+              "score",
+              "ratingCount",
+              "date",
+              "platform",
+              "subjectType"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "score": 8.4,
+              "ratingCount": 3000,
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:17:25.790Z"
+              },
+              "resourceRef": "rr_6fd2e694b9d4505d859d0ddcac702c3a",
+              "fields": [
+                "name",
+                "nameCn",
+                "score",
+                "ratingCount",
+                "date",
+                "platform",
+                "subjectType"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品资料 评分 日期"
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "entries": [],
+            "total": 0,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "category": "作品"
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 2,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "category": "事实"
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "entries": [
+              {
+                "name": "InfoBox",
+                "category": "事实",
+                "purpose": "展示单对象的键值信息",
+                "data": "单个对象的字段、资料信息"
+              },
+              {
+                "name": "DataTable",
+                "category": "事实",
+                "purpose": "按列比较多行事实、季度计数及行列数据",
+                "data": "列定义和对象行"
+              },
+              {
+                "name": "CompareTable",
+                "category": "事实",
+                "purpose": "展示前后变化",
+                "data": "同一字段的修改前后值"
+              }
+            ],
+            "total": 3,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 3,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards",
+                "InfoBox",
+                "DataTable",
+                "CompareTable"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "InfoBox"
+            ]
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "InfoBox",
+                "category": "事实",
+                "purpose": "展示单对象的键值信息",
+                "data": "单个对象的字段、资料信息",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "tool": "prepare_component",
+                "prepare": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component",
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "component": {
+                      "type": "string",
+                      "enum": [
+                        "InfoBox"
+                      ]
+                    },
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    },
+                    "members": {
+                      "type": "array",
+                      "maxItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "subjectId": {
+                            "type": "number"
+                          },
+                          "episodeId": {
+                            "type": "number"
+                          },
+                          "characterId": {
+                            "type": "number"
+                          },
+                          "personId": {
+                            "type": "number"
+                          },
+                          "revisionId": {
+                            "type": "number"
+                          },
+                          "targetId": {
+                            "type": "number"
+                          },
+                          "relationId": {
+                            "type": "number"
+                          },
+                          "ownerId": {
+                            "type": "number"
+                          },
+                          "entity": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "targetKind": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "username": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "constraints": [
+                  "明确成员必须来自此resourceRef的当前成员；单对象详情不能选择其他对象。保持用户完整范围，多个已有详情引用可分别准备和发布，不跨引用合并ID。"
+                ],
+                "publication": "prepare成功后使用present_component({resourceRef,blockIndex})发布；blockIndex为整个快照绝对下标。候选准备快照可直接发布。普通说明为原生文字；精确交错可用present_text。"
+              }
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 3,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards",
+                "InfoBox",
+                "DataTable",
+                "CompareTable"
+              ],
+              "loaded": [
+                "InfoBox"
+              ],
+              "representations": {
+                "InfoBox": "reference"
+              },
+              "contracts": {
+                "InfoBox": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "InfoBox",
+            "resourceRef": "rr_6fd2e694b9d4505d859d0ddcac702c3a",
+            "title": "条目 1001 资料",
+            "fields": [
+              "name",
+              "nameCn",
+              "subjectType",
+              "platform",
+              "date",
+              "score",
+              "ratingCount"
+            ],
+            "subjectIds": [
+              1001
+            ]
+          },
+          "value": {
+            "resourceRef": "rr_95954400d9d14adcb9e7298dd090f954",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "InfoBox",
+                "itemCount": 7
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "resourceRef": "rr_95954400d9d14adcb9e7298dd090f954",
+            "blockIndex": 0
+          },
+          "value": {
+            "replyId": "0ba4be02-89cc-419b-bb11-a0da1846cb6d",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 19059.872300000003,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 8,
+        "httpAtSettled": 8,
+        "modelAtCommit": 8,
+        "modelAtSettled": 8
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 19121.9833,
+    "startupMs": 8420.179499999998,
+    "modelRequests": 8,
+    "providerHttpRequests": 8,
+    "proposedToolCalls": 7,
+    "toolExecutions": 7,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 10365.049199999998,
+    "mcpInitializationMs": 10131.2078,
+    "cacheRpcCalls": 2,
+    "rpcDispatches": 3,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.9272999999993772,
+    "modelMs": 7107.076900000002,
+    "providerPayloadBytesMax": 47022,
+    "inputTokensMax": 9976,
+    "inputTokensSum": 11863,
+    "contextInputTokensMax": 12986,
+    "contextInputTokensSum": 95063,
+    "reasoningTokensSum": 537,
+    "outputTokensSum": 1122,
+    "cacheReadTokensSum": 83200,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 96185,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 5407,
+    "firstTextMs": 19044.328,
+    "firstCompleteResultMs": 19047.9246,
+    "providerFirstTextMs": 18566.7829,
+    "firstPublishedBlockMs": 18155.702899999997,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 11445,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 9976,
+        "contextInputTokens": 10616,
+        "reasoningTokens": 97,
+        "outputTokens": 178,
+        "cacheReadTokens": 640,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10794,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36914,
+        "durationMs": 1625.2091999999993,
+        "firstTextMs": null,
+        "firstThinkingMs": 720.8810999999987,
+        "visibleThinkingMs": 497.33460000000014,
+        "thinkingChars": 386,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 13144,
+        "repeatedMessageBytes": 11442,
+        "inputTokens": 287,
+        "contextInputTokens": 11039,
+        "reasoningTokens": 238,
+        "outputTokens": 283,
+        "cacheReadTokens": 10752,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11322,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 38613,
+        "durationMs": 1441.2178999999996,
+        "firstTextMs": null,
+        "firstThinkingMs": 159.05009999999675,
+        "visibleThinkingMs": 1156.1767,
+        "thinkingChars": 986,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 14962,
+        "repeatedMessageBytes": 13139,
+        "inputTokens": 169,
+        "contextInputTokens": 11433,
+        "reasoningTokens": 7,
+        "outputTokens": 47,
+        "cacheReadTokens": 11264,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11480,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 40431,
+        "durationMs": 394.15799999999945,
+        "firstTextMs": null,
+        "firstThinkingMs": 221.03050000000076,
+        "visibleThinkingMs": 90.57849999999962,
+        "thinkingChars": 25,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 15896,
+        "repeatedMessageBytes": 14955,
+        "inputTokens": 243,
+        "contextInputTokens": 11635,
+        "reasoningTokens": 14,
+        "outputTokens": 54,
+        "cacheReadTokens": 11392,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11689,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 41365,
+        "durationMs": 500.7338000000018,
+        "firstTextMs": null,
+        "firstThinkingMs": 303.1828999999998,
+        "visibleThinkingMs": 95.46390000000247,
+        "thinkingChars": 49,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 17112,
+        "repeatedMessageBytes": 15887,
+        "inputTokens": 251,
+        "contextInputTokens": 11899,
+        "reasoningTokens": 123,
+        "outputTokens": 167,
+        "cacheReadTokens": 11648,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12066,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42581,
+        "durationMs": 995.0339999999997,
+        "firstTextMs": null,
+        "firstThinkingMs": 330.15399999999863,
+        "visibleThinkingMs": 548.134399999999,
+        "thinkingChars": 460,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 20225,
+        "repeatedMessageBytes": 17101,
+        "inputTokens": 560,
+        "contextInputTokens": 12592,
+        "reasoningTokens": 58,
+        "outputTokens": 217,
+        "cacheReadTokens": 12032,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12809,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 45694,
+        "durationMs": 1044.6360000000022,
+        "firstTextMs": null,
+        "firstThinkingMs": 416.2330000000002,
+        "visibleThinkingMs": 255.98470000000088,
+        "thinkingChars": 247,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 21117,
+        "repeatedMessageBytes": 20212,
+        "inputTokens": 191,
+        "contextInputTokens": 12863,
+        "reasoningTokens": 0,
+        "outputTokens": 75,
+        "cacheReadTokens": 12672,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12938,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 46586,
+        "durationMs": 386.3936999999969,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 21553,
+        "repeatedMessageBytes": 21102,
+        "inputTokens": 186,
+        "contextInputTokens": 12986,
+        "reasoningTokens": 0,
+        "outputTokens": 101,
+        "cacheReadTokens": 12800,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13087,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 47022,
+        "durationMs": 719.6943000000028,
+        "firstTextMs": 240.3650000000016,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 72,
+    "initialToolCount": 9,
+    "initialToolSchemaBytes": 21069,
+    "initialProviderPayloadBytes": 36914,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 1,
+    "publishedComponents": 1,
+    "renderedComponents": 0,
+    "displaySchemaBytesSum": 77696,
+    "displaySchemaBytesMax": 9712,
+    "toolSchemaBytesSum": 168552,
+    "toolSchemaBytesMax": 21069,
+    "contextMessageBytesSum": 135454,
+    "contextMessageBytesMax": 21553,
+    "repeatedMessageBytesSum": 113838,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "bytes": 9712
+      }
+    ],
+    "activatedDisplaySets": [],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791487045629.8113,
+      "elapsedMs": 2955.7613,
+      "durationMs": 1.629000000000815,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 503,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791487045790.921,
+      "elapsedMs": 3116.871000000001,
+      "durationMs": 0.29829999999856227,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\control\\recovery-once\\2\\tracelog\\2026-10-09\\01a11cf2-bdd1-74d9-a0de-339024ea0418\\db2b0ce2e87591b9419ba8e8d0431ca4"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 3,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 4,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 5,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 6,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 7,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 8,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "caseId": "native-plain-text",
+  "family": "presentation-native-text",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "051938c4607be9d81fc7c6d0422c3dab8f82c6cd8f3cb36b6d5ac8da1839c863",
+  "versionHash": "7e9bfa2eeb7a3e44020fa95f02a782b31fc6ec772db56e1c50e14f1fc4a3daa2",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "只用一句自然文字说明：你可以通过读取Bangumi资料来帮助我比较作品。此轮无需查询作品或展示组件。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "我可以读取 Bangumi 的条目资料（简介、标签、评分分布、制作信息等），帮你把候选作品放在一起比较，说明它们各自的看点与差异。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "我可以读取 Bangumi 的条目资料（简介、标签、评分分布、制作信息等），帮你把候选作品放在一起比较，说明它们各自的看点与差异。",
+      "tools": [],
+      "durationMs": 942.0710999999992,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 1,
+        "httpAtSettled": 1,
+        "modelAtCommit": 1,
+        "modelAtSettled": 1
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 954.3590999999997,
+    "startupMs": 8915.709400000002,
+    "modelRequests": 1,
+    "providerHttpRequests": 1,
+    "proposedToolCalls": 0,
+    "toolExecutions": 0,
+    "toolErrors": 0,
+    "mcpCalls": 0,
+    "mcpMs": 0,
+    "mcpInitializationMs": 0,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 0,
+    "upstreamRequests": 0,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 0,
+    "modelMs": 617.8887999999988,
+    "providerPayloadBytesMax": 26528,
+    "inputTokensMax": 6679,
+    "inputTokensSum": 6679,
+    "contextInputTokensMax": 7191,
+    "contextInputTokensSum": 7191,
+    "reasoningTokensSum": 0,
+    "outputTokensSum": 36,
+    "cacheReadTokensSum": 512,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 7227,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 0,
+    "firstTextMs": 704.3383999999987,
+    "firstCompleteResultMs": 930.4069999999992,
+    "providerFirstTextMs": 704.3383999999987,
+    "firstPublishedBlockMs": 922.3776999999991,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 11346,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 6679,
+        "contextInputTokens": 7191,
+        "reasoningTokens": 0,
+        "outputTokens": 36,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7227,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 26528,
+        "durationMs": 617.8887999999988,
+        "firstTextMs": 394.8769999999986,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 6,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 26528,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 0,
+    "displaySchemaBytesSum": 0,
+    "displaySchemaBytesMax": 0,
+    "toolSchemaBytesSum": 11608,
+    "toolSchemaBytesMax": 11608,
+    "contextMessageBytesSum": 11346,
+    "contextMessageBytesMax": 11346,
+    "repeatedMessageBytesSum": 0,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "Bangumi|作品"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": []
+        },
+        "passed": true,
+        "detail": "交付作品ID："
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r1\\runs\\candidate\\native-plain-text\\1\\tracelog\\2026-10-09\\01a11cdc-c236-7341-b312-9e90c5a28a55\\933e90092261f1d1c9f7ab12877be006"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

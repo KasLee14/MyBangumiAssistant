@@ -1,0 +1,473 @@
+{
+  "schemaVersion": 1,
+  "caseId": "facts-card-complete",
+  "family": "presentation-facts",
+  "variant": "candidate",
+  "repeat": 2,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "2b88586d0f410c1d028c7737f35a19d0521d3321468db2b86851dbf5afc5f44c",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "读取条目1001的名称、媒体类型、评分、首播日期、简介和封面，以SubjectCards卡片完整展示这些事实及条目链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "已读取条目 1001 的资料，卡片如下。该条目媒体类型为动画（subjectType 2），平台为 TV；评分 8.4，评分人数 3000；首播日期 2024-01-08；NSFW 为否。条目链接：https://bgm.tv/subject/1001",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "title": "条目 1001 基本资料",
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "简介：星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n\n说明：卡片展示的字段来自本次读取的条目缓存；评分与评分人数均为查询时刻的接口数据。以上链接为条目页地址，可直接在 Bangumi 打开查看完整信息。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "已读取条目 1001 的资料，卡片如下。该条目媒体类型为动画（subjectType 2），平台为 TV；评分 8.4，评分人数 3000；首播日期 2024-01-08；NSFW 为否。条目链接：https://bgm.tv/subject/1001\n条目 1001 基本资料\n1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n简介：星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n\n说明：卡片展示的字段来自本次读取的条目缓存；评分与评分人数均为查询时刻的接口数据。以上链接为条目页地址，可直接在 Bangumi 打开查看完整信息。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "subjectType",
+              "platform",
+              "score",
+              "ratingCount",
+              "date",
+              "summary",
+              "image",
+              "url",
+              "nsfw"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "nsfw": false,
+              "score": 8.4,
+              "ratingCount": 3000,
+              "url": "https://bgm.tv/subject/1001",
+              "image": "https://example.invalid/benchmark/1001.png",
+              "included": [
+                "summary"
+              ],
+              "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:21:21.155Z"
+              },
+              "resourceRef": "rr_08bde85ba54c6811882b94ffad30ece3",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "subjectType",
+                "platform",
+                "score",
+                "ratingCount",
+                "date",
+                "summary",
+                "image",
+                "url",
+                "nsfw"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "version": "f5c3d8f6ec6530ba",
+            "status": "activated",
+            "tools": [
+              "render_SubjectCards"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "render_SubjectCards",
+          "arguments": {
+            "resourceRef": "rr_08bde85ba54c6811882b94ffad30ece3",
+            "subjectIds": [
+              1001
+            ],
+            "layout": "grid",
+            "title": "条目 1001 基本资料",
+            "before": "已读取条目 1001 的资料，卡片如下。该条目媒体类型为动画（subjectType 2），平台为 TV；评分 8.4，评分人数 3000；首播日期 2024-01-08；NSFW 为否。条目链接：https://bgm.tv/subject/1001",
+            "after": "简介：星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n\n说明：卡片展示的字段来自本次读取的条目缓存；评分与评分人数均为查询时刻的接口数据。以上链接为条目页地址，可直接在 Bangumi 打开查看完整信息。",
+            "final": true
+          },
+          "value": {
+            "replyId": "819e5f36-bbbc-446b-b8e0-0b1ec9cfafa8",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 15060.3309,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "tool_finish_turn",
+        "finalToolCallId": "call_00_WBWYvhUXpBlEH71NQVTw9950",
+        "batchCallCount": 1,
+        "batchResultCount": 1,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 3,
+        "httpAtSettled": 3,
+        "modelAtCommit": 3,
+        "modelAtSettled": 3
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 15127.964,
+    "startupMs": 8294.1369,
+    "modelRequests": 3,
+    "providerHttpRequests": 3,
+    "proposedToolCalls": 3,
+    "toolExecutions": 3,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 9616.0763,
+    "mcpInitializationMs": 9543.7984,
+    "cacheRpcCalls": 2,
+    "rpcDispatches": 3,
+    "upstreamRequests": 1,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.805000000000291,
+    "modelMs": 4776.831899999999,
+    "providerPayloadBytesMax": 32949,
+    "inputTokensMax": 6711,
+    "inputTokensSum": 8755,
+    "contextInputTokensMax": 8863,
+    "contextInputTokensSum": 24115,
+    "reasoningTokensSum": 576,
+    "outputTokensSum": 1027,
+    "cacheReadTokensSum": 15360,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 25142,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 1497,
+    "firstTextMs": 15044.7261,
+    "firstCompleteResultMs": 15047.214100000001,
+    "providerFirstTextMs": null,
+    "firstPublishedBlockMs": 15044.7261,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 11472,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 6711,
+        "contextInputTokens": 7223,
+        "reasoningTokens": 386,
+        "outputTokens": 483,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7706,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 26655,
+        "durationMs": 2122.956899999999,
+        "firstTextMs": null,
+        "firstThinkingMs": 241.96039999999994,
+        "visibleThinkingMs": 1637.1371,
+        "thinkingChars": 1457,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 14802,
+        "repeatedMessageBytes": 11469,
+        "inputTokens": 349,
+        "contextInputTokens": 8029,
+        "reasoningTokens": 8,
+        "outputTokens": 52,
+        "cacheReadTokens": 7680,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8081,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 29985,
+        "durationMs": 694.0128000000004,
+        "firstTextMs": null,
+        "firstThinkingMs": 484.0100999999995,
+        "visibleThinkingMs": 96.38739999999962,
+        "thinkingChars": 41,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 7,
+        "toolSchemaBytes": 13756,
+        "displayToolNames": [
+          "render_SubjectCards"
+        ],
+        "displaySchemaBytes": 2149,
+        "contextMessageBytes": 15238,
+        "repeatedMessageBytes": 14797,
+        "inputTokens": 1695,
+        "contextInputTokens": 8863,
+        "reasoningTokens": 182,
+        "outputTokens": 492,
+        "cacheReadTokens": 7168,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9355,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 32949,
+        "durationMs": 1959.8621999999996,
+        "firstTextMs": null,
+        "firstThinkingMs": 148.84660000000076,
+        "visibleThinkingMs": 784.1116999999977,
+        "thinkingChars": 729,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 19,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 26655,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 1,
+    "displaySchemaBytesSum": 2149,
+    "displaySchemaBytesMax": 2149,
+    "toolSchemaBytesSum": 36972,
+    "toolSchemaBytesMax": 13756,
+    "contextMessageBytesSum": 41512,
+    "contextMessageBytesMax": 15238,
+    "repeatedMessageBytesSum": 26266,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [
+      {
+        "userTurn": 1,
+        "names": [
+          "render_SubjectCards"
+        ],
+        "responseBytes": 83,
+        "containsSchema": false
+      }
+    ],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "component",
+          "type": "SubjectCards"
+        },
+        "passed": true,
+        "detail": "完整组件：SubjectCards"
+      },
+      {
+        "rule": {
+          "kind": "delivered_fields",
+          "type": "SubjectCards",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "id",
+            "name",
+            "kind",
+            "score",
+            "date",
+            "summary",
+            "image",
+            "url"
+          ]
+        },
+        "passed": true,
+        "detail": "最终完整组件字段：[{\"id\":1001,\"fields\":[\"id\",\"name\",\"kind\",\"score\",\"date\",\"summary\",\"image\",\"url\"]}]"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date",
+            "summary",
+            "image"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\",\"summary\",\"image\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791487281157.7893,
+      "elapsedMs": 2849.3462,
+      "durationMs": 1.805000000000291,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\candidate\\facts-card-complete\\2\\tracelog\\2026-10-09\\01a11cf6-563b-7686-b6aa-122534cb828d\\fce003f41fdfb61436107f764402ea89"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 3,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

@@ -1,0 +1,636 @@
+{
+  "schemaVersion": 1,
+  "caseId": "facts-basic",
+  "family": "facts",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "a3a071371b27bf6abaa37a9f17241c9e8f725f06e8491123913cc152535b50eb",
+  "versionHash": "6c5e862fa668e2c6665a24beae5f00b10ca7c5a9bab2b8d8b1400a47f1770680",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的名称、评分、首播日期和集数，给出条目链接。",
+      "final": {
+        "content": [
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "list",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "条目 1001《星港追踪》（TV 动画）：\n\n- 名称：星港追踪（中文名同）\n- 评分：8.4\n- 首播日期：2024-01-08\n- 集数：12 集\n- 链接：https://bgm.tv/subject/1001\n\n以上为公共资料读取结果（本次为匿名访问，仅取到公开字段）。",
+            "nextType": "text"
+          },
+          {
+            "type": "text",
+            "text": "条目 1001 的资料如下：**《星港追踪》**，TV 动画，评分 8.4，首播日期 2024-01-08，全 12 集。链接：https://bgm.tv/subject/1001",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n条目 1001《星港追踪》（TV 动画）：\n\n- 名称：星港追踪（中文名同）\n- 评分：8.4\n- 首播日期：2024-01-08\n- 集数：12 集\n- 链接：https://bgm.tv/subject/1001\n\n以上为公共资料读取结果（本次为匿名访问，仅取到公开字段）。\n条目 1001 的资料如下：**《星港追踪》**，TV 动画，评分 8.4，首播日期 2024-01-08，全 12 集。链接：https://bgm.tv/subject/1001",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "totalEpisodes",
+              "platform",
+              "url",
+              "subjectType"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "score": 8.4,
+              "totalEpisodes": 12,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:32:41.161Z"
+              },
+              "resourceRef": "rr_cef008331de9fc893c7ccbe5a0678922",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "date",
+                "totalEpisodes",
+                "platform",
+                "url",
+                "subjectType"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "error": {
+              "code": "COMPONENT_INDEX_REQUIRED",
+              "message": "先读取可见的同版本组件索引选择组件，再读取字段。",
+              "diagnostic": {
+                "schemaVersion": 1,
+                "errorId": "1645a52c-b353-479b-a988-927b35fae79a",
+                "reason": "operation_failed",
+                "certainty": "confirmed",
+                "recovery": "none",
+                "issues": [],
+                "evidence": {},
+                "causes": [
+                  {
+                    "name": "AppError",
+                    "code": "COMPONENT_INDEX_REQUIRED"
+                  }
+                ],
+                "code": "COMPONENT_INDEX_REQUIRED",
+                "origin": "domain",
+                "stage": "execution"
+              }
+            }
+          },
+          "error": true
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品卡片"
+          },
+          "value": {
+            "version": "9c133de5fcc55ffb",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "9c133de5fcc55ffb",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "version": "9c133de5fcc55ffb",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "tool": "prepare_component",
+                "prepare": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component",
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "component": {
+                      "type": "string",
+                      "enum": [
+                        "SubjectCards"
+                      ]
+                    },
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                },
+                "publication": "prepare成功后使用present_component({resourceRef,blockIndex})发布；blockIndex为整个快照绝对下标。候选准备快照可直接发布。普通说明为原生文字；精确交错可用present_text。"
+              }
+            ],
+            "audit": {
+              "version": "9c133de5fcc55ffb",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [
+                "SubjectCards"
+              ],
+              "representations": {
+                "SubjectCards": "reference"
+              },
+              "contracts": {
+                "SubjectCards": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_cef008331de9fc893c7ccbe5a0678922",
+            "subjectIds": [
+              1001
+            ],
+            "layout": "list"
+          },
+          "value": {
+            "resourceRef": "rr_f1423e1ae8e74d2a8d8c392cd95bb6f4",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "resourceRef": "rr_f1423e1ae8e74d2a8d8c392cd95bb6f4",
+            "blockIndex": 0
+          },
+          "value": {
+            "replyId": "b27843d6-d659-4068-9dd5-0b1300c9b93e",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "条目 1001《星港追踪》（TV 动画）：\n\n- 名称：星港追踪（中文名同）\n- 评分：8.4\n- 首播日期：2024-01-08\n- 集数：12 集\n- 链接：https://bgm.tv/subject/1001\n\n以上为公共资料读取结果（本次为匿名访问，仅取到公开字段）。"
+          },
+          "value": {
+            "replyId": "b27843d6-d659-4068-9dd5-0b1300c9b93e",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 18855.2604,
+      "presentationStatus": "completed"
+    }
+  ],
+  "metrics": {
+    "totalMs": 18927.3062,
+    "startupMs": 9208.4465,
+    "modelRequests": 8,
+    "providerHttpRequests": 8,
+    "proposedToolCalls": 7,
+    "toolExecutions": 7,
+    "toolErrors": 1,
+    "mcpCalls": 1,
+    "mcpMs": 10602.06,
+    "mcpInitializationMs": 10517.9472,
+    "cacheRpcCalls": 2,
+    "rpcDispatches": 3,
+    "upstreamRequests": 1,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.6651999999994587,
+    "modelMs": 6637.175500000005,
+    "providerPayloadBytesMax": 43724,
+    "inputTokensMax": 9971,
+    "inputTokensSum": 11865,
+    "contextInputTokensMax": 12270,
+    "contextInputTokensSum": 92121,
+    "reasoningTokensSum": 203,
+    "outputTokensSum": 792,
+    "cacheReadTokensSum": 80256,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 92913,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 3907,
+    "firstTextMs": 17909.855600000003,
+    "firstCompleteResultMs": 18844.284399999997,
+    "providerFirstTextMs": 18661.138100000004,
+    "firstPublishedBlockMs": 16804.229700000004,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 9971,
+        "contextInputTokens": 10483,
+        "reasoningTokens": 45,
+        "outputTokens": 133,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10616,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36440,
+        "durationMs": 847.2265000000007,
+        "firstTextMs": null,
+        "firstThinkingMs": 363.5619000000006,
+        "visibleThinkingMs": 213.91469999999936,
+        "thinkingChars": 187,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 379,
+        "contextInputTokens": 10875,
+        "reasoningTokens": 158,
+        "outputTokens": 202,
+        "cacheReadTokens": 10496,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11077,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 37978,
+        "durationMs": 1208.7014999999992,
+        "firstTextMs": null,
+        "firstThinkingMs": 417.2501000000011,
+        "visibleThinkingMs": 686.4641999999985,
+        "thinkingChars": 616,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 210,
+        "contextInputTokens": 11218,
+        "reasoningTokens": 0,
+        "outputTokens": 41,
+        "cacheReadTokens": 11008,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11259,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 39509,
+        "durationMs": 582.2162000000026,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 284,
+        "contextInputTokens": 11420,
+        "reasoningTokens": 0,
+        "outputTokens": 44,
+        "cacheReadTokens": 11136,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11464,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 40421,
+        "durationMs": 819.0829000000012,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 403,
+        "contextInputTokens": 11795,
+        "reasoningTokens": 0,
+        "outputTokens": 111,
+        "cacheReadTokens": 11392,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11906,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42086,
+        "durationMs": 979.7328999999991,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 189,
+        "contextInputTokens": 11965,
+        "reasoningTokens": 0,
+        "outputTokens": 80,
+        "cacheReadTokens": 11776,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12045,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42621,
+        "durationMs": 522.6450000000004,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 191,
+        "contextInputTokens": 12095,
+        "reasoningTokens": 0,
+        "outputTokens": 125,
+        "cacheReadTokens": 11904,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12220,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43057,
+        "durationMs": 920.7347000000009,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 238,
+        "contextInputTokens": 12270,
+        "reasoningTokens": 0,
+        "outputTokens": 56,
+        "cacheReadTokens": 12032,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12326,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43724,
+        "durationMs": 756.8358000000007,
+        "firstTextMs": 576.2070000000022,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 72,
+    "initialToolCount": 9,
+    "initialToolSchemaBytes": 21069,
+    "initialProviderPayloadBytes": 36440,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 1,
+    "publishedComponents": 1
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "8\\.4"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "2024[-年/]0?1[-月/]0?8"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "12"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date",
+            "totalEpisodes"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\",\"totalEpisodes\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791477161163.9155,
+      "elapsedMs": 3355.1126999999997,
+      "durationMs": 1.6651999999994587,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-paired-final-r3\\runs\\candidate\\facts-basic\\1\\tracelog\\2026-10-09\\01a11c5b-ec06-71d2-a982-2a432274fdf3\\9a74ebe0648eb980e6c7751f2a8a0355"
+  ],
+  "captureIssues": []
+}

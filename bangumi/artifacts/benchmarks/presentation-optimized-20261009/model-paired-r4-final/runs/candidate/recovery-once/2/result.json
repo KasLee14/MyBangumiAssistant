@@ -1,0 +1,450 @@
+{
+  "schemaVersion": 1,
+  "caseId": "recovery-once",
+  "family": "recovery",
+  "variant": "candidate",
+  "repeat": 2,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的评分和首播日期；若只读接口暂时失败，可以在有限次数内恢复，给出最终核实的信息。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "条目 1001 的资料一次性读取成功，未发生接口失败，因此不需要重试恢复。",
+            "nextType": "InfoBox"
+          },
+          {
+            "type": "InfoBox",
+            "pending": false,
+            "props": {
+              "rows": [
+                {
+                  "label": "nameCn",
+                  "value": "星港追踪"
+                },
+                {
+                  "label": "date",
+                  "value": "2024-01-08"
+                },
+                {
+                  "label": "score",
+                  "value": "8.4"
+                },
+                {
+                  "label": "rank",
+                  "value": "1"
+                },
+                {
+                  "label": "ratingCount",
+                  "value": "3000"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "核实结果：评分 8.4（排名第 1，评分人数 3000），首播日期 2024-01-08。以上为只读接口返回的当前值（读取账户为匿名模式，属公开资料）。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "条目 1001 的资料一次性读取成功，未发生接口失败，因此不需要重试恢复。\nnameCn\n星港追踪\ndate\n2024-01-08\nscore\n8.4\nrank\n1\nratingCount\n3000\n核实结果：评分 8.4（排名第 1，评分人数 3000），首播日期 2024-01-08。以上为只读接口返回的当前值（读取账户为匿名模式，属公开资料）。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "date",
+              "score",
+              "rank",
+              "ratingCount",
+              "subjectType"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T20:48:19.462Z"
+              },
+              "resourceRef": "rr_f19fb43c16d43fa04993e2c5ed12502a",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "date",
+                "score",
+                "rank",
+                "ratingCount",
+                "subjectType"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "InfoBox"
+            ]
+          },
+          "value": {
+            "version": "f5c3d8f6ec6530ba",
+            "status": "activated",
+            "tools": [
+              "render_InfoBox"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "render_InfoBox",
+          "arguments": {
+            "resourceRef": "rr_f19fb43c16d43fa04993e2c5ed12502a",
+            "subjectIds": [
+              1001
+            ],
+            "fields": [
+              "nameCn",
+              "date",
+              "score",
+              "rank",
+              "ratingCount"
+            ],
+            "before": "条目 1001 的资料一次性读取成功，未发生接口失败，因此不需要重试恢复。",
+            "after": "核实结果：评分 8.4（排名第 1，评分人数 3000），首播日期 2024-01-08。以上为只读接口返回的当前值（读取账户为匿名模式，属公开资料）。",
+            "final": true
+          },
+          "value": {
+            "replyId": "38c67a00-ae59-4c19-ae6f-e184729567df",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 15744.5384,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "tool_finish_turn",
+        "finalToolCallId": "call_00_rkvdp8VGOTG4tTauocZi7984",
+        "batchCallCount": 1,
+        "batchResultCount": 1,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 3,
+        "httpAtSettled": 3,
+        "modelAtCommit": 3,
+        "modelAtSettled": 3
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 15825.294399999999,
+    "startupMs": 8327.331100000001,
+    "modelRequests": 3,
+    "providerHttpRequests": 3,
+    "proposedToolCalls": 3,
+    "toolExecutions": 3,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 9863.3563,
+    "mcpInitializationMs": 9625.373,
+    "cacheRpcCalls": 2,
+    "rpcDispatches": 3,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.8455999999987398,
+    "modelMs": 5149.032199999998,
+    "providerPayloadBytesMax": 34082,
+    "inputTokensMax": 6708,
+    "inputTokensSum": 9083,
+    "contextInputTokensMax": 9256,
+    "contextInputTokensSum": 24059,
+    "reasoningTokensSum": 527,
+    "outputTokensSum": 884,
+    "cacheReadTokensSum": 14976,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 24943,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 1140,
+    "firstTextMs": 15729.8589,
+    "firstCompleteResultMs": 15732.364099999999,
+    "providerFirstTextMs": null,
+    "firstPublishedBlockMs": 15729.8589,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 11454,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 6708,
+        "contextInputTokens": 7220,
+        "reasoningTokens": 35,
+        "outputTokens": 119,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7339,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 26637,
+        "durationMs": 1018.1939999999995,
+        "firstTextMs": null,
+        "firstThinkingMs": 642.0620999999992,
+        "visibleThinkingMs": 177.98790000000008,
+        "thinkingChars": 141,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 12869,
+        "repeatedMessageBytes": 11451,
+        "inputTokens": 287,
+        "contextInputTokens": 7583,
+        "reasoningTokens": 429,
+        "outputTokens": 473,
+        "cacheReadTokens": 7296,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8056,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 28052,
+        "durationMs": 2403.188399999999,
+        "firstTextMs": null,
+        "firstThinkingMs": 332.53190000000177,
+        "visibleThinkingMs": 1968.9866999999977,
+        "thinkingChars": 1744,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 7,
+        "toolSchemaBytes": 14979,
+        "displayToolNames": [
+          "render_InfoBox"
+        ],
+        "displaySchemaBytes": 3372,
+        "contextMessageBytes": 15158,
+        "repeatedMessageBytes": 12864,
+        "inputTokens": 2088,
+        "contextInputTokens": 9256,
+        "reasoningTokens": 63,
+        "outputTokens": 292,
+        "cacheReadTokens": 7168,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9548,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 34082,
+        "durationMs": 1727.6497999999992,
+        "firstTextMs": null,
+        "firstThinkingMs": 592.7834999999977,
+        "visibleThinkingMs": 386.5616000000009,
+        "thinkingChars": 291,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 19,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 26637,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 1,
+    "displaySchemaBytesSum": 3372,
+    "displaySchemaBytesMax": 3372,
+    "toolSchemaBytesSum": 38195,
+    "toolSchemaBytesMax": 14979,
+    "contextMessageBytesSum": 39481,
+    "contextMessageBytesMax": 15158,
+    "repeatedMessageBytesSum": 24315,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [
+      {
+        "userTurn": 1,
+        "names": [
+          "render_InfoBox"
+        ],
+        "responseBytes": 78,
+        "containsSchema": false
+      }
+    ],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791492499297.2786,
+      "elapsedMs": 3044.4818000000005,
+      "durationMs": 1.5173999999988155,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 503,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791492499462.1487,
+      "elapsedMs": 3209.3519000000006,
+      "durationMs": 0.32819999999992433,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\recovery-once\\2\\tracelog\\2026-10-09\\01a11d45-f9aa-7395-817f-b135a1baf988\\d1743568b2850d7e1f0f4f25694b06e8"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 3,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

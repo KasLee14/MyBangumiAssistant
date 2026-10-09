@@ -1,0 +1,801 @@
+{
+  "note": "payload_ref records prepared provider payloads. Budget abort may prevent final payload from reaching HTTP; compare counters and only treat fully captured successful runs as performance evidence.",
+  "summary": [
+    {
+      "variant": "candidate",
+      "runs": 4,
+      "providerPayloads": 11,
+      "providerHttpRequests": 11,
+      "modelRequestStarts": 11,
+      "preparedPayloadsBeyondHttpCount": 0,
+      "responseFormats": [
+        null
+      ],
+      "prepareRootTypesWhenDeclared": [],
+      "prepareBranchesWhenDeclared": [],
+      "successfulNativeCallCounts": {
+        "prepare_component": 0,
+        "present_component": 0,
+        "present_text": 0,
+        "render_SubjectCards": 3,
+        "render_StatsCard": 0,
+        "render_ProgressView": 0,
+        "render_InfoBox": 0,
+        "render_DataTable": 1,
+        "render_Timeline": 0,
+        "render_TagCloud": 0,
+        "render_Gallery": 0,
+        "render_CompareTable": 0,
+        "render_QuoteBlock": 0,
+        "render_Callout": 0,
+        "render_LinkList": 0,
+        "prepare_SubjectCards": 0,
+        "prepare_StatsCard": 0,
+        "prepare_ProgressView": 0,
+        "prepare_InfoBox": 0,
+        "prepare_DataTable": 0,
+        "prepare_Timeline": 0,
+        "prepare_TagCloud": 0,
+        "prepare_Gallery": 0,
+        "prepare_CompareTable": 0,
+        "prepare_QuoteBlock": 0,
+        "prepare_Callout": 0,
+        "prepare_LinkList": 0
+      },
+      "initialDisplayCountMax": 0,
+      "loadoutMismatches": 0,
+      "afterCommitHttp": 0,
+      "fixtureMisses": 0,
+      "httpModelRequestCountsMatch": true,
+      "usageComplete": true,
+      "passedRunsHttpCountsMatch": true,
+      "passedRunsUsageComplete": true
+    }
+  ],
+  "records": [
+    {
+      "caseId": "resource-card",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\resource-card\\1\\tracelog\\2026-10-09\\01a11ce9-b8e0-764e-bf07-51f5c327abeb\\109c440c1f19ba1bdc8fa6e3aae2310f\\payloads\\4a16321f51ce53ea3277ec742b330e2420e5c39ba1e6b76770da104468e18e84.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\resource-card\\1\\tracelog\\2026-10-09\\01a11ce9-b8e0-764e-bf07-51f5c327abeb\\109c440c1f19ba1bdc8fa6e3aae2310f\\payloads\\0a9a085b6c14e8d4da102344949ded6b0ed2948e062e0ecac1af1b8182f6e47a.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "render_SubjectCards"
+          ],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": [
+            {
+              "name": "render_SubjectCards",
+              "type": "object",
+              "schemaBytes": 2147,
+              "hasComponentDiscriminator": false,
+              "hasFields": false,
+              "hasColumns": false
+            }
+          ]
+        }
+      ],
+      "successfulNativeCalls": [
+        "render_SubjectCards"
+      ],
+      "canonicalStatuses": [
+        "completed"
+      ],
+      "completeComponents": [
+        [
+          "SubjectCards"
+        ]
+      ],
+      "providerHttpRequests": 2,
+      "modelRequests": 2,
+      "capturedUsageRequests": 2,
+      "responseModels": [
+        "deepseek-flash"
+      ],
+      "routes": [
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        }
+      ],
+      "httpStatuses": [
+        200,
+        200
+      ],
+      "initialDisplaySchemas": [
+        {
+          "userTurn": 1,
+          "names": [],
+          "bytes": 0
+        }
+      ],
+      "activationSets": [
+        {
+          "userTurn": 1,
+          "names": [
+            "render_SubjectCards"
+          ],
+          "responseBytes": 83,
+          "containsSchema": false
+        }
+      ],
+      "loadoutMismatches": 0,
+      "afterCommitHttp": 0,
+      "completionProofs": [
+        {
+          "source": "tool_finish_turn",
+          "finalToolCallId": "call_00_OXin3zrYi9wpWy7qOC4H0992",
+          "batchCallCount": 1,
+          "batchResultCount": 1,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 2,
+          "httpAtSettled": 2,
+          "modelAtCommit": 2,
+          "modelAtSettled": 2
+        }
+      ],
+      "historyProofs": [
+        {
+          "userTurn": 1,
+          "requestIndex": 1,
+          "texts": [],
+          "projectionAudits": []
+        },
+        {
+          "userTurn": 1,
+          "requestIndex": 2,
+          "texts": [],
+          "projectionAudits": []
+        }
+      ],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    },
+    {
+      "caseId": "followup-filter",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cea-24fb-7530-a59e-3b41ea628934\\372da4036f4407db238484acbe1947c3\\payloads\\85f6db44e9794776eed635304791386fac75eb314fdaf1e8d02f6954e70ad6a4.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cea-24fb-7530-a59e-3b41ea628934\\372da4036f4407db238484acbe1947c3\\payloads\\870983358108746ce9c300e2fe49a483187580017d1e247b4a645f1cdeb00be8.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cea-24fb-7530-a59e-3b41ea628934\\372da4036f4407db238484acbe1947c3\\payloads\\c05f45b1eaadb8ff4a8df74900d750c3984b395a5b94c15fbe3a5e98d513ed58.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "render_SubjectCards"
+          ],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": [
+            {
+              "name": "render_SubjectCards",
+              "type": "object",
+              "schemaBytes": 2147,
+              "hasComponentDiscriminator": false,
+              "hasFields": false,
+              "hasColumns": false
+            }
+          ]
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cea-24fb-7530-a59e-3b41ea628934\\a82296321e09640cb3ea98154c480f15\\payloads\\bf08e9b032ad59311e5acc0c87aa4da7970ef4c7ca74cf293f14b97ef50d297c.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cea-24fb-7530-a59e-3b41ea628934\\a82296321e09640cb3ea98154c480f15\\payloads\\860bbd5f497d14404d8eb55c2740a85345ccb8831f5c860934b733dc789e2e4c.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cea-24fb-7530-a59e-3b41ea628934\\a82296321e09640cb3ea98154c480f15\\payloads\\dcab83a32865dfb4fc3ef81f037c2406c29f714b1449cd058c8994bc32df1ed4.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "render_SubjectCards"
+          ],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": [
+            {
+              "name": "render_SubjectCards",
+              "type": "object",
+              "schemaBytes": 2147,
+              "hasComponentDiscriminator": false,
+              "hasFields": false,
+              "hasColumns": false
+            }
+          ]
+        }
+      ],
+      "successfulNativeCalls": [
+        "render_SubjectCards",
+        "render_SubjectCards"
+      ],
+      "canonicalStatuses": [
+        "completed",
+        "completed"
+      ],
+      "completeComponents": [
+        [
+          "SubjectCards"
+        ],
+        [
+          "SubjectCards"
+        ]
+      ],
+      "providerHttpRequests": 6,
+      "modelRequests": 6,
+      "capturedUsageRequests": 6,
+      "responseModels": [
+        "deepseek-flash"
+      ],
+      "routes": [
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        }
+      ],
+      "httpStatuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "initialDisplaySchemas": [
+        {
+          "userTurn": 1,
+          "names": [],
+          "bytes": 0
+        },
+        {
+          "userTurn": 2,
+          "names": [],
+          "bytes": 0
+        }
+      ],
+      "activationSets": [
+        {
+          "userTurn": 1,
+          "names": [
+            "render_SubjectCards"
+          ],
+          "responseBytes": 83,
+          "containsSchema": false
+        },
+        {
+          "userTurn": 2,
+          "names": [
+            "render_SubjectCards"
+          ],
+          "responseBytes": 83,
+          "containsSchema": false
+        }
+      ],
+      "loadoutMismatches": 0,
+      "afterCommitHttp": 0,
+      "completionProofs": [
+        {
+          "source": "tool_finish_turn",
+          "finalToolCallId": "call_00_nPMCSy1zYfEICfABqmaP3831",
+          "batchCallCount": 1,
+          "batchResultCount": 1,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 3,
+          "httpAtSettled": 3,
+          "modelAtCommit": 3,
+          "modelAtSettled": 3
+        },
+        {
+          "source": "tool_finish_turn",
+          "finalToolCallId": "call_00_ET_TcVtDbw3xybiVENwvvBi1905",
+          "batchCallCount": 1,
+          "batchResultCount": 1,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 6,
+          "httpAtSettled": 6,
+          "modelAtCommit": 6,
+          "modelAtSettled": 6
+        }
+      ],
+      "historyProofs": [
+        {
+          "userTurn": 1,
+          "requestIndex": 1,
+          "texts": [],
+          "projectionAudits": []
+        },
+        {
+          "userTurn": 1,
+          "requestIndex": 2,
+          "texts": [],
+          "projectionAudits": []
+        },
+        {
+          "userTurn": 1,
+          "requestIndex": 3,
+          "texts": [],
+          "projectionAudits": []
+        },
+        {
+          "userTurn": 2,
+          "requestIndex": 4,
+          "texts": [
+            {
+              "sourceUserTurn": 1,
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "partIndex": 0,
+              "textHash": "0074fd20a322e416f73f92cfb72c72683e3015c41c221aeb086f66470f979640",
+              "textBytes": 114,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            },
+            {
+              "sourceUserTurn": 1,
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "partIndex": 2,
+              "textHash": "861f48760c243181892dcded3ba183a37bed1c87c6d90335cdcee20a67ef59d1",
+              "textBytes": 452,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            }
+          ],
+          "projectionAudits": [
+            {
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "turnId": "df3f554e-ce94-4689-bc06-9abc93632acd",
+              "sourceComplete": true,
+              "foldedCallCount": 1,
+              "retainedSignedCallCount": 0,
+              "summaryInjected": true,
+              "textSourceRefs": []
+            }
+          ]
+        },
+        {
+          "userTurn": 2,
+          "requestIndex": 5,
+          "texts": [
+            {
+              "sourceUserTurn": 1,
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "partIndex": 0,
+              "textHash": "0074fd20a322e416f73f92cfb72c72683e3015c41c221aeb086f66470f979640",
+              "textBytes": 114,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            },
+            {
+              "sourceUserTurn": 1,
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "partIndex": 2,
+              "textHash": "861f48760c243181892dcded3ba183a37bed1c87c6d90335cdcee20a67ef59d1",
+              "textBytes": 452,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            }
+          ],
+          "projectionAudits": [
+            {
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "turnId": "df3f554e-ce94-4689-bc06-9abc93632acd",
+              "sourceComplete": true,
+              "foldedCallCount": 1,
+              "retainedSignedCallCount": 0,
+              "summaryInjected": true,
+              "textSourceRefs": []
+            }
+          ]
+        },
+        {
+          "userTurn": 2,
+          "requestIndex": 6,
+          "texts": [
+            {
+              "sourceUserTurn": 1,
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "partIndex": 0,
+              "textHash": "0074fd20a322e416f73f92cfb72c72683e3015c41c221aeb086f66470f979640",
+              "textBytes": 114,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            },
+            {
+              "sourceUserTurn": 1,
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "partIndex": 2,
+              "textHash": "861f48760c243181892dcded3ba183a37bed1c87c6d90335cdcee20a67ef59d1",
+              "textBytes": 452,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            }
+          ],
+          "projectionAudits": [
+            {
+              "replyId": "f197b5e8-daa8-42de-a3f9-16edae95d4f7",
+              "turnId": "df3f554e-ce94-4689-bc06-9abc93632acd",
+              "sourceComplete": true,
+              "foldedCallCount": 1,
+              "retainedSignedCallCount": 0,
+              "summaryInjected": true,
+              "textSourceRefs": []
+            }
+          ]
+        }
+      ],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    },
+    {
+      "caseId": "facts-data-table",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11cea-9a19-71ab-9701-a7038740f60b\\140cfa74fdf3a312bb5eed6376dd2f53\\payloads\\79ed52562d4ce7ccf371520b3d3e412a5d3f4ef67eb36d05c75f57a05b7de464.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11cea-9a19-71ab-9701-a7038740f60b\\140cfa74fdf3a312bb5eed6376dd2f53\\payloads\\92559bd5c44e2b1db053a267478a94fb1c704cd5c5ab279eac090dde734eef9a.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "render_DataTable"
+          ],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": [
+            {
+              "name": "render_DataTable",
+              "type": "object",
+              "schemaBytes": 3551,
+              "hasComponentDiscriminator": false,
+              "hasFields": false,
+              "hasColumns": true
+            }
+          ]
+        }
+      ],
+      "successfulNativeCalls": [
+        "render_DataTable"
+      ],
+      "canonicalStatuses": [
+        "completed"
+      ],
+      "completeComponents": [
+        [
+          "DataTable"
+        ]
+      ],
+      "providerHttpRequests": 2,
+      "modelRequests": 2,
+      "capturedUsageRequests": 2,
+      "responseModels": [
+        "deepseek-flash"
+      ],
+      "routes": [
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        }
+      ],
+      "httpStatuses": [
+        200,
+        200
+      ],
+      "initialDisplaySchemas": [
+        {
+          "userTurn": 1,
+          "names": [],
+          "bytes": 0
+        }
+      ],
+      "activationSets": [
+        {
+          "userTurn": 1,
+          "names": [
+            "render_DataTable"
+          ],
+          "responseBytes": 80,
+          "containsSchema": false
+        }
+      ],
+      "loadoutMismatches": 0,
+      "afterCommitHttp": 0,
+      "completionProofs": [
+        {
+          "source": "tool_finish_turn",
+          "finalToolCallId": "call_00_br9U0J4tNpRXtPStRA2Z9579",
+          "batchCallCount": 1,
+          "batchResultCount": 1,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 2,
+          "httpAtSettled": 2,
+          "modelAtCommit": 2,
+          "modelAtSettled": 2
+        }
+      ],
+      "historyProofs": [
+        {
+          "userTurn": 1,
+          "requestIndex": 1,
+          "texts": [],
+          "projectionAudits": []
+        },
+        {
+          "userTurn": 1,
+          "requestIndex": 2,
+          "texts": [],
+          "projectionAudits": []
+        }
+      ],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    },
+    {
+      "caseId": "native-plain-text",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r2\\runs\\candidate\\native-plain-text\\1\\tracelog\\2026-10-09\\01a11cea-f0ca-751e-a68c-523c3b7ea6aa\\fa1d7f0fbdb6479efbe550ed464ece93\\payloads\\754ef64130e73d2c8a3f8b4aaea37e4ef0ad8ffb58ce93e677c643da7b1dbc64.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        }
+      ],
+      "successfulNativeCalls": [],
+      "canonicalStatuses": [
+        "completed"
+      ],
+      "completeComponents": [
+        []
+      ],
+      "providerHttpRequests": 1,
+      "modelRequests": 1,
+      "capturedUsageRequests": 1,
+      "responseModels": [
+        "deepseek-flash"
+      ],
+      "routes": [
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        }
+      ],
+      "httpStatuses": [
+        200
+      ],
+      "initialDisplaySchemas": [
+        {
+          "userTurn": 1,
+          "names": [],
+          "bytes": 0
+        }
+      ],
+      "activationSets": [],
+      "loadoutMismatches": 0,
+      "afterCommitHttp": 0,
+      "completionProofs": [
+        {
+          "source": "native_stop",
+          "finalToolCallId": null,
+          "batchCallCount": 0,
+          "batchResultCount": 0,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 1,
+          "httpAtSettled": 1,
+          "modelAtCommit": 1,
+          "modelAtSettled": 1
+        }
+      ],
+      "historyProofs": [
+        {
+          "userTurn": 1,
+          "requestIndex": 1,
+          "texts": [],
+          "projectionAudits": []
+        }
+      ],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    }
+  ]
+}

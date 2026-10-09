@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "caseId": "script-text-field",
+  "family": "scripted-output-recovery",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "89ca9ffa4e2ea2fa0c5df3aa9bf3f7674989d8ffd962682604c839c6141b9bb4",
+  "versionHash": "06fe7fd155181c366aaab1ad2394a260041b9bdfd863c4c2c3279773a4ab35f6",
+  "model": "faux/faux-1",
+  "thinking": "off",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "模拟text字段类型错误，并修复为有效回答。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "验收完成。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "验收完成。",
+      "tools": [],
+      "durationMs": 129.87840000000142
+    }
+  ],
+  "metrics": {
+    "totalMs": 155.66790000000037,
+    "startupMs": 11001.321,
+    "modelRequests": 2,
+    "providerHttpRequests": 0,
+    "proposedToolCalls": 0,
+    "toolExecutions": 0,
+    "toolErrors": 0,
+    "mcpCalls": 0,
+    "mcpMs": 0,
+    "mcpInitializationMs": 0,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 0,
+    "upstreamRequests": 0,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 0,
+    "modelMs": 17.94750000000022,
+    "providerPayloadBytesMax": 42928,
+    "inputTokensMax": 4861,
+    "inputTokensSum": 5282,
+    "contextInputTokensMax": 9722,
+    "contextInputTokensSum": 15425,
+    "reasoningTokensSum": null,
+    "outputTokensSum": 21,
+    "cacheReadTokensSum": 4861,
+    "cacheWriteTokensSum": 5282,
+    "totalTokensSum": 15446,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 0,
+    "firstTextMs": 75.53470000000016,
+    "firstCompleteResultMs": 76.96260000000075,
+    "providerFirstTextMs": 75.53470000000016,
+    "firstPublishedBlockMs": null,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 4861,
+        "contextInputTokens": 9722,
+        "reasoningTokens": null,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 4861,
+        "totalTokens": 9732,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42928,
+        "durationMs": 11.893500000000131,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 421,
+        "contextInputTokens": 5703,
+        "reasoningTokens": null,
+        "outputTokens": 11,
+        "cacheReadTokens": 4861,
+        "cacheWriteTokens": 421,
+        "totalTokens": 5714,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 31710,
+        "durationMs": 6.054000000000087,
+        "firstTextMs": 4.589200000000346,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 1,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 1,
+    "jsonOutputErrors": 0,
+    "modelErrors": 1,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 1,
+    "recoveryRunning": 1,
+    "recoveryRecovered": 1,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 8,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11430,
+    "initialProviderPayloadBytes": 42928,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": true,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "验收完成"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "recovery",
+          "expectedTerminal": "success"
+        },
+        "passed": true,
+        "detail": "宿主恢复：预期终态=success；中间输出错误=1；终态错误=0；前缀次数=0。runtime证据不替代浏览器SSE验证。"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\legacy-offline\\runs\\candidate\\script-text-field\\1\\tracelog\\2026-10-08\\01a11c1f-5558-7454-91c1-87fd4f04757a\\07fc62f8c85eb7d19dd55b907c1d6605"
+  ],
+  "captureIssues": []
+}

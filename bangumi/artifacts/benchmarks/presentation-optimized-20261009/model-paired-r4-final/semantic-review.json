@@ -1,0 +1,14 @@
+{
+  "reviewer": "root agent",
+  "scope": "Four final-version resource-card explanations; hard grades and eligible pairs remain unchanged",
+  "source": "resource-card-semantic-review-inputs.json",
+  "cacheFactsAndReadEvidence": "All four explicitly read the same summary; component facts agree with cached data",
+  "overall": "semantic_caution",
+  "reviews": [
+    {"variant":"control","repeat":1,"assessment":"caution","unsupported":"The summary does not establish a group of protagonists or a batch of files. Statements about identity being the true driver and alternatives being excluded need clearer inference labels."},
+    {"variant":"candidate","repeat":1,"assessment":"caution","unsupported":"Trust, concealment, staged twists and the mystery being solved through growth or reconciliation are not confirmed by the short summary."},
+    {"variant":"candidate","repeat":2,"assessment":"caution","unsupported":"Missing files were changed into files left by a missing-person case. This is an unsupported narrative detail; the summary also does not rule out dark or reversal-based endings."},
+    {"variant":"control","repeat":2,"assessment":"caution","unsupported":"A warm ending does not establish that every mystery is solved or rule out an open ending. Relationship-based mechanisms are interpretive expansions."}
+  ],
+  "conclusion": "Component facts, read evidence and structural delivery can pass their hard checks. Free-form plot explanations still contain unsupported inferences, so this is not an acceptance of complete semantic reliability. No prompts, scores, budgets, runtime files or run records were modified."
+}

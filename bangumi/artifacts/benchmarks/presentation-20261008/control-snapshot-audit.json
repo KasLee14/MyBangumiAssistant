@@ -1,0 +1,18 @@
+{
+  "frozenAt": "2026-10-08T15:22:23.985Z",
+  "sourceHead": "a10c9993ce348fa3917e489a592b31f4d51925dc",
+  "sourceVerifiedFiles": 848,
+  "sourceMismatchCount": 0,
+  "runtimeFingerprint": "06fe7fd155181c366aaab1ad2394a260041b9bdfd863c4c2c3279773a4ab35f6",
+  "agentDir": "C:\\Users\\Kas\\AppData\\Local\\MyBangumiAssistant-Pi\\pi",
+  "modelSelection": {
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "thinking": "high"
+  },
+  "redactedModelsHash": "62a1b441d29fbfb33eb88f5c87808d672077808d572ed0f10c4215b9fde14c83",
+  "settingsHash": "4c5aad64027896938c791685311e8081352fc68a907b6d106afa0d3357c56f96",
+  "credentialsCopied": false,
+  "dependencies": "entity copies with snapshot-internal Pi junctions including nested package node_modules",
+  "evidence": "read-only import verification; not model/network benchmark"
+}

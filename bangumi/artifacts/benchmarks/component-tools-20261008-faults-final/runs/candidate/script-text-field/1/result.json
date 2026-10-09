@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "caseId": "script-text-field",
+  "family": "scripted-output-recovery",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "90b988ec32a9748553e9d9e8680c1f4f6f37d34dfa2295ddd9e9fe87225f99ec",
+  "versionHash": "a8c76d2c5612a8242ca4f9061e3a1369efbbb4b67a026f338248854bd33b8bfd",
+  "model": "faux/faux-1",
+  "thinking": "off",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "模拟text字段类型错误，并修复为有效回答。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "验收完成。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "验收完成。",
+      "tools": [],
+      "durationMs": 184.59089999999924
+    }
+  ],
+  "metrics": {
+    "totalMs": 216.48639999999978,
+    "startupMs": 13854.2492,
+    "modelRequests": 2,
+    "providerHttpRequests": 0,
+    "proposedToolCalls": 0,
+    "toolExecutions": 0,
+    "toolErrors": 0,
+    "mcpCalls": 0,
+    "mcpMs": 0,
+    "mcpInitializationMs": 0,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 0,
+    "upstreamRequests": 0,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 0,
+    "modelMs": 20.874299999999494,
+    "providerPayloadBytesMax": 42603,
+    "inputTokensMax": 4845,
+    "inputTokensSum": 5266,
+    "contextInputTokensMax": 9690,
+    "contextInputTokensSum": 15377,
+    "reasoningTokensSum": null,
+    "outputTokensSum": 21,
+    "cacheReadTokensSum": 4845,
+    "cacheWriteTokensSum": 5266,
+    "totalTokensSum": 15398,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 0,
+    "firstTextMs": 116.02980000000025,
+    "firstCompleteResultMs": 118.48120000000017,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 4845,
+        "contextInputTokens": 9690,
+        "reasoningTokens": null,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 4845,
+        "totalTokens": 9700,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42603,
+        "durationMs": 12.512800000000425,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 421,
+        "contextInputTokens": 5687,
+        "reasoningTokens": null,
+        "outputTokens": 11,
+        "cacheReadTokens": 4845,
+        "cacheWriteTokens": 421,
+        "totalTokens": 5698,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 31385,
+        "durationMs": 8.361499999999069,
+        "firstTextMs": 5.757799999999406,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 1,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 1,
+    "jsonOutputErrors": 0,
+    "modelErrors": 1,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 1,
+    "recoveryRunning": 1,
+    "recoveryRecovered": 1,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 8,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11430,
+    "initialProviderPayloadBytes": 42603,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "验收完成"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "recovery",
+          "expectedTerminal": "success"
+        },
+        "passed": true,
+        "detail": "宿主恢复：预期终态=success；中间输出错误=1；终态错误=0；前缀次数=0。runtime证据不替代浏览器SSE验证。"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\component-tools-20261008-faults-final\\runs\\candidate\\script-text-field\\1\\tracelog\\2026-10-08\\01a11ad5-b3ee-70a3-835a-ef00812515ac\\449ffd97864fb4f809ceef8af8179d35"
+  ],
+  "captureIssues": []
+}

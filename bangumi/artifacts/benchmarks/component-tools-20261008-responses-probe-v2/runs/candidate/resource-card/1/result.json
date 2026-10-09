@@ -1,0 +1,621 @@
+{
+  "schemaVersion": 1,
+  "caseId": "resource-card",
+  "family": "resources",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "ccc7f0dc3e398085e95071c89109a0c4bf64ac7f39332592a64c029d15696aae",
+  "versionHash": "0b235993aeb0d6f51646292b4ffbafd54e03a312834b649d3befb23d9b674448",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "详细介绍条目1006的剧情，用SubjectCards卡片展示作品，并根据你读过的简介解释其悬疑主线。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "条目 1006《山城来信》是一部 12 集 TV 动画（2023-10-01 起），下面用卡片展示该条目的作品信息。以下说明全部基于本次实际读到的条目简介。",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "title": "山城来信",
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1006,
+                  "name": "山城来信",
+                  "kind": "anime",
+                  "nameCn": "山城来信",
+                  "image": "https://example.invalid/benchmark/1006.png",
+                  "score": 8.6,
+                  "scoreCount": 3000,
+                  "rank": 6,
+                  "date": "2023-10-01",
+                  "summary": "山城来信讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。虽然标签没有悬疑，但正文明确围绕调查谜案；故事结局温暖。",
+                  "tags": [
+                    "成长"
+                  ],
+                  "url": "https://bgm.tv/subject/1006"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "以上卡片依据本轮读取的条目资料（ID 1006）呈现：中文名《山城来信》，TV 动画，2023-10-01 起，共 12 集；站内评分 8.6（约 3000 人评分，排名第 6），条目标签仅有“成长”，未标注悬疑。",
+            "nextType": "text"
+          },
+          {
+            "type": "text",
+            "text": "按我读到的简介，其剧情与悬疑主线可以这样理解：\n\n- **核心驱动是一场“调查”**：故事从查找一批失踪档案出发，主角的旅程本身就是谜面，剧情推进等同于线索被逐条揭开。\n- **悬疑落点在身份**：简介明确提到“身份疑点”，说明真正待解的不是档案去向这一表面事件，而是人物究竟是谁、彼此关系如何被重新确认，属于身份谜题型的悬疑。\n- **推理与人物关系并重**：叙事同时强调“人物关系”和“悬疑推理”，意味着线索不只靠推理解释，也靠人际互动的变化来印证与反转。\n- **基调偏温暖**：简介指出结局温暖，标签“成长”也与此呼应——谜团解开后指向的是人物的成长与情感收束，而非黑暗向的悬疑。\n\n需要说明的是，条目标签里并没有“悬疑”，上述悬疑主线判断来自简介正文对调查谜案、身份疑点和逐步揭露线索的描述，并非来自标签。以上仅基于本轮读取到的简介信息，未展开逐集章节或完整剧情细节。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "条目 1006《山城来信》是一部 12 集 TV 动画（2023-10-01 起），下面用卡片展示该条目的作品信息。以下说明全部基于本次实际读到的条目简介。\n山城来信\n1006\n山城来信\nanime\n山城来信\n8.6\n3000\n6\n2023-10-01\n山城来信讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。虽然标签没有悬疑，但正文明确围绕调查谜案；故事结局温暖。\n成长\nhttps://bgm.tv/subject/1006\n以上卡片依据本轮读取的条目资料（ID 1006）呈现：中文名《山城来信》，TV 动画，2023-10-01 起，共 12 集；站内评分 8.6（约 3000 人评分，排名第 6），条目标签仅有“成长”，未标注悬疑。\n按我读到的简介，其剧情与悬疑主线可以这样理解：\n\n- **核心驱动是一场“调查”**：故事从查找一批失踪档案出发，主角的旅程本身就是谜面，剧情推进等同于线索被逐条揭开。\n- **悬疑落点在身份**：简介明确提到“身份疑点”，说明真正待解的不是档案去向这一表面事件，而是人物究竟是谁、彼此关系如何被重新确认，属于身份谜题型的悬疑。\n- **推理与人物关系并重**：叙事同时强调“人物关系”和“悬疑推理”，意味着线索不只靠推理解释，也靠人际互动的变化来印证与反转。\n- **基调偏温暖**：简介指出结局温暖，标签“成长”也与此呼应——谜团解开后指向的是人物的成长与情感收束，而非黑暗向的悬疑。\n\n需要说明的是，条目标签里并没有“悬疑”，上述悬疑主线判断来自简介正文对调查谜案、身份疑点和逐步揭露线索的描述，并非来自标签。以上仅基于本轮读取到的简介信息，未展开逐集章节或完整剧情细节。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1006,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "summary",
+              "platform",
+              "date",
+              "score",
+              "rank",
+              "ratingCount",
+              "totalEpisodes",
+              "tags",
+              "subjectType",
+              "nsfw"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1006,
+              "subjectType": 2,
+              "name": "山城来信",
+              "nameCn": "山城来信",
+              "date": "2023-10-01",
+              "platform": "TV",
+              "nsfw": false,
+              "score": 8.6,
+              "rank": 6,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "tags": [
+                "成长"
+              ],
+              "included": [
+                "summary"
+              ],
+              "summary": "山城来信讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。虽然标签没有悬疑，但正文明确围绕调查谜案；故事结局温暖。",
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T09:01:42.317Z"
+              },
+              "resourceRef": "rr_7dff403d6a8f8295fcba6a380ab744bc",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "summary",
+                "platform",
+                "date",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "tags",
+                "subjectType",
+                "nsfw"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品卡片"
+          },
+          "value": {
+            "version": "e3067c54bcf1c2e4",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "e3067c54bcf1c2e4",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": []
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "version": "e3067c54bcf1c2e4",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用",
+                "required": [
+                  "items",
+                  "layout"
+                ],
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "hint": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "book",
+                              "anime",
+                              "music",
+                              "game",
+                              "real"
+                            ]
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "image": {
+                            "type": "string",
+                            "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://"
+                          },
+                          "score": {
+                            "type": "number"
+                          },
+                          "scoreCount": {
+                            "type": "number"
+                          },
+                          "rank": {
+                            "type": "number"
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "url": {
+                            "type": "string",
+                            "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 50
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "layout"
+                  ],
+                  "additionalProperties": false
+                },
+                "referenceProps": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "subjectId": {
+                            "type": "number"
+                          },
+                          "episodeId": {
+                            "type": "number"
+                          },
+                          "characterId": {
+                            "type": "number"
+                          },
+                          "personId": {
+                            "type": "number"
+                          },
+                          "revisionId": {
+                            "type": "number"
+                          },
+                          "targetId": {
+                            "type": "number"
+                          },
+                          "relationId": {
+                            "type": "number"
+                          },
+                          "ownerId": {
+                            "type": "number"
+                          },
+                          "entity": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "targetKind": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "username": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "partIndex": {
+                      "type": "number"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    }
+                  }
+                },
+                "envelopeExample": {
+                  "content": [
+                    {
+                      "type": "SubjectCards",
+                      "props": {
+                        "resourceRef": "rr_example"
+                      }
+                    }
+                  ]
+                },
+                "exampleNote": "示例仅说明content根对象和组件嵌套形状；rr_example是占位引用，实际输出必须替换为本轮工具获得的适用resourceRef，或按props填写已知事实。",
+                "referenceUsage": "已获得适用resourceRef时优先使用referenceProps，让宿主展开事实。items仅选择本引用的主键成员；已准备presentation仅提供resourceRef和必要的partIndex，不覆盖快照。未知可选字段省略；严格正文生成模式可用null表达未知可选字段。",
+                "constraints": [
+                  "推荐少量作品优先layout=grid；紧凑核对列表可用list",
+                  "作品kind按真实媒体类型填写，不猜测名称、图片或评分"
+                ]
+              }
+            ],
+            "audit": {
+              "version": "e3067c54bcf1c2e4",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [
+                "SubjectCards"
+              ]
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 21741.9795
+    }
+  ],
+  "metrics": {
+    "totalMs": 21807.6348,
+    "startupMs": 10270.0514,
+    "modelRequests": 4,
+    "providerHttpRequests": 4,
+    "proposedToolCalls": 3,
+    "toolExecutions": 3,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 11418.9409,
+    "mcpInitializationMs": 11338.804000000002,
+    "cacheRpcCalls": 1,
+    "rpcDispatches": 2,
+    "upstreamRequests": 1,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.546200000000681,
+    "modelMs": 9432.972200000004,
+    "providerPayloadBytesMax": 36822,
+    "inputTokensMax": 6796,
+    "inputTokensSum": 14246,
+    "contextInputTokensMax": 9940,
+    "contextInputTokensSum": 31654,
+    "reasoningTokensSum": 496,
+    "outputTokensSum": 1492,
+    "cacheReadTokensSum": 17408,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 33146,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 5213,
+    "firstTextMs": 16072.0285,
+    "firstCompleteResultMs": 21730.509000000002,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 6796,
+        "contextInputTokens": 7308,
+        "reasoningTokens": 75,
+        "outputTokens": 208,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7516,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 27106,
+        "durationMs": 1358.0557000000008,
+        "firstTextMs": null,
+        "firstThinkingMs": 591.3714,
+        "visibleThinkingMs": 359.90740000000005,
+        "thinkingChars": 367,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 570,
+        "contextInputTokens": 7994,
+        "reasoningTokens": 8,
+        "outputTokens": 52,
+        "cacheReadTokens": 7424,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8046,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 30125,
+        "durationMs": 595.979800000001,
+        "firstTextMs": null,
+        "firstThinkingMs": 374.14589999999953,
+        "visibleThinkingMs": 100.39700000000084,
+        "thinkingChars": 35,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 2900,
+        "contextInputTokens": 9940,
+        "reasoningTokens": 249,
+        "outputTokens": 671,
+        "cacheReadTokens": 7040,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10611,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36822,
+        "durationMs": 4063.003700000001,
+        "firstTextMs": 1972.3385000000017,
+        "firstThinkingMs": 392.08179999999993,
+        "visibleThinkingMs": 1274.9951,
+        "thinkingChars": 1031,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 3980,
+        "contextInputTokens": 6412,
+        "reasoningTokens": 164,
+        "outputTokens": 561,
+        "cacheReadTokens": 2432,
+        "cacheWriteTokens": 0,
+        "totalTokens": 6973,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 25637,
+        "durationMs": 3415.933000000001,
+        "firstTextMs": 1835.0341000000008,
+        "firstThinkingMs": 811.3266999999978,
+        "visibleThinkingMs": 516.0637000000024,
+        "thinkingChars": 620,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 1,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 1,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 1,
+    "recoveryRunning": 1,
+    "recoveryRecovered": 1,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 20,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11358,
+    "initialProviderPayloadBytes": 27106,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1006
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1006"
+      },
+      {
+        "rule": {
+          "kind": "component",
+          "type": "SubjectCards"
+        },
+        "passed": true,
+        "detail": "完整组件：SubjectCards"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1006
+          ],
+          "fields": [
+            "summary"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1006,[\"summary\"]]]"
+      }
+    ],
+    "semanticReview": "pending",
+    "rubric": "卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。"
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791450102320.0093,
+      "elapsedMs": 3306.523799999999,
+      "durationMs": 1.546200000000681,
+      "source": "fixture",
+      "path": "/v0/subjects/1006",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1006,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\component-tools-20261008-responses-probe-v2\\runs\\candidate\\resource-card\\1\\tracelog\\2026-10-08\\01a11abf-03ec-74fa-ae4e-a6db1eb884fb\\9d3726712c76b36632e2de884aa58eda"
+  ],
+  "captureIssues": []
+}

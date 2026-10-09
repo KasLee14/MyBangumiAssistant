@@ -1,0 +1,14 @@
+{
+  "closedAt": "2026-10-08T19:09:28.736Z",
+  "runnerExited": true,
+  "planned": 4,
+  "recorded": 4,
+  "passed": 4,
+  "candidateHash": "2b88586d0f410c1d028c7737f35a19d0521d3321468db2b86851dbf5afc5f44c",
+  "candidateStable": true,
+  "controlHash": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168",
+  "controlStable": true,
+  "modelConfigHash": "62a1b441d29fbfb33eb88f5c87808d672077808d572ed0f10c4215b9fde14c83",
+  "modelConfigStable": true,
+  "captureIssues": []
+}

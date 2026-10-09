@@ -1,0 +1,1255 @@
+{
+  "schemaVersion": 1,
+  "caseId": "facts-data-table",
+  "family": "presentation-table",
+  "variant": "control",
+  "repeat": 2,
+  "protocolHash": "a3a071371b27bf6abaa37a9f17241c9e8f725f06e8491123913cc152535b50eb",
+  "versionHash": "06fe7fd155181c366aaab1ad2394a260041b9bdfd863c4c2c3279773a4ab35f6",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "读取条目1001和1002的名称、评分、首播日期，用DataTable表格展示两部作品，各列完整保留这些事实，并在表格下给出这两部条目链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "已读取条目 **1001** 与 **1002** 的基本资料，字段来自 Bangumi 条目接口（当前为匿名公开读取，未涉及 NSFW 相关条目）：",
+            "nextType": "DataTable"
+          },
+          {
+            "type": "DataTable",
+            "pending": false,
+            "props": {
+              "title": "条目 1001 / 1002 基本资料",
+              "columns": [
+                {
+                  "key": "name",
+                  "label": "名称"
+                },
+                {
+                  "key": "score",
+                  "label": "评分"
+                },
+                {
+                  "key": "date",
+                  "label": "首播日期"
+                }
+              ],
+              "rows": [
+                {
+                  "name": "星港追踪",
+                  "score": "8.4",
+                  "date": "2024-01-08"
+                },
+                {
+                  "name": "玻璃海的回声",
+                  "score": "8.1",
+                  "date": "2024-04-12"
+                }
+              ],
+              "keyColumn": "name"
+            }
+          },
+          {
+            "type": "text",
+            "text": "两部作品的条目链接：\n\n- 星港追踪：https://bgm.tv/subject/1001\n- 玻璃海的回声：https://bgm.tv/subject/1002",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "已读取条目 **1001** 与 **1002** 的基本资料，字段来自 Bangumi 条目接口（当前为匿名公开读取，未涉及 NSFW 相关条目）：\n条目 1001 / 1002 基本资料\nname\n名称\nscore\n评分\ndate\n首播日期\n星港追踪\n8.4\n2024-01-08\n玻璃海的回声\n8.1\n2024-04-12\n两部作品的条目链接：\n\n- 星港追踪：https://bgm.tv/subject/1001\n- 玻璃海的回声：https://bgm.tv/subject/1002",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "url"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "score": 8.4,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:46:26.559Z"
+              },
+              "resourceRef": "rr_c1cdf6c34e1607f719afd70e3117b5e5",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "date",
+                "url"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1002,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "url"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1002,
+              "subjectType": 2,
+              "name": "玻璃海的回声",
+              "nameCn": "玻璃海的回声",
+              "date": "2024-04-12",
+              "score": 8.1,
+              "url": "https://bgm.tv/subject/1002",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:46:26.645Z"
+              },
+              "resourceRef": "rr_3b0983dc0e47564e95c5c97f8d0941ed",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "date",
+                "url"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "表格 DataTable"
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "entries": [],
+            "total": 0,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "表",
+            "limit": 12
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "entries": [
+              {
+                "name": "Gallery",
+                "category": "人物图片",
+                "purpose": "展示简单人物、角色候选或图片列表",
+                "data": "实体身份、名称及可用图片"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 2,
+              "specReads": 0,
+              "discovered": [
+                "Gallery"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "category": "统计",
+            "limit": 12
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "entries": [
+              {
+                "name": "StatsCard",
+                "category": "统计",
+                "purpose": "展示评分、数量分布和指标汇总",
+                "data": "标签及指标值、评分分布"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 3,
+              "specReads": 0,
+              "discovered": [
+                "Gallery",
+                "StatsCard"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "category": "事实",
+            "limit": 12
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "entries": [
+              {
+                "name": "InfoBox",
+                "category": "事实",
+                "purpose": "展示单对象的键值信息",
+                "data": "单个对象的字段、资料信息"
+              },
+              {
+                "name": "DataTable",
+                "category": "事实",
+                "purpose": "按列比较多行事实、季度计数及行列数据",
+                "data": "列定义和对象行"
+              },
+              {
+                "name": "CompareTable",
+                "category": "事实",
+                "purpose": "展示前后变化",
+                "data": "同一字段的修改前后值"
+              }
+            ],
+            "total": 3,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 4,
+              "specReads": 0,
+              "discovered": [
+                "Gallery",
+                "StatsCard",
+                "InfoBox",
+                "DataTable",
+                "CompareTable"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "category": "链接",
+            "limit": 12
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "entries": [
+              {
+                "name": "LinkList",
+                "category": "链接",
+                "purpose": "展示链接集合",
+                "data": "链接名称及绝对地址"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 5,
+              "specReads": 0,
+              "discovered": [
+                "Gallery",
+                "StatsCard",
+                "InfoBox",
+                "DataTable",
+                "CompareTable",
+                "LinkList"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "category": "作品",
+            "limit": 12
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 6,
+              "specReads": 0,
+              "discovered": [
+                "Gallery",
+                "StatsCard",
+                "InfoBox",
+                "DataTable",
+                "CompareTable",
+                "LinkList",
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "DataTable",
+              "LinkList"
+            ]
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "DataTable",
+                "category": "事实",
+                "purpose": "按列比较多行事实、季度计数及行列数据",
+                "data": "列定义和对象行",
+                "representation": "reference",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "selectionReason": "本轮上下文存在实体或准备格式明确适用的缓存引用",
+                "required": [
+                  "resourceRef"
+                ],
+                "props": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "maxItems": 200,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "subjectId": {
+                            "type": "number"
+                          },
+                          "episodeId": {
+                            "type": "number"
+                          },
+                          "characterId": {
+                            "type": "number"
+                          },
+                          "personId": {
+                            "type": "number"
+                          },
+                          "revisionId": {
+                            "type": "number"
+                          },
+                          "targetId": {
+                            "type": "number"
+                          },
+                          "relationId": {
+                            "type": "number"
+                          },
+                          "ownerId": {
+                            "type": "number"
+                          },
+                          "entity": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "targetKind": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "username": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "partIndex": {
+                      "type": "number"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "columns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "label"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "align": {
+                            "type": "string",
+                            "enum": [
+                              "left",
+                              "right"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "canonicalContract": "宿主完成结果独立使用严格COMPONENT_PAYLOAD_SCHEMAS校验；内部展开字段不是本次生成props字段。只填写上面唯一props契约，禁止混用reference与inline。",
+                "requestedFacts": "用户要求的事实若没有此props合法字段（例如SubjectCards没有总集数字段），在text或另读InfoBox等组件交付；不能新增字段，也不能把组件合法当成请求全部完成。修复时保留未完成事实要求。",
+                "envelopeExample": {
+                  "content": [
+                    {
+                      "type": "DataTable",
+                      "props": {
+                        "resourceRef": "rr_example"
+                      }
+                    }
+                  ]
+                },
+                "exampleNote": "示例仅说明content根对象和组件嵌套形状，不是事实。rr_example须替换为本轮适用缓存引用；inline示例值须替换为已获得信息。",
+                "representationUsage": "只填引用props允许的字段，禁止加入inline的total、hint等字段；items仅选择本引用的主键成员，不能抄入name等实体事实。已准备presentation仅提供resourceRef和必要的partIndex，不覆盖快照。需要直接字段时重新读取representation=inline。",
+                "constraints": [
+                  "fields与columns不能同时填写；已准备快照仅resourceRef和必要partIndex",
+                  "不提供rows，实际对象行由宿主缓存展开"
+                ]
+              },
+              {
+                "name": "LinkList",
+                "category": "链接",
+                "purpose": "展示链接集合",
+                "data": "链接名称及绝对地址",
+                "representation": "reference",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "selectionReason": "本轮上下文存在实体或准备格式明确适用的缓存引用",
+                "required": [
+                  "resourceRef"
+                ],
+                "props": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "subjectId": {
+                            "type": "number"
+                          },
+                          "episodeId": {
+                            "type": "number"
+                          },
+                          "characterId": {
+                            "type": "number"
+                          },
+                          "personId": {
+                            "type": "number"
+                          },
+                          "revisionId": {
+                            "type": "number"
+                          },
+                          "targetId": {
+                            "type": "number"
+                          },
+                          "relationId": {
+                            "type": "number"
+                          },
+                          "ownerId": {
+                            "type": "number"
+                          },
+                          "entity": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "targetKind": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "username": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "partIndex": {
+                      "type": "number"
+                    },
+                    "title": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "canonicalContract": "宿主完成结果独立使用严格COMPONENT_PAYLOAD_SCHEMAS校验；内部展开字段不是本次生成props字段。只填写上面唯一props契约，禁止混用reference与inline。",
+                "requestedFacts": "用户要求的事实若没有此props合法字段（例如SubjectCards没有总集数字段），在text或另读InfoBox等组件交付；不能新增字段，也不能把组件合法当成请求全部完成。修复时保留未完成事实要求。",
+                "envelopeExample": {
+                  "content": [
+                    {
+                      "type": "LinkList",
+                      "props": {
+                        "resourceRef": "rr_example"
+                      }
+                    }
+                  ]
+                },
+                "exampleNote": "示例仅说明content根对象和组件嵌套形状，不是事实。rr_example须替换为本轮适用缓存引用；inline示例值须替换为已获得信息。",
+                "representationUsage": "只填引用props允许的字段，禁止加入inline的total、hint等字段；items仅选择本引用的主键成员，不能抄入name等实体事实。已准备presentation仅提供resourceRef和必要的partIndex，不覆盖快照。需要直接字段时重新读取representation=inline。"
+              }
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 6,
+              "specReads": 1,
+              "discovered": [
+                "Gallery",
+                "StatsCard",
+                "InfoBox",
+                "DataTable",
+                "CompareTable",
+                "LinkList",
+                "SubjectCards"
+              ],
+              "loaded": [
+                "DataTable",
+                "LinkList"
+              ],
+              "representations": {
+                "DataTable": "reference",
+                "LinkList": "reference"
+              },
+              "contracts": {
+                "DataTable": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                },
+                "LinkList": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "DataTable"
+            ],
+            "representation": "inline"
+          },
+          "value": {
+            "version": "1ad521f36ea183f0",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "DataTable",
+                "category": "事实",
+                "purpose": "按列比较多行事实、季度计数及行列数据",
+                "data": "列定义和对象行",
+                "representation": "inline",
+                "selectionId": 2,
+                "sourceTurn": 1,
+                "selectionReason": "模型明确选择此形式",
+                "required": [
+                  "columns",
+                  "rows"
+                ],
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "columns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "align": {
+                            "type": "string",
+                            "enum": [
+                              "left",
+                              "right"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "maxItems": 200
+                    },
+                    "keyColumn": {
+                      "type": "string"
+                    },
+                    "currentRow": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "columns",
+                    "rows"
+                  ],
+                  "additionalProperties": false
+                },
+                "canonicalContract": "宿主完成结果独立使用严格COMPONENT_PAYLOAD_SCHEMAS校验；内部展开字段不是本次生成props字段。只填写上面唯一props契约，禁止混用reference与inline。",
+                "requestedFacts": "用户要求的事实若没有此props合法字段（例如SubjectCards没有总集数字段），在text或另读InfoBox等组件交付；不能新增字段，也不能把组件合法当成请求全部完成。修复时保留未完成事实要求。",
+                "envelopeExample": {
+                  "content": [
+                    {
+                      "type": "DataTable",
+                      "props": {
+                        "columns": [],
+                        "rows": []
+                      }
+                    }
+                  ]
+                },
+                "exampleNote": "示例仅说明content根对象和组件嵌套形状，不是事实。rr_example须替换为本轮适用缓存引用；inline示例值须替换为已获得信息。",
+                "representationUsage": "按本次props填写已获得事实，不提供resourceRef。适用缓存引用已取得时可重新读取representation=reference切换，不能混填。未知可选字段省略；严格正文模式可用null表达未知可选字段。",
+                "constraints": [
+                  "rows为对象数组，单元格必须是字符串；空单元格为空字符串",
+                  "columns.key唯一，每行键与列定义对应"
+                ]
+              }
+            ],
+            "audit": {
+              "version": "1ad521f36ea183f0",
+              "turn": 1,
+              "indexReads": 6,
+              "specReads": 2,
+              "discovered": [
+                "Gallery",
+                "StatsCard",
+                "InfoBox",
+                "DataTable",
+                "CompareTable",
+                "LinkList",
+                "SubjectCards"
+              ],
+              "loaded": [
+                "DataTable",
+                "LinkList"
+              ],
+              "representations": {
+                "DataTable": "inline",
+                "LinkList": "reference"
+              },
+              "contracts": {
+                "DataTable": {
+                  "selectionId": 2,
+                  "sourceTurn": 1,
+                  "reused": false
+                },
+                "LinkList": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 25797.920999999995
+    }
+  ],
+  "metrics": {
+    "totalMs": 25908.7128,
+    "startupMs": 8972.6841,
+    "modelRequests": 6,
+    "providerHttpRequests": 6,
+    "proposedToolCalls": 10,
+    "toolExecutions": 10,
+    "toolErrors": 0,
+    "mcpCalls": 2,
+    "mcpMs": 11017.179,
+    "mcpInitializationMs": 10935.319800000001,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 2,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.9126999999989494,
+    "modelMs": 13547.399500000003,
+    "providerPayloadBytesMax": 48044,
+    "inputTokensMax": 6895,
+    "inputTokensSum": 10623,
+    "contextInputTokensMax": 12084,
+    "contextInputTokensSum": 57599,
+    "reasoningTokensSum": 1940,
+    "outputTokensSum": 2681,
+    "cacheReadTokensSum": 46976,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 60280,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 14171,
+    "firstTextMs": 25333.036,
+    "firstCompleteResultMs": 25786.891500000005,
+    "providerFirstTextMs": 25333.036,
+    "firstPublishedBlockMs": null,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 6895,
+        "contextInputTokens": 7535,
+        "reasoningTokens": 167,
+        "outputTokens": 341,
+        "cacheReadTokens": 640,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7876,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 28143,
+        "durationMs": 1593.0463999999993,
+        "firstTextMs": null,
+        "firstThinkingMs": 447.66690000000017,
+        "visibleThinkingMs": 729.8615999999984,
+        "thinkingChars": 731,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 663,
+        "contextInputTokens": 8471,
+        "reasoningTokens": 39,
+        "outputTokens": 141,
+        "cacheReadTokens": 7808,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8612,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 31864,
+        "durationMs": 647.8987000000016,
+        "firstTextMs": null,
+        "firstThinkingMs": 191.03459999999905,
+        "visibleThinkingMs": 220.13860000000204,
+        "thinkingChars": 147,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 332,
+        "contextInputTokens": 8908,
+        "reasoningTokens": 18,
+        "outputTokens": 166,
+        "cacheReadTokens": 8576,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9074,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 33690,
+        "durationMs": 726.7505999999994,
+        "firstTextMs": null,
+        "firstThinkingMs": 253.74919999999838,
+        "visibleThinkingMs": 133.03160000000207,
+        "thinkingChars": 70,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 654,
+        "contextInputTokens": 9614,
+        "reasoningTokens": 27,
+        "outputTokens": 75,
+        "cacheReadTokens": 8960,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9689,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36695,
+        "durationMs": 683.174500000001,
+        "firstTextMs": null,
+        "firstThinkingMs": 390.7541000000019,
+        "visibleThinkingMs": 178.64259999999922,
+        "thinkingChars": 131,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 1387,
+        "contextInputTokens": 10987,
+        "reasoningTokens": 437,
+        "outputTokens": 497,
+        "cacheReadTokens": 9600,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11484,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43005,
+        "durationMs": 2783.165799999999,
+        "firstTextMs": null,
+        "firstThinkingMs": 329.90499999999884,
+        "visibleThinkingMs": 2300.0426000000007,
+        "thinkingChars": 1966,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 692,
+        "contextInputTokens": 12084,
+        "reasoningTokens": 1252,
+        "outputTokens": 1461,
+        "cacheReadTokens": 11392,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13545,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 48044,
+        "durationMs": 7113.363500000003,
+        "firstTextMs": 6659.446599999999,
+        "firstThinkingMs": 348.52189999999973,
+        "visibleThinkingMs": 6112.9439999999995,
+        "thinkingChars": 5156,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 36,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11430,
+    "initialProviderPayloadBytes": 28143,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001,
+            1002
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001,1002"
+      },
+      {
+        "rule": {
+          "kind": "component",
+          "type": "DataTable"
+        },
+        "passed": true,
+        "detail": "完整组件：DataTable"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "8\\.4"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：8\\.4"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "8\\.1"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：8\\.1"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "2024-01-08"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：2024-01-08"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "2024-04-12"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：2024-04-12"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001,
+            1002
+          ],
+          "fields": [
+            "score",
+            "date"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\"]],[1002,[\"score\",\"date\"]]]"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "星港追踪"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：星港追踪"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "玻璃海的回声"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：玻璃海的回声"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791477986562.0427,
+      "elapsedMs": 3194.1556,
+      "durationMs": 1.708599999999933,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791477986645.5552,
+      "elapsedMs": 3277.6682,
+      "durationMs": 0.2040999999990163,
+      "source": "fixture",
+      "path": "/v0/subjects/1002",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1002,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-paired-final-r3\\runs\\control\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c68-7f88-7025-b9b4-9be8deebeb3c\\991b6da7147243523eed32312300fe82"
+  ],
+  "captureIssues": []
+}

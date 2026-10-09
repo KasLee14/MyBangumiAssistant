@@ -1,0 +1,177 @@
+{
+  "actualHttpRequests": 191,
+  "requestedRoutes": [
+    {
+      "provider": "deepseek",
+      "id": "deepseek-flash",
+      "api": "openai-completions",
+      "thinking": "high"
+    }
+  ],
+  "serverModels": [
+    "deepseek-flash"
+  ],
+  "serverModelSource": "trace llm.end.data.response_model",
+  "httpStatuses": [
+    200
+  ],
+  "initialCandidateDisplaySchemasZero": true,
+  "candidateLoaderAckSchemaFree": true,
+  "candidateRawDisplayLoadoutMismatches": 1,
+  "actualCumulativeSelectedSchemaMismatches": 0,
+  "selectionObserverArtifact": "selected-schema-activation-audits.json",
+  "candidateAfterCommitHttp": 0,
+  "candidateCommitReceipts": 19,
+  "candidateNativeStops": 7,
+  "candidateTableSchemas": [
+    {
+      "root": "object",
+      "fields": false,
+      "columns": true,
+      "component": false
+    },
+    {
+      "root": "object",
+      "fields": false,
+      "columns": true,
+      "component": false
+    },
+    {
+      "root": "object",
+      "fields": false,
+      "columns": true,
+      "component": false
+    },
+    {
+      "root": "object",
+      "fields": false,
+      "columns": true,
+      "component": false
+    }
+  ],
+  "fixtureMisses": 0,
+  "captureIssues": [],
+  "historyTextObservations": 24,
+  "allHistoryTextsSingleCopy": true,
+  "signedFallbackObservations": 0,
+  "sourceAudits": [
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "userTurn": 1,
+      "tool": "render_SubjectCards",
+      "sourceCount": 3,
+      "selectedIds": [
+        1001,
+        1002,
+        1005
+      ],
+      "allSourcesReadSameUserTurn": true,
+      "subjectReadCount": 3,
+      "subjectReadIds": [
+        1001,
+        1002,
+        1005
+      ],
+      "repeatedSubjectReads": 0,
+      "unselectedReadIds": []
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "userTurn": 2,
+      "tool": "render_SubjectCards",
+      "sourceCount": 2,
+      "selectedIds": [
+        1001,
+        1005
+      ],
+      "allSourcesReadSameUserTurn": true,
+      "subjectReadCount": 2,
+      "subjectReadIds": [
+        1001,
+        1005
+      ],
+      "repeatedSubjectReads": 0,
+      "unselectedReadIds": []
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 2,
+      "userTurn": 1,
+      "tool": "render_SubjectCards",
+      "sourceCount": 3,
+      "selectedIds": [
+        1001,
+        1002,
+        1005
+      ],
+      "allSourcesReadSameUserTurn": true,
+      "subjectReadCount": 3,
+      "subjectReadIds": [
+        1001,
+        1002,
+        1005
+      ],
+      "repeatedSubjectReads": 0,
+      "unselectedReadIds": []
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 2,
+      "userTurn": 2,
+      "tool": "render_SubjectCards",
+      "sourceCount": 2,
+      "selectedIds": [
+        1001,
+        1005
+      ],
+      "allSourcesReadSameUserTurn": true,
+      "subjectReadCount": 2,
+      "subjectReadIds": [
+        1001,
+        1005
+      ],
+      "repeatedSubjectReads": 0,
+      "unselectedReadIds": []
+    },
+    {
+      "caseId": "facts-data-table",
+      "repeat": 1,
+      "userTurn": 1,
+      "tool": "render_DataTable",
+      "sourceCount": 2,
+      "selectedIds": [
+        1001,
+        1002
+      ],
+      "allSourcesReadSameUserTurn": true,
+      "subjectReadCount": 2,
+      "subjectReadIds": [
+        1001,
+        1002
+      ],
+      "repeatedSubjectReads": 0,
+      "unselectedReadIds": []
+    },
+    {
+      "caseId": "facts-data-table",
+      "repeat": 2,
+      "userTurn": 1,
+      "tool": "render_DataTable",
+      "sourceCount": 2,
+      "selectedIds": [
+        1001,
+        1002
+      ],
+      "allSourcesReadSameUserTurn": true,
+      "subjectReadCount": 2,
+      "subjectReadIds": [
+        1001,
+        1002
+      ],
+      "repeatedSubjectReads": 0,
+      "unselectedReadIds": []
+    }
+  ]
+}

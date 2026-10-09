@@ -1,0 +1,581 @@
+{
+  "schemaVersion": 1,
+  "caseId": "facts-data-table",
+  "family": "presentation-table",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "读取条目1001和1002的名称、评分、首播日期，用DataTable表格展示两部作品，各列完整保留这些事实，并在表格下给出这两部条目链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "已读取以下两个条目的名称、评分与首播日期（数据为公开只读资料，未登录状态下取得）：",
+            "nextType": "DataTable"
+          },
+          {
+            "type": "DataTable",
+            "pending": false,
+            "props": {
+              "title": "条目 1001 与 1002 基本资料",
+              "columns": [
+                {
+                  "key": "name",
+                  "label": "名称"
+                },
+                {
+                  "key": "score",
+                  "label": "评分"
+                },
+                {
+                  "key": "date",
+                  "label": "首播日期"
+                }
+              ],
+              "rows": [
+                {
+                  "name": "星港追踪",
+                  "score": "8.4",
+                  "date": "2024-01-08"
+                },
+                {
+                  "name": "玻璃海的回声",
+                  "score": "8.1",
+                  "date": "2024-04-12"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "两部作品链接：\n- 星港追踪：https://bgm.tv/subject/1001\n- 玻璃海的回声：https://bgm.tv/subject/1002",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "已读取以下两个条目的名称、评分与首播日期（数据为公开只读资料，未登录状态下取得）：\n条目 1001 与 1002 基本资料\nname\n名称\nscore\n评分\ndate\n首播日期\n星港追踪\n8.4\n2024-01-08\n玻璃海的回声\n8.1\n2024-04-12\n两部作品链接：\n- 星港追踪：https://bgm.tv/subject/1001\n- 玻璃海的回声：https://bgm.tv/subject/1002",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "url",
+              "subjectType"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "score": 8.4,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T20:53:45.094Z"
+              },
+              "resourceRef": "rr_41f26d1c72e8480a25683a9b3a88b859",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "date",
+                "url",
+                "subjectType"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1002,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "url",
+              "subjectType"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1002,
+              "subjectType": 2,
+              "name": "玻璃海的回声",
+              "nameCn": "玻璃海的回声",
+              "date": "2024-04-12",
+              "score": 8.1,
+              "url": "https://bgm.tv/subject/1002",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T20:53:45.175Z"
+              },
+              "resourceRef": "rr_5c7e21b3fd9be28ee0a42ba877884116",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "date",
+                "url",
+                "subjectType"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "DataTable"
+            ]
+          },
+          "value": {
+            "version": "f5c3d8f6ec6530ba",
+            "status": "activated",
+            "tools": [
+              "render_DataTable"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "render_DataTable",
+          "arguments": {
+            "sources": [
+              {
+                "resourceRef": "rr_41f26d1c72e8480a25683a9b3a88b859",
+                "subjectIds": [
+                  1001
+                ]
+              },
+              {
+                "resourceRef": "rr_5c7e21b3fd9be28ee0a42ba877884116",
+                "subjectIds": [
+                  1002
+                ]
+              }
+            ],
+            "columns": [
+              {
+                "key": "name",
+                "label": "名称"
+              },
+              {
+                "key": "score",
+                "label": "评分"
+              },
+              {
+                "key": "date",
+                "label": "首播日期"
+              }
+            ],
+            "title": "条目 1001 与 1002 基本资料",
+            "before": "已读取以下两个条目的名称、评分与首播日期（数据为公开只读资料，未登录状态下取得）：",
+            "after": "两部作品链接：\n- 星港追踪：https://bgm.tv/subject/1001\n- 玻璃海的回声：https://bgm.tv/subject/1002",
+            "final": true
+          },
+          "value": {
+            "replyId": "288fce8d-190f-4d4c-947d-c4e85dc8a151",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 13999.206199999999,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "tool_finish_turn",
+        "finalToolCallId": "call_00_EK03PGpcH7RJqDv2K3BE1493",
+        "batchCallCount": 1,
+        "batchResultCount": 1,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 2,
+        "httpAtSettled": 2,
+        "modelAtCommit": 2,
+        "modelAtSettled": 2
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 14067.1835,
+    "startupMs": 8160.298999999999,
+    "modelRequests": 2,
+    "providerHttpRequests": 2,
+    "proposedToolCalls": 4,
+    "toolExecutions": 4,
+    "toolErrors": 0,
+    "mcpCalls": 2,
+    "mcpMs": 9695.3599,
+    "mcpInitializationMs": 9618.983400000001,
+    "cacheRpcCalls": 4,
+    "rpcDispatches": 6,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.5967000000000553,
+    "modelMs": 3768.2859999999982,
+    "providerPayloadBytesMax": 33754,
+    "inputTokensMax": 6718,
+    "inputTokensSum": 8800,
+    "contextInputTokensMax": 9250,
+    "contextInputTokensSum": 16480,
+    "reasoningTokensSum": 458,
+    "outputTokensSum": 948,
+    "cacheReadTokensSum": 7680,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 17428,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 2044,
+    "firstTextMs": 13985.127799999998,
+    "firstCompleteResultMs": 13987.6725,
+    "providerFirstTextMs": null,
+    "firstPublishedBlockMs": 13985.127799999998,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 11497,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 6718,
+        "contextInputTokens": 7230,
+        "reasoningTokens": 97,
+        "outputTokens": 281,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7511,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 26680,
+        "durationMs": 1060.7397,
+        "firstTextMs": null,
+        "firstThinkingMs": 187.35039999999935,
+        "visibleThinkingMs": 430.10759999999937,
+        "thinkingChars": 367,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 7,
+        "toolSchemaBytes": 15160,
+        "displayToolNames": [
+          "render_DataTable"
+        ],
+        "displaySchemaBytes": 3553,
+        "contextMessageBytes": 14645,
+        "repeatedMessageBytes": 11494,
+        "inputTokens": 2082,
+        "contextInputTokens": 9250,
+        "reasoningTokens": 361,
+        "outputTokens": 667,
+        "cacheReadTokens": 7168,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9917,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 33754,
+        "durationMs": 2707.546299999998,
+        "firstTextMs": null,
+        "firstThinkingMs": 148.30089999999836,
+        "visibleThinkingMs": 1751.4856,
+        "thinkingChars": 1315,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 13,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 26680,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 1,
+    "displaySchemaBytesSum": 3553,
+    "displaySchemaBytesMax": 3553,
+    "toolSchemaBytesSum": 26768,
+    "toolSchemaBytesMax": 15160,
+    "contextMessageBytesSum": 26142,
+    "contextMessageBytesMax": 14645,
+    "repeatedMessageBytesSum": 11494,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [
+      {
+        "userTurn": 1,
+        "names": [
+          "render_DataTable"
+        ],
+        "responseBytes": 80,
+        "containsSchema": false
+      }
+    ],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001,
+            1002
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001,1002"
+      },
+      {
+        "rule": {
+          "kind": "component",
+          "type": "DataTable"
+        },
+        "passed": true,
+        "detail": "完整组件：DataTable"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "8\\.4"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：8\\.4"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "8\\.1"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：8\\.1"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "2024-01-08"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：2024-01-08"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "2024-04-12"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：2024-04-12"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001,
+            1002
+          ],
+          "fields": [
+            "score",
+            "date"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\"]],[1002,[\"score\",\"date\"]]]"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "星港追踪"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：星港追踪"
+      },
+      {
+        "rule": {
+          "kind": "component_text",
+          "type": "DataTable",
+          "pattern": "玻璃海的回声"
+        },
+        "passed": true,
+        "detail": "完整DataTable组件内部应含：玻璃海的回声"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791492825096.7114,
+      "elapsedMs": 2966.487399999999,
+      "durationMs": 1.4138000000002648,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791492825175.843,
+      "elapsedMs": 3045.6189000000004,
+      "durationMs": 0.18289999999979045,
+      "source": "fixture",
+      "path": "/v0/subjects/1002",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1002,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11d4a-f22e-7381-b8e0-c82c1e2b3350\\b858bfd3a9b44bb4fc900603a1ce683f"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

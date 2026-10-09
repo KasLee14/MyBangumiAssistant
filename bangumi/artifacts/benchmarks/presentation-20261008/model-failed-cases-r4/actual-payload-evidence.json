@@ -1,0 +1,846 @@
+{
+  "note": "payload_ref records prepared provider payloads. Budget abort may prevent final payload from reaching HTTP; compare counters and only treat fully captured successful runs as performance evidence.",
+  "summary": [
+    {
+      "variant": "candidate",
+      "runs": 4,
+      "providerPayloads": 51,
+      "providerHttpRequests": 50,
+      "modelRequestStarts": 51,
+      "preparedPayloadsBeyondHttpCount": 1,
+      "responseFormats": [
+        null
+      ],
+      "prepareRootTypesWhenDeclared": [
+        "object"
+      ],
+      "prepareBranchesWhenDeclared": [
+        12
+      ],
+      "successfulNativeCallCounts": {
+        "prepare_component": 14,
+        "present_component": 14,
+        "present_text": 9
+      },
+      "fixtureMisses": 0,
+      "httpModelRequestCountsMatch": false,
+      "usageComplete": false,
+      "passedRunsHttpCountsMatch": true,
+      "passedRunsUsageComplete": true
+    }
+  ],
+  "records": [
+    {
+      "caseId": "followup-filter",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\99b91d30a11de6bc95d3b13f018eaba6\\payloads\\f4275baebbb687c4455ac4e5bdcf65503f4ae3319e337e279b1837822c85b0ba.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\99b91d30a11de6bc95d3b13f018eaba6\\payloads\\edcb08b8d035fe0ce0d9242a4c19ab35a00b7fd4d6c2d977293b39e225c0e684.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\99b91d30a11de6bc95d3b13f018eaba6\\payloads\\e224ac7c900a2997fa58a63bc42d8f76f5fed52049d1aae86ca64c7e1bdf5da9.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\99b91d30a11de6bc95d3b13f018eaba6\\payloads\\5eec9c952703668bbe71ccfeec5b63df092576b25e9b55bd0adcafb90d9cb171.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\99b91d30a11de6bc95d3b13f018eaba6\\payloads\\60b7939331f658e441c4d7da3a5f61a92709fc96f516a6ba4cc8fbca0e1e6e34.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\99b91d30a11de6bc95d3b13f018eaba6\\payloads\\bac9f56c441f0523f128eea9b85847e6076faab119713eb31eee3cf9e0e6fcc2.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\99b91d30a11de6bc95d3b13f018eaba6\\payloads\\442ff355336d99cde26100c3b859fa6730dbc80c0badf97b6004a8155a7c48ad.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\ae7f0522d4455438087e714026439dec\\payloads\\5abede79f09995eed4051a5c4295ddae9c62c69fa905f5bae6eb76fc87fa416a.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\ae7f0522d4455438087e714026439dec\\payloads\\0d1ab05f23d6b22e0f6dc967123dbb9e09fe39a682d78ddae9b0dd221b842d5f.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\ae7f0522d4455438087e714026439dec\\payloads\\553742f77c71997d624cd262461044beb24fb31d09cd1a69717b2776bd93f59d.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11c7e-a2c3-76a8-a906-0aa7f3ec90f6\\ae7f0522d4455438087e714026439dec\\payloads\\115730930d67979854033fb2bf157bea8aa0692e0a3fb2a310b808598b8cd06b.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        }
+      ],
+      "successfulNativeCalls": [
+        "prepare_component",
+        "prepare_component",
+        "prepare_component",
+        "present_text",
+        "present_component",
+        "present_component",
+        "present_component",
+        "present_text",
+        "prepare_component",
+        "prepare_component",
+        "present_text",
+        "present_component",
+        "present_component",
+        "present_text"
+      ],
+      "canonicalStatuses": [
+        "completed",
+        "completed"
+      ],
+      "completeComponents": [
+        [
+          "SubjectCards",
+          "SubjectCards",
+          "SubjectCards"
+        ],
+        [
+          "SubjectCards",
+          "SubjectCards"
+        ]
+      ],
+      "providerHttpRequests": 11,
+      "modelRequests": 11,
+      "capturedUsageRequests": 11,
+      "responseModels": [],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    },
+    {
+      "caseId": "followup-filter",
+      "variant": "candidate",
+      "repeat": 2,
+      "outcome": "budget_exceeded",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\0646ea653a4a405d36d89fa54569d7e8e58e43f61ce5965fc4b8fad945d8e715.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\912d232ff27688993b61777710bea1b7816abb41d68a0d64787808b9774baa7f.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\902b0320003628d182a9f74e000baefc6330843db865878ba3f02be441df063f.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\8f3f9f5999c3241b367dbb82d4dd2514880cce61d19cfbe4556e9d9c2545ebd5.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\3d7bf9e31eee6980ee73b7a10bc4e22a2ccd7094a0b9b36d91aa4089862e249f.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\9622474fc87a07cbc8eae925f5fdc98450d8821ca81b4b495541d6c35ffd66ed.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\ca5f8b49fb92efebd2029141f9759daee131776d870245e50bd2bb9ba00275f9.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\1bee81ba52c3cfdc1369219b173f27a20835443c125ac0299406332e9fcb28cd.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\14d77298ec45760e11985d06be74a17e5999769cdc121d70bb56a1fe26c589c4.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\6827cda04f47ee41b489ea49c4293295a265875331057cb88a1f8e6e8eb40c77.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\4cca54b38159cee631ec892eaf5b46c8\\payloads\\a8d1588c64d2e6c0debf9f88a35989ec13044f15ad70693085458f1a10f60277.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\6bd238a8965be07155eacf2e2bdaa8a5\\payloads\\9854f1c235bcf4631b2db3878be69dcf3bc85de44afd6aa92d563364b0aed13e.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\6bd238a8965be07155eacf2e2bdaa8a5\\payloads\\ad1b28c608aaca3de424d70c8c4b976b71dac49a6a0fbb598dc74fa24f3e7fac.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\6bd238a8965be07155eacf2e2bdaa8a5\\payloads\\fb81aa35bc67aaaa400ab27545e07528eed77687e753c4ea1e673b3b22886c32.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\6bd238a8965be07155eacf2e2bdaa8a5\\payloads\\2755c5467cc1e972bec9abbef03d63330ab7cab95bb3490d24f608c09788dafc.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\6bd238a8965be07155eacf2e2bdaa8a5\\payloads\\29be9fe69720304c26a387050a7644754d9b1b1ad107b693c1c34c996b0c2442.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\6bd238a8965be07155eacf2e2bdaa8a5\\payloads\\f6762fa16607a9616ee5f971a5c4e11ad3dc2bb92e7f3f12f9e373931446520b.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\6bd238a8965be07155eacf2e2bdaa8a5\\payloads\\d382ee72005664aaf102d1af7e2a71e81d882d309b92b978f6af62ceeaf06e0c.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c7f-69dc-74f5-8c57-ff84c2c93202\\6bd238a8965be07155eacf2e2bdaa8a5\\payloads\\1b8279bede87fe4d7725c2f67bb91dbc2bd0734905ac1a4513b32edcfb6ae966.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        }
+      ],
+      "successfulNativeCalls": [
+        "prepare_component",
+        "prepare_component",
+        "prepare_component",
+        "present_text",
+        "present_component",
+        "present_component",
+        "present_component",
+        "present_text",
+        "prepare_component",
+        "prepare_component",
+        "present_text",
+        "present_component",
+        "present_component",
+        "present_text"
+      ],
+      "canonicalStatuses": [
+        "completed",
+        "aborted"
+      ],
+      "completeComponents": [
+        [
+          "SubjectCards",
+          "SubjectCards",
+          "SubjectCards"
+        ],
+        [
+          "SubjectCards",
+          "SubjectCards"
+        ]
+      ],
+      "providerHttpRequests": 18,
+      "modelRequests": 19,
+      "capturedUsageRequests": 18,
+      "responseModels": [],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    },
+    {
+      "caseId": "facts-data-table",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\c6158c54ecd2f03b5b9304e6936530f775dd92301fe8ba40552d1373dee38663.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\2ac50d35c659a2c28303eb94462e0bdced7093256973bc7e581930e39e86029d.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\96d421c20b6ba19dc491ee93bc0015f9a28f2052fc11f5c41b891879d194dbda.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\d6dd05f9cbad59eef74d7c5bd97c421cff91008fdba11976a2a0a964803f2ca4.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\cd2ae0da6a4badfec82c99648480513acb82fe8e274d5cbfceade176e85831bc.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\eae2f5afcd43c8106e16e94182467db3b44424b763eabe9b6e22ba6462619aaa.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\463e8887de97285374b34199900faf7b7d5e5d8864da5f4e5b8da1c329a596db.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\abcbf34cb0a5fced67a505a0ab856ec96fa3914aefd522c8ef59b1308541e2bc.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\1\\tracelog\\2026-10-09\\01a11c80-24bb-76af-bb49-21d53883d297\\c9e74190ba9e3c02fff8d55c9031c638\\payloads\\1fdcee415b4587fd58b87a8f2589783a8d4195a04cf2d8d6fb73b1335313d594.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        }
+      ],
+      "successfulNativeCalls": [
+        "prepare_component",
+        "prepare_component",
+        "present_component",
+        "present_component",
+        "present_text"
+      ],
+      "canonicalStatuses": [
+        "completed"
+      ],
+      "completeComponents": [
+        [
+          "DataTable",
+          "LinkList"
+        ]
+      ],
+      "providerHttpRequests": 9,
+      "modelRequests": 9,
+      "capturedUsageRequests": 9,
+      "responseModels": [],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    },
+    {
+      "caseId": "facts-data-table",
+      "variant": "candidate",
+      "repeat": 2,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\9423efaa1707ce4972a2618a7dee1541f23c732f44207a19e10c087b13a2f1d1.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\9349aae8e39e94de4794e8b1ba6f2abe8bbe6c21d8b2207ceb0c1c24ea1ea962.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\800c556677b69f9448cced61009fd7f890e258f0d63fe991733c796209864a56.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\b88801f7953022ed9c12cdfd924880150a5ca079efc98b4bf22dc989adde3ca8.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\c654c4e6461dfc57335ef8b891300173e308bd10344d3efb24d528d57ea766ba.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\66297aa73e51ad571a69ea7085dbdb7dac1fca57db98787291c0479cbed9fbca.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\946068fae1ca8a7665f76c541cd350905df6c4748379518ef56fd3fe8116d101.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\986ce0a8552315903b0d503982cce835c0154a469f096b9f75030aa4b38ca213.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\66b7360968f0bb71b0201bf3b8926300a875da7b138c98bb330b0da879eceac7.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\107cb7437b2aa7982e20829fac075cb6b256c281406c3a97fae350aba39d6ca2.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\65f7c8eddfd226893b94d82eb820a020513713734307609149c1556b66f34d91.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-failed-cases-r4\\runs\\candidate\\facts-data-table\\2\\tracelog\\2026-10-09\\01a11c80-ce8c-7293-8b22-e6d8dcf0ce73\\8f85e21db1462b23132c601c27339a83\\payloads\\e9f43e12850c8136e2860077851ffba237769a307ffcbdd21dfaa856560f8378.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "prepare_component",
+            "present_component",
+            "present_text"
+          ],
+          "prepareDeclared": true,
+          "prepareRootType": "object",
+          "prepareBranches": 12
+        }
+      ],
+      "successfulNativeCalls": [
+        "prepare_component",
+        "prepare_component",
+        "present_component",
+        "present_component"
+      ],
+      "canonicalStatuses": [
+        "completed"
+      ],
+      "completeComponents": [
+        [
+          "DataTable",
+          "LinkList"
+        ]
+      ],
+      "providerHttpRequests": 12,
+      "modelRequests": 12,
+      "capturedUsageRequests": 12,
+      "responseModels": [],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    }
+  ]
+}

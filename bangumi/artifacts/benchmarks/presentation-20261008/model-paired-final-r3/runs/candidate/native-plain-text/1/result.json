@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "caseId": "native-plain-text",
+  "family": "presentation-native-text",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "a3a071371b27bf6abaa37a9f17241c9e8f725f06e8491123913cc152535b50eb",
+  "versionHash": "6c5e862fa668e2c6665a24beae5f00b10ca7c5a9bab2b8d8b1400a47f1770680",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "只用一句自然文字说明：你可以通过读取Bangumi资料来帮助我比较作品。此轮无需查询作品或展示组件。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "我可以读取 Bangumi 上的作品资料，帮你把备选作品的类型、评分、标签、制作阵容等信息放在一起比较，再说明各自的差异与适合的观看场景。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "我可以读取 Bangumi 上的作品资料，帮你把备选作品的类型、评分、标签、制作阵容等信息放在一起比较，再说明各自的差异与适合的观看场景。",
+      "tools": [],
+      "durationMs": 1277.5385999999999,
+      "presentationStatus": "completed"
+    }
+  ],
+  "metrics": {
+    "totalMs": 1289.2374,
+    "startupMs": 8582.025599999999,
+    "modelRequests": 1,
+    "providerHttpRequests": 1,
+    "proposedToolCalls": 0,
+    "toolExecutions": 0,
+    "toolErrors": 0,
+    "mcpCalls": 0,
+    "mcpMs": 0,
+    "mcpInitializationMs": 0,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 0,
+    "upstreamRequests": 0,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 0,
+    "modelMs": 899.0499,
+    "providerPayloadBytesMax": 36500,
+    "inputTokensMax": 9980,
+    "inputTokensSum": 9980,
+    "contextInputTokensMax": 10492,
+    "contextInputTokensSum": 10492,
+    "reasoningTokensSum": 59,
+    "outputTokensSum": 97,
+    "cacheReadTokensSum": 512,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 10589,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 0,
+    "firstTextMs": 955.2340999999997,
+    "firstCompleteResultMs": 1264.8477999999996,
+    "providerFirstTextMs": 955.2340999999997,
+    "firstPublishedBlockMs": 1256.735999999999,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 9980,
+        "contextInputTokens": 10492,
+        "reasoningTokens": 59,
+        "outputTokens": 97,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10589,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36500,
+        "durationMs": 899.0499,
+        "firstTextMs": 592.5786000000007,
+        "firstThinkingMs": 321.1162999999997,
+        "visibleThinkingMs": 256.45850000000064,
+        "thinkingChars": 204,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 9,
+    "initialToolCount": 9,
+    "initialToolSchemaBytes": 21069,
+    "initialProviderPayloadBytes": 36500,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "Bangumi|作品"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": []
+        },
+        "passed": true,
+        "detail": "交付作品ID："
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-paired-final-r3\\runs\\candidate\\native-plain-text\\1\\tracelog\\2026-10-09\\01a11c6c-9241-7107-b819-3fa6101f4752\\645df3de9bd0f3f6722c699d04c9988b"
+  ],
+  "captureIssues": []
+}

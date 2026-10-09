@@ -1,0 +1,301 @@
+{
+  "note": "Actual wire paired business call/result facts retained. True user turns identified from original exact prompts, excluding host recovery inputs.",
+  "rows": [
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "userTurn": 2,
+      "wireUserMessageCount": 2,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11d43-dea9-7007-94a6-3f82bf180672\\7a6a4294ca3197d5fa8c207d4b0c4575\\payloads\\38e85f3ded0c192b9de4a3bde315b526cbc9e87e843064ba9daa70b303f8f37d.json",
+      "businessFactPairs": 3,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1002,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1005,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        }
+      ]
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "userTurn": 2,
+      "wireUserMessageCount": 2,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\followup-filter\\1\\tracelog\\2026-10-09\\01a11d43-dea9-7007-94a6-3f82bf180672\\7a6a4294ca3197d5fa8c207d4b0c4575\\payloads\\8f598e1d722501f4ccbe816b2e581396dc2e00841d66a3f466aa010a9fc7d0f7.json",
+      "businessFactPairs": 5,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1002,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1005,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1001,
+          "actualId": 1001,
+          "fieldKeys": [
+            "schemaVersion",
+            "entity",
+            "id",
+            "subjectType",
+            "name",
+            "nameCn",
+            "platform",
+            "score",
+            "url",
+            "included",
+            "accessContext",
+            "resourceRef",
+            "fields",
+            "availableFields"
+          ],
+          "score": 8.4,
+          "summaryPresent": false,
+          "scopePresent": true
+        },
+        {
+          "subjectId": 1005,
+          "actualId": 1005,
+          "fieldKeys": [
+            "schemaVersion",
+            "entity",
+            "id",
+            "subjectType",
+            "name",
+            "nameCn",
+            "platform",
+            "score",
+            "url",
+            "included",
+            "accessContext",
+            "resourceRef",
+            "fields",
+            "availableFields"
+          ],
+          "score": 7.6,
+          "summaryPresent": false,
+          "scopePresent": true
+        }
+      ]
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 2,
+      "userTurn": 2,
+      "wireUserMessageCount": 2,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11d44-4925-7457-be92-6eff5613343c\\ffca49b4199efe10f681a4f819356b68\\payloads\\d47549b1bf586d2b31924b402611a2c9b67d27261321bbb4c879dd03fe6b6153.json",
+      "businessFactPairs": 3,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1002,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1005,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        }
+      ]
+    },
+    {
+      "caseId": "followup-filter",
+      "repeat": 2,
+      "userTurn": 2,
+      "wireUserMessageCount": 2,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11d44-4925-7457-be92-6eff5613343c\\ffca49b4199efe10f681a4f819356b68\\payloads\\50dd8ea4d74bd459b24ee4e77ce3111ec32ff45e84249d43efcb2aa58b5577d6.json",
+      "businessFactPairs": 5,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1002,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1005,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        },
+        {
+          "subjectId": 1001,
+          "actualId": 1001,
+          "fieldKeys": [
+            "schemaVersion",
+            "entity",
+            "id",
+            "subjectType",
+            "name",
+            "nameCn",
+            "platform",
+            "url",
+            "included",
+            "accessContext",
+            "resourceRef",
+            "fields",
+            "availableFields"
+          ],
+          "summaryPresent": false,
+          "scopePresent": true
+        },
+        {
+          "subjectId": 1005,
+          "actualId": 1005,
+          "fieldKeys": [
+            "schemaVersion",
+            "entity",
+            "id",
+            "subjectType",
+            "name",
+            "nameCn",
+            "platform",
+            "url",
+            "included",
+            "accessContext",
+            "resourceRef",
+            "fields",
+            "availableFields"
+          ],
+          "summaryPresent": false,
+          "scopePresent": true
+        }
+      ]
+    },
+    {
+      "caseId": "card-style-followup",
+      "repeat": 1,
+      "userTurn": 3,
+      "wireUserMessageCount": 3,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-09\\01a11d47-4fc1-73b7-b5fc-b5f6046215db\\1c33f4c9503ae208865a92e96d76534c\\payloads\\8b318c9f361111747cceddb806a594e3e4a6315a962c3a778169872d27dee499.json",
+      "businessFactPairs": 1,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        }
+      ]
+    },
+    {
+      "caseId": "card-style-followup",
+      "repeat": 1,
+      "userTurn": 3,
+      "wireUserMessageCount": 3,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-09\\01a11d47-4fc1-73b7-b5fc-b5f6046215db\\1c33f4c9503ae208865a92e96d76534c\\payloads\\739036a8b8aa3edf592cd9c88f5b230f4689f66175914d9742c29ab56229d8b1.json",
+      "businessFactPairs": 1,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        }
+      ]
+    },
+    {
+      "caseId": "card-style-followup",
+      "repeat": 1,
+      "userTurn": 2,
+      "wireUserMessageCount": 2,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-09\\01a11d47-4fc1-73b7-b5fc-b5f6046215db\\63023f0e0a77cf934185e2eea156fa64\\payloads\\f46916e3198a1207665d7857ac77dfca95211ce81ba9a18b849aea712c4e6462.json",
+      "businessFactPairs": 1,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        }
+      ]
+    },
+    {
+      "caseId": "card-style-followup",
+      "repeat": 2,
+      "userTurn": 2,
+      "wireUserMessageCount": 2,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11d47-f6d7-71ae-b3f3-3aeeee175781\\b87ac1db18259ee7fec626b13cb47293\\payloads\\1b6b0ff840cacd584653e79ef2faac8813b12d1e42a11364b3b2b21ad47ac800.json",
+      "businessFactPairs": 1,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        }
+      ]
+    },
+    {
+      "caseId": "card-style-followup",
+      "repeat": 2,
+      "userTurn": 3,
+      "wireUserMessageCount": 3,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11d47-f6d7-71ae-b3f3-3aeeee175781\\ee34a89c6564874caffc2fe0b83992a3\\payloads\\02a0e15680369f444a955bfb3c31efad7c1fa537b4925566bbf46e137dde176f.json",
+      "businessFactPairs": 1,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        }
+      ]
+    },
+    {
+      "caseId": "card-style-followup",
+      "repeat": 2,
+      "userTurn": 3,
+      "wireUserMessageCount": 3,
+      "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\candidate\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11d47-f6d7-71ae-b3f3-3aeeee175781\\ee34a89c6564874caffc2fe0b83992a3\\payloads\\edb498dd93df1a2a0c85f20c65ea09bab83daebfc5a9384b64abc0bcf2785f0a.json",
+      "businessFactPairs": 1,
+      "facts": [
+        {
+          "subjectId": 1001,
+          "fieldKeys": [],
+          "summaryPresent": false,
+          "scopePresent": false
+        }
+      ]
+    }
+  ]
+}

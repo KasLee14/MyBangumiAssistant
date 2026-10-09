@@ -1,0 +1,1646 @@
+{
+  "schemaVersion": 1,
+  "caseId": "followup-filter",
+  "family": "multi-turn",
+  "variant": "candidate",
+  "repeat": 2,
+  "protocolHash": "a3a071371b27bf6abaa37a9f17241c9e8f725f06e8491123913cc152535b50eb",
+  "versionHash": "6c5e862fa668e2c6665a24beae5f00b10ca7c5a9bab2b8d8b1400a47f1770680",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "budget_exceeded",
+  "error": "Request aborted",
+  "turns": [
+    {
+      "prompt": "介绍条目1001、1002和1005的名称、评分及作品形式，给出链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "三部条目的名称、评分与作品形式如下（数据来自 Bangumi 条目资料，评分与排名为查询时快照）：",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1002,
+                  "name": "玻璃海的回声",
+                  "kind": "anime",
+                  "nameCn": "玻璃海的回声",
+                  "image": "https://example.invalid/benchmark/1002.png",
+                  "score": 8.1,
+                  "scoreCount": 3000,
+                  "rank": 2,
+                  "date": "2024-04-12",
+                  "summary": "玻璃海的回声讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1002"
+                }
+              ]
+            }
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1005,
+                  "name": "星港追踪 第二季",
+                  "kind": "anime",
+                  "nameCn": "星港追踪 第二季",
+                  "image": "https://example.invalid/benchmark/1005.png",
+                  "score": 7.6,
+                  "scoreCount": 3000,
+                  "rank": 5,
+                  "date": "2024-10-05",
+                  "summary": "星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1005"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "汇总要点：\n- 1001《星港追踪》：TV 动画，评分 8.4，排名第 1。\n- 1002《玻璃海的回声》：剧场版（Movie），评分 8.1，排名第 2。\n- 1005《星港追踪 第二季》：TV 动画，评分 7.6，排名第 5。\n\n链接分别是：\n- https://bgm.tv/subject/1001\n- https://bgm.tv/subject/1002\n- https://bgm.tv/subject/1005\n\n三项的评分人数均为 3000（接口返回的同一数值），三部条目类型字段均为动画（subjectType=2），其中 1002 的作品形式为剧场版。以上为匿名公开读取的结果，未涉及 NSFW 限制内容。",
+            "nextType": "text"
+          },
+          {
+            "type": "text",
+            "text": "已按你的要求列出三部条目的名称、评分与作品形式，上方卡片为条目主体，链接与汇总在其后。若需要补充简介、标签或制作人员等信息，我可以继续查询。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "三部条目的名称、评分与作品形式如下（数据来自 Bangumi 条目资料，评分与排名为查询时快照）：\n1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n1002\n玻璃海的回声\nanime\n玻璃海的回声\n8.1\n3000\n2\n2024-04-12\n玻璃海的回声讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1002\n1005\n星港追踪 第二季\nanime\n星港追踪 第二季\n7.6\n3000\n5\n2024-10-05\n星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1005\n汇总要点：\n- 1001《星港追踪》：TV 动画，评分 8.4，排名第 1。\n- 1002《玻璃海的回声》：剧场版（Movie），评分 8.1，排名第 2。\n- 1005《星港追踪 第二季》：TV 动画，评分 7.6，排名第 5。\n\n链接分别是：\n- https://bgm.tv/subject/1001\n- https://bgm.tv/subject/1002\n- https://bgm.tv/subject/1005\n\n三项的评分人数均为 3000（接口返回的同一数值），三部条目类型字段均为动画（subjectType=2），其中 1002 的作品形式为剧场版。以上为匿名公开读取的结果，未涉及 NSFW 限制内容。\n已按你的要求列出三部条目的名称、评分与作品形式，上方卡片为条目主体，链接与汇总在其后。若需要补充简介、标签或制作人员等信息，我可以继续查询。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "platform",
+              "subjectType",
+              "url",
+              "rank",
+              "ratingCount"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "platform": "TV",
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:37:22.809Z"
+              },
+              "resourceRef": "rr_05aecd9b6295c8546da2c289388add45",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "platform",
+                "subjectType",
+                "url",
+                "rank",
+                "ratingCount"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1002,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "platform",
+              "subjectType",
+              "url",
+              "rank",
+              "ratingCount"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1002,
+              "subjectType": 2,
+              "name": "玻璃海的回声",
+              "nameCn": "玻璃海的回声",
+              "platform": "Movie",
+              "score": 8.1,
+              "rank": 2,
+              "ratingCount": 3000,
+              "url": "https://bgm.tv/subject/1002",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:37:22.894Z"
+              },
+              "resourceRef": "rr_38132ac66230de28fc81c59fe513cacb",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "platform",
+                "subjectType",
+                "url",
+                "rank",
+                "ratingCount"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1005,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "platform",
+              "subjectType",
+              "url",
+              "rank",
+              "ratingCount"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1005,
+              "subjectType": 2,
+              "name": "星港追踪 第二季",
+              "nameCn": "星港追踪 第二季",
+              "platform": "TV",
+              "score": 7.6,
+              "rank": 5,
+              "ratingCount": 3000,
+              "url": "https://bgm.tv/subject/1005",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:37:22.906Z"
+              },
+              "resourceRef": "rr_3be2e06c00e777eb39c84546c58c3363",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "platform",
+                "subjectType",
+                "url",
+                "rank",
+                "ratingCount"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品卡片"
+          },
+          "value": {
+            "version": "9c133de5fcc55ffb",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "9c133de5fcc55ffb",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "version": "9c133de5fcc55ffb",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "tool": "prepare_component",
+                "prepare": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component",
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "component": {
+                      "type": "string",
+                      "enum": [
+                        "SubjectCards"
+                      ]
+                    },
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                },
+                "publication": "prepare成功后使用present_component({resourceRef,blockIndex})发布；blockIndex为整个快照绝对下标。候选准备快照可直接发布。普通说明为原生文字；精确交错可用present_text。"
+              }
+            ],
+            "audit": {
+              "version": "9c133de5fcc55ffb",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [
+                "SubjectCards"
+              ],
+              "representations": {
+                "SubjectCards": "reference"
+              },
+              "contracts": {
+                "SubjectCards": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_05aecd9b6295c8546da2c289388add45",
+            "title": "条目 1001 / 1002 / 1005",
+            "layout": "grid",
+            "subjectIds": [
+              1001,
+              1002,
+              1005
+            ]
+          },
+          "value": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "内部执行失败；返回的诊断包含错误ID和底层原因。",
+              "diagnostic": {
+                "schemaVersion": 1,
+                "errorId": "e97934d4-c4da-48b2-a11f-5d44d2346e2e",
+                "reason": "unclassified_exception",
+                "certainty": "unknown",
+                "recovery": "none",
+                "issues": [],
+                "evidence": {},
+                "causes": [
+                  {
+                    "name": "ContentOutputError",
+                    "code": "schema"
+                  }
+                ],
+                "code": "INTERNAL_ERROR",
+                "origin": "host",
+                "stage": "execution"
+              }
+            }
+          },
+          "error": true
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "layout": "list",
+            "resourceRef": "rr_05aecd9b6295c8546da2c289388add45",
+            "subjectIds": [
+              1001,
+              1002,
+              1005
+            ],
+            "title": "条目 1001 / 1002 / 1005"
+          },
+          "value": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "内部执行失败；返回的诊断包含错误ID和底层原因。",
+              "diagnostic": {
+                "schemaVersion": 1,
+                "errorId": "ae3509e5-0266-42a8-b3ea-417bf39fad70",
+                "reason": "unclassified_exception",
+                "certainty": "unknown",
+                "recovery": "none",
+                "issues": [],
+                "evidence": {},
+                "causes": [
+                  {
+                    "name": "ContentOutputError",
+                    "code": "schema"
+                  }
+                ],
+                "code": "INTERNAL_ERROR",
+                "origin": "host",
+                "stage": "execution"
+              }
+            }
+          },
+          "error": true
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_05aecd9b6295c8546da2c289388add45",
+            "subjectIds": [
+              1001
+            ]
+          },
+          "value": {
+            "resourceRef": "rr_5fda7e6e71314152966d0edfe1135c1a",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_38132ac66230de28fc81c59fe513cacb",
+            "subjectIds": [
+              1002
+            ]
+          },
+          "value": {
+            "resourceRef": "rr_576fad52e28e4d1f9afee0af14c10184",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_3be2e06c00e777eb39c84546c58c3363",
+            "subjectIds": [
+              1005
+            ]
+          },
+          "value": {
+            "resourceRef": "rr_104afc5005e24cd092ed6bff9fa24f3a",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "三部条目的名称、评分与作品形式如下（数据来自 Bangumi 条目资料，评分与排名为查询时快照）："
+          },
+          "value": {
+            "replyId": "c03c5fcb-44a9-4408-aed0-ee7e7d3b274e",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "resourceRef": "rr_5fda7e6e71314152966d0edfe1135c1a",
+            "blockIndex": 0
+          },
+          "value": {
+            "replyId": "c03c5fcb-44a9-4408-aed0-ee7e7d3b274e",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "blockIndex": 0,
+            "resourceRef": "rr_576fad52e28e4d1f9afee0af14c10184"
+          },
+          "value": {
+            "replyId": "c03c5fcb-44a9-4408-aed0-ee7e7d3b274e",
+            "blockIndex": 2,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "blockIndex": 0,
+            "resourceRef": "rr_104afc5005e24cd092ed6bff9fa24f3a"
+          },
+          "value": {
+            "replyId": "c03c5fcb-44a9-4408-aed0-ee7e7d3b274e",
+            "blockIndex": 3,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "汇总要点：\n- 1001《星港追踪》：TV 动画，评分 8.4，排名第 1。\n- 1002《玻璃海的回声》：剧场版（Movie），评分 8.1，排名第 2。\n- 1005《星港追踪 第二季》：TV 动画，评分 7.6，排名第 5。\n\n链接分别是：\n- https://bgm.tv/subject/1001\n- https://bgm.tv/subject/1002\n- https://bgm.tv/subject/1005\n\n三项的评分人数均为 3000（接口返回的同一数值），三部条目类型字段均为动画（subjectType=2），其中 1002 的作品形式为剧场版。以上为匿名公开读取的结果，未涉及 NSFW 限制内容。"
+          },
+          "value": {
+            "replyId": "c03c5fcb-44a9-4408-aed0-ee7e7d3b274e",
+            "blockIndex": 4,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 26053.6838,
+      "presentationStatus": "completed"
+    },
+    {
+      "prompt": "还是刚才这三部，只保留TV动画，给出名称和链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "按作品形式筛掉剧场版后，原三部中只剩两部 TV 动画（1002《玻璃海的回声》为剧场版，已排除）：",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "按作品形式筛掉剧场版后，原三部中只剩两部 TV 动画（1002《玻璃海的回声》为剧场版，已排除）：",
+      "tools": [
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "subjectIds": [
+              1001,
+              1005
+            ],
+            "title": "TV 动画：1001 / 1005"
+          },
+          "value": "/resourceRef：缺少必填字段",
+          "error": true
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "subjectIds": [
+              1001
+            ]
+          },
+          "value": "/resourceRef：缺少必填字段",
+          "error": true
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "subjectIds": [
+              1005
+            ]
+          },
+          "value": "/resourceRef：缺少必填字段",
+          "error": true
+        },
+        {
+          "name": "discover_bangumi_tools",
+          "arguments": {
+            "query": "读取缓存资源 resourceRef"
+          },
+          "value": {
+            "value": {
+              "tools": [
+                {
+                  "name": "read_cached_resource",
+                  "description": "仅从当前读取轮次缓存读取已声明字段，不发API请求；resource_ref来自前次工具，keys筛本引用成员，range按Unicode字符或数组成员分段。缺失字段返回状态；reference视图没有成员窗口时，沿原resultRef/candidateRef用refine_subject_candidates(hydrate_fields:false)读取已知事实，不把空窗口当字段已知。。。按本次来源需求核实账户或NSFW，公共SFW读取不要求登录；accessContext报告实际权限核实范围与数据来源。。模型返回身份、resourceRef及流程状态；其他字段通过fields或read_cached_resource按需读取，完整资源供宿主组件展开。",
+                  "category": "cache",
+                  "fields": [
+                    "resource_ref",
+                    "fields",
+                    "keys",
+                    "range"
+                  ],
+                  "required": [
+                    "resource_ref"
+                  ],
+                  "constraints": {
+                    "schema": "fallback",
+                    "provider": "unsupported",
+                    "reason": "oneOf schemas are unsupported"
+                  },
+                  "active": true
+                },
+                {
+                  "name": "get_candidate_lineage",
+                  "description": "按候选引用分页读取关联作品的已核实直接父边及缓存名称；subject_ids可限定需要回溯的本集合成员。多跳每次只回溯当前一跳，原始关系图留在宿主。。按本次来源需求核实账户或NSFW，公共SFW读取不要求登录；accessContext报告实际权限核实范围与数据来源。。模型返回身份、resourceRef及流程状态；其他字段通过fields或read_cached_resource按需读取，完整资源供宿主组件展开。",
+                  "category": "candidates",
+                  "fields": [
+                    "candidate_ref",
+                    "subject_ids",
+                    "offset",
+                    "limit"
+                  ],
+                  "required": [
+                    "candidate_ref"
+                  ],
+                  "constraints": {
+                    "schema": "compatible",
+                    "provider": "unsupported"
+                  },
+                  "active": true
+                },
+                {
+                  "name": "prepare_candidate_output",
+                  "description": "可选的缓存结果展示工具，生成合法表格或作品卡片presentation；不取网络资料。超过单次容量时返回分页位置，可继续交付同一结果集合。。按本次来源需求核实账户或NSFW，公共SFW读取不要求登录；accessContext报告实际权限核实范围与数据来源。。模型返回身份、resourceRef及流程状态；其他字段通过fields或read_cached_resource按需读取，完整资源供宿主组件展开。",
+                  "category": "candidates",
+                  "fields": [
+                    "candidate_ref",
+                    "offset",
+                    "limit",
+                    "title",
+                    "introduction",
+                    "conclusion",
+                    "format",
+                    "fields",
+                    "completion_scope",
+                    "lineage",
+                    "lineage_format",
+                    "max_bytes",
+                    "card_fields",
+                    "layout",
+                    "reasons"
+                  ],
+                  "required": [],
+                  "constraints": {
+                    "schema": "fallback",
+                    "provider": "unsupported",
+                    "reason": "oneOf schemas are unsupported"
+                  },
+                  "active": true
+                },
+                {
+                  "name": "refine_subject_candidates",
+                  "description": "筛选已有作品候选或读取更多字段。filter执行事实条件，fields从缓存或固定资源补取并只返回所需资料；未知条件保留pending。collection_ref可复用收藏证据，filter.subject_ids可选择本集合成员。分页用continue_subject_query。。按本次来源需求核实账户或NSFW，公共SFW读取不要求登录；accessContext报告实际权限核实范围与数据来源。。模型返回身份、resourceRef及流程状态；其他字段通过fields或read_cached_resource按需读取，完整资源供宿主组件展开。",
+                  "category": "candidates",
+                  "fields": [
+                    "candidate_ref",
+                    "subject_ids",
+                    "filter",
+                    "fields",
+                    "response_view",
+                    "collection_ref",
+                    "cursor",
+                    "limit"
+                  ],
+                  "required": [],
+                  "constraints": {
+                    "schema": "fallback",
+                    "provider": "unsupported",
+                    "reason": "allOf schemas are unsupported"
+                  },
+                  "active": true
+                },
+                {
+                  "name": "browse_subjects",
+                  "description": "按媒体、作品形式、日期浏览；cat不是题材标签。年月按dateEvidence精度核实，date缺失时可用固定infobox日期字段，不补造具体日。日期筛选证据不足的条目列入filterCoverage.unknownDateSubjectIds；complete仅表示当前来源窗口日期核实无缺口，不代表全站完整。按page.nextOffset续页，不能按过滤后条数推进。默认公共SFW，浏览源不覆盖R18；显式nsfw=account也保留SFW结果并报告缺口，补充NSFW须选支持账户范围的来源。sort=date日期、rank排名，与搜索排序枚举不同。未指定TV时不自动添加cat=1。返回覆盖限制见accessContext.queryCoverage。series仅书籍可提供（false也一样），platform仅游戏可提供。标签和评分条件使用search_subjects。。推荐与组合检索使用result_mode=candidates，fields只返回必要字段，后续用refine_subject_candidates按已有ID筛选并补缺，不把原始列表搬入模型。。。按本次来源需求核实账户或NSFW，公共SFW读取不要求登录；accessContext报告实际权限核实范围与数据来源。。模型返回身份、resourceRef及流程状态；其他字段通过fields或read_cached_resource按需读取，完整资源供宿主组件展开。",
+                  "category": "subjects",
+                  "fields": [
+                    "subject_type",
+                    "cat",
+                    "series",
+                    "platform",
+                    "sort",
+                    "year",
+                    "month",
+                    "nsfw",
+                    "limit",
+                    "offset",
+                    "result_mode",
+                    "response_view",
+                    "fields",
+                    "merge_ref"
+                  ],
+                  "required": [
+                    "subject_type"
+                  ],
+                  "constraints": {
+                    "schema": "fallback",
+                    "provider": "unsupported",
+                    "reason": "oneOf schemas are unsupported"
+                  },
+                  "active": true
+                },
+                {
+                  "name": "continue_subject_query",
+                  "description": "以候选引用和page.nextCursor继续原查询；宿主恢复条件与字段，可调整视图和窗口大小。实际候选结果在result内。。按本次来源需求核实账户或NSFW，公共SFW读取不要求登录；accessContext报告实际权限核实范围与数据来源。。模型返回身份、resourceRef及流程状态；其他字段通过fields或read_cached_resource按需读取，完整资源供宿主组件展开。",
+                  "category": "candidates",
+                  "fields": [
+                    "candidate_ref",
+                    "cursor",
+                    "response_view",
+                    "limit"
+                  ],
+                  "required": [
+                    "candidate_ref",
+                    "cursor"
+                  ],
+                  "constraints": {
+                    "schema": "compatible",
+                    "provider": "unsupported"
+                  },
+                  "active": true
+                }
+              ],
+              "loaded": [
+                "read_cached_resource",
+                "get_candidate_lineage",
+                "prepare_candidate_output",
+                "refine_subject_candidates",
+                "browse_subjects",
+                "continue_subject_query"
+              ],
+              "total": 57,
+              "offset": 0,
+              "has_more": true,
+              "next_offset": 6,
+              "scope": "query_matches",
+              "categories": {
+                "subjects": "作品搜索 浏览 简介 评分 排名 日期 图片",
+                "characters": "角色 详情 配音 出演",
+                "persons": "人物 声优 漫画家 制作 职业 组织",
+                "collections": "收藏 看过 在看 想看 状态 进度 用户",
+                "candidates": "候选 推荐 筛选 排除 分页 完整 范围 关系",
+                "community": "讨论 评论 吐槽 小组 日志 社区",
+                "indexes": "目录 目录作品",
+                "episodes": "章节 集数 播出",
+                "revisions": "修订 编辑 历史",
+                "cache": "缓存 引用 字段 补全",
+                "users": "账户 权限 用户 头像"
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "platform",
+              "subjectType",
+              "url",
+              "score"
+            ],
+            "subject_id": 1001
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "platform": "TV",
+              "score": 8.4,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:37:44.452Z"
+              },
+              "resourceRef": "rr_08c2a8770aced41f3b5e08e1aa8198c6",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "platform",
+                "subjectType",
+                "url",
+                "score"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "platform",
+              "subjectType",
+              "url",
+              "score"
+            ],
+            "subject_id": 1005
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1005,
+              "subjectType": 2,
+              "name": "星港追踪 第二季",
+              "nameCn": "星港追踪 第二季",
+              "platform": "TV",
+              "score": 7.6,
+              "url": "https://bgm.tv/subject/1005",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:37:44.473Z"
+              },
+              "resourceRef": "rr_a115193bd9a4718ce2880c21711bfa71",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "platform",
+                "subjectType",
+                "url",
+                "score"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_08c2a8770aced41f3b5e08e1aa8198c6",
+            "subjectIds": [
+              1001
+            ],
+            "title": "TV 动画条目",
+            "layout": "list"
+          },
+          "value": {
+            "resourceRef": "rr_0d99877306d24897919751f089e7a362",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_a115193bd9a4718ce2880c21711bfa71",
+            "subjectIds": [
+              1005
+            ],
+            "title": "TV 动画条目",
+            "layout": "list"
+          },
+          "value": {
+            "resourceRef": "rr_3655b0aa020e492b84143bae4f883949",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "按作品形式筛掉剧场版后，原三部中只剩两部 TV 动画（1002《玻璃海的回声》为剧场版，已排除）："
+          },
+          "value": {
+            "replyId": "663fe26b-3ac3-4b69-af84-d279e53520cc",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 12418.978299999995,
+      "presentationStatus": "aborted"
+    }
+  ],
+  "metrics": {
+    "totalMs": 38646.8099,
+    "startupMs": 8768.4387,
+    "modelRequests": 19,
+    "providerHttpRequests": 18,
+    "proposedToolCalls": 24,
+    "toolExecutions": 24,
+    "toolErrors": 5,
+    "mcpCalls": 5,
+    "mcpMs": 10444.109999999999,
+    "mcpInitializationMs": 10347.9468,
+    "cacheRpcCalls": 10,
+    "rpcDispatches": 15,
+    "upstreamRequests": 5,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 3.0885999999973137,
+    "modelMs": 24055.857800000027,
+    "providerPayloadBytesMax": null,
+    "inputTokensMax": null,
+    "inputTokensSum": null,
+    "contextInputTokensMax": null,
+    "contextInputTokensSum": null,
+    "reasoningTokensSum": null,
+    "outputTokensSum": null,
+    "cacheReadTokensSum": null,
+    "cacheWriteTokensSum": null,
+    "totalTokensSum": null,
+    "estimatedCost": null,
+    "usageUnavailableRequests": 1,
+    "modelToolResultBytes": 16343,
+    "firstTextMs": 20664.4378,
+    "firstCompleteResultMs": 26040.903699999995,
+    "providerFirstTextMs": 25731.0663,
+    "firstPublishedBlockMs": 20664.4378,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 9972,
+        "contextInputTokens": 10484,
+        "reasoningTokens": 163,
+        "outputTokens": 435,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10919,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36443,
+        "durationMs": 1967.7158,
+        "firstTextMs": null,
+        "firstThinkingMs": 575.4790999999987,
+        "visibleThinkingMs": 736.6075000000001,
+        "thinkingChars": 701,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 954,
+        "contextInputTokens": 11834,
+        "reasoningTokens": 7,
+        "outputTokens": 51,
+        "cacheReadTokens": 10880,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11885,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 41871,
+        "durationMs": 561.3163999999997,
+        "firstTextMs": null,
+        "firstThinkingMs": 353.41939999999886,
+        "visibleThinkingMs": 70.40220000000045,
+        "thinkingChars": 31,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 440,
+        "contextInputTokens": 12216,
+        "reasoningTokens": 0,
+        "outputTokens": 146,
+        "cacheReadTokens": 11776,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12362,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43561,
+        "durationMs": 760.8978000000025,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 204,
+        "contextInputTokens": 12492,
+        "reasoningTokens": 206,
+        "outputTokens": 352,
+        "cacheReadTokens": 12288,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12844,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 44486,
+        "durationMs": 1798.3990000000013,
+        "firstTextMs": null,
+        "firstThinkingMs": 408.3029999999999,
+        "visibleThinkingMs": 1045.9573000000019,
+        "thinkingChars": 952,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 171,
+        "contextInputTokens": 12971,
+        "reasoningTokens": 98,
+        "outputTokens": 193,
+        "cacheReadTokens": 12800,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13164,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 46381,
+        "durationMs": 1111.7403000000013,
+        "firstTextMs": null,
+        "firstThinkingMs": 303.0822999999982,
+        "visibleThinkingMs": 558.950200000003,
+        "thinkingChars": 443,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 165,
+        "contextInputTokens": 13221,
+        "reasoningTokens": 133,
+        "outputTokens": 314,
+        "cacheReadTokens": 13056,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13535,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 47359,
+        "durationMs": 1551.8604000000014,
+        "firstTextMs": null,
+        "firstThinkingMs": 341.58030000000144,
+        "visibleThinkingMs": 769.4377999999997,
+        "thinkingChars": 608,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 204,
+        "contextInputTokens": 13644,
+        "reasoningTokens": 0,
+        "outputTokens": 65,
+        "cacheReadTokens": 13440,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13709,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 48921,
+        "durationMs": 933.6863000000012,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 193,
+        "contextInputTokens": 13761,
+        "reasoningTokens": 0,
+        "outputTokens": 78,
+        "cacheReadTokens": 13568,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13839,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 49422,
+        "durationMs": 673.9691999999995,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 195,
+        "contextInputTokens": 13891,
+        "reasoningTokens": 0,
+        "outputTokens": 78,
+        "cacheReadTokens": 13696,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13969,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 49858,
+        "durationMs": 681.713200000002,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 197,
+        "contextInputTokens": 14021,
+        "reasoningTokens": 0,
+        "outputTokens": 77,
+        "cacheReadTokens": 13824,
+        "cacheWriteTokens": 0,
+        "totalTokens": 14098,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 50294,
+        "durationMs": 626.9086000000025,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 198,
+        "contextInputTokens": 14150,
+        "reasoningTokens": 0,
+        "outputTokens": 207,
+        "cacheReadTokens": 13952,
+        "cacheWriteTokens": 0,
+        "totalTokens": 14357,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 50730,
+        "durationMs": 1432.354900000002,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 201,
+        "contextInputTokens": 14409,
+        "reasoningTokens": 0,
+        "outputTokens": 43,
+        "cacheReadTokens": 14208,
+        "cacheWriteTokens": 0,
+        "totalTokens": 14452,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 51714,
+        "durationMs": 989.734199999999,
+        "firstTextMs": 682.6281999999992,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 3571,
+        "contextInputTokens": 14451,
+        "reasoningTokens": 116,
+        "outputTokens": 205,
+        "cacheReadTokens": 10880,
+        "cacheWriteTokens": 0,
+        "totalTokens": 14656,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 52952,
+        "durationMs": 1350.1911999999938,
+        "firstTextMs": null,
+        "firstThinkingMs": 539.7876999999935,
+        "visibleThinkingMs": 571.7905000000028,
+        "thinkingChars": 229,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 211,
+        "contextInputTokens": 14675,
+        "reasoningTokens": 256,
+        "outputTokens": 366,
+        "cacheReadTokens": 14464,
+        "cacheWriteTokens": 0,
+        "totalTokens": 15041,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 53803,
+        "durationMs": 2635.6786000000066,
+        "firstTextMs": null,
+        "firstThinkingMs": 616.5676000000021,
+        "visibleThinkingMs": 1700.1823999999979,
+        "thinkingChars": 1146,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 227,
+        "contextInputTokens": 15075,
+        "reasoningTokens": 142,
+        "outputTokens": 189,
+        "cacheReadTokens": 14848,
+        "cacheWriteTokens": 0,
+        "totalTokens": 15264,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 55667,
+        "durationMs": 1439.296699999999,
+        "firstTextMs": null,
+        "firstThinkingMs": 636.3754000000044,
+        "visibleThinkingMs": 685.6541999999972,
+        "thinkingChars": 611,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 16102,
+        "contextInputTokens": 26470,
+        "reasoningTokens": 162,
+        "outputTokens": 312,
+        "cacheReadTokens": 10368,
+        "cacheWriteTokens": 0,
+        "totalTokens": 26782,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 95617,
+        "durationMs": 1986.8735000000015,
+        "firstTextMs": null,
+        "firstThinkingMs": 835.6613999999972,
+        "visibleThinkingMs": 789.5443000000014,
+        "thinkingChars": 741,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 511,
+        "contextInputTokens": 27263,
+        "reasoningTokens": 271,
+        "outputTokens": 524,
+        "cacheReadTokens": 26752,
+        "cacheWriteTokens": 0,
+        "totalTokens": 27787,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 98812,
+        "durationMs": 2967.8070000000007,
+        "firstTextMs": null,
+        "firstThinkingMs": 366.20320000000356,
+        "visibleThinkingMs": 1703.7586999999985,
+        "thinkingChars": 1102,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 242,
+        "contextInputTokens": 27890,
+        "reasoningTokens": 14,
+        "outputTokens": 83,
+        "cacheReadTokens": 27648,
+        "cacheWriteTokens": 0,
+        "totalTokens": 27973,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 101038,
+        "durationMs": 579.9788000000044,
+        "firstTextMs": null,
+        "firstThinkingMs": 172.537900000003,
+        "visibleThinkingMs": 140.82200000000012,
+        "thinkingChars": 70,
+        "responseModel": null
+      },
+      {
+        "inputTokens": null,
+        "contextInputTokens": null,
+        "reasoningTokens": null,
+        "outputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "totalTokens": null,
+        "estimatedCost": null,
+        "providerPayloadBytes": null,
+        "durationMs": 5.73590000000695,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 1,
+    "terminalModelErrors": 1,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 180,
+    "initialToolCount": 9,
+    "initialToolSchemaBytes": 21069,
+    "initialProviderPayloadBytes": 36443,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": true,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 3,
+    "modelArgumentCorrections": 2,
+    "preparedComponents": 5,
+    "publishedComponents": 3
+  },
+  "grade": {
+    "passed": false,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "turn": 0,
+          "exact": [
+            1001,
+            1002,
+            1005
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001,1002,1005"
+      },
+      {
+        "rule": {
+          "kind": "subjects",
+          "turn": 1,
+          "exact": [
+            1001,
+            1005
+          ]
+        },
+        "passed": false,
+        "detail": "交付作品ID：1002"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791477442811.1487,
+      "elapsedMs": 3195.9892999999993,
+      "durationMs": 1.5900000000001455,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791477442894.3364,
+      "elapsedMs": 3279.1769000000004,
+      "durationMs": 0.37259999999878346,
+      "source": "fixture",
+      "path": "/v0/subjects/1002",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1002,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 3,
+      "timestampMs": 1791477442907.1277,
+      "elapsedMs": 3291.9681,
+      "durationMs": 0.29830000000038126,
+      "source": "fixture",
+      "path": "/v0/subjects/1005",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1005,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 4,
+      "timestampMs": 1791477464453.478,
+      "elapsedMs": 24838.3186,
+      "durationMs": 0.46930000000065775,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 5,
+      "timestampMs": 1791477464473.8193,
+      "elapsedMs": 24858.6599,
+      "durationMs": 0.35839999999734573,
+      "source": "fixture",
+      "path": "/v0/subjects/1005",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1005,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-paired-final-r3\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c60-3465-7709-a58e-10f33d004ce6\\c7723fdf0afdf3706b1bd41547a2c73c",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-paired-final-r3\\runs\\candidate\\followup-filter\\2\\tracelog\\2026-10-09\\01a11c60-3465-7709-a58e-10f33d004ce6\\e34fba49b23ad85fe220587adcc46b7d"
+  ],
+  "captureIssues": []
+}

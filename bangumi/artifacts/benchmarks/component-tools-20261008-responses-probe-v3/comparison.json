@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "protocolHash": "14dbcee07c29c1856adec32b479d74af77670db707d6d2d627e1394a374c9ac9",
+  "evidenceNotes": [
+    "runtime 输出及恢复计数不替代浏览器 SSE 验证；UI 证据须使用专属 Web 测试。",
+    "strictToolsSent 只统计实际模型请求声明的 strict 标记，脚本模型不证明服务端遵守 Schema。"
+  ],
+  "summary": {
+    "runs": 2,
+    "outcomes": {
+      "incomplete_capture": 2
+    },
+    "passRate": 0,
+    "macroFamilyPassRate": 0,
+    "semanticPending": 1,
+    "totals": {
+      "mcpCalls": {
+        "availableRuns": 2,
+        "total": 2
+      },
+      "mcpMs": {
+        "availableRuns": 2,
+        "total": 22725.9084
+      },
+      "mcpInitializationMs": {
+        "availableRuns": 2,
+        "total": 22553.8667
+      },
+      "upstreamRequests": {
+        "availableRuns": 2,
+        "total": 2
+      },
+      "contextInputTokensMax": {
+        "availableRuns": 2,
+        "total": 20488
+      },
+      "contextInputTokensSum": {
+        "availableRuns": 2,
+        "total": 84555
+      },
+      "inputTokensSum": {
+        "availableRuns": 2,
+        "total": 27211
+      },
+      "outputTokensSum": {
+        "availableRuns": 2,
+        "total": 3955
+      },
+      "cacheReadTokensSum": {
+        "availableRuns": 2,
+        "total": 57344
+      },
+      "modelToolResultBytes": {
+        "availableRuns": 2,
+        "total": 12450
+      },
+      "totalMs": {
+        "availableRuns": 2,
+        "total": 46524.1642
+      },
+      "modelMs": {
+        "availableRuns": 2,
+        "total": 21451.941400000007
+      },
+      "estimatedCost": {
+        "availableRuns": 2,
+        "total": 0
+      },
+      "outputErrors": {
+        "availableRuns": 2,
+        "total": 1
+      },
+      "blankOutputErrors": {
+        "availableRuns": 2,
+        "total": 0
+      },
+      "schemaOutputErrors": {
+        "availableRuns": 2,
+        "total": 1
+      },
+      "jsonOutputErrors": {
+        "availableRuns": 2,
+        "total": 0
+      },
+      "modelErrors": {
+        "availableRuns": 2,
+        "total": 1
+      },
+      "terminalModelErrors": {
+        "availableRuns": 2,
+        "total": 0
+      },
+      "recoveryScheduled": {
+        "availableRuns": 2,
+        "total": 1
+      },
+      "recoveryRunning": {
+        "availableRuns": 2,
+        "total": 1
+      },
+      "recoveryRecovered": {
+        "availableRuns": 2,
+        "total": 1
+      },
+      "recoveryStopped": {
+        "availableRuns": 2,
+        "total": 0
+      },
+      "strictToolsSent": {
+        "availableRuns": 2,
+        "total": 0
+      },
+      "initialToolCount": {
+        "availableRuns": 2,
+        "total": 12
+      },
+      "initialToolSchemaBytes": {
+        "availableRuns": 2,
+        "total": 22860
+      },
+      "initialProviderPayloadBytes": {
+        "availableRuns": 2,
+        "total": 55529
+      },
+      "validatedFinals": {
+        "availableRuns": 2,
+        "total": 2
+      },
+      "prefixDuplications": {
+        "availableRuns": 2,
+        "total": 0
+      }
+    },
+    "plannedRuns": 2,
+    "pendingRuns": 0
+  },
+  "comparison": null
+}

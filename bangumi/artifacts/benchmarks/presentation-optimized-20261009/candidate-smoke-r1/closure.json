@@ -1,0 +1,16 @@
+{
+  "closedAt": "2026-10-08T18:54:44.400Z",
+  "runnerExited": true,
+  "planned": 4,
+  "recorded": 4,
+  "passed": 4,
+  "candidateHash": "7e9bfa2eeb7a3e44020fa95f02a782b31fc6ec772db56e1c50e14f1fc4a3daa2",
+  "expectedCandidateHash": "7e9bfa2eeb7a3e44020fa95f02a782b31fc6ec772db56e1c50e14f1fc4a3daa2",
+  "candidateStable": true,
+  "controlHash": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168",
+  "controlStable": true,
+  "modelConfigHash": "62a1b441d29fbfb33eb88f5c87808d672077808d572ed0f10c4215b9fde14c83",
+  "modelConfigStable": true,
+  "captureIssues": [],
+  "historyRepresentationIssue": "Multiline canonical exact text is JSON-escaped in injected summary; raw substring observer reports 0 although all lines occur once. Requires encoded-form audit."
+}

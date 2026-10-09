@@ -1,0 +1,122 @@
+{
+  "evidence": "offline frozen contract mechanisms only; no real-model performance proof",
+  "candidateHash": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+  "candidateStable": true,
+  "controlHash": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168",
+  "controlStable": true,
+  "observations": [
+    {
+      "name": "native-arguments-r4-final",
+      "planned": 3,
+      "records": 3,
+      "candidateVersion": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+      "fullyCaptured": true,
+      "outcomes": [
+        {
+          "id": "script-native-trailing-comma",
+          "outcome": "passed",
+          "status": "completed",
+          "validatedFinals": 1,
+          "terminalModelErrors": 0,
+          "loadoutMismatches": 0,
+          "afterCommitHTTP": 0,
+          "completion": {
+            "source": "tool_finish_turn",
+            "finalToolCallId": "native-first",
+            "batchCallCount": 1,
+            "batchResultCount": 1,
+            "allBatchResultsSuccessful": true,
+            "httpAtCommit": 0,
+            "httpAtSettled": 0,
+            "modelAtCommit": 2,
+            "modelAtSettled": 2
+          }
+        },
+        {
+          "id": "script-native-duplicate-key",
+          "outcome": "passed",
+          "status": "completed",
+          "validatedFinals": 1,
+          "terminalModelErrors": 0,
+          "loadoutMismatches": 0,
+          "afterCommitHTTP": 0,
+          "completion": {
+            "source": "tool_finish_turn",
+            "finalToolCallId": "native-corrected",
+            "batchCallCount": 1,
+            "batchResultCount": 1,
+            "allBatchResultsSuccessful": true,
+            "httpAtCommit": 0,
+            "httpAtSettled": 0,
+            "modelAtCommit": 3,
+            "modelAtSettled": 3
+          }
+        },
+        {
+          "id": "script-native-truncated-value",
+          "outcome": "passed",
+          "status": "completed",
+          "validatedFinals": 1,
+          "terminalModelErrors": 0,
+          "loadoutMismatches": 0,
+          "afterCommitHTTP": 0,
+          "completion": {
+            "source": "tool_finish_turn",
+            "finalToolCallId": "native-corrected",
+            "batchCallCount": 1,
+            "batchResultCount": 1,
+            "allBatchResultsSuccessful": true,
+            "httpAtCommit": 0,
+            "httpAtSettled": 0,
+            "modelAtCommit": 3,
+            "modelAtSettled": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "native-terminal-r4-final",
+      "planned": 2,
+      "records": 2,
+      "candidateVersion": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+      "fullyCaptured": true,
+      "outcomes": [
+        {
+          "id": "script-native-terminal-error",
+          "outcome": "passed",
+          "status": "error",
+          "validatedFinals": 0,
+          "terminalModelErrors": 1,
+          "loadoutMismatches": 0,
+          "afterCommitHTTP": 0
+        },
+        {
+          "id": "script-native-terminal-abort",
+          "outcome": "passed",
+          "status": "aborted",
+          "validatedFinals": 0,
+          "terminalModelErrors": 1,
+          "loadoutMismatches": 0,
+          "afterCommitHTTP": 0
+        }
+      ]
+    }
+  ],
+  "negativeStable": true,
+  "negative": [
+    {
+      "id": "disabled-correction",
+      "verified": true,
+      "outcome": "errored",
+      "status": "error",
+      "captureIssues": []
+    },
+    {
+      "id": "budget-stop",
+      "verified": true,
+      "outcome": "budget_exceeded",
+      "status": "aborted",
+      "captureIssues": []
+    }
+  ]
+}

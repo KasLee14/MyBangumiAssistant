@@ -1,0 +1,944 @@
+{
+  "schemaVersion": 1,
+  "caseId": "card-style-followup",
+  "family": "component-tools-followup",
+  "variant": "control",
+  "repeat": 2,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "读取固定条目1001的基本资料和评分，用SubjectCards卡片展示，再讨论它的评分是否偏高。",
+      "final": {
+        "content": [
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "卡片已展示条目 1001《星港追踪》（TV／2024-01-08，12 集）。下面就它的评分展开讨论。\n\n**先看已有事实**\n\n- 评分 8.4，排名第 1，评分人数 3000。\n- 评分分布（ratingDistribution）里，3000 份评价全部落在 8 分档，其余 1–7、9–10 档均为空。\n- 标签线索只给出「悬疑」「推理」；简介提到调查失踪档案、身份疑点、结尾解释主要谜团。\n\n**判断：从数据看，这 8.4 分不能当作“偏高”或“不偏高”的可靠结论，更准确地说是“不具备可比性的分数”**\n\n1. 分数与分布不自洽。8.4 在 Bangumi 体系里属于很高的区间（通常对应前若干名），但 3000 份评价若真的集中在 8 分，加权均值应该更接近 8.0 而不是 8.4。分布全压在单一档位，说明这份分数更可能来自单一来源的堆积，而非真实的多人分层评价。\n2. 没有分层就等于没有分歧信息。正常的高分作品通常 9–10 档会有相当占比，同时伴随少量低分；这种“齐刷刷 8 分”的形态无法反映口碑结构，也就无法判断它是靠多少人、多少种意见撑起来的。\n3. 排名第 1 同样要保留。在 3000 人、单一档位分布的基础上取得榜首，可能是统计口径或样本污染的结果，而不是作品实力的体现。\n\n**因此我不建议把「8.4 分偏高」直接下结论**：偏低信息量的是这个分数的来源结构，而不是分值本身。若你要评估它到底值不值这个分，比较稳妥的做法是：\n\n- 看真实的分层口碑（收藏吐槽、长评），判断 8 分档之外是否有大量不同意见；\n- 参照同类型（悬疑／推理）作品的常见分数区间做横向比较；\n- 把「单档堆积」当作数据警讯而非作品优劣证据。\n\n如果你希望，我可以进一步读取该条目的收藏吐槽和日志长评，看看实际观众的分歧点在哪里，再给一个更有依据的高低判断。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n卡片已展示条目 1001《星港追踪》（TV／2024-01-08，12 集）。下面就它的评分展开讨论。\n\n**先看已有事实**\n\n- 评分 8.4，排名第 1，评分人数 3000。\n- 评分分布（ratingDistribution）里，3000 份评价全部落在 8 分档，其余 1–7、9–10 档均为空。\n- 标签线索只给出「悬疑」「推理」；简介提到调查失踪档案、身份疑点、结尾解释主要谜团。\n\n**判断：从数据看，这 8.4 分不能当作“偏高”或“不偏高”的可靠结论，更准确地说是“不具备可比性的分数”**\n\n1. 分数与分布不自洽。8.4 在 Bangumi 体系里属于很高的区间（通常对应前若干名），但 3000 份评价若真的集中在 8 分，加权均值应该更接近 8.0 而不是 8.4。分布全压在单一档位，说明这份分数更可能来自单一来源的堆积，而非真实的多人分层评价。\n2. 没有分层就等于没有分歧信息。正常的高分作品通常 9–10 档会有相当占比，同时伴随少量低分；这种“齐刷刷 8 分”的形态无法反映口碑结构，也就无法判断它是靠多少人、多少种意见撑起来的。\n3. 排名第 1 同样要保留。在 3000 人、单一档位分布的基础上取得榜首，可能是统计口径或样本污染的结果，而不是作品实力的体现。\n\n**因此我不建议把「8.4 分偏高」直接下结论**：偏低信息量的是这个分数的来源结构，而不是分值本身。若你要评估它到底值不值这个分，比较稳妥的做法是：\n\n- 看真实的分层口碑（收藏吐槽、长评），判断 8 分档之外是否有大量不同意见；\n- 参照同类型（悬疑／推理）作品的常见分数区间做横向比较；\n- 把「单档堆积」当作数据警讯而非作品优劣证据。\n\n如果你希望，我可以进一步读取该条目的收藏吐槽和日志长评，看看实际观众的分歧点在哪里，再给一个更有依据的高低判断。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "name",
+              "nameCn",
+              "subjectType",
+              "date",
+              "platform",
+              "score",
+              "rank",
+              "ratingCount",
+              "ratingDistribution",
+              "tags",
+              "summary",
+              "totalEpisodes"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "tags": [
+                "悬疑",
+                "推理"
+              ],
+              "included": [
+                "summary",
+                "ratingDistribution"
+              ],
+              "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+              "ratingDistribution": {
+                "1": null,
+                "2": null,
+                "3": null,
+                "4": null,
+                "5": null,
+                "6": null,
+                "7": null,
+                "8": 3000,
+                "9": null,
+                "10": null
+              },
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T20:51:10.093Z"
+              },
+              "resourceRef": "rr_6aa0c45cf5d7244f3b243a0833b35bd6",
+              "fields": [
+                "name",
+                "nameCn",
+                "subjectType",
+                "date",
+                "platform",
+                "score",
+                "rank",
+                "ratingCount",
+                "ratingDistribution",
+                "tags",
+                "summary",
+                "totalEpisodes"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary",
+                "ratingDistribution"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "error": {
+              "code": "COMPONENT_INDEX_REQUIRED",
+              "message": "先读取可见的同版本组件索引选择组件，再读取字段。",
+              "diagnostic": {
+                "schemaVersion": 1,
+                "errorId": "b6f64398-aea1-4f52-ac9e-98773d47a0f6",
+                "reason": "operation_failed",
+                "certainty": "confirmed",
+                "recovery": "none",
+                "issues": [],
+                "evidence": {},
+                "causes": [
+                  {
+                    "name": "AppError",
+                    "code": "COMPONENT_INDEX_REQUIRED"
+                  }
+                ],
+                "code": "COMPONENT_INDEX_REQUIRED",
+                "origin": "domain",
+                "stage": "execution"
+              }
+            }
+          },
+          "error": true
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品卡片"
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "tool": "prepare_component",
+                "prepare": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component",
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "component": {
+                      "type": "string",
+                      "enum": [
+                        "SubjectCards"
+                      ]
+                    },
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                },
+                "constraints": [
+                  "明确成员必须来自此resourceRef的当前成员；单对象详情不能选择其他对象。保持用户完整范围，多个已有详情引用可分别准备和发布，不跨引用合并ID。"
+                ],
+                "publication": "prepare成功后使用present_component({resourceRef,blockIndex})发布；blockIndex为整个快照绝对下标。候选准备快照可直接发布。普通说明为原生文字；精确交错可用present_text。"
+              }
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [
+                "SubjectCards"
+              ],
+              "representations": {
+                "SubjectCards": "reference"
+              },
+              "contracts": {
+                "SubjectCards": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_6aa0c45cf5d7244f3b243a0833b35bd6",
+            "subjectIds": [
+              1001
+            ],
+            "layout": "grid"
+          },
+          "value": {
+            "resourceRef": "rr_2d5a716aca984532a1d108828f4807fc",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "resourceRef": "rr_2d5a716aca984532a1d108828f4807fc",
+            "blockIndex": 0
+          },
+          "value": {
+            "replyId": "6c265395-05b6-4cab-b7b7-5fd6be6d3dd2",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 18745.787,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 6,
+        "httpAtSettled": 6,
+        "modelAtCommit": 6,
+        "modelAtSettled": 6
+      }
+    },
+    {
+      "prompt": "把刚才那段评分讨论换成贴吧老哥的口吻，事实保持一致，直接用自然文字回答。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "老哥我跟你说，这分吧，看着唬人，其实得先扒一扒数据再吹。\n\n条目 1001《星港追踪》，TV，2024 年 1 月 8 日开播，12 集，标签就给了「悬疑」「推理」。牌面上：8.4 分，榜首，3000 人打分。听着挺唬人吧？别急着跪。\n\n关键在分布。那 3000 个评价，全！部！就 8 分这一个档，1 到 7 档空的，9 和 10 也是空的。这就离谱了兄弟。要是真 3000 人一人一句各打各的，均分怎么可能停在 8.4？按理说应该更贴 8.0 才对。这么齐刷刷一片 8 分，你说这是打分还是集体报到？\n\n再看正常的高分片，人家 9 分 10 分档多少得占一票吧，底下也总有几个不惯着的。现在倒好，一点分层都没有，压根看不出这分是靠多少人、多少种意见堆起来的，口碑结构等于零。所以什么\"神作\"\"榜首\"之类的先收一收，这数据本身就透着股怪味。\n\n所以你要问我 8.4 是不是虚高？我不敢这么下结论——虚不虚的，问题不在这个数字，而在这分是怎么来的，来源结构一看就不干净。真想判断值不值，别盯评分，去翻它的收藏吐槽和长评，看看 8 分之外到底有没有人喷、喷在哪儿，再拿同类型悬疑推理的常见分数区间横着一比，心里就有数了。榜首那俩字，当彩蛋看就行，别当真。\n\n要真较真，我还可以去把这片的吐槽和长评捞出来，看看大伙儿分歧在哪，到时候再给你个靠谱点的说法。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "老哥我跟你说，这分吧，看着唬人，其实得先扒一扒数据再吹。\n\n条目 1001《星港追踪》，TV，2024 年 1 月 8 日开播，12 集，标签就给了「悬疑」「推理」。牌面上：8.4 分，榜首，3000 人打分。听着挺唬人吧？别急着跪。\n\n关键在分布。那 3000 个评价，全！部！就 8 分这一个档，1 到 7 档空的，9 和 10 也是空的。这就离谱了兄弟。要是真 3000 人一人一句各打各的，均分怎么可能停在 8.4？按理说应该更贴 8.0 才对。这么齐刷刷一片 8 分，你说这是打分还是集体报到？\n\n再看正常的高分片，人家 9 分 10 分档多少得占一票吧，底下也总有几个不惯着的。现在倒好，一点分层都没有，压根看不出这分是靠多少人、多少种意见堆起来的，口碑结构等于零。所以什么\"神作\"\"榜首\"之类的先收一收，这数据本身就透着股怪味。\n\n所以你要问我 8.4 是不是虚高？我不敢这么下结论——虚不虚的，问题不在这个数字，而在这分是怎么来的，来源结构一看就不干净。真想判断值不值，别盯评分，去翻它的收藏吐槽和长评，看看 8 分之外到底有没有人喷、喷在哪儿，再拿同类型悬疑推理的常见分数区间横着一比，心里就有数了。榜首那俩字，当彩蛋看就行，别当真。\n\n要真较真，我还可以去把这片的吐槽和长评捞出来，看看大伙儿分歧在哪，到时候再给你个靠谱点的说法。",
+      "tools": [],
+      "durationMs": 3886.1034999999974,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 7,
+        "httpAtSettled": 7,
+        "modelAtCommit": 7,
+        "modelAtSettled": 7
+      }
+    },
+    {
+      "prompt": "说得温和一点，用一句普通文字告诉我应不应该补这部作品，不需要再次展示卡片。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "如果你对悬疑推理有兴趣，这部 12 集的《星港追踪》可以补，但它的 8.4 分只来自 3000 条集中在同一档位的评价，参考价值有限，建议先看一两集再决定要不要跟完。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "如果你对悬疑推理有兴趣，这部 12 集的《星港追踪》可以补，但它的 8.4 分只来自 3000 条集中在同一档位的评价，参考价值有限，建议先看一两集再决定要不要跟完。",
+      "tools": [],
+      "durationMs": 1406.2320999999974,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 8,
+        "httpAtSettled": 8,
+        "modelAtCommit": 8,
+        "modelAtSettled": 8
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 24123.718,
+    "startupMs": 8350.1745,
+    "modelRequests": 8,
+    "providerHttpRequests": 8,
+    "proposedToolCalls": 6,
+    "toolExecutions": 6,
+    "toolErrors": 1,
+    "mcpCalls": 1,
+    "mcpMs": 10074.5973,
+    "mcpInitializationMs": 9994.698399999997,
+    "cacheRpcCalls": 2,
+    "rpcDispatches": 3,
+    "upstreamRequests": 1,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.8613000000004831,
+    "modelMs": 12197.149599999995,
+    "providerPayloadBytesMax": 52717,
+    "inputTokensMax": 9972,
+    "inputTokensSum": 14808,
+    "contextInputTokensMax": 14391,
+    "contextInputTokensSum": 97752,
+    "reasoningTokensSum": 511,
+    "outputTokensSum": 1865,
+    "cacheReadTokensSum": 82944,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 99617,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 4463,
+    "firstTextMs": 18732.011300000002,
+    "firstCompleteResultMs": 18736.3995,
+    "providerFirstTextMs": 16092.041700000002,
+    "firstPublishedBlockMs": 14954.1604,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 11430,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 9972,
+        "contextInputTokens": 10612,
+        "reasoningTokens": 126,
+        "outputTokens": 259,
+        "cacheReadTokens": 640,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10871,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36899,
+        "durationMs": 1548.7037,
+        "firstTextMs": null,
+        "firstThinkingMs": 574.065700000001,
+        "visibleThinkingMs": 623.343499999999,
+        "thinkingChars": 589,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 14606,
+        "repeatedMessageBytes": 11427,
+        "inputTokens": 626,
+        "contextInputTokens": 11378,
+        "reasoningTokens": 7,
+        "outputTokens": 48,
+        "cacheReadTokens": 10752,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11426,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 40075,
+        "durationMs": 493.5773999999983,
+        "firstTextMs": null,
+        "firstThinkingMs": 337.52720000000045,
+        "visibleThinkingMs": 55.27139999999781,
+        "thinkingChars": 35,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 15547,
+        "repeatedMessageBytes": 14600,
+        "inputTokens": 189,
+        "contextInputTokens": 11581,
+        "reasoningTokens": 0,
+        "outputTokens": 44,
+        "cacheReadTokens": 11392,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11625,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 41016,
+        "durationMs": 506.63850000000093,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 17434,
+        "repeatedMessageBytes": 15539,
+        "inputTokens": 475,
+        "contextInputTokens": 11995,
+        "reasoningTokens": 0,
+        "outputTokens": 115,
+        "cacheReadTokens": 11520,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12110,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42903,
+        "durationMs": 424.1912999999986,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 17969,
+        "repeatedMessageBytes": 17424,
+        "inputTokens": 260,
+        "contextInputTokens": 12164,
+        "reasoningTokens": 0,
+        "outputTokens": 75,
+        "cacheReadTokens": 11904,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12239,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43438,
+        "durationMs": 715.4252000000015,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 18405,
+        "repeatedMessageBytes": 17957,
+        "inputTokens": 258,
+        "contextInputTokens": 12290,
+        "reasoningTokens": 88,
+        "outputTokens": 573,
+        "cacheReadTokens": 12032,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12863,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43874,
+        "durationMs": 3609.317899999998,
+        "firstTextMs": 967.1237000000001,
+        "firstThinkingMs": 463.0861999999979,
+        "visibleThinkingMs": 490.44460000000254,
+        "thinkingChars": 250,
+        "responseModel": null
+      },
+      {
+        "userTurn": 2,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 23034,
+        "repeatedMessageBytes": 16122,
+        "inputTokens": 2461,
+        "contextInputTokens": 13341,
+        "reasoningTokens": 178,
+        "outputTokens": 582,
+        "cacheReadTokens": 10880,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13923,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 48503,
+        "durationMs": 3684.9665999999997,
+        "firstTextMs": 1269.4249000000018,
+        "firstThinkingMs": 331.9422000000013,
+        "visibleThinkingMs": 937.4717999999993,
+        "thinkingChars": 288,
+        "responseModel": null
+      },
+      {
+        "userTurn": 3,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 27248,
+        "repeatedMessageBytes": 23018,
+        "inputTokens": 567,
+        "contextInputTokens": 14391,
+        "reasoningTokens": 112,
+        "outputTokens": 169,
+        "cacheReadTokens": 13824,
+        "cacheWriteTokens": 0,
+        "totalTokens": 14560,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 52717,
+        "durationMs": 1214.328999999998,
+        "firstTextMs": 947.1181999999972,
+        "firstThinkingMs": 400.6180999999997,
+        "visibleThinkingMs": 534.1005000000005,
+        "thinkingChars": 174,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 72,
+    "initialToolCount": 9,
+    "initialToolSchemaBytes": 21069,
+    "initialProviderPayloadBytes": 36899,
+    "validatedFinals": 3,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 1,
+    "publishedComponents": 1,
+    "renderedComponents": 0,
+    "displaySchemaBytesSum": 77696,
+    "displaySchemaBytesMax": 9712,
+    "toolSchemaBytesSum": 168552,
+    "toolSchemaBytesMax": 21069,
+    "contextMessageBytesSum": 145673,
+    "contextMessageBytesMax": 27248,
+    "repeatedMessageBytesSum": 116087,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "bytes": 9712
+      },
+      {
+        "userTurn": 2,
+        "names": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "bytes": 9712
+      },
+      {
+        "userTurn": 3,
+        "names": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "bytes": 9712
+      }
+    ],
+    "activatedDisplaySets": [],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "turn": 0,
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "component",
+          "turn": 0,
+          "type": "SubjectCards"
+        },
+        "passed": true,
+        "detail": "完整组件：SubjectCards"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "turn": 2,
+          "pattern": ".+"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791492670095.129,
+      "elapsedMs": 2867.8966,
+      "durationMs": 1.8613000000004831,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\control\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11d48-9142-76bf-9650-77939573aeec\\05181bf9446f4ee4702b4e0c1a89dc0b",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\control\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11d48-9142-76bf-9650-77939573aeec\\345620589ca9c89fb6d66b3e15385fb8",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r4-final\\runs\\control\\card-style-followup\\2\\tracelog\\2026-10-09\\01a11d48-9142-76bf-9650-77939573aeec\\cee6fd02dd8312846748ac0e26f274c9"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 3,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 4,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 5,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 6,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 2,
+      "requestIndex": 7,
+      "texts": [
+        {
+          "sourceUserTurn": 1,
+          "replyId": "6c265395-05b6-4cab-b7b7-5fd6be6d3dd2",
+          "partIndex": 1,
+          "textHash": "42ce772d3eb450c816db1da146eb568b5ba96d1b7f2f2fb6e6c3b8092c47a28e",
+          "textBytes": 1995,
+          "nativeOccurrences": 2,
+          "displayArgumentOccurrences": 0,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        }
+      ],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 3,
+      "requestIndex": 8,
+      "texts": [
+        {
+          "sourceUserTurn": 1,
+          "replyId": "6c265395-05b6-4cab-b7b7-5fd6be6d3dd2",
+          "partIndex": 1,
+          "textHash": "42ce772d3eb450c816db1da146eb568b5ba96d1b7f2f2fb6e6c3b8092c47a28e",
+          "textBytes": 1995,
+          "nativeOccurrences": 2,
+          "displayArgumentOccurrences": 0,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 2,
+          "replyId": "9547c8eb-7354-4ec1-b0bb-d56bbb698151",
+          "partIndex": 0,
+          "textHash": "792c05dd5be614f62f73beb37adf8c34d41868ebb0d37e0d6a8146e5d9e5a89e",
+          "textBytes": 1531,
+          "nativeOccurrences": 2,
+          "displayArgumentOccurrences": 0,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        }
+      ],
+      "projectionAudits": []
+    }
+  ]
+}

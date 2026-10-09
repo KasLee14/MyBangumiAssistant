@@ -1,0 +1,694 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bangumi benchmark</title><style>body{max-width:1100px;margin:32px auto;padding:0 20px;font:15px/1.65 system-ui;color:#172033;background:#f8fafc}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #dbe2eb;text-align:left;overflow-wrap:anywhere}details.run{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:12px;margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:12px;border-radius:6px}input{width:100%;padding:10px;box-sizing:border-box}a{color:#2563eb}strong{color:#334155}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}.stats div{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:14px}.stats b{display:block;font-size:26px}.meta{overflow-wrap:anywhere}</style><h1>Bangumi benchmark</h1><p>自动硬判通过不等于语义评审通过。失败、超时和资料缺失均保留；性能差值只比较双方通过且指标可用的配对。API未返回的思考与token保持不可用。</p><p class="meta">benchmark · deepseek/deepseek-flash · thinking=high · 2026-10-08T08:38:39.697Z</p><p>真实模型＋固定上游</p><p>恢复模式：enabled。中间错误单独计数，成功恢复不视为终态失败。runtime指标不替代浏览器SSE和前端展示验证；脚本模型不证明服务端执行strict约束。</p><div class="stats"><div>已记录 / 计划<b>1 / 1</b></div><div>自动硬判通过率<b>100%</b></div><div>按场景宏平均<b>100%</b></div><div>待语义评审<b>0</b></div></div><details><summary>完整资源消耗与结果状态</summary><pre>{
+  &quot;runs&quot;: 1,
+  &quot;outcomes&quot;: {
+    &quot;passed&quot;: 1
+  },
+  &quot;passRate&quot;: 1,
+  &quot;macroFamilyPassRate&quot;: 1,
+  &quot;semanticPending&quot;: 0,
+  &quot;totals&quot;: {
+    &quot;mcpCalls&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 1
+    },
+    &quot;mcpMs&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 11809.943200000002
+    },
+    &quot;mcpInitializationMs&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 11703.6462
+    },
+    &quot;upstreamRequests&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 1
+    },
+    &quot;contextInputTokensMax&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 8704
+    },
+    &quot;contextInputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 23786
+    },
+    &quot;inputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 8042
+    },
+    &quot;outputTokensSum&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 522
+    },
+    &quot;cacheReadTokensSum&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 15744
+    },
+    &quot;modelToolResultBytes&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 5025
+    },
+    &quot;totalMs&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 16142.409000000001
+    },
+    &quot;modelMs&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 3442.4205999999995
+    },
+    &quot;estimatedCost&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;outputErrors&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;blankOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;schemaOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;jsonOutputErrors&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;modelErrors&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;terminalModelErrors&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryScheduled&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryRunning&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryRecovered&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;recoveryStopped&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;strictToolsSent&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    },
+    &quot;initialToolCount&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 6
+    },
+    &quot;initialToolSchemaBytes&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 11358
+    },
+    &quot;initialProviderPayloadBytes&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 26726
+    },
+    &quot;validatedFinals&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 1
+    },
+    &quot;prefixDuplications&quot;: {
+      &quot;availableRuns&quot;: 1,
+      &quot;total&quot;: 0
+    }
+  },
+  &quot;plannedRuns&quot;: 1,
+  &quot;pendingRuns&quot;: 0
+}</pre></details><h2>逐例证据</h2><input id="filter" placeholder="筛选案例、场景、版本或结果状态" aria-label="筛选运行记录"><details class="run" data-search="facts-basic facts passed candidate"><summary>facts-basic · candidate #1 <strong>passed</strong></summary><p><a href="runs/candidate/facts-basic/1/result.json">原始结果</a> <a href="runs/candidate/facts-basic/1/tracelog/2026-10-08/01a11aaa-4688-7230-832e-55b051ea9ea7/030ba49ca1e767711cdddb20944d508f/summary.json">trace摘要</a></p><p>总耗时 16142ms；模型请求 3；MCP 1；上游 1；含缓存输入token 23786</p><p>每轮provider请求字节数</p><svg viewBox="0 0 210 54" width="210" height="54" role="img" aria-label="逐轮实际provider请求字节数"><polyline fill="none" stroke="#2563eb" stroke-width="2" points="0,12.439686715655142 100,8.848528833650853 200,4"/></svg><p>语义评审：not_required </p><pre>自动硬判无失败项</pre><h3>对话轮次 1</h3><p>查询条目1001的名称、评分、首播日期和集数，给出条目链接。</p><pre>条目 1001 的基本资料如下（匿名只读查询，数据来源 v0）：
+
+- 名称：星港追踪
+- 评分：8.4（评分人数 3000，排名 1）
+- 首播日期：2024-01-08
+- 集数：12 集（TV）
+- 链接：https://bgm.tv/subject/1001
+条目 1001
+1001
+星港追踪
+anime
+星港追踪
+8.4
+3000
+1
+2024-01-08
+星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。
+悬疑
+推理
+https://bgm.tv/subject/1001</pre><details><summary>实际工具调用与模型可见证据</summary><pre>[
+  {
+    &quot;name&quot;: &quot;get_subject_details&quot;,
+    &quot;arguments&quot;: {
+      &quot;subject_id&quot;: 1001,
+      &quot;fields&quot;: [
+        &quot;id&quot;,
+        &quot;name&quot;,
+        &quot;nameCn&quot;,
+        &quot;score&quot;,
+        &quot;date&quot;,
+        &quot;totalEpisodes&quot;,
+        &quot;url&quot;,
+        &quot;subjectType&quot;,
+        &quot;platform&quot;,
+        &quot;image&quot;,
+        &quot;rank&quot;,
+        &quot;ratingCount&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;value&quot;: {
+        &quot;schemaVersion&quot;: 1,
+        &quot;entity&quot;: &quot;subject&quot;,
+        &quot;id&quot;: 1001,
+        &quot;subjectType&quot;: 2,
+        &quot;name&quot;: &quot;星港追踪&quot;,
+        &quot;nameCn&quot;: &quot;星港追踪&quot;,
+        &quot;date&quot;: &quot;2024-01-08&quot;,
+        &quot;platform&quot;: &quot;TV&quot;,
+        &quot;score&quot;: 8.4,
+        &quot;rank&quot;: 1,
+        &quot;ratingCount&quot;: 3000,
+        &quot;totalEpisodes&quot;: 12,
+        &quot;url&quot;: &quot;https://bgm.tv/subject/1001&quot;,
+        &quot;image&quot;: &quot;https://example.invalid/benchmark/1001.png&quot;,
+        &quot;included&quot;: [
+          &quot;summary&quot;
+        ],
+        &quot;accessContext&quot;: {
+          &quot;mode&quot;: &quot;anonymous&quot;,
+          &quot;account&quot;: null,
+          &quot;nsfw&quot;: {
+            &quot;preference&quot;: null,
+            &quot;allowed&quot;: null,
+            &quot;state&quot;: &quot;not_checked&quot;
+          },
+          &quot;source&quot;: &quot;v0&quot;,
+          &quot;nsfwApplied&quot;: false,
+          &quot;checkedAt&quot;: &quot;2026-10-08T08:39:03.745Z&quot;
+        },
+        &quot;resourceRef&quot;: &quot;rr_267fe61cda954d5fd8a2f1462a151f65&quot;,
+        &quot;fields&quot;: [
+          &quot;id&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;score&quot;,
+          &quot;date&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;url&quot;,
+          &quot;subjectType&quot;,
+          &quot;platform&quot;,
+          &quot;image&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;
+        ],
+        &quot;availableFields&quot;: [
+          &quot;schemaVersion&quot;,
+          &quot;entity&quot;,
+          &quot;id&quot;,
+          &quot;subjectType&quot;,
+          &quot;name&quot;,
+          &quot;nameCn&quot;,
+          &quot;date&quot;,
+          &quot;platform&quot;,
+          &quot;nsfw&quot;,
+          &quot;score&quot;,
+          &quot;rank&quot;,
+          &quot;ratingCount&quot;,
+          &quot;totalEpisodes&quot;,
+          &quot;totalVolumes&quot;,
+          &quot;tags&quot;,
+          &quot;metaTags&quot;,
+          &quot;url&quot;,
+          &quot;images&quot;,
+          &quot;image&quot;,
+          &quot;included&quot;,
+          &quot;summary&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_index&quot;,
+    &quot;arguments&quot;: {
+      &quot;query&quot;: &quot;作品条目卡片&quot;
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;e3067c54bcf1c2e4&quot;,
+      &quot;entries&quot;: [
+        {
+          &quot;name&quot;: &quot;SubjectCards&quot;,
+          &quot;category&quot;: &quot;作品&quot;,
+          &quot;purpose&quot;: &quot;展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片&quot;,
+          &quot;data&quot;: &quot;作品身份、名称、媒体类型，缓存作品引用&quot;
+        }
+      ],
+      &quot;total&quot;: 1,
+      &quot;offset&quot;: 0,
+      &quot;nextOffset&quot;: null,
+      &quot;categories&quot;: [
+        &quot;作品&quot;,
+        &quot;统计&quot;,
+        &quot;进度&quot;,
+        &quot;事实&quot;,
+        &quot;事件&quot;,
+        &quot;标签&quot;,
+        &quot;人物图片&quot;,
+        &quot;文字&quot;,
+        &quot;链接&quot;
+      ],
+      &quot;audit&quot;: {
+        &quot;version&quot;: &quot;e3067c54bcf1c2e4&quot;,
+        &quot;turn&quot;: 1,
+        &quot;indexReads&quot;: 1,
+        &quot;specReads&quot;: 0,
+        &quot;discovered&quot;: [
+          &quot;SubjectCards&quot;
+        ],
+        &quot;loaded&quot;: []
+      }
+    },
+    &quot;error&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;read_component_spec&quot;,
+    &quot;arguments&quot;: {
+      &quot;names&quot;: [
+        &quot;SubjectCards&quot;
+      ]
+    },
+    &quot;value&quot;: {
+      &quot;version&quot;: &quot;e3067c54bcf1c2e4&quot;,
+      &quot;turn&quot;: 1,
+      &quot;specs&quot;: [
+        {
+          &quot;name&quot;: &quot;SubjectCards&quot;,
+          &quot;category&quot;: &quot;作品&quot;,
+          &quot;purpose&quot;: &quot;展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片&quot;,
+          &quot;data&quot;: &quot;作品身份、名称、媒体类型，缓存作品引用&quot;,
+          &quot;required&quot;: [
+            &quot;items&quot;,
+            &quot;layout&quot;
+          ],
+          &quot;props&quot;: {
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;properties&quot;: {
+              &quot;title&quot;: {
+                &quot;type&quot;: &quot;string&quot;
+              },
+              &quot;layout&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;enum&quot;: [
+                  &quot;grid&quot;,
+                  &quot;list&quot;
+                ]
+              },
+              &quot;total&quot;: {
+                &quot;type&quot;: &quot;number&quot;
+              },
+              &quot;hint&quot;: {
+                &quot;type&quot;: &quot;string&quot;
+              },
+              &quot;items&quot;: {
+                &quot;type&quot;: &quot;array&quot;,
+                &quot;items&quot;: {
+                  &quot;type&quot;: &quot;object&quot;,
+                  &quot;properties&quot;: {
+                    &quot;id&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;name&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;kind&quot;: {
+                      &quot;type&quot;: &quot;string&quot;,
+                      &quot;enum&quot;: [
+                        &quot;book&quot;,
+                        &quot;anime&quot;,
+                        &quot;music&quot;,
+                        &quot;game&quot;,
+                        &quot;real&quot;
+                      ]
+                    },
+                    &quot;nameCn&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;image&quot;: {
+                      &quot;type&quot;: &quot;string&quot;,
+                      &quot;pattern&quot;: &quot;^[Hh][Tt][Tt][Pp][Ss]?://&quot;
+                    },
+                    &quot;score&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;scoreCount&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;rank&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;date&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;summary&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;tags&quot;: {
+                      &quot;type&quot;: &quot;array&quot;,
+                      &quot;items&quot;: {
+                        &quot;type&quot;: &quot;string&quot;
+                      }
+                    },
+                    &quot;url&quot;: {
+                      &quot;type&quot;: &quot;string&quot;,
+                      &quot;pattern&quot;: &quot;^[Hh][Tt][Tt][Pp][Ss]?://&quot;
+                    }
+                  },
+                  &quot;required&quot;: [
+                    &quot;id&quot;,
+                    &quot;name&quot;,
+                    &quot;kind&quot;
+                  ],
+                  &quot;additionalProperties&quot;: false
+                },
+                &quot;maxItems&quot;: 50
+              }
+            },
+            &quot;required&quot;: [
+              &quot;items&quot;,
+              &quot;layout&quot;
+            ],
+            &quot;additionalProperties&quot;: false
+          },
+          &quot;referenceProps&quot;: {
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;additionalProperties&quot;: false,
+            &quot;required&quot;: [
+              &quot;resourceRef&quot;
+            ],
+            &quot;properties&quot;: {
+              &quot;resourceRef&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;pattern&quot;: &quot;^rr_[A-Za-z0-9_-]+$&quot;
+              },
+              &quot;items&quot;: {
+                &quot;type&quot;: &quot;array&quot;,
+                &quot;maxItems&quot;: 50,
+                &quot;items&quot;: {
+                  &quot;type&quot;: &quot;object&quot;,
+                  &quot;additionalProperties&quot;: false,
+                  &quot;properties&quot;: {
+                    &quot;id&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;subjectId&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;episodeId&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;characterId&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;personId&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;revisionId&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;targetId&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;relationId&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;ownerId&quot;: {
+                      &quot;type&quot;: &quot;number&quot;
+                    },
+                    &quot;entity&quot;: {
+                      &quot;type&quot;: &quot;string&quot;,
+                      &quot;enum&quot;: [
+                        &quot;subject&quot;,
+                        &quot;character&quot;,
+                        &quot;person&quot;,
+                        &quot;episode&quot;,
+                        &quot;revision&quot;,
+                        &quot;user&quot;,
+                        &quot;index&quot;
+                      ]
+                    },
+                    &quot;targetKind&quot;: {
+                      &quot;type&quot;: &quot;string&quot;,
+                      &quot;enum&quot;: [
+                        &quot;subject&quot;,
+                        &quot;character&quot;,
+                        &quot;person&quot;,
+                        &quot;episode&quot;,
+                        &quot;revision&quot;,
+                        &quot;user&quot;,
+                        &quot;index&quot;
+                      ]
+                    },
+                    &quot;username&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    }
+                  }
+                }
+              },
+              &quot;partIndex&quot;: {
+                &quot;type&quot;: &quot;number&quot;
+              },
+              &quot;title&quot;: {
+                &quot;type&quot;: &quot;string&quot;
+              },
+              &quot;layout&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;enum&quot;: [
+                  &quot;grid&quot;,
+                  &quot;list&quot;
+                ]
+              }
+            }
+          },
+          &quot;envelopeExample&quot;: {
+            &quot;content&quot;: [
+              {
+                &quot;type&quot;: &quot;SubjectCards&quot;,
+                &quot;props&quot;: {
+                  &quot;resourceRef&quot;: &quot;rr_example&quot;
+                }
+              }
+            ]
+          },
+          &quot;exampleNote&quot;: &quot;示例仅说明content根对象和组件嵌套形状；rr_example是占位引用，实际输出必须替换为本轮工具获得的适用resourceRef，或按props填写已知事实。&quot;,
+          &quot;referenceUsage&quot;: &quot;已获得适用resourceRef时优先使用referenceProps，让宿主展开事实。items仅选择本引用的主键成员；已准备presentation仅提供resourceRef和必要的partIndex，不覆盖快照。未知可选字段省略；严格正文生成模式可用null表达未知可选字段。&quot;,
+          &quot;constraints&quot;: [
+            &quot;推荐少量作品优先layout=grid；紧凑核对列表可用list&quot;,
+            &quot;作品kind按真实媒体类型填写，不猜测名称、图片或评分&quot;
+          ]
+        }
+      ],
+      &quot;audit&quot;: {
+        &quot;version&quot;: &quot;e3067c54bcf1c2e4&quot;,
+        &quot;turn&quot;: 1,
+        &quot;indexReads&quot;: 1,
+        &quot;specReads&quot;: 1,
+        &quot;discovered&quot;: [
+          &quot;SubjectCards&quot;
+        ],
+        &quot;loaded&quot;: [
+          &quot;SubjectCards&quot;
+        ]
+      }
+    },
+    &quot;error&quot;: false
+  }
+]</pre></details><details><summary>逐轮指标、上游请求及判分</summary><pre>{
+  &quot;metrics&quot;: {
+    &quot;totalMs&quot;: 16142.409000000001,
+    &quot;startupMs&quot;: 10041.8449,
+    &quot;modelRequests&quot;: 3,
+    &quot;providerHttpRequests&quot;: 3,
+    &quot;proposedToolCalls&quot;: 3,
+    &quot;toolExecutions&quot;: 3,
+    &quot;toolErrors&quot;: 0,
+    &quot;mcpCalls&quot;: 1,
+    &quot;mcpMs&quot;: 11809.943200000002,
+    &quot;mcpInitializationMs&quot;: 11703.6462,
+    &quot;cacheRpcCalls&quot;: 1,
+    &quot;rpcDispatches&quot;: 2,
+    &quot;upstreamRequests&quot;: 1,
+    &quot;upstreamWriteRequests&quot;: 0,
+    &quot;upstreamMs&quot;: 1.8958000000002357,
+    &quot;modelMs&quot;: 3442.4205999999995,
+    &quot;providerPayloadBytesMax&quot;: 33069,
+    &quot;inputTokensMax&quot;: 6698,
+    &quot;inputTokensSum&quot;: 8042,
+    &quot;contextInputTokensMax&quot;: 8704,
+    &quot;contextInputTokensSum&quot;: 23786,
+    &quot;reasoningTokensSum&quot;: 192,
+    &quot;outputTokensSum&quot;: 522,
+    &quot;cacheReadTokensSum&quot;: 15744,
+    &quot;cacheWriteTokensSum&quot;: 0,
+    &quot;totalTokensSum&quot;: 24308,
+    &quot;estimatedCost&quot;: 0,
+    &quot;usageUnavailableRequests&quot;: 0,
+    &quot;modelToolResultBytes&quot;: 5025,
+    &quot;firstTextMs&quot;: 15853.060800000001,
+    &quot;firstCompleteResultMs&quot;: 16053.273200000001,
+    &quot;confirmationsMs&quot;: 0,
+    &quot;duplicateReads&quot;: 0,
+    &quot;requests&quot;: [
+      {
+        &quot;inputTokens&quot;: 6698,
+        &quot;contextInputTokens&quot;: 7210,
+        &quot;reasoningTokens&quot;: 89,
+        &quot;outputTokens&quot;: 219,
+        &quot;cacheReadTokens&quot;: 512,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7429,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 26726,
+        &quot;durationMs&quot;: 1545.372300000001,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 791.8568000000014,
+        &quot;visibleThinkingMs&quot;: 498.78499999999985,
+        &quot;thinkingChars&quot;: 387,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;inputTokens&quot;: 448,
+        &quot;contextInputTokens&quot;: 7872,
+        &quot;reasoningTokens&quot;: 8,
+        &quot;outputTokens&quot;: 52,
+        &quot;cacheReadTokens&quot;: 7424,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 7924,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 29425,
+        &quot;durationMs&quot;: 719.0535999999993,
+        &quot;firstTextMs&quot;: null,
+        &quot;firstThinkingMs&quot;: 533.9536999999982,
+        &quot;visibleThinkingMs&quot;: 82.99200000000201,
+        &quot;thinkingChars&quot;: 35,
+        &quot;responseModel&quot;: null
+      },
+      {
+        &quot;inputTokens&quot;: 896,
+        &quot;contextInputTokens&quot;: 8704,
+        &quot;reasoningTokens&quot;: 95,
+        &quot;outputTokens&quot;: 251,
+        &quot;cacheReadTokens&quot;: 7808,
+        &quot;cacheWriteTokens&quot;: 0,
+        &quot;totalTokens&quot;: 8955,
+        &quot;estimatedCost&quot;: 0,
+        &quot;providerPayloadBytes&quot;: 33069,
+        &quot;durationMs&quot;: 1177.9946999999993,
+        &quot;firstTextMs&quot;: 977.755799999999,
+        &quot;firstThinkingMs&quot;: 270.9243999999999,
+        &quot;visibleThinkingMs&quot;: 391.47559999999794,
+        &quot;thinkingChars&quot;: 281,
+        &quot;responseModel&quot;: null
+      }
+    ],
+    &quot;outputErrors&quot;: 0,
+    &quot;blankOutputErrors&quot;: 0,
+    &quot;schemaOutputErrors&quot;: 0,
+    &quot;jsonOutputErrors&quot;: 0,
+    &quot;modelErrors&quot;: 0,
+    &quot;terminalModelErrors&quot;: 0,
+    &quot;recoveryScheduled&quot;: 0,
+    &quot;recoveryRunning&quot;: 0,
+    &quot;recoveryRecovered&quot;: 0,
+    &quot;recoveryStopped&quot;: 0,
+    &quot;strictToolsSent&quot;: 0,
+    &quot;toolDeclarationsSent&quot;: 18,
+    &quot;initialToolCount&quot;: 6,
+    &quot;initialToolSchemaBytes&quot;: 11358,
+    &quot;initialProviderPayloadBytes&quot;: 26726,
+    &quot;validatedFinals&quot;: 1,
+    &quot;prefixMonotonic&quot;: true,
+    &quot;prefixDuplications&quot;: 0
+  },
+  &quot;network&quot;: [
+    {
+      &quot;seq&quot;: 1,
+      &quot;timestampMs&quot;: 1791448743747.9373,
+      &quot;elapsedMs&quot;: 3738.0898000000007,
+      &quot;durationMs&quot;: 1.8958000000002357,
+      &quot;source&quot;: &quot;fixture&quot;,
+      &quot;path&quot;: &quot;/v0/subjects/1001&quot;,
+      &quot;method&quot;: &quot;GET&quot;,
+      &quot;status&quot;: 200,
+      &quot;write&quot;: false,
+      &quot;subjectId&quot;: 1001,
+      &quot;body&quot;: null,
+      &quot;fixtureMiss&quot;: false
+    }
+  ],
+  &quot;grade&quot;: {
+    &quot;passed&quot;: true,
+    &quot;checks&quot;: [
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;subjects&quot;,
+          &quot;exact&quot;: [
+            1001
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;交付作品ID：1001&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;8\\.4&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;2024[-年/]0?1[-月/]0?8&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;text&quot;,
+          &quot;pattern&quot;: &quot;12&quot;
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;文本断言通过&quot;
+      },
+      {
+        &quot;rule&quot;: {
+          &quot;kind&quot;: &quot;evidence&quot;,
+          &quot;subjectIds&quot;: [
+            1001
+          ],
+          &quot;fields&quot;: [
+            &quot;score&quot;,
+            &quot;date&quot;,
+            &quot;totalEpisodes&quot;
+          ]
+        },
+        &quot;passed&quot;: true,
+        &quot;detail&quot;: &quot;实际模型可见字段：[[1001,[\&quot;score\&quot;,\&quot;date\&quot;,\&quot;totalEpisodes\&quot;]]]&quot;
+      }
+    ],
+    &quot;semanticReview&quot;: &quot;not_required&quot;,
+    &quot;rubric&quot;: null
+  }
+}</pre></details></details><script>document.getElementById("filter").addEventListener("input",function(){const q=this.value.toLowerCase();document.querySelectorAll(".run").forEach(function(el){el.hidden=!el.dataset.search.toLowerCase().includes(q)})});</script></html>

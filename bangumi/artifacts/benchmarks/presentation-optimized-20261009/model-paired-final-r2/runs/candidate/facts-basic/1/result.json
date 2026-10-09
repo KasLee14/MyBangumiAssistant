@@ -1,0 +1,499 @@
+{
+  "schemaVersion": 1,
+  "caseId": "facts-basic",
+  "family": "facts",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "2b88586d0f410c1d028c7737f35a19d0521d3321468db2b86851dbf5afc5f44c",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的名称、评分、首播日期和集数，给出条目链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "已查到条目 1001 的基础资料如下：",
+            "nextType": "InfoBox"
+          },
+          {
+            "type": "InfoBox",
+            "pending": false,
+            "props": {
+              "rows": [
+                {
+                  "label": "name",
+                  "value": "星港追踪"
+                },
+                {
+                  "label": "nameCn",
+                  "value": "星港追踪"
+                },
+                {
+                  "label": "score",
+                  "value": "8.4"
+                },
+                {
+                  "label": "date",
+                  "value": "2024-01-08"
+                },
+                {
+                  "label": "totalEpisodes",
+                  "value": "12"
+                },
+                {
+                  "label": "url",
+                  "value": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "条目链接即上方 url 字段指向的 Bangumi 条目页，可直接点击查看。以上为匿名公开读取的当前数值，评分会随用户投票变动。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "已查到条目 1001 的基础资料如下：\nname\n星港追踪\nnameCn\n星港追踪\nscore\n8.4\ndate\n2024-01-08\ntotalEpisodes\n12\nurl\nhttps://bgm.tv/subject/1001\n条目链接即上方 url 字段指向的 Bangumi 条目页，可直接点击查看。以上为匿名公开读取的当前数值，评分会随用户投票变动。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "totalEpisodes",
+              "url",
+              "subjectType",
+              "platform"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "score": 8.4,
+              "totalEpisodes": 12,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:10:56.143Z"
+              },
+              "resourceRef": "rr_78d4749e3f72e09797d4de7f00f36aea",
+              "fields": [
+                "name",
+                "nameCn",
+                "score",
+                "date",
+                "totalEpisodes",
+                "url",
+                "subjectType",
+                "platform"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "条目资料 事实 单个作品"
+          },
+          "value": {
+            "version": "f5c3d8f6ec6530ba",
+            "entries": [
+              {
+                "name": "InfoBox",
+                "category": "事实",
+                "purpose": "展示单对象的键值信息",
+                "data": "单个对象的字段、资料信息"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "InfoBox"
+            ]
+          },
+          "value": {
+            "version": "f5c3d8f6ec6530ba",
+            "status": "activated",
+            "tools": [
+              "render_InfoBox"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "render_InfoBox",
+          "arguments": {
+            "resourceRef": "rr_78d4749e3f72e09797d4de7f00f36aea",
+            "subjectIds": [
+              1001
+            ],
+            "fields": [
+              "name",
+              "nameCn",
+              "score",
+              "date",
+              "totalEpisodes",
+              "url"
+            ],
+            "before": "已查到条目 1001 的基础资料如下：",
+            "after": "条目链接即上方 url 字段指向的 Bangumi 条目页，可直接点击查看。以上为匿名公开读取的当前数值，评分会随用户投票变动。",
+            "final": true
+          },
+          "value": {
+            "replyId": "13e58abf-e139-4f9c-ba89-daf50875fb17",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 16638.9822,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "tool_finish_turn",
+        "finalToolCallId": "call_00_lBlVFyyTqgzRUNRA1fPu7979",
+        "batchCallCount": 1,
+        "batchResultCount": 1,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 3,
+        "httpAtSettled": 3,
+        "modelAtCommit": 3,
+        "modelAtSettled": 3
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 16712.4982,
+    "startupMs": 8351.419399999999,
+    "modelRequests": 3,
+    "providerHttpRequests": 3,
+    "proposedToolCalls": 4,
+    "toolExecutions": 4,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 10297.8297,
+    "mcpInitializationMs": 10220.343100000002,
+    "cacheRpcCalls": 2,
+    "rpcDispatches": 3,
+    "upstreamRequests": 1,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.4439000000002125,
+    "modelMs": 5617.9486000000015,
+    "providerPayloadBytesMax": 34181,
+    "inputTokensMax": 6698,
+    "inputTokensSum": 9244,
+    "contextInputTokensMax": 9273,
+    "contextInputTokensSum": 24476,
+    "reasoningTokensSum": 705,
+    "outputTokensSum": 1079,
+    "cacheReadTokensSum": 15232,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 25555,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 1582,
+    "firstTextMs": 16623.531,
+    "firstCompleteResultMs": 16626.1261,
+    "providerFirstTextMs": null,
+    "firstPublishedBlockMs": 16623.531,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 11398,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 6698,
+        "contextInputTokens": 7210,
+        "reasoningTokens": 311,
+        "outputTokens": 432,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7642,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 26581,
+        "durationMs": 1895.469500000001,
+        "firstTextMs": null,
+        "firstThinkingMs": 158.8053,
+        "visibleThinkingMs": 1423.265300000001,
+        "thinkingChars": 1175,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 14720,
+        "repeatedMessageBytes": 11395,
+        "inputTokens": 441,
+        "contextInputTokens": 7993,
+        "reasoningTokens": 36,
+        "outputTokens": 80,
+        "cacheReadTokens": 7552,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8073,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 29903,
+        "durationMs": 732.2312999999995,
+        "firstTextMs": null,
+        "firstThinkingMs": 393.65690000000177,
+        "visibleThinkingMs": 243.8868999999977,
+        "thinkingChars": 138,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 7,
+        "toolSchemaBytes": 14979,
+        "displayToolNames": [
+          "render_InfoBox"
+        ],
+        "displaySchemaBytes": 3372,
+        "contextMessageBytes": 15257,
+        "repeatedMessageBytes": 14714,
+        "inputTokens": 2105,
+        "contextInputTokens": 9273,
+        "reasoningTokens": 358,
+        "outputTokens": 567,
+        "cacheReadTokens": 7168,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9840,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 34181,
+        "durationMs": 2990.247800000001,
+        "firstTextMs": null,
+        "firstThinkingMs": 595.5625,
+        "visibleThinkingMs": 1760.5895999999993,
+        "thinkingChars": 1357,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 19,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 26581,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 1,
+    "displaySchemaBytesSum": 3372,
+    "displaySchemaBytesMax": 3372,
+    "toolSchemaBytesSum": 38195,
+    "toolSchemaBytesMax": 14979,
+    "contextMessageBytesSum": 41375,
+    "contextMessageBytesMax": 15257,
+    "repeatedMessageBytesSum": 26109,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [
+      {
+        "userTurn": 1,
+        "names": [
+          "render_InfoBox"
+        ],
+        "responseBytes": 78,
+        "containsSchema": false
+      }
+    ],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "8\\.4"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "2024[-年/]0?1[-月/]0?8"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "12"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date",
+            "totalEpisodes"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\",\"totalEpisodes\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791486656146.2358,
+      "elapsedMs": 2989.6275000000005,
+      "durationMs": 1.4439000000002125,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\candidate\\facts-basic\\1\\tracelog\\2026-10-09\\01a11cec-caf8-7575-88b3-26561ce566f8\\448bebd0c25803cfd19f91ab10f32830"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 3,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

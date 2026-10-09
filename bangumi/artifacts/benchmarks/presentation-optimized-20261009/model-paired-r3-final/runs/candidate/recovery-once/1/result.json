@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "caseId": "recovery-once",
+  "family": "recovery",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "92d041b491d5c4bf19f89be061cacdd65f45e6f77c1ad9d214fde1583a62be72",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的评分和首播日期；若只读接口暂时失败，可以在有限次数内恢复，给出最终核实的信息。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "已成功读取（首次调用即成功，无需重试）：\n\n- **条目**：1001《星港追踪》（subjectType=2，即动画）\n- **评分**：8.4（评分人数 3000）\n- **首播日期**：2024-01-08\n\n补充说明：本次为匿名公开读取（accessContext 显示 mode=anonymous，NSFW 状态未检查），因此以上是条目公开资料中的社区评分与首播日期，不涉及任何个人收藏或评分数据。检索过程没有出现接口失败，也未做额外恢复重试。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "已成功读取（首次调用即成功，无需重试）：\n\n- **条目**：1001《星港追踪》（subjectType=2，即动画）\n- **评分**：8.4（评分人数 3000）\n- **首播日期**：2024-01-08\n\n补充说明：本次为匿名公开读取（accessContext 显示 mode=anonymous，NSFW 状态未检查），因此以上是条目公开资料中的社区评分与首播日期，不涉及任何个人收藏或评分数据。检索过程没有出现接口失败，也未做额外恢复重试。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "subjectType",
+              "score",
+              "ratingCount",
+              "date"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "score": 8.4,
+              "ratingCount": 3000,
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:58:37.808Z"
+              },
+              "resourceRef": "rr_96b9861723363d40a176be17e719ccd6",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "subjectType",
+                "score",
+                "ratingCount",
+                "date"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 14049.842099999998,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 2,
+        "httpAtSettled": 2,
+        "modelAtCommit": 2,
+        "modelAtSettled": 2
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 14111.855800000001,
+    "startupMs": 8128.181799999999,
+    "modelRequests": 2,
+    "providerHttpRequests": 2,
+    "proposedToolCalls": 1,
+    "toolExecutions": 1,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 9837.2095,
+    "mcpInitializationMs": 9599.754899999998,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 1,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.7544999999990978,
+    "modelMs": 3713.7258999999995,
+    "providerPayloadBytesMax": 28165,
+    "inputTokensMax": 6708,
+    "inputTokensSum": 7018,
+    "contextInputTokensMax": 7606,
+    "contextInputTokensSum": 14826,
+    "reasoningTokensSum": 314,
+    "outputTokensSum": 532,
+    "cacheReadTokensSum": 7808,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 15358,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 888,
+    "firstTextMs": 1600.5416000000005,
+    "firstCompleteResultMs": 14039.014500000001,
+    "providerFirstTextMs": 1600.5416000000005,
+    "firstPublishedBlockMs": 14034.7146,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 11454,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 6708,
+        "contextInputTokens": 7220,
+        "reasoningTokens": 55,
+        "outputTokens": 149,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7369,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 26637,
+        "durationMs": 1561.4207000000006,
+        "firstTextMs": 1295.124600000001,
+        "firstThinkingMs": 1004.765800000001,
+        "visibleThinkingMs": 290.34729999999945,
+        "thinkingChars": 234,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 12982,
+        "repeatedMessageBytes": 11451,
+        "inputTokens": 310,
+        "contextInputTokens": 7606,
+        "reasoningTokens": 259,
+        "outputTokens": 383,
+        "cacheReadTokens": 7296,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7989,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 28165,
+        "durationMs": 2152.305199999999,
+        "firstTextMs": 1593.683399999998,
+        "firstThinkingMs": 279.8751999999986,
+        "visibleThinkingMs": 1313.7731999999996,
+        "thinkingChars": 1006,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 12,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 26637,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 0,
+    "displaySchemaBytesSum": 0,
+    "displaySchemaBytesMax": 0,
+    "toolSchemaBytesSum": 23216,
+    "toolSchemaBytesMax": 11608,
+    "contextMessageBytesSum": 24436,
+    "contextMessageBytesMax": 12982,
+    "repeatedMessageBytesSum": 11451,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791489517644.4084,
+      "elapsedMs": 2984.9587,
+      "durationMs": 1.4650000000001455,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 503,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791489517808.472,
+      "elapsedMs": 3149.0222000000003,
+      "durationMs": 0.28949999999895226,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-r3-final\\runs\\candidate\\recovery-once\\1\\tracelog\\2026-10-09\\01a11d18-789a-72a9-9571-5852fac44ec0\\94d15e6ce56325938e90fb1e1097bca5"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

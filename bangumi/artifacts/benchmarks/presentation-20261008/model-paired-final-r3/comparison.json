@@ -1,0 +1,4170 @@
+{
+  "schemaVersion": 1,
+  "protocolHash": "a3a071371b27bf6abaa37a9f17241c9e8f725f06e8491123913cc152535b50eb",
+  "evidenceNotes": [
+    "runtime 输出及恢复计数不替代浏览器 SSE 验证；UI 证据须使用专属 Web 测试。",
+    "strictToolsSent 只统计实际模型请求声明的 strict 标记，脚本模型不证明服务端遵守 Schema。"
+  ],
+  "summary": {
+    "runs": 40,
+    "outcomes": {
+      "passed": 35,
+      "failed": 2,
+      "budget_exceeded": 1,
+      "errored": 2
+    },
+    "passRate": 0.875,
+    "firstRoundFailureRuns": 0,
+    "firstRoundFailureRate": 0,
+    "firstOutputAttemptFailureRuns": 4,
+    "firstOutputAttemptFailureRate": 0.1,
+    "macroFamilyPassRate": 0.875,
+    "semanticPending": 4,
+    "totals": {
+      "modelRequests": {
+        "availableRuns": 40,
+        "total": 213
+      },
+      "proposedToolCalls": {
+        "availableRuns": 40,
+        "total": 234
+      },
+      "toolExecutions": {
+        "availableRuns": 40,
+        "total": 234
+      },
+      "toolErrors": {
+        "availableRuns": 40,
+        "total": 29
+      },
+      "mcpCalls": {
+        "availableRuns": 40,
+        "total": 65
+      },
+      "mcpMs": {
+        "availableRuns": 40,
+        "total": 381795.993
+      },
+      "mcpInitializationMs": {
+        "availableRuns": 40,
+        "total": 378007.6084000001
+      },
+      "upstreamRequests": {
+        "availableRuns": 40,
+        "total": 68
+      },
+      "contextInputTokensMax": {
+        "availableRuns": 39,
+        "total": 454576
+      },
+      "contextInputTokensSum": {
+        "availableRuns": 39,
+        "total": 2166733
+      },
+      "inputTokensSum": {
+        "availableRuns": 39,
+        "total": 469197
+      },
+      "outputTokensSum": {
+        "availableRuns": 39,
+        "total": 56215
+      },
+      "cacheReadTokensSum": {
+        "availableRuns": 39,
+        "total": 1697536
+      },
+      "modelToolResultBytes": {
+        "availableRuns": 40,
+        "total": 232455
+      },
+      "totalMs": {
+        "availableRuns": 40,
+        "total": 780368.5615999999
+      },
+      "modelMs": {
+        "availableRuns": 40,
+        "total": 345700.5020999999
+      },
+      "estimatedCost": {
+        "availableRuns": 39,
+        "total": 0
+      },
+      "outputErrors": {
+        "availableRuns": 40,
+        "total": 3
+      },
+      "blankOutputErrors": {
+        "availableRuns": 40,
+        "total": 1
+      },
+      "schemaOutputErrors": {
+        "availableRuns": 40,
+        "total": 1
+      },
+      "jsonOutputErrors": {
+        "availableRuns": 40,
+        "total": 1
+      },
+      "modelErrors": {
+        "availableRuns": 40,
+        "total": 4
+      },
+      "terminalModelErrors": {
+        "availableRuns": 40,
+        "total": 3
+      },
+      "recoveryScheduled": {
+        "availableRuns": 40,
+        "total": 3
+      },
+      "recoveryRunning": {
+        "availableRuns": 40,
+        "total": 3
+      },
+      "recoveryRecovered": {
+        "availableRuns": 40,
+        "total": 3
+      },
+      "recoveryStopped": {
+        "availableRuns": 40,
+        "total": 0
+      },
+      "strictToolsSent": {
+        "availableRuns": 40,
+        "total": 0
+      },
+      "initialToolCount": {
+        "availableRuns": 40,
+        "total": 300
+      },
+      "initialToolSchemaBytes": {
+        "availableRuns": 40,
+        "total": 649980
+      },
+      "initialProviderPayloadBytes": {
+        "availableRuns": 40,
+        "total": 1292488
+      },
+      "validatedFinals": {
+        "availableRuns": 40,
+        "total": 49
+      },
+      "prefixDuplications": {
+        "availableRuns": 40,
+        "total": 0
+      },
+      "localArgumentRepairs": {
+        "availableRuns": 40,
+        "total": 0
+      },
+      "argumentRejections": {
+        "availableRuns": 40,
+        "total": 0
+      },
+      "schemaArgumentRejections": {
+        "availableRuns": 40,
+        "total": 3
+      },
+      "modelArgumentCorrections": {
+        "availableRuns": 40,
+        "total": 6
+      },
+      "preparedComponents": {
+        "availableRuns": 40,
+        "total": 24
+      },
+      "publishedComponents": {
+        "availableRuns": 40,
+        "total": 20
+      },
+      "providerFirstTextMs": {
+        "availableRuns": 38,
+        "total": 640322.4057999997
+      },
+      "firstTextMs": {
+        "availableRuns": 38,
+        "total": 629772.4191999999
+      },
+      "firstPublishedBlockMs": {
+        "availableRuns": 18,
+        "total": 282925.26229999994
+      },
+      "firstCompleteResultMs": {
+        "availableRuns": 38,
+        "total": 666949.4517999999
+      }
+    },
+    "plannedRuns": 40,
+    "pendingRuns": 0
+  },
+  "comparison": {
+    "cases": [
+      {
+        "caseId": "facts-basic",
+        "family": "facts",
+        "pairs": 2,
+        "eligiblePairs": 2,
+        "controlPassRate": 1,
+        "candidatePassRate": 1,
+        "flags": [
+          "token-growth-review",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 4.5,
+            "candidateMedian": 7,
+            "pairedDeltaMedian": 2.5,
+            "ratioDeltaMedian": 0.6
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 4,
+            "candidateMedian": 6.5,
+            "pairedDeltaMedian": 2.5,
+            "ratioDeltaMedian": 0.625
+          },
+          "toolExecutions": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 4,
+            "candidateMedian": 6.5,
+            "pairedDeltaMedian": 2.5,
+            "ratioDeltaMedian": 0.625
+          },
+          "toolErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "mcpMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 11036.909150000001,
+            "candidateMedian": 10539.78975,
+            "pairedDeltaMedian": -497.1194000000014,
+            "ratioDeltaMedian": -0.043825921722312484
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10956.14005,
+            "candidateMedian": 10458.45895,
+            "pairedDeltaMedian": -497.6810999999989,
+            "ratioDeltaMedian": -0.044199687875433685
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 9189,
+            "candidateMedian": 12213,
+            "pairedDeltaMedian": 3024,
+            "ratioDeltaMedian": 0.32940132011293594
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 37358,
+            "candidateMedian": 80506,
+            "pairedDeltaMedian": 43148,
+            "ratioDeltaMedian": 1.2209928776214658
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 8302,
+            "candidateMedian": 11834,
+            "pairedDeltaMedian": 3532,
+            "ratioDeltaMedian": 0.42543775115365057
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 702.5,
+            "candidateMedian": 713,
+            "pairedDeltaMedian": 10.5,
+            "ratioDeltaMedian": 0.04357212469621642
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 29056,
+            "candidateMedian": 68672,
+            "pairedDeltaMedian": 39616,
+            "ratioDeltaMedian": 1.478758461874417
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 5108.5,
+            "candidateMedian": 4157,
+            "pairedDeltaMedian": -951.5,
+            "ratioDeltaMedian": -0.18599363154418116
+          },
+          "totalMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16444.44545,
+            "candidateMedian": 17404.2981,
+            "pairedDeltaMedian": 959.8526499999998,
+            "ratioDeltaMedian": 0.0580513117979372
+          },
+          "modelMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 4252.4012,
+            "candidateMedian": 5324.379150000002,
+            "pairedDeltaMedian": 1071.9779500000013,
+            "ratioDeltaMedian": 0.2674527617422786
+          },
+          "estimatedCost": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 28044,
+            "candidateMedian": 36440,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.29938667807730707
+          },
+          "validatedFinals": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16162.82295,
+            "candidateMedian": 17030.187250000003,
+            "pairedDeltaMedian": 867.364300000002,
+            "ratioDeltaMedian": 0.053306985148139335
+          },
+          "firstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16162.82295,
+            "candidateMedian": 16846.46325,
+            "pairedDeltaMedian": 683.6403000000018,
+            "ratioDeltaMedian": 0.042069019640480605
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16348.9788,
+            "candidateMedian": 17315.786549999997,
+            "pairedDeltaMedian": 966.8077499999981,
+            "ratioDeltaMedian": 0.05879860643317622
+          }
+        }
+      },
+      {
+        "caseId": "resource-card",
+        "family": "resources",
+        "pairs": 2,
+        "eligiblePairs": 1,
+        "controlPassRate": 0.5,
+        "candidatePassRate": 1,
+        "flags": [
+          "hard-improvement",
+          "token-growth-review",
+          "small-sample",
+          "semantic-review-pending"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 3,
+            "candidateMedian": 7,
+            "pairedDeltaMedian": 4,
+            "ratioDeltaMedian": 1.3333333333333333
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 3,
+            "candidateMedian": 8,
+            "pairedDeltaMedian": 5,
+            "ratioDeltaMedian": 1.6666666666666667
+          },
+          "toolExecutions": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 3,
+            "candidateMedian": 8,
+            "pairedDeltaMedian": 5,
+            "ratioDeltaMedian": 1.6666666666666667
+          },
+          "toolErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "mcpMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 10791.5993,
+            "candidateMedian": 10258.0215,
+            "pairedDeltaMedian": -533.5777999999991,
+            "ratioDeltaMedian": -0.04944381135426323
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 10713.2908,
+            "candidateMedian": 10179.419600000001,
+            "pairedDeltaMedian": -533.8711999999996,
+            "ratioDeltaMedian": -0.049832606056021515
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 9048,
+            "candidateMedian": 13142,
+            "pairedDeltaMedian": 4094,
+            "ratioDeltaMedian": 0.4524756852343059
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 24835,
+            "candidateMedian": 83961,
+            "pairedDeltaMedian": 59126,
+            "ratioDeltaMedian": 2.3807529695993557
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 8195,
+            "candidateMedian": 11897,
+            "pairedDeltaMedian": 3702,
+            "ratioDeltaMedian": 0.45173886516168393
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1227,
+            "candidateMedian": 1604,
+            "pairedDeltaMedian": 377,
+            "ratioDeltaMedian": 0.3072534637326813
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 16640,
+            "candidateMedian": 72064,
+            "pairedDeltaMedian": 55424,
+            "ratioDeltaMedian": 3.330769230769231
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 5037,
+            "candidateMedian": 4529,
+            "pairedDeltaMedian": -508,
+            "ratioDeltaMedian": -0.10085368274766726
+          },
+          "totalMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 19440.4787,
+            "candidateMedian": 22508.629500000003,
+            "pairedDeltaMedian": 3068.150800000003,
+            "ratioDeltaMedian": 0.15782280093751
+          },
+          "modelMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 7867.914100000002,
+            "candidateMedian": 10638.552099999997,
+            "pairedDeltaMedian": 2770.6379999999954,
+            "ratioDeltaMedian": 0.3521439055873773
+          },
+          "estimatedCost": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 28085,
+            "candidateMedian": 36481,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.29894961723339863
+          },
+          "validatedFinals": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 15723.5607,
+            "candidateMedian": 21711.133799999996,
+            "pairedDeltaMedian": 5987.573099999996,
+            "ratioDeltaMedian": 0.38080261934562926
+          },
+          "firstTextMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 15723.5607,
+            "candidateMedian": 18271.6016,
+            "pairedDeltaMedian": 2548.040900000002,
+            "ratioDeltaMedian": 0.16205240966825038
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 19380.2033,
+            "candidateMedian": 22371.409200000002,
+            "pairedDeltaMedian": 2991.205900000001,
+            "ratioDeltaMedian": 0.1543433705878617
+          }
+        }
+      },
+      {
+        "caseId": "followup-filter",
+        "family": "multi-turn",
+        "pairs": 2,
+        "eligiblePairs": 1,
+        "controlPassRate": 1,
+        "candidatePassRate": 0.5,
+        "flags": [
+          "hard-regression",
+          "token-growth-review",
+          "latency-growth-review",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 7,
+            "candidateMedian": 15,
+            "pairedDeltaMedian": 8,
+            "ratioDeltaMedian": 1.1428571428571428
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 8,
+            "candidateMedian": 24,
+            "pairedDeltaMedian": 16,
+            "ratioDeltaMedian": 2
+          },
+          "toolExecutions": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 8,
+            "candidateMedian": 24,
+            "pairedDeltaMedian": 16,
+            "ratioDeltaMedian": 2
+          },
+          "toolErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 3,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 5,
+            "candidateMedian": 5,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "mcpMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 10727.1513,
+            "candidateMedian": 10388.831499999998,
+            "pairedDeltaMedian": -338.3198000000011,
+            "ratioDeltaMedian": -0.03153864344208524
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 10634.3771,
+            "candidateMedian": 10293.5326,
+            "pairedDeltaMedian": -340.84449999999924,
+            "ratioDeltaMedian": -0.032051195551453526
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 5,
+            "candidateMedian": 5,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 12835,
+            "candidateMedian": 19240,
+            "pairedDeltaMedian": 6405,
+            "ratioDeltaMedian": 0.49902610050642776
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 69793,
+            "candidateMedian": 225640,
+            "pairedDeltaMedian": 155847,
+            "ratioDeltaMedian": 2.232988981703036
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 19745,
+            "candidateMedian": 21736,
+            "pairedDeltaMedian": 1991,
+            "ratioDeltaMedian": 0.10083565459610028
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 3624,
+            "candidateMedian": 4836,
+            "pairedDeltaMedian": 1212,
+            "ratioDeltaMedian": 0.3344370860927152
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 50048,
+            "candidateMedian": 203904,
+            "pairedDeltaMedian": 153856,
+            "ratioDeltaMedian": 3.074168797953964
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 9065,
+            "candidateMedian": 16976,
+            "pairedDeltaMedian": 7911,
+            "ratioDeltaMedian": 0.8726971869829012
+          },
+          "totalMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 29884.1894,
+            "candidateMedian": 39182.4828,
+            "pairedDeltaMedian": 9298.293399999999,
+            "ratioDeltaMedian": 0.31114424003750957
+          },
+          "modelMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 17617.7497,
+            "candidateMedian": 25128.782300000006,
+            "pairedDeltaMedian": 7511.032600000006,
+            "ratioDeltaMedian": 0.4263332563976661
+          },
+          "estimatedCost": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "modelErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 28047,
+            "candidateMedian": 36443,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.29935465468677575
+          },
+          "validatedFinals": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 2,
+            "candidateMedian": 2,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 2,
+            "pairedDeltaMedian": 2,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 5,
+            "pairedDeltaMedian": 5,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 5,
+            "pairedDeltaMedian": 5,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 23020.8549,
+            "candidateMedian": 31325.2024,
+            "pairedDeltaMedian": 8304.3475,
+            "ratioDeltaMedian": 0.36073149915905167
+          },
+          "firstTextMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 23020.8549,
+            "candidateMedian": 30524.8611,
+            "pairedDeltaMedian": 7504.0062,
+            "ratioDeltaMedian": 0.32596557480582533
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 23752.5477,
+            "candidateMedian": 32020.058399999998,
+            "pairedDeltaMedian": 8267.510699999999,
+            "ratioDeltaMedian": 0.3480683758399525
+          }
+        }
+      },
+      {
+        "caseId": "recovery-once",
+        "family": "recovery",
+        "pairs": 2,
+        "eligiblePairs": 2,
+        "controlPassRate": 1,
+        "candidatePassRate": 1,
+        "flags": [
+          "token-growth-review",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 2.5,
+            "candidateMedian": 2,
+            "pairedDeltaMedian": -0.5,
+            "ratioDeltaMedian": -0.16666666666666666
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 2,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -0.3333333333333333
+          },
+          "toolExecutions": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 2,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -0.3333333333333333
+          },
+          "toolErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0.5,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -0.5,
+            "ratioDeltaMedian": -1
+          },
+          "mcpCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "mcpMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10889.63865,
+            "candidateMedian": 10480.48225,
+            "pairedDeltaMedian": -409.15640000000076,
+            "ratioDeltaMedian": -0.03754023245188501
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10651.6182,
+            "candidateMedian": 10246.4992,
+            "pairedDeltaMedian": -405.1189999999997,
+            "ratioDeltaMedian": -0.03800239491373487
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 2,
+            "candidateMedian": 2,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 7945.5,
+            "candidateMedian": 10920,
+            "pairedDeltaMedian": 2974.5,
+            "ratioDeltaMedian": 0.3743650807228034
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 17012.5,
+            "candidateMedian": 21413,
+            "pairedDeltaMedian": 4400.5,
+            "ratioDeltaMedian": 0.26895158272165176
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 8692.5,
+            "candidateMedian": 10277,
+            "pairedDeltaMedian": 1584.5,
+            "ratioDeltaMedian": 0.2201802375019095
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 817.5,
+            "candidateMedian": 713.5,
+            "pairedDeltaMedian": -104,
+            "ratioDeltaMedian": 0.0767385057471264
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 8320,
+            "candidateMedian": 11136,
+            "pairedDeltaMedian": 2816,
+            "ratioDeltaMedian": 0.3384615384615385
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1381.5,
+            "candidateMedian": 930.5,
+            "pairedDeltaMedian": -451,
+            "ratioDeltaMedian": -0.26948847963189765
+          },
+          "totalMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16308.022599999998,
+            "candidateMedian": 15085.85425,
+            "pairedDeltaMedian": -1222.168349999998,
+            "ratioDeltaMedian": -0.06710955082596176
+          },
+          "modelMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 4603.2884,
+            "candidateMedian": 3979.6710000000003,
+            "pairedDeltaMedian": -623.6174000000001,
+            "ratioDeltaMedian": -0.05400068166385545
+          },
+          "estimatedCost": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 28100,
+            "candidateMedian": 36496,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.2987900355871886
+          },
+          "validatedFinals": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16213.97715,
+            "candidateMedian": 14364.78925,
+            "pairedDeltaMedian": -1849.1879000000008,
+            "ratioDeltaMedian": -0.10545028561021857
+          },
+          "firstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16213.97715,
+            "candidateMedian": 14364.78925,
+            "pairedDeltaMedian": -1849.1879000000008,
+            "ratioDeltaMedian": -0.10545028561021857
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16225.620750000002,
+            "candidateMedian": 15006.48655,
+            "pairedDeltaMedian": -1219.1342000000022,
+            "ratioDeltaMedian": -0.06714735048110335
+          }
+        }
+      },
+      {
+        "caseId": "card-style-followup",
+        "family": "component-tools-followup",
+        "pairs": 2,
+        "eligiblePairs": 1,
+        "controlPassRate": 0.5,
+        "candidatePassRate": 1,
+        "flags": [
+          "hard-improvement",
+          "token-growth-review",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 6,
+            "candidateMedian": 8,
+            "pairedDeltaMedian": 2,
+            "ratioDeltaMedian": 0.3333333333333333
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 3,
+            "candidateMedian": 8,
+            "pairedDeltaMedian": 5,
+            "ratioDeltaMedian": 1.6666666666666667
+          },
+          "toolExecutions": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 3,
+            "candidateMedian": 8,
+            "pairedDeltaMedian": 5,
+            "ratioDeltaMedian": 1.6666666666666667
+          },
+          "toolErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "mcpMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 10752.515800000001,
+            "candidateMedian": 10252.159,
+            "pairedDeltaMedian": -500.3568000000014,
+            "ratioDeltaMedian": -0.0465339283667922
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 10666.668000000001,
+            "candidateMedian": 10173.6701,
+            "pairedDeltaMedian": -492.9979000000021,
+            "ratioDeltaMedian": -0.04621854734768177
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 11825,
+            "candidateMedian": 16096,
+            "pairedDeltaMedian": 4271,
+            "ratioDeltaMedian": 0.361183932346723
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 56418,
+            "candidateMedian": 104951,
+            "pairedDeltaMedian": 48533,
+            "ratioDeltaMedian": 0.8602396398312595
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 17890,
+            "candidateMedian": 16759,
+            "pairedDeltaMedian": -1131,
+            "ratioDeltaMedian": -0.06321967579653438
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 3324,
+            "candidateMedian": 3091,
+            "pairedDeltaMedian": -233,
+            "ratioDeltaMedian": -0.07009626955475332
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 38528,
+            "candidateMedian": 88192,
+            "pairedDeltaMedian": 49664,
+            "ratioDeltaMedian": 1.2890365448504983
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 5448,
+            "candidateMedian": 7247,
+            "pairedDeltaMedian": 1799,
+            "ratioDeltaMedian": 0.3302129221732746
+          },
+          "totalMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 31813.6506,
+            "candidateMedian": 30484.547100000003,
+            "pairedDeltaMedian": -1329.1034999999974,
+            "ratioDeltaMedian": -0.04177777384655119
+          },
+          "modelMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 19573.797,
+            "candidateMedian": 18343.407999999996,
+            "pairedDeltaMedian": -1230.3890000000029,
+            "ratioDeltaMedian": -0.06285898438611594
+          },
+          "estimatedCost": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 1,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": -1,
+            "ratioDeltaMedian": -1
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 28085,
+            "candidateMedian": 36481,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.29894961723339863
+          },
+          "validatedFinals": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 3,
+            "candidateMedian": 3,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 21749.3359,
+            "candidateMedian": 21382.736800000002,
+            "pairedDeltaMedian": -366.5990999999958,
+            "ratioDeltaMedian": -0.016855645693531075
+          },
+          "firstTextMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 21749.3359,
+            "candidateMedian": 23589.2092,
+            "pairedDeltaMedian": 1839.873300000003,
+            "ratioDeltaMedian": 0.08459445881287819
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 1,
+            "availablePairs": 1,
+            "controlMedian": 24335.2647,
+            "candidateMedian": 23593.329400000002,
+            "pairedDeltaMedian": -741.9352999999974,
+            "ratioDeltaMedian": -0.03048807190496668
+          }
+        }
+      },
+      {
+        "caseId": "facts-card-complete",
+        "family": "presentation-facts",
+        "pairs": 2,
+        "eligiblePairs": 2,
+        "controlPassRate": 1,
+        "candidatePassRate": 1,
+        "flags": [
+          "token-growth-review",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 2.5,
+            "candidateMedian": 6.5,
+            "pairedDeltaMedian": 4,
+            "ratioDeltaMedian": 1.8333333333333333
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3,
+            "candidateMedian": 6,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 1
+          },
+          "toolExecutions": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3,
+            "candidateMedian": 6,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 1
+          },
+          "toolErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0.5,
+            "pairedDeltaMedian": 0.5,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "mcpMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10711.152399999999,
+            "candidateMedian": 10219.5331,
+            "pairedDeltaMedian": -491.6193000000003,
+            "ratioDeltaMedian": -0.04579306042685545
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10632.18645,
+            "candidateMedian": 10141.796449999998,
+            "pairedDeltaMedian": -490.3900000000003,
+            "ratioDeltaMedian": -0.04601665934233558
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 9066,
+            "candidateMedian": 12257.5,
+            "pairedDeltaMedian": 3191.5,
+            "ratioDeltaMedian": 0.35260612883819004
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 20803,
+            "candidateMedian": 75330.5,
+            "pairedDeltaMedian": 54527.5,
+            "ratioDeltaMedian": 2.9718054862715215
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 8131,
+            "candidateMedian": 11586.5,
+            "pairedDeltaMedian": 3455.5,
+            "ratioDeltaMedian": 0.4249340970034027
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1255,
+            "candidateMedian": 948,
+            "pairedDeltaMedian": -307,
+            "ratioDeltaMedian": -0.20833699968909303
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 12672,
+            "candidateMedian": 63744,
+            "pairedDeltaMedian": 51072,
+            "ratioDeltaMedian": 5.249624060150376
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 4948,
+            "candidateMedian": 3810,
+            "pairedDeltaMedian": -1138,
+            "ratioDeltaMedian": -0.23038451609530064
+          },
+          "totalMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 17492.93075,
+            "candidateMedian": 17811.873050000002,
+            "pairedDeltaMedian": 318.9423000000006,
+            "ratioDeltaMedian": 0.026929372579696735
+          },
+          "modelMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 6087.005200000002,
+            "candidateMedian": 6021.174099999998,
+            "pairedDeltaMedian": -65.83110000000397,
+            "ratioDeltaMedian": 0.0617464026047424
+          },
+          "estimatedCost": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 28118,
+            "candidateMedian": 36514,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.2985987623586315
+          },
+          "validatedFinals": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16996.4997,
+            "candidateMedian": 17095.7275,
+            "pairedDeltaMedian": 99.22779999999966,
+            "ratioDeltaMedian": 0.01604341498555066
+          },
+          "firstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16996.4997,
+            "candidateMedian": 16610.134299999998,
+            "pairedDeltaMedian": -386.3654000000006,
+            "ratioDeltaMedian": -0.017356704253505727
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 17416.274149999997,
+            "candidateMedian": 17663.14675,
+            "pairedDeltaMedian": 246.87260000000242,
+            "ratioDeltaMedian": 0.023125196273200303
+          }
+        }
+      },
+      {
+        "caseId": "facts-data-table",
+        "family": "presentation-table",
+        "pairs": 2,
+        "eligiblePairs": 0,
+        "controlPassRate": 1,
+        "candidatePassRate": 0,
+        "flags": [
+          "hard-regression",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "toolExecutions": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "toolErrors": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "mcpMs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "totalMs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "modelMs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "estimatedCost": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "validatedFinals": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstTextMs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 0,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          }
+        }
+      },
+      {
+        "caseId": "facts-info-box",
+        "family": "presentation-infobox",
+        "pairs": 2,
+        "eligiblePairs": 2,
+        "controlPassRate": 1,
+        "candidatePassRate": 1,
+        "flags": [
+          "token-growth-review",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3,
+            "candidateMedian": 6,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 1
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3,
+            "candidateMedian": 6,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 1
+          },
+          "toolExecutions": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3,
+            "candidateMedian": 6,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 1
+          },
+          "toolErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "mcpMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10798.789,
+            "candidateMedian": 10408.7909,
+            "pairedDeltaMedian": -389.9980999999989,
+            "ratioDeltaMedian": -0.03611041890393343
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10718.688600000001,
+            "candidateMedian": 10332.10895,
+            "pairedDeltaMedian": -386.5796500000015,
+            "ratioDeltaMedian": -0.03606131301063076
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 8833.5,
+            "candidateMedian": 12099.5,
+            "pairedDeltaMedian": 3266,
+            "ratioDeltaMedian": 0.3697305484056371
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 24483,
+            "candidateMedian": 68648.5,
+            "pairedDeltaMedian": 44165.5,
+            "ratioDeltaMedian": 1.8039246838617928
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 8035,
+            "candidateMedian": 11560.5,
+            "pairedDeltaMedian": 3525.5,
+            "ratioDeltaMedian": 0.4388528046747483
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 525,
+            "candidateMedian": 503.5,
+            "pairedDeltaMedian": -21.5,
+            "ratioDeltaMedian": -0.010396352761069177
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 16448,
+            "candidateMedian": 57088,
+            "pairedDeltaMedian": 40640,
+            "ratioDeltaMedian": 2.4708696705426356
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 4282,
+            "candidateMedian": 4322,
+            "pairedDeltaMedian": 40,
+            "ratioDeltaMedian": 0.009332735584490381
+          },
+          "totalMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 15238.13855,
+            "candidateMedian": 16146.278899999998,
+            "pairedDeltaMedian": 908.1403499999979,
+            "ratioDeltaMedian": 0.05968040433938483
+          },
+          "modelMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3554.527250000001,
+            "candidateMedian": 4347.199149999995,
+            "pairedDeltaMedian": 792.6718999999939,
+            "ratioDeltaMedian": 0.2238883463474894
+          },
+          "estimatedCost": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 28099,
+            "candidateMedian": 36495,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.298800669062956
+          },
+          "validatedFinals": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 15144.9813,
+            "candidateMedian": 15893.386149999998,
+            "pairedDeltaMedian": 748.404849999999,
+            "ratioDeltaMedian": 0.0495643115052289
+          },
+          "firstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 15144.9813,
+            "candidateMedian": 16019.918399999999,
+            "pairedDeltaMedian": 874.9370999999992,
+            "ratioDeltaMedian": 0.0578744203647182
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 15150.0635,
+            "candidateMedian": 16023.90455,
+            "pairedDeltaMedian": 873.8410499999991,
+            "ratioDeltaMedian": 0.057783047738282786
+          }
+        }
+      },
+      {
+        "caseId": "selection-text-interleave",
+        "family": "presentation-selection",
+        "pairs": 2,
+        "eligiblePairs": 2,
+        "controlPassRate": 1,
+        "candidatePassRate": 1,
+        "flags": [
+          "token-growth-review",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 6,
+            "ratioDeltaMedian": 2
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 5,
+            "candidateMedian": 10,
+            "pairedDeltaMedian": 5,
+            "ratioDeltaMedian": 1
+          },
+          "toolExecutions": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 5,
+            "candidateMedian": 10,
+            "pairedDeltaMedian": 5,
+            "ratioDeltaMedian": 1
+          },
+          "toolErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3,
+            "candidateMedian": 3,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "mcpMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10672.003,
+            "candidateMedian": 10436.114999999998,
+            "pairedDeltaMedian": -235.88800000000265,
+            "ratioDeltaMedian": -0.022102797577979158
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10586.6541,
+            "candidateMedian": 10351.44425,
+            "pairedDeltaMedian": -235.2098500000011,
+            "ratioDeltaMedian": -0.022216540404008243
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 3,
+            "candidateMedian": 3,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 10020.5,
+            "candidateMedian": 13408,
+            "pairedDeltaMedian": 3387.5,
+            "ratioDeltaMedian": 0.33793999915741746
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 26703.5,
+            "candidateMedian": 111482,
+            "pairedDeltaMedian": 84778.5,
+            "ratioDeltaMedian": 3.1748063206814536
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 8719.5,
+            "candidateMedian": 12602,
+            "pairedDeltaMedian": 3882.5,
+            "ratioDeltaMedian": 0.4453208855196923
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1683,
+            "candidateMedian": 1468,
+            "pairedDeltaMedian": -215,
+            "ratioDeltaMedian": -0.10950946944633623
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 17984,
+            "candidateMedian": 98880,
+            "pairedDeltaMedian": 80896,
+            "ratioDeltaMedian": 4.49807497467072
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 7165,
+            "candidateMedian": 6477.5,
+            "pairedDeltaMedian": -687.5,
+            "ratioDeltaMedian": -0.09595489112632334
+          },
+          "totalMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 20176.0783,
+            "candidateMedian": 22813.2188,
+            "pairedDeltaMedian": 2637.1404999999995,
+            "ratioDeltaMedian": 0.13191216490637936
+          },
+          "modelMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 8749.22925,
+            "candidateMedian": 10088.774949999999,
+            "pairedDeltaMedian": 1339.5456999999997,
+            "ratioDeltaMedian": 0.1580109784942157
+          },
+          "estimatedCost": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 28317,
+            "candidateMedian": 36713,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.2965003354875163
+          },
+          "validatedFinals": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 1,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 19484.92235,
+            "candidateMedian": 22252.5337,
+            "pairedDeltaMedian": 2767.611350000001,
+            "ratioDeltaMedian": 0.14365154033652908
+          },
+          "firstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 19484.92235,
+            "candidateMedian": 19133.25115,
+            "pairedDeltaMedian": -351.67119999999886,
+            "ratioDeltaMedian": -0.016128354296311667
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 20113.601450000002,
+            "candidateMedian": 22721.15735,
+            "pairedDeltaMedian": 2607.555900000001,
+            "ratioDeltaMedian": 0.1308552523884573
+          }
+        }
+      },
+      {
+        "caseId": "native-plain-text",
+        "family": "presentation-native-text",
+        "pairs": 2,
+        "eligiblePairs": 2,
+        "controlPassRate": 1,
+        "candidatePassRate": 1,
+        "flags": [
+          "token-growth-review",
+          "latency-growth-review",
+          "small-sample"
+        ],
+        "metrics": {
+          "modelRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "proposedToolCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "toolExecutions": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "toolErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "mcpCalls": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "mcpMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "mcpInitializationMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "upstreamRequests": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "contextInputTokensMax": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 7524,
+            "candidateMedian": 10492,
+            "pairedDeltaMedian": 2968,
+            "ratioDeltaMedian": 0.3944710260499734
+          },
+          "contextInputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 7524,
+            "candidateMedian": 10492,
+            "pairedDeltaMedian": 2968,
+            "ratioDeltaMedian": 0.3944710260499734
+          },
+          "inputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 6884,
+            "candidateMedian": 9980,
+            "pairedDeltaMedian": 3096,
+            "ratioDeltaMedian": 0.44973852411388726
+          },
+          "outputTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 45,
+            "candidateMedian": 111,
+            "pairedDeltaMedian": 66,
+            "ratioDeltaMedian": 1.4666666666666666
+          },
+          "cacheReadTokensSum": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 640,
+            "candidateMedian": 512,
+            "pairedDeltaMedian": -128,
+            "ratioDeltaMedian": -0.2
+          },
+          "modelToolResultBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "totalMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 914.9054500000002,
+            "candidateMedian": 1313.5136999999995,
+            "pairedDeltaMedian": 398.6082499999993,
+            "ratioDeltaMedian": 0.43604553311156724
+          },
+          "modelMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 569.9336000000003,
+            "candidateMedian": 942.8693999999996,
+            "pairedDeltaMedian": 372.9357999999993,
+            "ratioDeltaMedian": 0.6538604780155726
+          },
+          "estimatedCost": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "outputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "blankOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "jsonOutputErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "terminalModelErrors": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryScheduled": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRunning": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryRecovered": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "recoveryStopped": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "strictToolsSent": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "initialToolCount": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 6,
+            "candidateMedian": 9,
+            "pairedDeltaMedian": 3,
+            "ratioDeltaMedian": 0.5
+          },
+          "initialToolSchemaBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 11430,
+            "candidateMedian": 21069,
+            "pairedDeltaMedian": 9639,
+            "ratioDeltaMedian": 0.8433070866141732
+          },
+          "initialProviderPayloadBytes": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 28104,
+            "candidateMedian": 36500,
+            "pairedDeltaMedian": 8396,
+            "ratioDeltaMedian": 0.29874750925135213
+          },
+          "validatedFinals": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 1,
+            "candidateMedian": 1,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": 0
+          },
+          "prefixDuplications": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "localArgumentRepairs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "argumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "schemaArgumentRejections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "modelArgumentCorrections": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "preparedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "publishedComponents": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 0,
+            "candidateMedian": 0,
+            "pairedDeltaMedian": 0,
+            "ratioDeltaMedian": null
+          },
+          "providerFirstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 886.4579000000003,
+            "candidateMedian": 1064.5031,
+            "pairedDeltaMedian": 178.04519999999957,
+            "ratioDeltaMedian": 0.19831164386681255
+          },
+          "firstTextMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 886.4579000000003,
+            "candidateMedian": 1064.5031,
+            "pairedDeltaMedian": 178.04519999999957,
+            "ratioDeltaMedian": 0.19831164386681255
+          },
+          "firstPublishedBlockMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 0,
+            "controlMedian": null,
+            "candidateMedian": null,
+            "pairedDeltaMedian": null,
+            "ratioDeltaMedian": null
+          },
+          "firstCompleteResultMs": {
+            "eligiblePairs": 2,
+            "availablePairs": 2,
+            "controlMedian": 892.7013000000006,
+            "candidateMedian": 1288.4569499999998,
+            "pairedDeltaMedian": 395.75564999999915,
+            "ratioDeltaMedian": 0.44374942310518295
+          }
+        }
+      }
+    ],
+    "blockedPairs": [],
+    "operationalTotals": {
+      "control": {
+        "runs": 20,
+        "outcomes": {
+          "passed": 18,
+          "failed": 2
+        },
+        "passRate": 0.9,
+        "firstRoundFailureRuns": 0,
+        "firstRoundFailureRate": 0,
+        "firstOutputAttemptFailureRuns": 0,
+        "firstOutputAttemptFailureRate": 0,
+        "macroFamilyPassRate": 0.9,
+        "semanticPending": 2,
+        "totals": {
+          "modelRequests": {
+            "availableRuns": 20,
+            "total": 72
+          },
+          "proposedToolCalls": {
+            "availableRuns": 20,
+            "total": 76
+          },
+          "toolExecutions": {
+            "availableRuns": 20,
+            "total": 76
+          },
+          "toolErrors": {
+            "availableRuns": 20,
+            "total": 3
+          },
+          "mcpCalls": {
+            "availableRuns": 20,
+            "total": 32
+          },
+          "mcpMs": {
+            "availableRuns": 20,
+            "total": 194772.23820000002
+          },
+          "mcpInitializationMs": {
+            "availableRuns": 20,
+            "total": 192973.17339999997
+          },
+          "upstreamRequests": {
+            "availableRuns": 20,
+            "total": 34
+          },
+          "contextInputTokensMax": {
+            "availableRuns": 20,
+            "total": 191806
+          },
+          "contextInputTokensSum": {
+            "availableRuns": 20,
+            "total": 621554
+          },
+          "inputTokensSum": {
+            "availableRuns": 20,
+            "total": 209778
+          },
+          "outputTokensSum": {
+            "availableRuns": 20,
+            "total": 29002
+          },
+          "cacheReadTokensSum": {
+            "availableRuns": 20,
+            "total": 411776
+          },
+          "modelToolResultBytes": {
+            "availableRuns": 20,
+            "total": 101937
+          },
+          "totalMs": {
+            "availableRuns": 20,
+            "total": 371334.2469000001
+          },
+          "modelMs": {
+            "availableRuns": 20,
+            "total": 158018.04020000002
+          },
+          "estimatedCost": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "outputErrors": {
+            "availableRuns": 20,
+            "total": 3
+          },
+          "blankOutputErrors": {
+            "availableRuns": 20,
+            "total": 1
+          },
+          "schemaOutputErrors": {
+            "availableRuns": 20,
+            "total": 1
+          },
+          "jsonOutputErrors": {
+            "availableRuns": 20,
+            "total": 1
+          },
+          "modelErrors": {
+            "availableRuns": 20,
+            "total": 3
+          },
+          "terminalModelErrors": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "recoveryScheduled": {
+            "availableRuns": 20,
+            "total": 3
+          },
+          "recoveryRunning": {
+            "availableRuns": 20,
+            "total": 3
+          },
+          "recoveryRecovered": {
+            "availableRuns": 20,
+            "total": 3
+          },
+          "recoveryStopped": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "strictToolsSent": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "initialToolCount": {
+            "availableRuns": 20,
+            "total": 120
+          },
+          "initialToolSchemaBytes": {
+            "availableRuns": 20,
+            "total": 228600
+          },
+          "initialProviderPayloadBytes": {
+            "availableRuns": 20,
+            "total": 562284
+          },
+          "validatedFinals": {
+            "availableRuns": 20,
+            "total": 26
+          },
+          "prefixDuplications": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "localArgumentRepairs": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "argumentRejections": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "schemaArgumentRejections": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "modelArgumentCorrections": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "preparedComponents": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "publishedComponents": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "providerFirstTextMs": {
+            "availableRuns": 20,
+            "total": 329694.1928
+          },
+          "firstTextMs": {
+            "availableRuns": 20,
+            "total": 329694.1928
+          },
+          "firstPublishedBlockMs": {
+            "availableRuns": 0,
+            "total": null
+          },
+          "firstCompleteResultMs": {
+            "availableRuns": 20,
+            "total": 343926.5716999999
+          }
+        }
+      },
+      "candidate": {
+        "runs": 20,
+        "outcomes": {
+          "passed": 17,
+          "budget_exceeded": 1,
+          "errored": 2
+        },
+        "passRate": 0.85,
+        "firstRoundFailureRuns": 0,
+        "firstRoundFailureRate": 0,
+        "firstOutputAttemptFailureRuns": 4,
+        "firstOutputAttemptFailureRate": 0.2,
+        "macroFamilyPassRate": 0.85,
+        "semanticPending": 2,
+        "totals": {
+          "modelRequests": {
+            "availableRuns": 20,
+            "total": 141
+          },
+          "proposedToolCalls": {
+            "availableRuns": 20,
+            "total": 158
+          },
+          "toolExecutions": {
+            "availableRuns": 20,
+            "total": 158
+          },
+          "toolErrors": {
+            "availableRuns": 20,
+            "total": 26
+          },
+          "mcpCalls": {
+            "availableRuns": 20,
+            "total": 33
+          },
+          "mcpMs": {
+            "availableRuns": 20,
+            "total": 187023.7548
+          },
+          "mcpInitializationMs": {
+            "availableRuns": 20,
+            "total": 185034.43500000003
+          },
+          "upstreamRequests": {
+            "availableRuns": 20,
+            "total": 34
+          },
+          "contextInputTokensMax": {
+            "availableRuns": 19,
+            "total": 262770
+          },
+          "contextInputTokensSum": {
+            "availableRuns": 19,
+            "total": 1545179
+          },
+          "inputTokensSum": {
+            "availableRuns": 19,
+            "total": 259419
+          },
+          "outputTokensSum": {
+            "availableRuns": 19,
+            "total": 27213
+          },
+          "cacheReadTokensSum": {
+            "availableRuns": 19,
+            "total": 1285760
+          },
+          "modelToolResultBytes": {
+            "availableRuns": 20,
+            "total": 130518
+          },
+          "totalMs": {
+            "availableRuns": 20,
+            "total": 409034.31469999993
+          },
+          "modelMs": {
+            "availableRuns": 20,
+            "total": 187682.46190000005
+          },
+          "estimatedCost": {
+            "availableRuns": 19,
+            "total": 0
+          },
+          "outputErrors": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "blankOutputErrors": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "schemaOutputErrors": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "jsonOutputErrors": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "modelErrors": {
+            "availableRuns": 20,
+            "total": 1
+          },
+          "terminalModelErrors": {
+            "availableRuns": 20,
+            "total": 3
+          },
+          "recoveryScheduled": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "recoveryRunning": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "recoveryRecovered": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "recoveryStopped": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "strictToolsSent": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "initialToolCount": {
+            "availableRuns": 20,
+            "total": 180
+          },
+          "initialToolSchemaBytes": {
+            "availableRuns": 20,
+            "total": 421380
+          },
+          "initialProviderPayloadBytes": {
+            "availableRuns": 20,
+            "total": 730204
+          },
+          "validatedFinals": {
+            "availableRuns": 20,
+            "total": 23
+          },
+          "prefixDuplications": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "localArgumentRepairs": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "argumentRejections": {
+            "availableRuns": 20,
+            "total": 0
+          },
+          "schemaArgumentRejections": {
+            "availableRuns": 20,
+            "total": 3
+          },
+          "modelArgumentCorrections": {
+            "availableRuns": 20,
+            "total": 6
+          },
+          "preparedComponents": {
+            "availableRuns": 20,
+            "total": 24
+          },
+          "publishedComponents": {
+            "availableRuns": 20,
+            "total": 20
+          },
+          "providerFirstTextMs": {
+            "availableRuns": 18,
+            "total": 310628.21300000005
+          },
+          "firstTextMs": {
+            "availableRuns": 18,
+            "total": 300078.2264
+          },
+          "firstPublishedBlockMs": {
+            "availableRuns": 18,
+            "total": 282925.26229999994
+          },
+          "firstCompleteResultMs": {
+            "availableRuns": 18,
+            "total": 323022.88009999995
+          }
+        }
+      }
+    }
+  }
+}

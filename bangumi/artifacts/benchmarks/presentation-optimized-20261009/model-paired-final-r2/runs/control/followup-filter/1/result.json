@@ -1,0 +1,2245 @@
+{
+  "schemaVersion": 1,
+  "caseId": "followup-filter",
+  "family": "multi-turn",
+  "variant": "control",
+  "repeat": 1,
+  "protocolHash": "1523a2f811e283fa0f2f57e1dd4c69ec4c6d2e9cb630b8af148cc0c0c6453b13",
+  "versionHash": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "介绍条目1001、1002和1005的名称、评分及作品形式，给出链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "你查询的三个条目资料如下（均为动画类作品，数据来自 Bangumi 条目接口）：\n\n**1001 · 星港追踪**（原名 星港追踪）｜评分 8.4（排名第 1）｜作品形式：TV 动画｜链接：https://bgm.tv/subject/1001",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "list",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "**1002 · 玻璃海的回声**（原名 玻璃海的回声）｜评分 8.1（排名第 2）｜作品形式：剧场版动画（Movie）｜链接：https://bgm.tv/subject/1002",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "list",
+              "items": [
+                {
+                  "id": 1002,
+                  "name": "玻璃海的回声",
+                  "kind": "anime",
+                  "nameCn": "玻璃海的回声",
+                  "image": "https://example.invalid/benchmark/1002.png",
+                  "score": 8.1,
+                  "scoreCount": 3000,
+                  "rank": 2,
+                  "date": "2024-04-12",
+                  "summary": "玻璃海的回声讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1002"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "**1005 · 星港追踪 第二季**（原名 星港追踪 第二季）｜评分 7.6（排名第 5）｜作品形式：TV 动画｜链接：https://bgm.tv/subject/1005\n\n三者共同点：条目类型（subjectType）均为动画；1001 与 1005 是同一 TV 系列的第一季与第二季，1002 为剧场版。以上评分与排名数据来自本次查询时接口返回的实时值。",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "list",
+              "items": [
+                {
+                  "id": 1005,
+                  "name": "星港追踪 第二季",
+                  "kind": "anime",
+                  "nameCn": "星港追踪 第二季",
+                  "image": "https://example.invalid/benchmark/1005.png",
+                  "score": 7.6,
+                  "scoreCount": 3000,
+                  "rank": 5,
+                  "date": "2024-10-05",
+                  "summary": "星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1005"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "三个条目的信息已按顺序展示在上方（每张卡片对应一个条目）：\n\n| 条目 | 名称 | 评分 | 形式 | 链接 |\n|---|---|---|---|---|\n| 1001 | 星港追踪 | 8.4（排名 1） | TV 动画 | https://bgm.tv/subject/1001 |\n| 1002 | 玻璃海的回声 | 8.1（排名 2） | 剧场版动画（Movie） | https://bgm.tv/subject/1002 |\n| 1005 | 星港追踪 第二季 | 7.6（排名 5） | TV 动画 | https://bgm.tv/subject/1005 |\n\n说明：三者条目类型均为动画；评分与排名为本次接口返回的实时数值。需要其中某个条目的简介、播出日期、标签或制作人员等更多资料，可以继续告诉我。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "你查询的三个条目资料如下（均为动画类作品，数据来自 Bangumi 条目接口）：\n\n**1001 · 星港追踪**（原名 星港追踪）｜评分 8.4（排名第 1）｜作品形式：TV 动画｜链接：https://bgm.tv/subject/1001\n1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n**1002 · 玻璃海的回声**（原名 玻璃海的回声）｜评分 8.1（排名第 2）｜作品形式：剧场版动画（Movie）｜链接：https://bgm.tv/subject/1002\n1002\n玻璃海的回声\nanime\n玻璃海的回声\n8.1\n3000\n2\n2024-04-12\n玻璃海的回声讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1002\n**1005 · 星港追踪 第二季**（原名 星港追踪 第二季）｜评分 7.6（排名第 5）｜作品形式：TV 动画｜链接：https://bgm.tv/subject/1005\n\n三者共同点：条目类型（subjectType）均为动画；1001 与 1005 是同一 TV 系列的第一季与第二季，1002 为剧场版。以上评分与排名数据来自本次查询时接口返回的实时值。\n1005\n星港追踪 第二季\nanime\n星港追踪 第二季\n7.6\n3000\n5\n2024-10-05\n星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1005\n三个条目的信息已按顺序展示在上方（每张卡片对应一个条目）：\n\n| 条目 | 名称 | 评分 | 形式 | 链接 |\n|---|---|---|---|---|\n| 1001 | 星港追踪 | 8.4（排名 1） | TV 动画 | https://bgm.tv/subject/1001 |\n| 1002 | 玻璃海的回声 | 8.1（排名 2） | 剧场版动画（Movie） | https://bgm.tv/subject/1002 |\n| 1005 | 星港追踪 第二季 | 7.6（排名 5） | TV 动画 | https://bgm.tv/subject/1005 |\n\n说明：三者条目类型均为动画；评分与排名为本次接口返回的实时数值。需要其中某个条目的简介、播出日期、标签或制作人员等更多资料，可以继续告诉我。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "subjectType",
+              "platform",
+              "url",
+              "rank",
+              "ratingCount"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "platform": "TV",
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:14:04.860Z"
+              },
+              "resourceRef": "rr_40d42ae3cbafa2b10ccb79f0869a17ce",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "subjectType",
+                "platform",
+                "url",
+                "rank",
+                "ratingCount"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1002,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "subjectType",
+              "platform",
+              "url",
+              "rank",
+              "ratingCount"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1002,
+              "subjectType": 2,
+              "name": "玻璃海的回声",
+              "nameCn": "玻璃海的回声",
+              "platform": "Movie",
+              "score": 8.1,
+              "rank": 2,
+              "ratingCount": 3000,
+              "url": "https://bgm.tv/subject/1002",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:14:04.944Z"
+              },
+              "resourceRef": "rr_d051faa949498f20a9e856b023eb1acd",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "subjectType",
+                "platform",
+                "url",
+                "rank",
+                "ratingCount"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1005,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "score",
+              "subjectType",
+              "platform",
+              "url",
+              "rank",
+              "ratingCount"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1005,
+              "subjectType": 2,
+              "name": "星港追踪 第二季",
+              "nameCn": "星港追踪 第二季",
+              "platform": "TV",
+              "score": 7.6,
+              "rank": 5,
+              "ratingCount": 3000,
+              "url": "https://bgm.tv/subject/1005",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:14:04.957Z"
+              },
+              "resourceRef": "rr_ba21f31c94579faa0ffe3165126856e5",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "score",
+                "subjectType",
+                "platform",
+                "url",
+                "rank",
+                "ratingCount"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "error": {
+              "code": "COMPONENT_INDEX_REQUIRED",
+              "message": "先读取可见的同版本组件索引选择组件，再读取字段。",
+              "diagnostic": {
+                "schemaVersion": 1,
+                "errorId": "3b6e96a5-c808-4701-a2b3-2569ab7b6793",
+                "reason": "operation_failed",
+                "certainty": "confirmed",
+                "recovery": "none",
+                "issues": [],
+                "evidence": {},
+                "causes": [
+                  {
+                    "name": "AppError",
+                    "code": "COMPONENT_INDEX_REQUIRED"
+                  }
+                ],
+                "code": "COMPONENT_INDEX_REQUIRED",
+                "origin": "domain",
+                "stage": "execution"
+              }
+            }
+          },
+          "error": true
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品卡片 名称 评分"
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "entries": [],
+            "total": 0,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "category": "作品",
+            "limit": 12
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 2,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "version": "885271b64e634406",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "tool": "prepare_component",
+                "prepare": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component",
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "component": {
+                      "type": "string",
+                      "enum": [
+                        "SubjectCards"
+                      ]
+                    },
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                },
+                "constraints": [
+                  "明确成员必须来自此resourceRef的当前成员；单对象详情不能选择其他对象。保持用户完整范围，多个已有详情引用可分别准备和发布，不跨引用合并ID。"
+                ],
+                "publication": "prepare成功后使用present_component({resourceRef,blockIndex})发布；blockIndex为整个快照绝对下标。候选准备快照可直接发布。普通说明为原生文字；精确交错可用present_text。"
+              }
+            ],
+            "audit": {
+              "version": "885271b64e634406",
+              "turn": 1,
+              "indexReads": 2,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [
+                "SubjectCards"
+              ],
+              "representations": {
+                "SubjectCards": "reference"
+              },
+              "contracts": {
+                "SubjectCards": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_40d42ae3cbafa2b10ccb79f0869a17ce",
+            "subjectIds": [
+              1001
+            ],
+            "layout": "list"
+          },
+          "value": {
+            "resourceRef": "rr_7ede890f9aff46b3a1740aad181d2240",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_d051faa949498f20a9e856b023eb1acd",
+            "subjectIds": [
+              1002
+            ],
+            "layout": "list"
+          },
+          "value": {
+            "resourceRef": "rr_c327bd5492854d118379e8f9033b5544",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_ba21f31c94579faa0ffe3165126856e5",
+            "subjectIds": [
+              1005
+            ],
+            "layout": "list"
+          },
+          "value": {
+            "resourceRef": "rr_a0c6ae90da5b479b9487e7b263972ae5",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "你查询的三个条目资料如下（均为动画类作品，数据来自 Bangumi 条目接口）：\n\n**1001 · 星港追踪**（原名 星港追踪）｜评分 8.4（排名第 1）｜作品形式：TV 动画｜链接：https://bgm.tv/subject/1001"
+          },
+          "value": {
+            "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "resourceRef": "rr_7ede890f9aff46b3a1740aad181d2240",
+            "blockIndex": 0
+          },
+          "value": {
+            "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "**1002 · 玻璃海的回声**（原名 玻璃海的回声）｜评分 8.1（排名第 2）｜作品形式：剧场版动画（Movie）｜链接：https://bgm.tv/subject/1002"
+          },
+          "value": {
+            "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+            "blockIndex": 2,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "resourceRef": "rr_c327bd5492854d118379e8f9033b5544",
+            "blockIndex": 0
+          },
+          "value": {
+            "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+            "blockIndex": 3,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "**1005 · 星港追踪 第二季**（原名 星港追踪 第二季）｜评分 7.6（排名第 5）｜作品形式：TV 动画｜链接：https://bgm.tv/subject/1005\n\n三者共同点：条目类型（subjectType）均为动画；1001 与 1005 是同一 TV 系列的第一季与第二季，1002 为剧场版。以上评分与排名数据来自本次查询时接口返回的实时值。"
+          },
+          "value": {
+            "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+            "blockIndex": 4,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "resourceRef": "rr_a0c6ae90da5b479b9487e7b263972ae5",
+            "blockIndex": 0
+          },
+          "value": {
+            "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+            "blockIndex": 5,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 21792.207,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 10,
+        "httpAtSettled": 10,
+        "modelAtCommit": 10,
+        "modelAtSettled": 10
+      }
+    },
+    {
+      "prompt": "还是刚才这三部，只保留TV动画，给出名称和链接。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "按「只保留 TV 动画」筛选后，剩下列 2 部（1002《玻璃海的回声》平台为 Movie，已排除）：",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "list",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "- 1001 星港追踪 ｜ TV 动画 ｜ https://bgm.tv/subject/1001\n- 1005 星港追踪 第二季 ｜ TV 动画 ｜ https://bgm.tv/subject/1005",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "list",
+              "items": [
+                {
+                  "id": 1005,
+                  "name": "星港追踪 第二季",
+                  "kind": "anime",
+                  "nameCn": "星港追踪 第二季",
+                  "image": "https://example.invalid/benchmark/1005.png",
+                  "score": 7.6,
+                  "scoreCount": 3000,
+                  "rank": 5,
+                  "date": "2024-10-05",
+                  "summary": "星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1005"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "筛选结果（只保留 TV 动画，共 2 部）：\n\n- **1001 星港追踪** — TV 动画 — https://bgm.tv/subject/1001\n- **1005 星港追踪 第二季** — TV 动画 — https://bgm.tv/subject/1005\n\n被排除的是 1002《玻璃海的回声》，其作品形式为 Movie（剧场版），不属于 TV 动画。两部保留条目的卡片已在上方展示。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "按「只保留 TV 动画」筛选后，剩下列 2 部（1002《玻璃海的回声》平台为 Movie，已排除）：\n1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n- 1001 星港追踪 ｜ TV 动画 ｜ https://bgm.tv/subject/1001\n- 1005 星港追踪 第二季 ｜ TV 动画 ｜ https://bgm.tv/subject/1005\n1005\n星港追踪 第二季\nanime\n星港追踪 第二季\n7.6\n3000\n5\n2024-10-05\n星港追踪 第二季讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1005\n筛选结果（只保留 TV 动画，共 2 部）：\n\n- **1001 星港追踪** — TV 动画 — https://bgm.tv/subject/1001\n- **1005 星港追踪 第二季** — TV 动画 — https://bgm.tv/subject/1005\n\n被排除的是 1002《玻璃海的回声》，其作品形式为 Movie（剧场版），不属于 TV 动画。两部保留条目的卡片已在上方展示。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "platform",
+              "subjectType",
+              "url"
+            ],
+            "subject_id": 1001
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "platform": "TV",
+              "url": "https://bgm.tv/subject/1001",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:14:16.976Z"
+              },
+              "resourceRef": "rr_61b2cafa296c0b86884c7453c60cf0db",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "platform",
+                "subjectType",
+                "url"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "platform",
+              "subjectType",
+              "url"
+            ],
+            "subject_id": 1005
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1005,
+              "subjectType": 2,
+              "name": "星港追踪 第二季",
+              "nameCn": "星港追踪 第二季",
+              "platform": "TV",
+              "url": "https://bgm.tv/subject/1005",
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T19:14:16.993Z"
+              },
+              "resourceRef": "rr_0aa79c60ef737f59b5485a5ca0f8ae86",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "platform",
+                "subjectType",
+                "url"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "layout": "list",
+            "resourceRef": "rr_61b2cafa296c0b86884c7453c60cf0db",
+            "subjectIds": [
+              1001
+            ]
+          },
+          "value": {
+            "resourceRef": "rr_f9548d59ae3a4c2a9d4de52d863307d6",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "layout": "list",
+            "resourceRef": "rr_0aa79c60ef737f59b5485a5ca0f8ae86",
+            "subjectIds": [
+              1005
+            ]
+          },
+          "value": {
+            "resourceRef": "rr_64aeed39c7f848e5829a8356eb47a47e",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "按「只保留 TV 动画」筛选后，剩下列 2 部（1002《玻璃海的回声》平台为 Movie，已排除）："
+          },
+          "value": {
+            "replyId": "525460d4-1968-4f6f-85ce-dea75af78269",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "blockIndex": 0,
+            "resourceRef": "rr_f9548d59ae3a4c2a9d4de52d863307d6"
+          },
+          "value": {
+            "replyId": "525460d4-1968-4f6f-85ce-dea75af78269",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "- 1001 星港追踪 ｜ TV 动画 ｜ https://bgm.tv/subject/1001\n- 1005 星港追踪 第二季 ｜ TV 动画 ｜ https://bgm.tv/subject/1005"
+          },
+          "value": {
+            "replyId": "525460d4-1968-4f6f-85ce-dea75af78269",
+            "blockIndex": 2,
+            "reused": false
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "blockIndex": 0,
+            "resourceRef": "rr_64aeed39c7f848e5829a8356eb47a47e"
+          },
+          "value": {
+            "replyId": "525460d4-1968-4f6f-85ce-dea75af78269",
+            "blockIndex": 3,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 6281.386799999997,
+      "presentationStatus": "completed",
+      "completionProof": {
+        "source": "native_stop",
+        "finalToolCallId": null,
+        "batchCallCount": 0,
+        "batchResultCount": 0,
+        "allBatchResultsSuccessful": true,
+        "httpAtCommit": 15,
+        "httpAtSettled": 15,
+        "modelAtCommit": 15,
+        "modelAtSettled": 15
+      }
+    }
+  ],
+  "metrics": {
+    "totalMs": 28213.418299999998,
+    "startupMs": 8337.0342,
+    "modelRequests": 15,
+    "providerHttpRequests": 15,
+    "proposedToolCalls": 24,
+    "toolExecutions": 24,
+    "toolErrors": 1,
+    "mcpCalls": 5,
+    "mcpMs": 10211.306900000003,
+    "mcpInitializationMs": 10120.1043,
+    "cacheRpcCalls": 10,
+    "rpcDispatches": 15,
+    "upstreamRequests": 5,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 2.4897000000019034,
+    "modelMs": 14769.746200000009,
+    "providerPayloadBytesMax": 59973,
+    "inputTokensMax": 9967,
+    "inputTokensSum": 17498,
+    "contextInputTokensMax": 16439,
+    "contextInputTokensSum": 205786,
+    "reasoningTokensSum": 661,
+    "outputTokensSum": 2894,
+    "cacheReadTokensSum": 188288,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 208680,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 9787,
+    "firstTextMs": 18088.246400000004,
+    "firstCompleteResultMs": 21781.168899999997,
+    "providerFirstTextMs": 21120.673300000002,
+    "firstPublishedBlockMs": 18088.246400000004,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 11392,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 9967,
+        "contextInputTokens": 10607,
+        "reasoningTokens": 105,
+        "outputTokens": 346,
+        "cacheReadTokens": 640,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10953,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36861,
+        "durationMs": 1475.7337000000007,
+        "firstTextMs": null,
+        "firstThinkingMs": 315.8132999999998,
+        "visibleThinkingMs": 481.14100000000144,
+        "thinkingChars": 443,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 15728,
+        "repeatedMessageBytes": 11389,
+        "inputTokens": 832,
+        "contextInputTokens": 11712,
+        "reasoningTokens": 159,
+        "outputTokens": 203,
+        "cacheReadTokens": 10880,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11915,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 41197,
+        "durationMs": 1247.5424999999996,
+        "firstTextMs": null,
+        "firstThinkingMs": 366.5691000000006,
+        "visibleThinkingMs": 779.6332999999977,
+        "thinkingChars": 685,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 17258,
+        "repeatedMessageBytes": 15721,
+        "inputTokens": 156,
+        "contextInputTokens": 12060,
+        "reasoningTokens": 0,
+        "outputTokens": 45,
+        "cacheReadTokens": 11904,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12105,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42727,
+        "durationMs": 404.5041999999994,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 17954,
+        "repeatedMessageBytes": 17249,
+        "inputTokens": 184,
+        "contextInputTokens": 12216,
+        "reasoningTokens": 0,
+        "outputTokens": 56,
+        "cacheReadTokens": 12032,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12272,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43423,
+        "durationMs": 736.3280999999988,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 18876,
+        "repeatedMessageBytes": 17943,
+        "inputTokens": 267,
+        "contextInputTokens": 12427,
+        "reasoningTokens": 0,
+        "outputTokens": 44,
+        "cacheReadTokens": 12160,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12471,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 44345,
+        "durationMs": 719.097099999999,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 20763,
+        "repeatedMessageBytes": 18863,
+        "inputTokens": 425,
+        "contextInputTokens": 12841,
+        "reasoningTokens": 39,
+        "outputTokens": 354,
+        "cacheReadTokens": 12416,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13195,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 46232,
+        "durationMs": 1108.1839,
+        "firstTextMs": null,
+        "firstThinkingMs": 91.73860000000059,
+        "visibleThinkingMs": 276.3993999999984,
+        "thinkingChars": 201,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 22405,
+        "repeatedMessageBytes": 20748,
+        "inputTokens": 167,
+        "contextInputTokens": 13351,
+        "reasoningTokens": 0,
+        "outputTokens": 171,
+        "cacheReadTokens": 13184,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13522,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 47874,
+        "durationMs": 751.7133999999969,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 23392,
+        "repeatedMessageBytes": 22386,
+        "inputTokens": 186,
+        "contextInputTokens": 13626,
+        "reasoningTokens": 0,
+        "outputTokens": 152,
+        "cacheReadTokens": 13440,
+        "cacheWriteTokens": 0,
+        "totalTokens": 13778,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 48861,
+        "durationMs": 593.365600000001,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 24300,
+        "repeatedMessageBytes": 23370,
+        "inputTokens": 186,
+        "contextInputTokens": 13882,
+        "reasoningTokens": 0,
+        "outputTokens": 212,
+        "cacheReadTokens": 13696,
+        "cacheWriteTokens": 0,
+        "totalTokens": 14094,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 49769,
+        "durationMs": 1033.1893000000018,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 25422,
+        "repeatedMessageBytes": 24275,
+        "inputTokens": 246,
+        "contextInputTokens": 14198,
+        "reasoningTokens": 0,
+        "outputTokens": 192,
+        "cacheReadTokens": 13952,
+        "cacheWriteTokens": 0,
+        "totalTokens": 14390,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 50891,
+        "durationMs": 1495.2840999999971,
+        "firstTextMs": 837.0839999999989,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 2,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 27842,
+        "repeatedMessageBytes": 18706,
+        "inputTokens": 3787,
+        "contextInputTokens": 14667,
+        "reasoningTokens": 328,
+        "outputTokens": 472,
+        "cacheReadTokens": 10880,
+        "cacheWriteTokens": 0,
+        "totalTokens": 15139,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 53311,
+        "durationMs": 2072.942500000001,
+        "firstTextMs": null,
+        "firstThinkingMs": 211.1247000000003,
+        "visibleThinkingMs": 1494.5746,
+        "thinkingChars": 1285,
+        "responseModel": null
+      },
+      {
+        "userTurn": 2,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 31647,
+        "repeatedMessageBytes": 27812,
+        "inputTokens": 502,
+        "contextInputTokens": 15606,
+        "reasoningTokens": 30,
+        "outputTokens": 247,
+        "cacheReadTokens": 15104,
+        "cacheWriteTokens": 0,
+        "totalTokens": 15853,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 57116,
+        "durationMs": 1206.2236000000048,
+        "firstTextMs": null,
+        "firstThinkingMs": 496.9383000000016,
+        "visibleThinkingMs": 200.27189999999973,
+        "thinkingChars": 127,
+        "responseModel": null
+      },
+      {
+        "userTurn": 2,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 32774,
+        "repeatedMessageBytes": 31614,
+        "inputTokens": 219,
+        "contextInputTokens": 15963,
+        "reasoningTokens": 0,
+        "outputTokens": 138,
+        "cacheReadTokens": 15744,
+        "cacheWriteTokens": 0,
+        "totalTokens": 16101,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 58243,
+        "durationMs": 746.1448999999993,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 2,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 33627,
+        "repeatedMessageBytes": 32738,
+        "inputTokens": 191,
+        "contextInputTokens": 16191,
+        "reasoningTokens": 0,
+        "outputTokens": 158,
+        "cacheReadTokens": 16000,
+        "cacheWriteTokens": 0,
+        "totalTokens": 16349,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 59096,
+        "durationMs": 605.799300000006,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 2,
+        "toolCount": 9,
+        "toolSchemaBytes": 21069,
+        "displayToolNames": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "displaySchemaBytes": 9712,
+        "contextMessageBytes": 34504,
+        "repeatedMessageBytes": 33588,
+        "inputTokens": 183,
+        "contextInputTokens": 16439,
+        "reasoningTokens": 0,
+        "outputTokens": 104,
+        "cacheReadTokens": 16256,
+        "cacheWriteTokens": 0,
+        "totalTokens": 16543,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 59973,
+        "durationMs": 573.6940000000031,
+        "firstTextMs": 189.0413000000044,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 135,
+    "initialToolCount": 9,
+    "initialToolSchemaBytes": 21069,
+    "initialProviderPayloadBytes": 36861,
+    "validatedFinals": 2,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 5,
+    "publishedComponents": 5,
+    "renderedComponents": 0,
+    "displaySchemaBytesSum": 145680,
+    "displaySchemaBytesMax": 9712,
+    "toolSchemaBytesSum": 316035,
+    "toolSchemaBytesMax": 21069,
+    "contextMessageBytesSum": 357884,
+    "contextMessageBytesMax": 34504,
+    "repeatedMessageBytesSum": 316402,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "bytes": 9712
+      },
+      {
+        "userTurn": 2,
+        "names": [
+          "prepare_component",
+          "present_component",
+          "present_text"
+        ],
+        "bytes": 9712
+      }
+    ],
+    "activatedDisplaySets": [],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "turn": 0,
+          "exact": [
+            1001,
+            1002,
+            1005
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001,1002,1005"
+      },
+      {
+        "rule": {
+          "kind": "subjects",
+          "turn": 1,
+          "exact": [
+            1001,
+            1005
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001,1005"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791486844862.8276,
+      "elapsedMs": 2951.7546,
+      "durationMs": 1.6525000000001455,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791486844944.865,
+      "elapsedMs": 3033.7919999999995,
+      "durationMs": 0.21000000000094587,
+      "source": "fixture",
+      "path": "/v0/subjects/1002",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1002,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 3,
+      "timestampMs": 1791486844957.4148,
+      "elapsedMs": 3046.341700000001,
+      "durationMs": 0.19549999999981083,
+      "source": "fixture",
+      "path": "/v0/subjects/1005",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1005,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 4,
+      "timestampMs": 1791486856977.21,
+      "elapsedMs": 15066.137,
+      "durationMs": 0.24320000000079744,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 5,
+      "timestampMs": 1791486856993.4587,
+      "elapsedMs": 15082.3856,
+      "durationMs": 0.18850000000020373,
+      "source": "fixture",
+      "path": "/v0/subjects/1005",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1005,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\control\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cef-ae3b-72df-abec-9164799a909a\\a71070d8f3144366999a8d1658cf682f",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\model-paired-final-r2\\runs\\control\\followup-filter\\1\\tracelog\\2026-10-09\\01a11cef-ae3b-72df-abec-9164799a909a\\b346bfca95488dd3155d1a79f1c69b4c"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 3,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 4,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 5,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 6,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 7,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 8,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 9,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 10,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 2,
+      "requestIndex": 11,
+      "texts": [
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 0,
+          "textHash": "c8e8d8fc3495276a4d8298b1fce39f73b99b644eb95610cf75c434ea21066f3f",
+          "textBytes": 249,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 2,
+          "textHash": "3a2f14d5820055ab460d3b2497a30edfb41702c0d84aaffecfad633f0fb16370",
+          "textBytes": 174,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 4,
+          "textHash": "fae0bce1f645a85a88debbc14898f67fe2a829265123886d225f31c8168dfbe9",
+          "textBytes": 384,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 6,
+          "textHash": "9ea303218f8e1134818d6e4d5fb0a3185919139d07926dc68c50073b71af8ec7",
+          "textBytes": 660,
+          "nativeOccurrences": 2,
+          "displayArgumentOccurrences": 0,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        }
+      ],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 2,
+      "requestIndex": 12,
+      "texts": [
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 0,
+          "textHash": "c8e8d8fc3495276a4d8298b1fce39f73b99b644eb95610cf75c434ea21066f3f",
+          "textBytes": 249,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 2,
+          "textHash": "3a2f14d5820055ab460d3b2497a30edfb41702c0d84aaffecfad633f0fb16370",
+          "textBytes": 174,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 4,
+          "textHash": "fae0bce1f645a85a88debbc14898f67fe2a829265123886d225f31c8168dfbe9",
+          "textBytes": 384,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 6,
+          "textHash": "9ea303218f8e1134818d6e4d5fb0a3185919139d07926dc68c50073b71af8ec7",
+          "textBytes": 660,
+          "nativeOccurrences": 2,
+          "displayArgumentOccurrences": 0,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        }
+      ],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 2,
+      "requestIndex": 13,
+      "texts": [
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 0,
+          "textHash": "c8e8d8fc3495276a4d8298b1fce39f73b99b644eb95610cf75c434ea21066f3f",
+          "textBytes": 249,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 2,
+          "textHash": "3a2f14d5820055ab460d3b2497a30edfb41702c0d84aaffecfad633f0fb16370",
+          "textBytes": 174,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 4,
+          "textHash": "fae0bce1f645a85a88debbc14898f67fe2a829265123886d225f31c8168dfbe9",
+          "textBytes": 384,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 6,
+          "textHash": "9ea303218f8e1134818d6e4d5fb0a3185919139d07926dc68c50073b71af8ec7",
+          "textBytes": 660,
+          "nativeOccurrences": 2,
+          "displayArgumentOccurrences": 0,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        }
+      ],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 2,
+      "requestIndex": 14,
+      "texts": [
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 0,
+          "textHash": "c8e8d8fc3495276a4d8298b1fce39f73b99b644eb95610cf75c434ea21066f3f",
+          "textBytes": 249,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 2,
+          "textHash": "3a2f14d5820055ab460d3b2497a30edfb41702c0d84aaffecfad633f0fb16370",
+          "textBytes": 174,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 4,
+          "textHash": "fae0bce1f645a85a88debbc14898f67fe2a829265123886d225f31c8168dfbe9",
+          "textBytes": 384,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 6,
+          "textHash": "9ea303218f8e1134818d6e4d5fb0a3185919139d07926dc68c50073b71af8ec7",
+          "textBytes": 660,
+          "nativeOccurrences": 2,
+          "displayArgumentOccurrences": 0,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        }
+      ],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 2,
+      "requestIndex": 15,
+      "texts": [
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 0,
+          "textHash": "c8e8d8fc3495276a4d8298b1fce39f73b99b644eb95610cf75c434ea21066f3f",
+          "textBytes": 249,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 2,
+          "textHash": "3a2f14d5820055ab460d3b2497a30edfb41702c0d84aaffecfad633f0fb16370",
+          "textBytes": 174,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 4,
+          "textHash": "fae0bce1f645a85a88debbc14898f67fe2a829265123886d225f31c8168dfbe9",
+          "textBytes": 384,
+          "nativeOccurrences": 1,
+          "displayArgumentOccurrences": 1,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        },
+        {
+          "sourceUserTurn": 1,
+          "replyId": "bd1e8cdd-6492-4af3-aa1e-43c2f3b1f8fa",
+          "partIndex": 6,
+          "textHash": "9ea303218f8e1134818d6e4d5fb0a3185919139d07926dc68c50073b71af8ec7",
+          "textBytes": 660,
+          "nativeOccurrences": 2,
+          "displayArgumentOccurrences": 0,
+          "otherOccurrences": 0,
+          "nativeRepresentations": {
+            "raw": 1,
+            "jsonEncoded": 1
+          },
+          "displayArgumentRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "otherRepresentations": {
+            "raw": 0,
+            "jsonEncoded": 0
+          },
+          "signedFallback": null
+        }
+      ],
+      "projectionAudits": []
+    }
+  ]
+}

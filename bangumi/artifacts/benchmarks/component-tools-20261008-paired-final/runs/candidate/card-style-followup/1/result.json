@@ -1,0 +1,634 @@
+{
+  "schemaVersion": 1,
+  "caseId": "card-style-followup",
+  "family": "component-tools-followup",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "1bd4f655aeb7ee64d7934b6c43a09b3db1f668f0fe3184b02a424604c25d8a18",
+  "versionHash": "a8c76d2c5612a8242ca4f9061e3a1369efbbb4b67a026f338248854bd33b8bfd",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "读取固定条目1001的基本资料和评分，用SubjectCards卡片展示，再讨论它的评分是否偏高。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "条目 1001 的基本资料与评分如下（匿名读取，该条目为 SFW，未涉及 NSFW 权限）：",
+            "nextType": "SubjectCards"
+          },
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "title": "星港追踪（Subject 1001）",
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1001,
+                  "name": "星港追踪",
+                  "kind": "anime",
+                  "nameCn": "星港追踪",
+                  "image": "https://example.invalid/benchmark/1001.png",
+                  "score": 8.4,
+                  "scoreCount": 3000,
+                  "rank": 1,
+                  "date": "2024-01-08",
+                  "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+                  "tags": [
+                    "悬疑",
+                    "推理"
+                  ],
+                  "url": "https://bgm.tv/subject/1001"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "补充数值：评分 8.4，排名第 1，评分人数 3000，TV 12 集，2024-01-08 开播，标签为「悬疑」「推理」。\n\n**关于“评分是否偏高”**\n\n先说清可核实与不可核实：\n\n- 可核实：8.4 分、全站排名第 1、3000 人评分，这三项是接口给的事实。\n- 存疑数据：本次返回的评分分布只有 8 分档为 3000，其余 1–7、9、10 档均为空。这与 8.4 的均值本身不相容（若 3000 人全给 8 分，均值应是 8.0），说明该分布字段不完整或异常，因此**不能用它来判断分数离散度、是否有极化打分或刷分**。\n- 缺口：我没有读取同类型（悬疑/推理类）作品的评分区间、该条目的评分历史变化，也没有读取条目下的吐槽与长评，因此缺少比较基准，无法判断 8.4 相对同类是偏高还是正常。\n\n结论：**仅凭现有数据不能断定“偏高”**。高排名 + 3000 人样本说明它在站内被广泛认可，但大众评分本身不能证明作品质量或适合某个具体观众；要谈“偏高”，需要至少补上两样证据——同类型作品的评分对照，以及社区评价/长评中的具体批评点（例如结尾解谜是否兑现、推理逻辑是否成立）。\n\n如果你愿意，我可以继续读取该条目下的收藏吐槽与长评，再基于实际读到的观点来评估“8.4 是否被高估”。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "条目 1001 的基本资料与评分如下（匿名读取，该条目为 SFW，未涉及 NSFW 权限）：\n星港追踪（Subject 1001）\n1001\n星港追踪\nanime\n星港追踪\n8.4\n3000\n1\n2024-01-08\n星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。\n悬疑\n推理\nhttps://bgm.tv/subject/1001\n补充数值：评分 8.4，排名第 1，评分人数 3000，TV 12 集，2024-01-08 开播，标签为「悬疑」「推理」。\n\n**关于“评分是否偏高”**\n\n先说清可核实与不可核实：\n\n- 可核实：8.4 分、全站排名第 1、3000 人评分，这三项是接口给的事实。\n- 存疑数据：本次返回的评分分布只有 8 分档为 3000，其余 1–7、9、10 档均为空。这与 8.4 的均值本身不相容（若 3000 人全给 8 分，均值应是 8.0），说明该分布字段不完整或异常，因此**不能用它来判断分数离散度、是否有极化打分或刷分**。\n- 缺口：我没有读取同类型（悬疑/推理类）作品的评分区间、该条目的评分历史变化，也没有读取条目下的吐槽与长评，因此缺少比较基准，无法判断 8.4 相对同类是偏高还是正常。\n\n结论：**仅凭现有数据不能断定“偏高”**。高排名 + 3000 人样本说明它在站内被广泛认可，但大众评分本身不能证明作品质量或适合某个具体观众；要谈“偏高”，需要至少补上两样证据——同类型作品的评分对照，以及社区评价/长评中的具体批评点（例如结尾解谜是否兑现、推理逻辑是否成立）。\n\n如果你愿意，我可以继续读取该条目下的收藏吐槽与长评，再基于实际读到的观点来评估“8.4 是否被高估”。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "image",
+              "score",
+              "rank",
+              "ratingCount",
+              "subjectType",
+              "ratingDistribution",
+              "summary",
+              "date",
+              "tags",
+              "totalEpisodes",
+              "platform",
+              "nsfw",
+              "metaTags"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "nsfw": false,
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "tags": [
+                "悬疑",
+                "推理"
+              ],
+              "metaTags": [
+                "TV"
+              ],
+              "image": "https://example.invalid/benchmark/1001.png",
+              "included": [
+                "summary",
+                "ratingDistribution"
+              ],
+              "summary": "星港追踪讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。结尾给出主要谜团的解释。",
+              "ratingDistribution": {
+                "1": null,
+                "2": null,
+                "3": null,
+                "4": null,
+                "5": null,
+                "6": null,
+                "7": null,
+                "8": 3000,
+                "9": null,
+                "10": null
+              },
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T09:38:08.189Z"
+              },
+              "resourceRef": "rr_6642cd222679f7b312d873d77e0d26e5",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "image",
+                "score",
+                "rank",
+                "ratingCount",
+                "subjectType",
+                "ratingDistribution",
+                "summary",
+                "date",
+                "tags",
+                "totalEpisodes",
+                "platform",
+                "nsfw",
+                "metaTags"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary",
+                "ratingDistribution"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品卡片 SubjectCards"
+          },
+          "value": {
+            "version": "b0ebe6a96fe779e8",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "b0ebe6a96fe779e8",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ],
+            "representation": "reference"
+          },
+          "value": {
+            "version": "b0ebe6a96fe779e8",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用",
+                "representation": "reference",
+                "selectionId": 1,
+                "selectionReason": "模型明确选择此形式",
+                "required": [
+                  "resourceRef"
+                ],
+                "props": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "subjectId": {
+                            "type": "number"
+                          },
+                          "episodeId": {
+                            "type": "number"
+                          },
+                          "characterId": {
+                            "type": "number"
+                          },
+                          "personId": {
+                            "type": "number"
+                          },
+                          "revisionId": {
+                            "type": "number"
+                          },
+                          "targetId": {
+                            "type": "number"
+                          },
+                          "relationId": {
+                            "type": "number"
+                          },
+                          "ownerId": {
+                            "type": "number"
+                          },
+                          "entity": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "targetKind": {
+                            "type": "string",
+                            "enum": [
+                              "subject",
+                              "character",
+                              "person",
+                              "episode",
+                              "revision",
+                              "user",
+                              "index"
+                            ]
+                          },
+                          "username": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "partIndex": {
+                      "type": "number"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    }
+                  }
+                },
+                "canonicalContract": "宿主完成结果独立使用严格COMPONENT_PAYLOAD_SCHEMAS校验；内部展开字段不是本次生成props字段。只填写上面唯一props契约，禁止混用reference与inline。",
+                "requestedFacts": "用户要求的事实若没有此props合法字段（例如SubjectCards没有总集数字段），在text或另读InfoBox等组件交付；不能新增字段，也不能把组件合法当成请求全部完成。修复时保留未完成事实要求。",
+                "envelopeExample": {
+                  "content": [
+                    {
+                      "type": "SubjectCards",
+                      "props": {
+                        "resourceRef": "rr_example"
+                      }
+                    }
+                  ]
+                },
+                "exampleNote": "示例仅说明content根对象和组件嵌套形状，不是事实。rr_example须替换为本轮适用缓存引用；inline示例值须替换为已获得信息。",
+                "representationUsage": "只填引用props允许的字段，禁止加入inline的total、hint等字段；items仅选择本引用的主键成员，不能抄入name等实体事实。已准备presentation仅提供resourceRef和必要的partIndex，不覆盖快照。需要直接字段时重新读取representation=inline。",
+                "constraints": [
+                  "推荐少量作品优先layout=grid；紧凑核对列表可用list",
+                  "items仅填写props.items声明的成员主键，不填名称、媒体类型、图片等实体事实"
+                ]
+              }
+            ],
+            "audit": {
+              "version": "b0ebe6a96fe779e8",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [
+                "SubjectCards"
+              ],
+              "representations": {
+                "SubjectCards": "reference"
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read",
+          "arguments": {
+            "path": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\component-tools-20261008-candidate-runtime\\bangumi\\dist\\src\\strategies\\skills\\bangumi-recommend\\SKILL.md"
+          },
+          "value": "---\nname: bangumi-recommend\ndescription: 根据当前目标和作品、个人记录等证据选择并解释Bangumi推荐；适用于求推荐、偏好匹配、候选比较及反馈后调整。不用于纯事实检索。\n---\n\n# Bangumi 推荐\n\n围绕用户本次目标选择作品，解释作品如何对应需求、必要取舍及依据。区分必须满足的条件与可权衡的偏好；大众评分、排序或关系本身不能证明个人适配程度。\n\n已有候选和资料时直接比较。需要查找或补证据时，读取 [bangumi-query](../bangumi-query/SKILL.md)，通过候选引用完成召回、事实筛选和字段补全；需要社区观点时按需读取 [bangumi-community-read](../bangumi-community-read/SKILL.md)。软偏好可以帮助发现候选，不必全部拼成同时命中的标签条件。标签为语义线索，内容与体验判断依据本次取得的资料。\n\n根据用户要求的数量和范围完成选择：少量推荐在所选作品的必要条件和理由有充分依据后交付；完整列表则继续处理指定范围。资料未知或读取失败不等于作品不适合，有限样本不代表全部作品或个人完整历史。收藏缺席须有适用的完整范围证据。\n\n回答给出作品名称、链接和针对当前目标的理由，区分核实事实与适配判断，说明影响结论的资料或范围缺口。用户反馈用于调整当前目标；单次偏好不自动成为其他任务的固定条件。\n\n判断依据通过 `fields` 或 `read_cached_resource` 读取；只有ID不足以证明适配。展示组件使用资源引用和该资源窗口中已核实的所选ID，让宿主补齐图片、简介等事实；其他候选尚未处理不阻断已核实成员的少量推荐，也不能据此声称完整覆盖。使用已准备展示快照时只传引用，不重复指定成员、标题或布局。推荐理由仍由模型基于本次读过的证据生成，不用展示简介代替。\n\n少量推荐默认用 `SubjectCards` 的 `grid` 封面布局；准备快照时显式指定 `layout=\"grid\"`，`card_fields` 包含 `image` 及需要展示的评分等字段。已有适用引用时直接交付引用，避免重抄卡片成员遗漏封面和链接。\n",
+          "error": false
+        }
+      ],
+      "durationMs": 24729.744900000005
+    },
+    {
+      "prompt": "把刚才那段评分讨论换成贴吧老哥的口吻，事实保持一致，直接用自然文字回答。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "行，那咱就唠唠这个 8.4 到底虚不虚。\n\n先说摆在这儿的事实啊：1001《星港追踪》，评分 8.4，全站排名第 1，3000 个人打分，TV 12 集，2024 年 1 月 8 号开播，标签挂的是悬疑、推理。这些是接口原样给的，不是哥们儿瞎编的。\n\n但是啊，有个地方不对劲。它给的评分分布里，只有 8 分那一档挂着 3000 人，剩下 1 到 7 分、9 分 10 分全是空的。你琢磨琢磨，3000 个人全都打的 8 分，那平均分不就该是 8.0 吗？结果它写 8.4。这俩数自己就对不上，所以这分布多半是不全的、或者是坏数据。那问题就来了——你光看这个分布，压根看不出来大家是抱团给高分还是吵成一锅粥，更别提判断有没有人刷分了，压根没这信息量。\n\n再一个，哥们儿手里也没别的牌。同类型那些悬疑推理的片子啥水平线，它自己这分数是涨上来的还是刚开分就这个样，底下吐槽和长评到底在骂啥夸啥，我一样没读。没个参照物，你说它高，那跟谁比算高啊？\n\n所以结论就是：**就现在这点数据，断定它“偏高”是没根据的**。排名第 1 加 3000 人样本，只能说站内认可它的人确实多，可大众评分这玩意儿本来也证明不了一部片子到底好不好看，更证明不了合不合你口味——每个人的雷点不一样嘛。\n\n真要说它虚不虚，起码得再补两块料：一个是同类作品的分数区间拿出来对一对，另一个是把底下长评和吐槽里实打实的批评翻出来看看，比如结尾解谜到底兑现没兑现、推理链子立不立得住。这俩一上，才谈得上“高估”还是“低估”。\n\n你要是想接着挖，我可以去把这片的收藏吐槽和长评扒一遍，看完再给你个说法，而不是在这儿凭一个 8.4 就瞎下结论。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "行，那咱就唠唠这个 8.4 到底虚不虚。\n\n先说摆在这儿的事实啊：1001《星港追踪》，评分 8.4，全站排名第 1，3000 个人打分，TV 12 集，2024 年 1 月 8 号开播，标签挂的是悬疑、推理。这些是接口原样给的，不是哥们儿瞎编的。\n\n但是啊，有个地方不对劲。它给的评分分布里，只有 8 分那一档挂着 3000 人，剩下 1 到 7 分、9 分 10 分全是空的。你琢磨琢磨，3000 个人全都打的 8 分，那平均分不就该是 8.0 吗？结果它写 8.4。这俩数自己就对不上，所以这分布多半是不全的、或者是坏数据。那问题就来了——你光看这个分布，压根看不出来大家是抱团给高分还是吵成一锅粥，更别提判断有没有人刷分了，压根没这信息量。\n\n再一个，哥们儿手里也没别的牌。同类型那些悬疑推理的片子啥水平线，它自己这分数是涨上来的还是刚开分就这个样，底下吐槽和长评到底在骂啥夸啥，我一样没读。没个参照物，你说它高，那跟谁比算高啊？\n\n所以结论就是：**就现在这点数据，断定它“偏高”是没根据的**。排名第 1 加 3000 人样本，只能说站内认可它的人确实多，可大众评分这玩意儿本来也证明不了一部片子到底好不好看，更证明不了合不合你口味——每个人的雷点不一样嘛。\n\n真要说它虚不虚，起码得再补两块料：一个是同类作品的分数区间拿出来对一对，另一个是把底下长评和吐槽里实打实的批评翻出来看看，比如结尾解谜到底兑现没兑现、推理链子立不立得住。这俩一上，才谈得上“高估”还是“低估”。\n\n你要是想接着挖，我可以去把这片的收藏吐槽和长评扒一遍，看完再给你个说法，而不是在这儿凭一个 8.4 就瞎下结论。",
+      "tools": [],
+      "durationMs": 3979.1752999999953
+    },
+    {
+      "prompt": "说得温和一点，用一句普通文字告诉我应不应该补这部作品，不需要再次展示卡片。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "如果你平时就爱看悬疑推理，《星港追踪》口碑和人气都摆在那儿，温和地说一句——可以放心补；只是我这边没有你的收藏记录，站内 8.4 分并不等于一定合你口味，这句话就当个参考，不用太当标准。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "如果你平时就爱看悬疑推理，《星港追踪》口碑和人气都摆在那儿，温和地说一句——可以放心补；只是我这边没有你的收藏记录，站内 8.4 分并不等于一定合你口味，这句话就当个参考，不用太当标准。",
+      "tools": [],
+      "durationMs": 3456.558799999999
+    }
+  ],
+  "metrics": {
+    "totalMs": 32242.695,
+    "startupMs": 9833.7936,
+    "modelRequests": 6,
+    "providerHttpRequests": 6,
+    "proposedToolCalls": 4,
+    "toolExecutions": 4,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 10998.9126,
+    "mcpInitializationMs": 10918.5446,
+    "cacheRpcCalls": 1,
+    "rpcDispatches": 2,
+    "upstreamRequests": 1,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 1.819499999999607,
+    "modelMs": 19986.605999999992,
+    "providerPayloadBytesMax": 49987,
+    "inputTokensMax": 6916,
+    "inputTokensSum": 15115,
+    "contextInputTokensMax": 12196,
+    "contextInputTokensSum": 60427,
+    "reasoningTokensSum": 2227,
+    "outputTokensSum": 3679,
+    "cacheReadTokensSum": 45312,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 64106,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 7438,
+    "firstTextMs": 22538.8519,
+    "firstCompleteResultMs": 24719.379200000003,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 6916,
+        "contextInputTokens": 7556,
+        "reasoningTokens": 165,
+        "outputTokens": 325,
+        "cacheReadTokens": 640,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7881,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 28159,
+        "durationMs": 1571.4568999999992,
+        "firstTextMs": null,
+        "firstThinkingMs": 295.34199999999873,
+        "visibleThinkingMs": 751.8081000000002,
+        "thinkingChars": 749,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 868,
+        "contextInputTokens": 8420,
+        "reasoningTokens": 17,
+        "outputTokens": 77,
+        "cacheReadTokens": 7552,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8497,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 31954,
+        "durationMs": 752.7647999999972,
+        "firstTextMs": null,
+        "firstThinkingMs": 470.36619999999675,
+        "visibleThinkingMs": 132.24800000000323,
+        "thinkingChars": 87,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 2480,
+        "contextInputTokens": 9776,
+        "reasoningTokens": 585,
+        "outputTokens": 676,
+        "cacheReadTokens": 7296,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10452,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 37123,
+        "durationMs": 3641.2947999999997,
+        "firstTextMs": null,
+        "firstThinkingMs": 555.7414999999964,
+        "visibleThinkingMs": 2532.270800000002,
+        "thinkingChars": 2390,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 561,
+        "contextInputTokens": 10929,
+        "reasoningTokens": 794,
+        "outputTokens": 1341,
+        "cacheReadTokens": 10368,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12270,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42578,
+        "durationMs": 6913.043999999998,
+        "firstTextMs": 4732.495500000001,
+        "firstThinkingMs": 562.0190000000002,
+        "visibleThinkingMs": 4054.434799999999,
+        "thinkingChars": 2851,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 3614,
+        "contextInputTokens": 11550,
+        "reasoningTokens": 132,
+        "outputTokens": 652,
+        "cacheReadTokens": 7936,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12202,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 46957,
+        "durationMs": 3810.232100000001,
+        "firstTextMs": 3794.3292,
+        "firstThinkingMs": 291.51340000000346,
+        "visibleThinkingMs": 716.7652999999991,
+        "thinkingChars": 535,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 676,
+        "contextInputTokens": 12196,
+        "reasoningTokens": 534,
+        "outputTokens": 608,
+        "cacheReadTokens": 11520,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12804,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 49987,
+        "durationMs": 3297.813399999999,
+        "firstTextMs": 3292.6313999999984,
+        "firstThinkingMs": 276.33959999999934,
+        "visibleThinkingMs": 2705.852300000006,
+        "thinkingChars": 1833,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 36,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11430,
+    "initialProviderPayloadBytes": 28159,
+    "validatedFinals": 3,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "turn": 0,
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "component",
+          "turn": 0,
+          "type": "SubjectCards"
+        },
+        "passed": true,
+        "detail": "完整组件：SubjectCards"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "turn": 2,
+          "pattern": ".+"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791452288191.5854,
+      "elapsedMs": 3263.339,
+      "durationMs": 1.819499999999607,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\component-tools-20261008-paired-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-08\\01a11ae0-5f27-73b2-b54c-ea7aa9fb6157\\146c6aa52449c116ded6d7cb23a78077",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\component-tools-20261008-paired-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-08\\01a11ae0-5f27-73b2-b54c-ea7aa9fb6157\\3ec5d8d44ada7f4d0e746fba52cf444d",
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\component-tools-20261008-paired-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-08\\01a11ae0-5f27-73b2-b54c-ea7aa9fb6157\\a7786a3d7242057b2478e054754788da"
+  ],
+  "captureIssues": []
+}

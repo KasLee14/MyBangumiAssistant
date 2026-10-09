@@ -1,0 +1,617 @@
+{
+  "note": "payload_ref records prepared provider payloads. Budget abort may prevent final payload from reaching HTTP; compare counters and only treat fully captured successful runs as performance evidence.",
+  "summary": [
+    {
+      "variant": "candidate",
+      "runs": 2,
+      "providerPayloads": 7,
+      "providerHttpRequests": 7,
+      "modelRequestStarts": 7,
+      "preparedPayloadsBeyondHttpCount": 0,
+      "responseFormats": [
+        null
+      ],
+      "prepareRootTypesWhenDeclared": [],
+      "prepareBranchesWhenDeclared": [],
+      "successfulNativeCallCounts": {
+        "prepare_component": 0,
+        "present_component": 0,
+        "present_text": 0,
+        "render_SubjectCards": 1,
+        "render_StatsCard": 0,
+        "render_ProgressView": 0,
+        "render_InfoBox": 0,
+        "render_DataTable": 0,
+        "render_Timeline": 0,
+        "render_TagCloud": 0,
+        "render_Gallery": 0,
+        "render_CompareTable": 0,
+        "render_QuoteBlock": 0,
+        "render_Callout": 0,
+        "render_LinkList": 0,
+        "prepare_SubjectCards": 0,
+        "prepare_StatsCard": 0,
+        "prepare_ProgressView": 0,
+        "prepare_InfoBox": 0,
+        "prepare_DataTable": 0,
+        "prepare_Timeline": 0,
+        "prepare_TagCloud": 0,
+        "prepare_Gallery": 0,
+        "prepare_CompareTable": 0,
+        "prepare_QuoteBlock": 0,
+        "prepare_Callout": 0,
+        "prepare_LinkList": 0
+      },
+      "initialDisplayCountMax": 0,
+      "loadoutMismatches": 0,
+      "afterCommitHttp": 0,
+      "fixtureMisses": 0,
+      "httpModelRequestCountsMatch": true,
+      "usageComplete": true,
+      "passedRunsHttpCountsMatch": true,
+      "passedRunsUsageComplete": true
+    }
+  ],
+  "records": [
+    {
+      "caseId": "recovery-once",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r3-final\\runs\\candidate\\recovery-once\\1\\tracelog\\2026-10-09\\01a11d10-5b3b-7426-8ce4-ab0a981a2b67\\c2735e2bc86e5c9d1e13771ee4c4aea8\\payloads\\41011103e47e3454f53fd047f44106a76a66a290c55e7302920d9a2e119c60b1.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r3-final\\runs\\candidate\\recovery-once\\1\\tracelog\\2026-10-09\\01a11d10-5b3b-7426-8ce4-ab0a981a2b67\\c2735e2bc86e5c9d1e13771ee4c4aea8\\payloads\\04c399f2102a3e706ff8c42cadd33e663604b815bad10912ffb8d71074c6da85.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        }
+      ],
+      "successfulNativeCalls": [],
+      "canonicalStatuses": [
+        "completed"
+      ],
+      "completeComponents": [
+        []
+      ],
+      "providerHttpRequests": 2,
+      "modelRequests": 2,
+      "capturedUsageRequests": 2,
+      "responseModels": [
+        "deepseek-flash"
+      ],
+      "routes": [
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        }
+      ],
+      "httpStatuses": [
+        200,
+        200
+      ],
+      "initialDisplaySchemas": [
+        {
+          "userTurn": 1,
+          "names": [],
+          "bytes": 0
+        }
+      ],
+      "activationSets": [],
+      "loadoutMismatches": 0,
+      "afterCommitHttp": 0,
+      "completionProofs": [
+        {
+          "source": "native_stop",
+          "finalToolCallId": null,
+          "batchCallCount": 0,
+          "batchResultCount": 0,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 2,
+          "httpAtSettled": 2,
+          "modelAtCommit": 2,
+          "modelAtSettled": 2
+        }
+      ],
+      "historyProofs": [
+        {
+          "userTurn": 1,
+          "requestIndex": 1,
+          "texts": [],
+          "projectionAudits": []
+        },
+        {
+          "userTurn": 1,
+          "requestIndex": 2,
+          "texts": [],
+          "projectionAudits": []
+        }
+      ],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    },
+    {
+      "caseId": "card-style-followup",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "passed",
+      "requests": [
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r3-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-09\\01a11d10-b18d-7263-8703-3ca89d762197\\d964023175707769012ac004791bfee5\\payloads\\8c5633e38e60601783d1a14c9a4ab22f1c74e8e319955fca46ffe87dc68f8960.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r3-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-09\\01a11d10-b18d-7263-8703-3ca89d762197\\dbfd68349124a8e4020ff5bc6f989229\\payloads\\7020a34a7fb6eb952bea804de8f2efdc9de98d587a0c0d0f31a56ac9f8942615.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r3-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-09\\01a11d10-b18d-7263-8703-3ca89d762197\\dbfd68349124a8e4020ff5bc6f989229\\payloads\\62edf0f470b1fe4940599fb45955d7dbeee6aec91f0bce3c5ba5b1ed4f22679a.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [
+            "render_SubjectCards"
+          ],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": [
+            {
+              "name": "render_SubjectCards",
+              "type": "object",
+              "schemaBytes": 2147,
+              "hasComponentDiscriminator": false,
+              "hasFields": false,
+              "hasColumns": false
+            }
+          ]
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r3-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-09\\01a11d10-b18d-7263-8703-3ca89d762197\\ec08f2fc99af2b347432b39094ca06d1\\payloads\\1dbfb6b2b709549001aac1c0765df8b033eb8e81d5142a40d46a1e47c950bf19.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        },
+        {
+          "payloadRef": "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\candidate-smoke-r3-final\\runs\\candidate\\card-style-followup\\1\\tracelog\\2026-10-09\\01a11d10-b18d-7263-8703-3ca89d762197\\ec08f2fc99af2b347432b39094ca06d1\\payloads\\81704abf0b688334629a2863f80bd33877b9b60bcbc312cf17058ed39a3db36c.json",
+          "requestedModel": "deepseek-flash",
+          "responseFormat": null,
+          "declaredNativeTools": [],
+          "prepareDeclared": false,
+          "prepareRootType": null,
+          "prepareBranches": null,
+          "displaySchemas": []
+        }
+      ],
+      "successfulNativeCalls": [
+        "render_SubjectCards"
+      ],
+      "canonicalStatuses": [
+        "completed",
+        "completed",
+        "completed"
+      ],
+      "completeComponents": [
+        [
+          "SubjectCards"
+        ],
+        [],
+        []
+      ],
+      "providerHttpRequests": 5,
+      "modelRequests": 5,
+      "capturedUsageRequests": 5,
+      "responseModels": [
+        "deepseek-flash"
+      ],
+      "routes": [
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        },
+        {
+          "provider": "deepseek",
+          "id": "deepseek-flash",
+          "api": "openai-completions",
+          "thinking": "high"
+        }
+      ],
+      "httpStatuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "initialDisplaySchemas": [
+        {
+          "userTurn": 1,
+          "names": [],
+          "bytes": 0
+        },
+        {
+          "userTurn": 2,
+          "names": [],
+          "bytes": 0
+        },
+        {
+          "userTurn": 3,
+          "names": [],
+          "bytes": 0
+        }
+      ],
+      "activationSets": [
+        {
+          "userTurn": 1,
+          "names": [
+            "render_SubjectCards"
+          ],
+          "responseBytes": 83,
+          "containsSchema": false
+        }
+      ],
+      "loadoutMismatches": 0,
+      "afterCommitHttp": 0,
+      "completionProofs": [
+        {
+          "source": "tool_finish_turn",
+          "finalToolCallId": "call_00_Eh1jmW1e2bZdhccLZLs73477",
+          "batchCallCount": 1,
+          "batchResultCount": 1,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 2,
+          "httpAtSettled": 2,
+          "modelAtCommit": 2,
+          "modelAtSettled": 2
+        },
+        {
+          "source": "native_stop",
+          "finalToolCallId": null,
+          "batchCallCount": 0,
+          "batchResultCount": 0,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 3,
+          "httpAtSettled": 3,
+          "modelAtCommit": 3,
+          "modelAtSettled": 3
+        },
+        {
+          "source": "native_stop",
+          "finalToolCallId": null,
+          "batchCallCount": 0,
+          "batchResultCount": 0,
+          "allBatchResultsSuccessful": true,
+          "httpAtCommit": 5,
+          "httpAtSettled": 5,
+          "modelAtCommit": 5,
+          "modelAtSettled": 5
+        }
+      ],
+      "historyProofs": [
+        {
+          "userTurn": 1,
+          "requestIndex": 1,
+          "texts": [],
+          "projectionAudits": []
+        },
+        {
+          "userTurn": 1,
+          "requestIndex": 2,
+          "texts": [],
+          "projectionAudits": []
+        },
+        {
+          "userTurn": 2,
+          "requestIndex": 3,
+          "texts": [
+            {
+              "sourceUserTurn": 1,
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "partIndex": 0,
+              "textHash": "867623593dd72751291a6a3911c002c6e3dc0c8e48b7592b087387cf16f29bd2",
+              "textBytes": 108,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            },
+            {
+              "sourceUserTurn": 1,
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "partIndex": 2,
+              "textHash": "8b2fab79b3980c006de7832c5115e1c3b73b76adfe16370ca1786157d7646ce5",
+              "textBytes": 1393,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            }
+          ],
+          "projectionAudits": [
+            {
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "turnId": "9761c2cd-35cd-446a-bba1-543afa3aac4e",
+              "sourceComplete": true,
+              "foldedCallCount": 1,
+              "retainedSignedCallCount": 0,
+              "summaryInjected": true,
+              "textSourceRefs": []
+            }
+          ]
+        },
+        {
+          "userTurn": 3,
+          "requestIndex": 4,
+          "texts": [
+            {
+              "sourceUserTurn": 1,
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "partIndex": 0,
+              "textHash": "867623593dd72751291a6a3911c002c6e3dc0c8e48b7592b087387cf16f29bd2",
+              "textBytes": 108,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            },
+            {
+              "sourceUserTurn": 1,
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "partIndex": 2,
+              "textHash": "8b2fab79b3980c006de7832c5115e1c3b73b76adfe16370ca1786157d7646ce5",
+              "textBytes": 1393,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            },
+            {
+              "sourceUserTurn": 2,
+              "replyId": "028833bf-2972-438f-b094-423480af85d7",
+              "partIndex": 0,
+              "textHash": "8f46df19f2a6b13bd41d51f5c8f14e67bfbe585c760a68d52d8f2092c13b1a33",
+              "textBytes": 1650,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            }
+          ],
+          "projectionAudits": [
+            {
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "turnId": "9761c2cd-35cd-446a-bba1-543afa3aac4e",
+              "sourceComplete": true,
+              "foldedCallCount": 1,
+              "retainedSignedCallCount": 0,
+              "summaryInjected": true,
+              "textSourceRefs": []
+            },
+            {
+              "replyId": "028833bf-2972-438f-b094-423480af85d7",
+              "turnId": "88ce038b-3bb8-4ac8-ae1d-523d4013898c",
+              "sourceComplete": true,
+              "foldedCallCount": 0,
+              "retainedSignedCallCount": 0,
+              "summaryInjected": true,
+              "textSourceRefs": []
+            }
+          ]
+        },
+        {
+          "userTurn": 3,
+          "requestIndex": 5,
+          "texts": [
+            {
+              "sourceUserTurn": 1,
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "partIndex": 0,
+              "textHash": "867623593dd72751291a6a3911c002c6e3dc0c8e48b7592b087387cf16f29bd2",
+              "textBytes": 108,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            },
+            {
+              "sourceUserTurn": 1,
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "partIndex": 2,
+              "textHash": "8b2fab79b3980c006de7832c5115e1c3b73b76adfe16370ca1786157d7646ce5",
+              "textBytes": 1393,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            },
+            {
+              "sourceUserTurn": 2,
+              "replyId": "028833bf-2972-438f-b094-423480af85d7",
+              "partIndex": 0,
+              "textHash": "8f46df19f2a6b13bd41d51f5c8f14e67bfbe585c760a68d52d8f2092c13b1a33",
+              "textBytes": 1650,
+              "nativeOccurrences": 1,
+              "displayArgumentOccurrences": 0,
+              "otherOccurrences": 0,
+              "nativeRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 1
+              },
+              "displayArgumentRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "otherRepresentations": {
+                "raw": 0,
+                "jsonEncoded": 0
+              },
+              "signedFallback": false
+            }
+          ],
+          "projectionAudits": [
+            {
+              "replyId": "2ddf8952-ba3f-43ff-9f0b-c808decbe729",
+              "turnId": "9761c2cd-35cd-446a-bba1-543afa3aac4e",
+              "sourceComplete": true,
+              "foldedCallCount": 1,
+              "retainedSignedCallCount": 0,
+              "summaryInjected": true,
+              "textSourceRefs": []
+            },
+            {
+              "replyId": "028833bf-2972-438f-b094-423480af85d7",
+              "turnId": "88ce038b-3bb8-4ac8-ae1d-523d4013898c",
+              "sourceComplete": true,
+              "foldedCallCount": 0,
+              "retainedSignedCallCount": 0,
+              "summaryInjected": true,
+              "textSourceRefs": []
+            }
+          ]
+        }
+      ],
+      "fixtureMisses": 0,
+      "captureIssues": []
+    }
+  ]
+}

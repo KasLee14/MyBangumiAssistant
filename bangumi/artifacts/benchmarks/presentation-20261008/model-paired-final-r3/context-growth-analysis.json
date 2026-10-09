@@ -1,0 +1,5186 @@
+{
+  "summary": {
+    "eligible": 15,
+    "sumInputGrowth": 1.7896856641027195,
+    "peakInputGrowth": 0.3705762250453721,
+    "averageRequestInputGrowth": 0.39517972987344474,
+    "schema": {
+      "control": 11430,
+      "candidate": 21069
+    }
+  },
+  "examples": [
+    {
+      "case": "native-plain-text",
+      "variants": {
+        "control": {
+          "requests": 1,
+          "totalInput": 7524,
+          "maxInput": 7524,
+          "toolResultBytes": 0,
+          "requestTokens": [
+            7524
+          ],
+          "toolNames": [],
+          "payloads": [
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12779,
+                  "contentBytes": 12751,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 189,
+                  "contentBytes": 163,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12779,
+                "user": 189
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "requests": 1,
+          "totalInput": 10492,
+          "maxInput": 10492,
+          "toolResultBytes": 0,
+          "requestTokens": [
+            10492
+          ],
+          "toolNames": [],
+          "payloads": [
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10839,
+                  "contentBytes": 10811,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 189,
+                  "contentBytes": 163,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10839,
+                "user": 189
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "resource-card",
+      "variants": {
+        "control": {
+          "requests": 3,
+          "totalInput": 24835,
+          "maxInput": 9048,
+          "toolResultBytes": 5037,
+          "requestTokens": [
+            7520,
+            8267,
+            9048
+          ],
+          "toolNames": [
+            "get_subject_details",
+            "read_component_index",
+            "read_component_spec"
+          ],
+          "payloads": [
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12775,
+                  "contentBytes": 12747,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12775,
+                "user": 174
+              }
+            },
+            {
+              "seq": 26,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12775,
+                  "contentBytes": 12747,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1094,
+                  "contentBytes": 4,
+                  "reasoningBytes": 584,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1364,
+                  "contentBytes": 1288,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12775,
+                "user": 174,
+                "assistant": 1094,
+                "tool": 2049
+              }
+            },
+            {
+              "seq": 38,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12775,
+                  "contentBytes": 12747,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1094,
+                  "contentBytes": 4,
+                  "reasoningBytes": 584,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1364,
+                  "contentBytes": 1288,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 402,
+                  "contentBytes": 4,
+                  "reasoningBytes": 151,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 3141,
+                  "contentBytes": 3065,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12775,
+                "user": 174,
+                "assistant": 1496,
+                "tool": 5190
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "requests": 7,
+          "totalInput": 83961,
+          "maxInput": 13142,
+          "toolResultBytes": 4529,
+          "requestTokens": [
+            10488,
+            11491,
+            11705,
+            12080,
+            12245,
+            12810,
+            13142
+          ],
+          "toolNames": [
+            "get_subject_details",
+            "read_component_spec",
+            "read_component_index",
+            "read_component_spec",
+            "prepare_component",
+            "present_text",
+            "present_component",
+            "present_text"
+          ],
+          "payloads": [
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10835,
+                  "contentBytes": 10807,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10835,
+                "user": 174
+              }
+            },
+            {
+              "seq": 27,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10835,
+                  "contentBytes": 10807,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2091,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1561,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1529,
+                  "contentBytes": 1453,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10835,
+                "user": 174,
+                "assistant": 2091,
+                "tool": 2108
+              }
+            },
+            {
+              "seq": 39,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10835,
+                  "contentBytes": 10807,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2091,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1561,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1529,
+                  "contentBytes": 1453,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 277,
+                  "contentBytes": 4,
+                  "reasoningBytes": 60,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10835,
+                "user": 174,
+                "assistant": 2368,
+                "tool": 2793
+              }
+            },
+            {
+              "seq": 51,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10835,
+                  "contentBytes": 10807,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2091,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1561,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1529,
+                  "contentBytes": 1453,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 277,
+                  "contentBytes": 4,
+                  "reasoningBytes": 60,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10835,
+                "user": 174,
+                "assistant": 2591,
+                "tool": 4233
+              }
+            },
+            {
+              "seq": 64,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10835,
+                  "contentBytes": 10807,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2091,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1561,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1529,
+                  "contentBytes": 1453,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 277,
+                  "contentBytes": 4,
+                  "reasoningBytes": 60,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 321,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 212,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10835,
+                "user": 174,
+                "assistant": 2912,
+                "tool": 4445
+              }
+            },
+            {
+              "seq": 86,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10835,
+                  "contentBytes": 10807,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2091,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1561,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1529,
+                  "contentBytes": 1453,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 277,
+                  "contentBytes": 4,
+                  "reasoningBytes": 60,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 321,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 212,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2105,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1146,
+                  "callNames": [
+                    "present_text",
+                    "present_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 166,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 166,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10835,
+                "user": 174,
+                "assistant": 5017,
+                "tool": 4777
+              }
+            },
+            {
+              "seq": 101,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10835,
+                  "contentBytes": 10807,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 174,
+                  "contentBytes": 148,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2091,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1561,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1529,
+                  "contentBytes": 1453,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 277,
+                  "contentBytes": 4,
+                  "reasoningBytes": 60,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 321,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 212,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2105,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1146,
+                  "callNames": [
+                    "present_text",
+                    "present_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 166,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 166,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1428,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_text"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10835,
+                "user": 174,
+                "assistant": 6445,
+                "tool": 4946
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "selection-text-interleave",
+      "variants": {
+        "control": {
+          "requests": 3,
+          "totalInput": 26705,
+          "maxInput": 10090,
+          "toolResultBytes": 7006,
+          "requestTokens": [
+            7570,
+            9045,
+            10090
+          ],
+          "toolNames": [
+            "get_subject_details",
+            "get_subject_details",
+            "get_subject_details",
+            "read_component_index",
+            "read_component_spec"
+          ],
+          "payloads": [
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12787,
+                  "contentBytes": 12759,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12787,
+                "user": 394
+              }
+            },
+            {
+              "seq": 38,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12787,
+                  "contentBytes": 12759,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2035,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1125,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12787,
+                "user": 394,
+                "assistant": 2035,
+                "tool": 4120
+              }
+            },
+            {
+              "seq": 51,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12787,
+                  "contentBytes": 12759,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2035,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1125,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1521,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1270,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 3141,
+                  "contentBytes": 3065,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12787,
+                "user": 394,
+                "assistant": 3556,
+                "tool": 7261
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "requests": 9,
+          "totalInput": 112546,
+          "maxInput": 13670,
+          "toolResultBytes": 6333,
+          "requestTokens": [
+            10538,
+            11628,
+            11974,
+            12176,
+            12551,
+            13164,
+            13360,
+            13485,
+            13670
+          ],
+          "toolNames": [
+            "get_subject_details",
+            "get_subject_details",
+            "get_subject_details",
+            "read_component_spec",
+            "read_component_index",
+            "read_component_spec",
+            "prepare_component",
+            "present_text",
+            "present_component",
+            "present_text"
+          ],
+          "payloads": [
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394
+              }
+            },
+            {
+              "seq": 33,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 943,
+                  "contentBytes": 4,
+                  "reasoningBytes": 179,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394,
+                "assistant": 943,
+                "tool": 3435
+              }
+            },
+            {
+              "seq": 46,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 943,
+                  "contentBytes": 4,
+                  "reasoningBytes": 179,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 863,
+                  "contentBytes": 4,
+                  "reasoningBytes": 645,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394,
+                "assistant": 1806,
+                "tool": 4014
+              }
+            },
+            {
+              "seq": 58,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 943,
+                  "contentBytes": 4,
+                  "reasoningBytes": 179,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 863,
+                  "contentBytes": 4,
+                  "reasoningBytes": 645,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 222,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 688,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394,
+                "assistant": 2028,
+                "tool": 4702
+              }
+            },
+            {
+              "seq": 70,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 943,
+                  "contentBytes": 4,
+                  "reasoningBytes": 179,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 863,
+                  "contentBytes": 4,
+                  "reasoningBytes": 645,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 222,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 688,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394,
+                "assistant": 2251,
+                "tool": 6142
+              }
+            },
+            {
+              "seq": 85,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 943,
+                  "contentBytes": 4,
+                  "reasoningBytes": 179,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 863,
+                  "contentBytes": 4,
+                  "reasoningBytes": 645,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 222,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 688,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2349,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1991,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 209,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394,
+                "assistant": 4600,
+                "tool": 6351
+              }
+            },
+            {
+              "seq": 99,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 943,
+                  "contentBytes": 4,
+                  "reasoningBytes": 179,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 863,
+                  "contentBytes": 4,
+                  "reasoningBytes": 645,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 222,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 688,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2349,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1991,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 209,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 576,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_text"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394,
+                "assistant": 5176,
+                "tool": 6520
+              }
+            },
+            {
+              "seq": 113,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 943,
+                  "contentBytes": 4,
+                  "reasoningBytes": 179,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 863,
+                  "contentBytes": 4,
+                  "reasoningBytes": 645,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 222,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 688,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2349,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1991,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 209,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 576,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_text"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 265,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394,
+                "assistant": 5441,
+                "tool": 6689
+              }
+            },
+            {
+              "seq": 127,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10847,
+                  "contentBytes": 10819,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 394,
+                  "contentBytes": 368,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 943,
+                  "contentBytes": 4,
+                  "reasoningBytes": 179,
+                  "callNames": [
+                    "get_subject_details",
+                    "get_subject_details",
+                    "get_subject_details"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1128,
+                  "contentBytes": 1052,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1149,
+                  "contentBytes": 1073,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1158,
+                  "contentBytes": 1082,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 863,
+                  "contentBytes": 4,
+                  "reasoningBytes": 645,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 222,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 688,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 223,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1440,
+                  "contentBytes": 1361,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2349,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1991,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 209,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 576,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_text"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 265,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 600,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_text"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10847,
+                "user": 394,
+                "assistant": 6041,
+                "tool": 6858
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "card-style-followup",
+      "variants": {
+        "control": {
+          "requests": 6,
+          "totalInput": 56418,
+          "maxInput": 11825,
+          "toolResultBytes": 5448,
+          "requestTokens": [
+            7521,
+            8481,
+            9241,
+            11090,
+            11825,
+            8260
+          ],
+          "toolNames": [
+            "get_subject_details",
+            "read_component_index",
+            "read_component_spec"
+          ],
+          "payloads": [
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12781,
+                  "contentBytes": 12753,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12781,
+                "user": 168
+              }
+            },
+            {
+              "seq": 26,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12781,
+                  "contentBytes": 12753,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1619,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1057,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1733,
+                  "contentBytes": 1657,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12781,
+                "user": 168,
+                "assistant": 1619,
+                "tool": 2418
+              }
+            },
+            {
+              "seq": 38,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12781,
+                  "contentBytes": 12753,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1619,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1057,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1733,
+                  "contentBytes": 1657,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 320,
+                  "contentBytes": 4,
+                  "reasoningBytes": 102,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 3183,
+                  "contentBytes": 3107,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12781,
+                "user": 168,
+                "assistant": 1939,
+                "tool": 5601
+              }
+            },
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12781,
+                  "contentBytes": 12753,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1619,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1057,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1677,
+                  "contentBytes": 1601,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 320,
+                  "contentBytes": 4,
+                  "reasoningBytes": 102,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 3183,
+                  "contentBytes": 3107,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 7754,
+                  "contentBytes": 2399,
+                  "reasoningBytes": 5303,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 161,
+                  "contentBytes": 135,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2901,
+                  "contentBytes": 2231,
+                  "reasoningBytes": 618,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 164,
+                  "contentBytes": 138,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12781,
+                "user": 493,
+                "assistant": 12594,
+                "tool": 5545
+              }
+            },
+            {
+              "seq": 19,
+              "tools": [
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 13243,
+                  "contentBytes": 13215,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1619,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1057,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1677,
+                  "contentBytes": 1601,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 320,
+                  "contentBytes": 4,
+                  "reasoningBytes": 102,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 3183,
+                  "contentBytes": 3107,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 7754,
+                  "contentBytes": 2399,
+                  "reasoningBytes": 5303,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 161,
+                  "contentBytes": 135,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2901,
+                  "contentBytes": 2231,
+                  "reasoningBytes": 618,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 164,
+                  "contentBytes": 138,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 1817,
+                  "contentBytes": 1791,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 13243,
+                "user": 2310,
+                "assistant": 12594,
+                "tool": 5545
+              }
+            },
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 742,
+                  "schemaBytes": 251
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 12781,
+                  "contentBytes": 12753,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1619,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1057,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1677,
+                  "contentBytes": 1601,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 320,
+                  "contentBytes": 4,
+                  "reasoningBytes": 102,
+                  "callNames": [
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 3183,
+                  "contentBytes": 3107,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 7754,
+                  "contentBytes": 2399,
+                  "reasoningBytes": 5303,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 161,
+                  "contentBytes": 135,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 12781,
+                "user": 329,
+                "assistant": 9693,
+                "tool": 5545
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "requests": 8,
+          "totalInput": 104951,
+          "maxInput": 16096,
+          "toolResultBytes": 7247,
+          "requestTokens": [
+            10489,
+            11370,
+            11762,
+            13001,
+            13582,
+            13710,
+            14941,
+            16096
+          ],
+          "toolNames": [
+            "get_subject_details",
+            "read_component_spec",
+            "read_component_index",
+            "read_component_index",
+            "read_component_spec",
+            "read",
+            "prepare_component",
+            "present_component"
+          ],
+          "payloads": [
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10841,
+                  "contentBytes": 10813,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1444,
+                  "contentBytes": 4,
+                  "reasoningBytes": 895,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1537,
+                  "contentBytes": 1461,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 407,
+                  "contentBytes": 4,
+                  "reasoningBytes": 37,
+                  "callNames": [
+                    "read_component_index",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 639,
+                  "contentBytes": 563,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1971,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1513,
+                  "callNames": [
+                    "read_component_spec",
+                    "read"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1451,
+                  "contentBytes": 1375,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 2333,
+                  "contentBytes": 2257,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2042,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1743,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 153,
+                  "contentBytes": 77,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 209,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 5452,
+                  "contentBytes": 4176,
+                  "reasoningBytes": 1224,
+                  "callNames": [],
+                  "publishedSummaryBytes": 2186
+                },
+                {
+                  "role": "user",
+                  "bytes": 161,
+                  "contentBytes": 135,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 4687,
+                  "contentBytes": 3610,
+                  "reasoningBytes": 1025,
+                  "callNames": [],
+                  "publishedSummaryBytes": 1832
+                },
+                {
+                  "role": "user",
+                  "bytes": 164,
+                  "contentBytes": 138,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10841,
+                "user": 493,
+                "assistant": 16212,
+                "tool": 7546
+              }
+            },
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10841,
+                  "contentBytes": 10813,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10841,
+                "user": 168
+              }
+            },
+            {
+              "seq": 27,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10841,
+                  "contentBytes": 10813,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1444,
+                  "contentBytes": 4,
+                  "reasoningBytes": 895,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1593,
+                  "contentBytes": 1517,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10841,
+                "user": 168,
+                "assistant": 1444,
+                "tool": 2172
+              }
+            },
+            {
+              "seq": 43,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10841,
+                  "contentBytes": 10813,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1444,
+                  "contentBytes": 4,
+                  "reasoningBytes": 895,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1593,
+                  "contentBytes": 1517,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 407,
+                  "contentBytes": 4,
+                  "reasoningBytes": 37,
+                  "callNames": [
+                    "read_component_index",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 639,
+                  "contentBytes": 563,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10841,
+                "user": 168,
+                "assistant": 1851,
+                "tool": 3496
+              }
+            },
+            {
+              "seq": 61,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10841,
+                  "contentBytes": 10813,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1444,
+                  "contentBytes": 4,
+                  "reasoningBytes": 895,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1593,
+                  "contentBytes": 1517,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 407,
+                  "contentBytes": 4,
+                  "reasoningBytes": 37,
+                  "callNames": [
+                    "read_component_index",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 639,
+                  "contentBytes": 563,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1971,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1513,
+                  "callNames": [
+                    "read_component_spec",
+                    "read"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1451,
+                  "contentBytes": 1375,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 2333,
+                  "contentBytes": 2257,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10841,
+                "user": 168,
+                "assistant": 3822,
+                "tool": 7280
+              }
+            },
+            {
+              "seq": 76,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10841,
+                  "contentBytes": 10813,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1444,
+                  "contentBytes": 4,
+                  "reasoningBytes": 895,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1593,
+                  "contentBytes": 1517,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 407,
+                  "contentBytes": 4,
+                  "reasoningBytes": 37,
+                  "callNames": [
+                    "read_component_index",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 639,
+                  "contentBytes": 563,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1971,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1513,
+                  "callNames": [
+                    "read_component_spec",
+                    "read"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1451,
+                  "contentBytes": 1375,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 2333,
+                  "contentBytes": 2257,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2098,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1743,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 209,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10841,
+                "user": 168,
+                "assistant": 5920,
+                "tool": 7489
+              }
+            },
+            {
+              "seq": 90,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10841,
+                  "contentBytes": 10813,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1444,
+                  "contentBytes": 4,
+                  "reasoningBytes": 895,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1593,
+                  "contentBytes": 1517,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 407,
+                  "contentBytes": 4,
+                  "reasoningBytes": 37,
+                  "callNames": [
+                    "read_component_index",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 639,
+                  "contentBytes": 563,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1971,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1513,
+                  "callNames": [
+                    "read_component_spec",
+                    "read"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1451,
+                  "contentBytes": 1375,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 2333,
+                  "contentBytes": 2257,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2098,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1743,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 209,
+                  "contentBytes": 133,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 265,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10841,
+                "user": 168,
+                "assistant": 6185,
+                "tool": 7658
+              }
+            },
+            {
+              "seq": 7,
+              "tools": [
+                {
+                  "name": "discover_bangumi_tools",
+                  "bytes": 1478,
+                  "schemaBytes": 919
+                },
+                {
+                  "name": "read_component_index",
+                  "bytes": 511,
+                  "schemaBytes": 239
+                },
+                {
+                  "name": "read_component_spec",
+                  "bytes": 515,
+                  "schemaBytes": 179
+                },
+                {
+                  "name": "prepare_component",
+                  "bytes": 9691,
+                  "schemaBytes": 9361,
+                  "branches": 12
+                },
+                {
+                  "name": "present_component",
+                  "bytes": 504,
+                  "schemaBytes": 209
+                },
+                {
+                  "name": "present_text",
+                  "bytes": 406,
+                  "schemaBytes": 138
+                },
+                {
+                  "name": "execute_write_batch",
+                  "bytes": 10386,
+                  "schemaBytes": 9003
+                },
+                {
+                  "name": "read",
+                  "bytes": 547,
+                  "schemaBytes": 304
+                },
+                {
+                  "name": "get_subject_details",
+                  "bytes": 1245,
+                  "schemaBytes": 707
+                }
+              ],
+              "messages": [
+                {
+                  "role": "system",
+                  "bytes": 10841,
+                  "contentBytes": 10813,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "user",
+                  "bytes": 168,
+                  "contentBytes": 142,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1444,
+                  "contentBytes": 4,
+                  "reasoningBytes": 895,
+                  "callNames": [
+                    "get_subject_details",
+                    "read_component_spec"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1537,
+                  "contentBytes": 1461,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 579,
+                  "contentBytes": 503,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 407,
+                  "contentBytes": 4,
+                  "reasoningBytes": 37,
+                  "callNames": [
+                    "read_component_index",
+                    "read_component_index"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 685,
+                  "contentBytes": 609,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 639,
+                  "contentBytes": 563,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 1971,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1513,
+                  "callNames": [
+                    "read_component_spec",
+                    "read"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 1451,
+                  "contentBytes": 1375,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 2333,
+                  "contentBytes": 2257,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 2042,
+                  "contentBytes": 4,
+                  "reasoningBytes": 1743,
+                  "callNames": [
+                    "prepare_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 153,
+                  "contentBytes": 77,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 209,
+                  "contentBytes": 4,
+                  "reasoningBytes": 2,
+                  "callNames": [
+                    "present_component"
+                  ],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "tool",
+                  "bytes": 169,
+                  "contentBytes": 90,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                },
+                {
+                  "role": "assistant",
+                  "bytes": 5452,
+                  "contentBytes": 4176,
+                  "reasoningBytes": 1224,
+                  "callNames": [],
+                  "publishedSummaryBytes": 2186
+                },
+                {
+                  "role": "user",
+                  "bytes": 161,
+                  "contentBytes": 135,
+                  "reasoningBytes": 4,
+                  "callNames": [],
+                  "publishedSummaryBytes": 0
+                }
+              ],
+              "roles": {
+                "system": 10841,
+                "user": 329,
+                "assistant": 11525,
+                "tool": 7546
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

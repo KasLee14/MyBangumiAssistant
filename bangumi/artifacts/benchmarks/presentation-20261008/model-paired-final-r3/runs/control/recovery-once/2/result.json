@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "caseId": "recovery-once",
+  "family": "recovery",
+  "variant": "control",
+  "repeat": 2,
+  "protocolHash": "a3a071371b27bf6abaa37a9f17241c9e8f725f06e8491123913cc152535b50eb",
+  "versionHash": "06fe7fd155181c366aaab1ad2394a260041b9bdfd863c4c2c3279773a4ab35f6",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "查询条目1001的评分和首播日期；若只读接口暂时失败，可以在有限次数内恢复，给出最终核实的信息。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "已核实条目 **1001《星港追踪》**（TV，共 12 集）的如下信息：\n\n- **评分：8.4**（排行榜第 1 位，评分人数 3000）\n- **首播日期：2024-01-08**\n\n本次读取一次即成功，未发生接口失败，无需重试恢复。数据来源为公开只读接口（未登录的匿名访问，NSFW 权限未检查；该条目为普通 SFW 内容，不受影响）。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "已核实条目 **1001《星港追踪》**（TV，共 12 集）的如下信息：\n\n- **评分：8.4**（排行榜第 1 位，评分人数 3000）\n- **首播日期：2024-01-08**\n\n本次读取一次即成功，未发生接口失败，无需重试恢复。数据来源为公开只读接口（未登录的匿名访问，NSFW 权限未检查；该条目为普通 SFW 内容，不受影响）。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1001,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "date",
+              "score",
+              "rank",
+              "ratingCount",
+              "platform",
+              "subjectType",
+              "totalEpisodes"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1001,
+              "subjectType": 2,
+              "name": "星港追踪",
+              "nameCn": "星港追踪",
+              "date": "2024-01-08",
+              "platform": "TV",
+              "score": 8.4,
+              "rank": 1,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "included": [
+                "summary"
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:39:59.304Z"
+              },
+              "resourceRef": "rr_120fbe066aa81d245db9fd39f683633d",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "date",
+                "score",
+                "rank",
+                "ratingCount",
+                "platform",
+                "subjectType",
+                "totalEpisodes"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary"
+              ]
+            }
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 14448.242599999998
+    }
+  ],
+  "metrics": {
+    "totalMs": 14516.045399999999,
+    "startupMs": 8631.5182,
+    "modelRequests": 2,
+    "providerHttpRequests": 2,
+    "proposedToolCalls": 1,
+    "toolExecutions": 1,
+    "toolErrors": 0,
+    "mcpCalls": 1,
+    "mcpMs": 10771.350600000002,
+    "mcpInitializationMs": 10537.854899999998,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 1,
+    "upstreamRequests": 2,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 2.0398000000004686,
+    "modelMs": 2980.776200000002,
+    "providerPayloadBytesMax": 29819,
+    "inputTokensMax": 6885,
+    "inputTokensSum": 7161,
+    "contextInputTokensMax": 7956,
+    "contextInputTokensSum": 15481,
+    "reasoningTokensSum": 212,
+    "outputTokensSum": 435,
+    "cacheReadTokensSum": 8320,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 15916,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 980,
+    "firstTextMs": 14420.124200000002,
+    "firstCompleteResultMs": 14424.8341,
+    "providerFirstTextMs": 14420.124200000002,
+    "firstPublishedBlockMs": null,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 6885,
+        "contextInputTokens": 7525,
+        "reasoningTokens": 81,
+        "outputTokens": 173,
+        "cacheReadTokens": 640,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7698,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 28100,
+        "durationMs": 1320.8685999999998,
+        "firstTextMs": null,
+        "firstThinkingMs": 638.6816999999992,
+        "visibleThinkingMs": 462.6017000000011,
+        "thinkingChars": 338,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 276,
+        "contextInputTokens": 7956,
+        "reasoningTokens": 131,
+        "outputTokens": 262,
+        "cacheReadTokens": 7680,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8218,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 29819,
+        "durationMs": 1659.9076000000023,
+        "firstTextMs": 1655.180900000003,
+        "firstThinkingMs": 405.14530000000013,
+        "visibleThinkingMs": 718.7919000000002,
+        "thinkingChars": 503,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 12,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11430,
+    "initialProviderPayloadBytes": 28100,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1001
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1001"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1001
+          ],
+          "fields": [
+            "score",
+            "date"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1001,[\"score\",\"date\"]]]"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791477599146.4126,
+      "elapsedMs": 3137.0914000000002,
+      "durationMs": 1.7484999999996944,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 503,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    },
+    {
+      "seq": 2,
+      "timestampMs": 1791477599304.7334,
+      "elapsedMs": 3295.4121999999998,
+      "durationMs": 0.29130000000077416,
+      "source": "fixture",
+      "path": "/v0/subjects/1001",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1001,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-paired-final-r3\\runs\\control\\recovery-once\\2\\tracelog\\2026-10-09\\01a11c62-990f-7574-9636-2c97be007cca\\97323048014273e5015966584e98e890"
+  ],
+  "captureIssues": []
+}

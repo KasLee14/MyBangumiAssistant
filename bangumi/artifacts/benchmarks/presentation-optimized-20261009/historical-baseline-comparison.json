@@ -1,0 +1,438 @@
+{
+  "note": "No new model or upstream requests. Original observations and grades were not modified. Historical comparisons do not establish a same-harness randomized causal A/B result.",
+  "cohorts": [
+    {
+      "label": "earliest-all-tools-json",
+      "evidence": "historical cross-batch comparison only",
+      "originalDirectory": "component-tools-20261008-paired-accepted",
+      "originalVersion": "10c3f3190f85dce579244f87d29448cf166a24130a96001952459c12de16b64b",
+      "currentVersion": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+      "originalRuns": 12,
+      "originalPassed": 11,
+      "matchedPairs": 9,
+      "matchedIds": [
+        "facts-basic:1",
+        "facts-basic:2",
+        "resource-card:1",
+        "resource-card:2",
+        "followup-filter:1",
+        "followup-filter:2",
+        "recovery-once:1",
+        "recovery-once:2",
+        "card-style-followup:1"
+      ],
+      "sameModel": true,
+      "sameThinking": true,
+      "sameModelConfig": false,
+      "sameHarness": false,
+      "sameFixtures": true,
+      "caseChecks": [
+        {
+          "caseId": "facts-basic",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "resource-card",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "community-short",
+          "samePrompts": false,
+          "sameRules": false,
+          "sameBudget": false
+        },
+        {
+          "caseId": "followup-filter",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "recovery-once",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "card-style-followup",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        }
+      ],
+      "metrics": {
+        "modelRequests": {
+          "pairs": 9,
+          "originalSum": 24,
+          "currentSum": 28,
+          "originalMedian": 2,
+          "currentMedian": 3,
+          "sumDeltaPercent": 16.666666666666675
+        },
+        "contextInputTokensSum": {
+          "pairs": 9,
+          "originalSum": 1073136,
+          "currentSum": 248197,
+          "originalMedian": 95086,
+          "currentMedian": 24059,
+          "sumDeltaPercent": -76.87180376019442
+        },
+        "contextInputTokensMax": {
+          "pairs": 9,
+          "originalSum": 435705,
+          "currentSum": 90159,
+          "originalMedian": 47853,
+          "currentMedian": 9256,
+          "sumDeltaPercent": -79.30732950046476
+        },
+        "totalMs": {
+          "pairs": 9,
+          "originalSum": 206627.58289999998,
+          "currentSum": 171579.70609999998,
+          "originalMedian": 22679.904099999996,
+          "currentMedian": 18227.322200000002,
+          "sumDeltaPercent": -16.961857806255164
+        },
+        "modelMs": {
+          "pairs": 9,
+          "originalSum": 62594.30920000001,
+          "currentSum": 76805.1042,
+          "originalMedian": 6212.098100000003,
+          "currentMedian": 7688.214400000004,
+          "sumDeltaPercent": 22.703014350064898
+        },
+        "initialToolCount": {
+          "pairs": 9,
+          "originalSum": 531,
+          "currentSum": 54,
+          "originalMedian": 59,
+          "currentMedian": 6,
+          "sumDeltaPercent": -89.83050847457628
+        },
+        "initialToolSchemaBytes": {
+          "pairs": 9,
+          "originalSum": 938655,
+          "currentSum": 104472,
+          "originalMedian": 104295,
+          "currentMedian": 11608,
+          "sumDeltaPercent": -88.87003212042764
+        }
+      }
+    },
+    {
+      "label": "pre-presentation-mixed-json",
+      "evidence": "historical cross-batch comparison only",
+      "originalDirectory": "presentation-20261008/model-paired-final-r3",
+      "originalVersion": "06fe7fd155181c366aaab1ad2394a260041b9bdfd863c4c2c3279773a4ab35f6",
+      "currentVersion": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+      "originalRuns": 20,
+      "originalPassed": 18,
+      "matchedPairs": 18,
+      "matchedIds": [
+        "facts-basic:1",
+        "facts-basic:2",
+        "resource-card:1",
+        "followup-filter:1",
+        "followup-filter:2",
+        "recovery-once:1",
+        "recovery-once:2",
+        "card-style-followup:1",
+        "facts-card-complete:1",
+        "facts-card-complete:2",
+        "facts-data-table:1",
+        "facts-data-table:2",
+        "facts-info-box:1",
+        "facts-info-box:2",
+        "selection-text-interleave:1",
+        "selection-text-interleave:2",
+        "native-plain-text:1",
+        "native-plain-text:2"
+      ],
+      "sameModel": true,
+      "sameThinking": true,
+      "sameModelConfig": true,
+      "sameHarness": false,
+      "sameFixtures": true,
+      "caseChecks": [
+        {
+          "caseId": "facts-basic",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "resource-card",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "followup-filter",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "recovery-once",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "card-style-followup",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "facts-card-complete",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "facts-data-table",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "facts-info-box",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "selection-text-interleave",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "native-plain-text",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        }
+      ],
+      "metrics": {
+        "modelRequests": {
+          "pairs": 18,
+          "originalSum": 66,
+          "currentSum": 45,
+          "originalMedian": 3,
+          "currentMedian": 2,
+          "sumDeltaPercent": -31.818181818181824
+        },
+        "contextInputTokensSum": {
+          "pairs": 18,
+          "originalSum": 577093,
+          "currentSum": 385219,
+          "originalMedian": 25914,
+          "currentMedian": 16520,
+          "sumDeltaPercent": -33.24836724756668
+        },
+        "contextInputTokensMax": {
+          "pairs": 18,
+          "originalSum": 172505,
+          "currentSum": 168665,
+          "originalMedian": 9124,
+          "currentMedian": 9230.5,
+          "sumDeltaPercent": -2.2260224341323465
+        },
+        "totalMs": {
+          "pairs": 18,
+          "originalSum": 322290.92950000014,
+          "currentSum": 273008.6695,
+          "originalMedian": 18180.41335,
+          "currentMedian": 14839.21205,
+          "sumDeltaPercent": -15.2912339408547
+        },
+        "modelMs": {
+          "pairs": 18,
+          "originalSum": 132064.5649,
+          "currentSum": 104989.33490000002,
+          "originalMedian": 6268.153449999999,
+          "currentMedian": 4512.077150000001,
+          "sumDeltaPercent": -20.501510015575708
+        },
+        "initialToolCount": {
+          "pairs": 18,
+          "originalSum": 108,
+          "currentSum": 108,
+          "originalMedian": 6,
+          "currentMedian": 6,
+          "sumDeltaPercent": 0
+        },
+        "initialToolSchemaBytes": {
+          "pairs": 18,
+          "originalSum": 205740,
+          "currentSum": 208944,
+          "originalMedian": 11430,
+          "currentMedian": 11608,
+          "sumDeltaPercent": 1.5573053368328926
+        }
+      }
+    },
+    {
+      "label": "prepare-present-latest-direct-control",
+      "evidence": "formal same-batch paired comparison",
+      "originalDirectory": "presentation-optimized-20261009/model-paired-r4-final",
+      "originalVersion": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168",
+      "currentVersion": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+      "originalRuns": 20,
+      "originalPassed": 19,
+      "matchedPairs": 19,
+      "matchedIds": [
+        "facts-basic:1",
+        "facts-basic:2",
+        "resource-card:1",
+        "resource-card:2",
+        "followup-filter:1",
+        "followup-filter:2",
+        "recovery-once:1",
+        "recovery-once:2",
+        "card-style-followup:1",
+        "card-style-followup:2",
+        "facts-card-complete:1",
+        "facts-card-complete:2",
+        "facts-data-table:2",
+        "facts-info-box:1",
+        "facts-info-box:2",
+        "selection-text-interleave:1",
+        "selection-text-interleave:2",
+        "native-plain-text:1",
+        "native-plain-text:2"
+      ],
+      "sameModel": true,
+      "sameThinking": true,
+      "sameModelConfig": true,
+      "sameHarness": true,
+      "sameFixtures": true,
+      "caseChecks": [
+        {
+          "caseId": "facts-basic",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "resource-card",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "followup-filter",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "recovery-once",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "card-style-followup",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "facts-card-complete",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "facts-data-table",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "facts-info-box",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "selection-text-interleave",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        },
+        {
+          "caseId": "native-plain-text",
+          "samePrompts": true,
+          "sameRules": true,
+          "sameBudget": true
+        }
+      ],
+      "metrics": {
+        "modelRequests": {
+          "pairs": 19,
+          "originalSum": 135,
+          "currentSum": 50,
+          "originalMedian": 8,
+          "currentMedian": 2,
+          "sumDeltaPercent": -62.96296296296296
+        },
+        "contextInputTokensSum": {
+          "pairs": 19,
+          "originalSum": 1939946,
+          "currentSum": 434300,
+          "originalMedian": 96803,
+          "currentMedian": 16560,
+          "sumDeltaPercent": -77.61277891240272
+        },
+        "contextInputTokensMax": {
+          "pairs": 19,
+          "originalSum": 284555,
+          "currentSum": 180182,
+          "originalMedian": 13195,
+          "currentMedian": 9211,
+          "sumDeltaPercent": -36.67937657043454
+        },
+        "totalMs": {
+          "pairs": 19,
+          "originalSum": 365436.47719999996,
+          "currentSum": 305659.3582,
+          "originalMedian": 19010.4898,
+          "currentMedian": 15825.294399999999,
+          "sumDeltaPercent": -16.357731843853262
+        },
+        "modelMs": {
+          "pairs": 19,
+          "originalSum": 160226.83769999995,
+          "currentSum": 126710.07080000002,
+          "originalMedian": 7124.901300000001,
+          "currentMedian": 5149.032199999998,
+          "sumDeltaPercent": -20.918322661247867
+        },
+        "initialToolCount": {
+          "pairs": 19,
+          "originalSum": 171,
+          "currentSum": 114,
+          "originalMedian": 9,
+          "currentMedian": 6,
+          "sumDeltaPercent": -33.333333333333336
+        },
+        "initialToolSchemaBytes": {
+          "pairs": 19,
+          "originalSum": 400311,
+          "currentSum": 220552,
+          "originalMedian": 21069,
+          "currentMedian": 11608,
+          "sumDeltaPercent": -44.90483648962932
+        }
+      }
+    }
+  ]
+}

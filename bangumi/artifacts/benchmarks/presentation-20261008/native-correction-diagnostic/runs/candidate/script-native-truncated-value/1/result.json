@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "caseId": "script-native-truncated-value",
+  "family": "scripted-native-arguments",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "4483820b5aede9f4717fc3010cb0c784507fd704592ed0c553424f70647ecb4f",
+  "versionHash": "0ee1ef12d14a46fddd785b601f384454a08173b5b95b29753b7a085863f3b68d",
+  "model": "faux/faux-1",
+  "thinking": "off",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "执行固定原生参数故障验收。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "模型纠参完成。",
+            "nextType": "text"
+          },
+          {
+            "type": "text",
+            "text": "验收完成。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "模型纠参完成。\n验收完成。",
+      "tools": [
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "错误草稿"
+          },
+          "value": "/text：展示参数格式不完整或无效，请完整重新提供参数。",
+          "error": true
+        },
+        {
+          "name": "present_text",
+          "arguments": {
+            "text": "模型纠参完成。"
+          },
+          "value": {
+            "replyId": "fd975e57-e638-49dd-91e3-7d008e7047a0",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 284.90489999999954,
+      "presentationStatus": "completed"
+    }
+  ],
+  "metrics": {
+    "totalMs": 330.08510000000024,
+    "startupMs": 10977.210000000001,
+    "modelRequests": 3,
+    "providerHttpRequests": 0,
+    "proposedToolCalls": 2,
+    "toolExecutions": 2,
+    "toolErrors": 1,
+    "mcpCalls": 0,
+    "mcpMs": 0,
+    "mcpInitializationMs": 0,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 0,
+    "upstreamRequests": 0,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 0,
+    "modelMs": 33.51479999999901,
+    "providerPayloadBytesMax": 63244,
+    "inputTokensMax": 7157,
+    "inputTokensSum": 7218,
+    "contextInputTokensMax": 14314,
+    "contextInputTokensSum": 28774,
+    "reasoningTokensSum": null,
+    "outputTokensSum": 17,
+    "cacheReadTokensSum": 14337,
+    "cacheWriteTokensSum": 7219,
+    "totalTokensSum": 28791,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 219,
+    "firstTextMs": 150.35989999999947,
+    "firstCompleteResultMs": 202.1216999999997,
+    "providerFirstTextMs": 195.98929999999928,
+    "firstPublishedBlockMs": 150.35989999999947,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 7157,
+        "contextInputTokens": 14314,
+        "reasoningTokens": null,
+        "outputTokens": 7,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 7157,
+        "totalTokens": 14321,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 61919,
+        "durationMs": 11.66189999999915,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 23,
+        "contextInputTokens": 7204,
+        "reasoningTokens": null,
+        "outputTokens": 8,
+        "cacheReadTokens": 7157,
+        "cacheWriteTokens": 24,
+        "totalTokens": 7212,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 62568,
+        "durationMs": 9.419899999998961,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 38,
+        "contextInputTokens": 7256,
+        "reasoningTokens": null,
+        "outputTokens": 2,
+        "cacheReadTokens": 7180,
+        "cacheWriteTokens": 38,
+        "totalTokens": 7258,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 63244,
+        "durationMs": 12.433000000000902,
+        "firstTextMs": 10.21980000000076,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 27,
+    "initialToolCount": 9,
+    "initialToolSchemaBytes": 21059,
+    "initialProviderPayloadBytes": 61919,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": true,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 1,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 1,
+    "preparedComponents": 0,
+    "publishedComponents": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "模型纠参完成"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "错误草稿|未闭合的值",
+          "absent": true
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "argument_recovery",
+          "localRepairs": 0,
+          "rejections": 1,
+          "modelCorrections": 1
+        },
+        "passed": true,
+        "detail": "本地语法修复=0；拒绝=1；后续模型调用成功纠参=1"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\native-correction-diagnostic\\runs\\candidate\\script-native-truncated-value\\1\\tracelog\\2026-10-08\\01a11c2a-52ee-74f2-813a-fd9265ee576a\\c952ddd7a90ccd4821c248ea575720b7"
+  ],
+  "captureIssues": []
+}

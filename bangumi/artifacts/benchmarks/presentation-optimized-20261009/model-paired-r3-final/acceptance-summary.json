@@ -1,0 +1,315 @@
+{
+  "frozenVersions": {
+    "candidate": "92d041b491d5c4bf19f89be061cacdd65f45e6f77c1ad9d214fde1583a62be72",
+    "control": "e283b58868250ccb231df245222facdefc81c607cb4a026eb1367ed81481b168"
+  },
+  "planned": 40,
+  "recorded": 40,
+  "eligiblePairs": 19,
+  "operational": {
+    "control": {
+      "runs": 20,
+      "passed": 19,
+      "modelRequests": 151,
+      "contextTokens": 2211026,
+      "toolErrors": 26,
+      "localRepairs": 0,
+      "modelArgumentCorrections": 4
+    },
+    "candidate": {
+      "runs": 20,
+      "passed": 20,
+      "modelRequests": 52,
+      "contextTokens": 442066,
+      "toolErrors": 1,
+      "localRepairs": 0,
+      "modelArgumentCorrections": 1
+    }
+  },
+  "failedPairIds": [
+    {
+      "caseId": "followup-filter",
+      "repeat": 1,
+      "control": "errored",
+      "candidate": "passed"
+    }
+  ],
+  "metrics": {
+    "modelRequests": {
+      "availablePairs": 19,
+      "controlMedian": 8,
+      "candidateMedian": 2,
+      "controlSum": 135,
+      "candidateSum": 47,
+      "sumDeltaRatio": -0.6518518518518519,
+      "pairedDeltaMedian": -5,
+      "pairedRatioDeltaMedian": -0.6666666666666666
+    },
+    "contextInputTokensSum": {
+      "availablePairs": 19,
+      "controlMedian": 93236,
+      "candidateMedian": 16480,
+      "controlSum": 1901528,
+      "candidateSum": 391330,
+      "sumDeltaRatio": -0.7942023467443025,
+      "pairedDeltaMedian": -69821,
+      "pairedRatioDeltaMedian": -0.773311595562032
+    },
+    "contextInputTokensMax": {
+      "availablePairs": 19,
+      "controlMedian": 13073,
+      "candidateMedian": 9017,
+      "controlSum": 286911,
+      "candidateSum": 170130,
+      "sumDeltaRatio": -0.40702866045568137,
+      "pairedDeltaMedian": -4393,
+      "pairedRatioDeltaMedian": -0.3199246349505417
+    },
+    "inputTokensSum": {
+      "availablePairs": 19,
+      "controlMedian": 12183,
+      "candidateMedian": 8560,
+      "controlSum": 286552,
+      "candidateSum": 168994,
+      "sumDeltaRatio": -0.410250146570256,
+      "pairedDeltaMedian": -3458,
+      "pairedRatioDeltaMedian": -0.3065699732366399
+    },
+    "cacheReadTokensSum": {
+      "availablePairs": 19,
+      "controlMedian": 81408,
+      "candidateMedian": 7680,
+      "controlSum": 1614976,
+      "candidateSum": 222336,
+      "sumDeltaRatio": -0.8623286042640881,
+      "pairedDeltaMedian": -66432,
+      "pairedRatioDeltaMedian": -0.8472400513478819
+    },
+    "cacheWriteTokensSum": {
+      "availablePairs": 19,
+      "controlMedian": 0,
+      "candidateMedian": 0,
+      "controlSum": 0,
+      "candidateSum": 0,
+      "sumDeltaRatio": null,
+      "pairedDeltaMedian": 0,
+      "pairedRatioDeltaMedian": null
+    },
+    "outputTokensSum": {
+      "availablePairs": 19,
+      "controlMedian": 1281,
+      "candidateMedian": 798,
+      "controlSum": 28707,
+      "candidateSum": 18193,
+      "sumDeltaRatio": -0.3662521336259449,
+      "pairedDeltaMedian": -521,
+      "pairedRatioDeltaMedian": -0.28169014084507044
+    },
+    "totalMs": {
+      "availablePairs": 19,
+      "controlMedian": 20010.383499999996,
+      "candidateMedian": 14111.855800000001,
+      "controlSum": 370479.6050000001,
+      "candidateSum": 268866.7895000001,
+      "sumDeltaRatio": -0.27427370934494494,
+      "pairedDeltaMedian": -5206.355199999998,
+      "pairedRatioDeltaMedian": -0.23554855572650765
+    },
+    "modelMs": {
+      "availablePairs": 19,
+      "controlMedian": 7772.369000000004,
+      "candidateMedian": 3713.7258999999995,
+      "controlSum": 164252.7642,
+      "candidateSum": 90338.03399999999,
+      "sumDeltaRatio": -0.45000600483045033,
+      "pairedDeltaMedian": -3857.720099999995,
+      "pairedRatioDeltaMedian": -0.4007514026064197
+    },
+    "displaySchemaBytesSum": {
+      "availablePairs": 19,
+      "controlMedian": 77696,
+      "candidateMedian": 2149,
+      "controlSum": 1311120,
+      "candidateSum": 44185,
+      "sumDeltaRatio": -0.9662998047470864,
+      "pairedDeltaMedian": -75547,
+      "pairedRatioDeltaMedian": -0.9695136600768809
+    },
+    "toolSchemaBytesSum": {
+      "availablePairs": 19,
+      "controlMedian": 168552,
+      "candidateMedian": 25364,
+      "controlSum": 3184248,
+      "candidateSum": 589745,
+      "sumDeltaRatio": -0.8147930060723914,
+      "pairedDeltaMedian": -131580,
+      "pairedRatioDeltaMedian": -0.798571888134753
+    },
+    "contextMessageBytesSum": {
+      "availablePairs": 19,
+      "controlMedian": 125797,
+      "candidateMedian": 25957,
+      "controlSum": 3024627,
+      "candidateSum": 690611,
+      "sumDeltaRatio": -0.7716706886502038,
+      "pairedDeltaMedian": -95581,
+      "pairedRatioDeltaMedian": -0.7273998742329293
+    },
+    "repeatedMessageBytesSum": {
+      "availablePairs": 19,
+      "controlMedian": 106633,
+      "candidateMedian": 11494,
+      "controlSum": 2526694,
+      "candidateSum": 384034,
+      "sumDeltaRatio": -0.8480092959416534,
+      "pairedDeltaMedian": -88242,
+      "pairedRatioDeltaMedian": -0.8459047670231633
+    }
+  },
+  "history": {
+    "candidateTextObservations": 20,
+    "signedFallback": 0,
+    "unknownFallback": 0,
+    "nonSingleCopy": [
+      {
+        "caseId": "followup-filter",
+        "repeat": 1,
+        "userTurn": 2,
+        "requestIndex": 4,
+        "sourceUserTurn": 1,
+        "replyId": "16ef5703-9cb5-4b5c-bb5c-09923f7b1262",
+        "partIndex": 0,
+        "textHash": "9fd38f1393d29262d9aa62ad43c72c3d7e8a04f75641d864c7da7c9e28f8833b",
+        "textBytes": 148,
+        "nativeOccurrences": 1,
+        "displayArgumentOccurrences": 1,
+        "otherOccurrences": 0,
+        "nativeRepresentations": {
+          "raw": 0,
+          "jsonEncoded": 1
+        },
+        "displayArgumentRepresentations": {
+          "raw": 1,
+          "jsonEncoded": 0
+        },
+        "otherRepresentations": {
+          "raw": 0,
+          "jsonEncoded": 0
+        },
+        "signedFallback": false
+      },
+      {
+        "caseId": "followup-filter",
+        "repeat": 1,
+        "userTurn": 2,
+        "requestIndex": 4,
+        "sourceUserTurn": 1,
+        "replyId": "16ef5703-9cb5-4b5c-bb5c-09923f7b1262",
+        "partIndex": 2,
+        "textHash": "261e726fec356c9b7ba4c4b5d027732ac0d2473717bbbe273c19e4baa5cce1fb",
+        "textBytes": 561,
+        "nativeOccurrences": 1,
+        "displayArgumentOccurrences": 1,
+        "otherOccurrences": 0,
+        "nativeRepresentations": {
+          "raw": 0,
+          "jsonEncoded": 1
+        },
+        "displayArgumentRepresentations": {
+          "raw": 1,
+          "jsonEncoded": 0
+        },
+        "otherRepresentations": {
+          "raw": 0,
+          "jsonEncoded": 0
+        },
+        "signedFallback": false
+      },
+      {
+        "caseId": "followup-filter",
+        "repeat": 1,
+        "userTurn": 2,
+        "requestIndex": 5,
+        "sourceUserTurn": 1,
+        "replyId": "16ef5703-9cb5-4b5c-bb5c-09923f7b1262",
+        "partIndex": 0,
+        "textHash": "9fd38f1393d29262d9aa62ad43c72c3d7e8a04f75641d864c7da7c9e28f8833b",
+        "textBytes": 148,
+        "nativeOccurrences": 1,
+        "displayArgumentOccurrences": 1,
+        "otherOccurrences": 0,
+        "nativeRepresentations": {
+          "raw": 0,
+          "jsonEncoded": 1
+        },
+        "displayArgumentRepresentations": {
+          "raw": 1,
+          "jsonEncoded": 0
+        },
+        "otherRepresentations": {
+          "raw": 0,
+          "jsonEncoded": 0
+        },
+        "signedFallback": false
+      },
+      {
+        "caseId": "followup-filter",
+        "repeat": 1,
+        "userTurn": 2,
+        "requestIndex": 5,
+        "sourceUserTurn": 1,
+        "replyId": "16ef5703-9cb5-4b5c-bb5c-09923f7b1262",
+        "partIndex": 2,
+        "textHash": "261e726fec356c9b7ba4c4b5d027732ac0d2473717bbbe273c19e4baa5cce1fb",
+        "textBytes": 561,
+        "nativeOccurrences": 1,
+        "displayArgumentOccurrences": 1,
+        "otherOccurrences": 0,
+        "nativeRepresentations": {
+          "raw": 0,
+          "jsonEncoded": 1
+        },
+        "displayArgumentRepresentations": {
+          "raw": 1,
+          "jsonEncoded": 0
+        },
+        "otherRepresentations": {
+          "raw": 0,
+          "jsonEncoded": 0
+        },
+        "signedFallback": false
+      }
+    ],
+    "allSingleCopy": false
+  },
+  "semanticReviewPending": [
+    {
+      "variant": "control",
+      "caseId": "resource-card",
+      "repeat": 1,
+      "rubric": "卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。"
+    },
+    {
+      "variant": "candidate",
+      "caseId": "resource-card",
+      "repeat": 1,
+      "rubric": "卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。"
+    },
+    {
+      "variant": "candidate",
+      "caseId": "resource-card",
+      "repeat": 2,
+      "rubric": "卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。"
+    },
+    {
+      "variant": "control",
+      "caseId": "resource-card",
+      "repeat": 2,
+      "rubric": "卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。"
+    }
+  ],
+  "semanticReviewArtifact": "semantic-review.json",
+  "semanticReviewConclusion": "semantic_caution; component fields and read summary are factual, unsupported narrative exclusions remain. Hard grades and eligible pairs unchanged.",
+  "monetaryCostProof": "Configured price yields zero estimatedCost; token usage is measured, no actual billing savings claim.",
+  "scope": "Real DeepSeek model with fixed Bangumi upstream fixture, production Pi/MCP/cache/component host chain. Results not merged with r1/r2/pre-complete r3."
+}

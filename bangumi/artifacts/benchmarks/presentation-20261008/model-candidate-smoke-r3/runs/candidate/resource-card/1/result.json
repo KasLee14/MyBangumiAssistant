@@ -1,0 +1,594 @@
+{
+  "schemaVersion": 1,
+  "caseId": "resource-card",
+  "family": "resources",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "a3a071371b27bf6abaa37a9f17241c9e8f725f06e8491123913cc152535b50eb",
+  "versionHash": "6c5e862fa668e2c6665a24beae5f00b10ca7c5a9bab2b8d8b1400a47f1770680",
+  "model": "deepseek/deepseek-flash",
+  "thinking": "high",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": null,
+  "turns": [
+    {
+      "prompt": "详细介绍条目1006的剧情，用SubjectCards卡片展示作品，并根据你读过的简介解释其悬疑主线。",
+      "final": {
+        "content": [
+          {
+            "type": "SubjectCards",
+            "pending": false,
+            "props": {
+              "layout": "grid",
+              "items": [
+                {
+                  "id": 1006,
+                  "name": "山城来信",
+                  "kind": "anime",
+                  "nameCn": "山城来信",
+                  "image": "https://example.invalid/benchmark/1006.png",
+                  "score": 8.6,
+                  "scoreCount": 3000,
+                  "rank": 6,
+                  "date": "2023-10-01",
+                  "summary": "山城来信讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。虽然标签没有悬疑，但正文明确围绕调查谜案；故事结局温暖。",
+                  "tags": [
+                    "成长"
+                  ],
+                  "url": "https://bgm.tv/subject/1006"
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "上方卡片是条目 1006 的基础身份信息（数据来源：条目资料缓存，本次为匿名公共读取，NSFW 权限未检查、未应用）。\n\n按实际读到的简介，这个条目的悬疑主线可以拆成三点：\n\n1. **调查动作是主线骨架**：故事以“调查一批失踪档案”的旅程展开，主角方的行动动机不是日常事件，而是围绕档案失踪这一谜案推进。\n2. **谜题的核心是身份疑点**：简介把悬疑焦点明确落在“身份疑点”上，也就是说，需要被解开的不只是“档案去哪了”，而是与档案相关的人究竟是谁、身份如何对应。这类谜题的解答通常依赖线索逐层拼接。\n3. **线索的逐步揭露 + 人物关系**：叙事强调“逐步揭露的线索”与“人物关系”，意味着推理不是一次性的揭示，而是随着调查推进分段释放信息，人物之间的关联很可能同时是解谜的关键变量。\n\n需要如实说明的两点：\n\n- 该条目当前的标签只有「成长」，**没有**“悬疑”标签，但简介正文明确以调查谜案为叙事核心——所以标签与正文侧重不一致，判断类型时不应只看标签。\n- 简介同时提到“故事结局温暖”，即悬疑并不导向黑暗收束；此外，本次资料只提供了这段概述，**没有更细的逐集情节、具体角色身份或线索清单**，我不能凭条目号补出简介之外的具体剧情。如需更细的剧情或分集内容，可以让我去查章节信息，或读该条目下的日志长评与讨论来了解实际评价中提到的剧情要素。",
+            "nextType": null
+          }
+        ]
+      },
+      "text": "1006\n山城来信\nanime\n山城来信\n8.6\n3000\n6\n2023-10-01\n山城来信讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。虽然标签没有悬疑，但正文明确围绕调查谜案；故事结局温暖。\n成长\nhttps://bgm.tv/subject/1006\n上方卡片是条目 1006 的基础身份信息（数据来源：条目资料缓存，本次为匿名公共读取，NSFW 权限未检查、未应用）。\n\n按实际读到的简介，这个条目的悬疑主线可以拆成三点：\n\n1. **调查动作是主线骨架**：故事以“调查一批失踪档案”的旅程展开，主角方的行动动机不是日常事件，而是围绕档案失踪这一谜案推进。\n2. **谜题的核心是身份疑点**：简介把悬疑焦点明确落在“身份疑点”上，也就是说，需要被解开的不只是“档案去哪了”，而是与档案相关的人究竟是谁、身份如何对应。这类谜题的解答通常依赖线索逐层拼接。\n3. **线索的逐步揭露 + 人物关系**：叙事强调“逐步揭露的线索”与“人物关系”，意味着推理不是一次性的揭示，而是随着调查推进分段释放信息，人物之间的关联很可能同时是解谜的关键变量。\n\n需要如实说明的两点：\n\n- 该条目当前的标签只有「成长」，**没有**“悬疑”标签，但简介正文明确以调查谜案为叙事核心——所以标签与正文侧重不一致，判断类型时不应只看标签。\n- 简介同时提到“故事结局温暖”，即悬疑并不导向黑暗收束；此外，本次资料只提供了这段概述，**没有更细的逐集情节、具体角色身份或线索清单**，我不能凭条目号补出简介之外的具体剧情。如需更细的剧情或分集内容，可以让我去查章节信息，或读该条目下的日志长评与讨论来了解实际评价中提到的剧情要素。",
+      "tools": [
+        {
+          "name": "get_subject_details",
+          "arguments": {
+            "subject_id": 1006,
+            "fields": [
+              "id",
+              "name",
+              "nameCn",
+              "summary",
+              "date",
+              "platform",
+              "totalEpisodes",
+              "tags",
+              "score",
+              "rank",
+              "ratingCount",
+              "subjectType",
+              "image",
+              "infobox"
+            ]
+          },
+          "value": {
+            "value": {
+              "schemaVersion": 1,
+              "entity": "subject",
+              "id": 1006,
+              "subjectType": 2,
+              "name": "山城来信",
+              "nameCn": "山城来信",
+              "date": "2023-10-01",
+              "platform": "TV",
+              "score": 8.6,
+              "rank": 6,
+              "ratingCount": 3000,
+              "totalEpisodes": 12,
+              "tags": [
+                "成长"
+              ],
+              "image": "https://example.invalid/benchmark/1006.png",
+              "included": [
+                "summary",
+                "infobox"
+              ],
+              "summary": "山城来信讲述调查失踪档案的旅程。叙事围绕身份疑点和逐步揭露的线索，强调人物关系与悬疑推理。虽然标签没有悬疑，但正文明确围绕调查谜案；故事结局温暖。",
+              "infobox": [
+                {
+                  "key": "放送开始",
+                  "value": "2023-10-01"
+                },
+                {
+                  "key": "每集时长",
+                  "value": "24分钟"
+                }
+              ],
+              "accessContext": {
+                "mode": "anonymous",
+                "account": null,
+                "nsfw": {
+                  "preference": null,
+                  "allowed": null,
+                  "state": "not_checked"
+                },
+                "source": "v0",
+                "nsfwApplied": false,
+                "checkedAt": "2026-10-08T16:30:40.862Z"
+              },
+              "resourceRef": "rr_25c3f62235436ebed36c315ba2fcdec5",
+              "fields": [
+                "id",
+                "name",
+                "nameCn",
+                "summary",
+                "date",
+                "platform",
+                "totalEpisodes",
+                "tags",
+                "score",
+                "rank",
+                "ratingCount",
+                "subjectType",
+                "image",
+                "infobox"
+              ],
+              "availableFields": [
+                "schemaVersion",
+                "entity",
+                "id",
+                "subjectType",
+                "name",
+                "nameCn",
+                "date",
+                "platform",
+                "nsfw",
+                "score",
+                "rank",
+                "ratingCount",
+                "totalEpisodes",
+                "totalVolumes",
+                "tags",
+                "metaTags",
+                "url",
+                "images",
+                "image",
+                "included",
+                "summary",
+                "infobox"
+              ]
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "error": {
+              "code": "COMPONENT_INDEX_REQUIRED",
+              "message": "先读取可见的同版本组件索引选择组件，再读取字段。",
+              "diagnostic": {
+                "schemaVersion": 1,
+                "errorId": "d2711f92-31a8-41cc-a65b-7056cd636c69",
+                "reason": "operation_failed",
+                "certainty": "confirmed",
+                "recovery": "none",
+                "issues": [],
+                "evidence": {},
+                "causes": [
+                  {
+                    "name": "AppError",
+                    "code": "COMPONENT_INDEX_REQUIRED"
+                  }
+                ],
+                "code": "COMPONENT_INDEX_REQUIRED",
+                "origin": "domain",
+                "stage": "execution"
+              }
+            }
+          },
+          "error": true
+        },
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "作品卡片"
+          },
+          "value": {
+            "version": "9c133de5fcc55ffb",
+            "entries": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ],
+            "audit": {
+              "version": "9c133de5fcc55ffb",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 0,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [],
+              "representations": {},
+              "contracts": {}
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "SubjectCards"
+            ]
+          },
+          "value": {
+            "version": "9c133de5fcc55ffb",
+            "turn": 1,
+            "specs": [
+              {
+                "name": "SubjectCards",
+                "category": "作品",
+                "purpose": "展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片",
+                "data": "作品身份、名称、媒体类型，缓存作品引用",
+                "selectionId": 1,
+                "sourceTurn": 1,
+                "tool": "prepare_component",
+                "prepare": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component",
+                    "resourceRef"
+                  ],
+                  "properties": {
+                    "component": {
+                      "type": "string",
+                      "enum": [
+                        "SubjectCards"
+                      ]
+                    },
+                    "resourceRef": {
+                      "type": "string",
+                      "pattern": "^rr_[A-Za-z0-9_-]+$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "grid",
+                        "list"
+                      ]
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                },
+                "publication": "prepare成功后使用present_component({resourceRef,blockIndex})发布；blockIndex为整个快照绝对下标。候选准备快照可直接发布。普通说明为原生文字；精确交错可用present_text。"
+              }
+            ],
+            "audit": {
+              "version": "9c133de5fcc55ffb",
+              "turn": 1,
+              "indexReads": 1,
+              "specReads": 1,
+              "discovered": [
+                "SubjectCards"
+              ],
+              "loaded": [
+                "SubjectCards"
+              ],
+              "representations": {
+                "SubjectCards": "reference"
+              },
+              "contracts": {
+                "SubjectCards": {
+                  "selectionId": 1,
+                  "sourceTurn": 1,
+                  "reused": false
+                }
+              }
+            }
+          },
+          "error": false
+        },
+        {
+          "name": "prepare_component",
+          "arguments": {
+            "component": "SubjectCards",
+            "resourceRef": "rr_25c3f62235436ebed36c315ba2fcdec5",
+            "subjectIds": [
+              1006
+            ],
+            "layout": "grid"
+          },
+          "value": {
+            "resourceRef": "rr_50afc9bf3453478fbd001372431e13e5",
+            "blocks": [
+              {
+                "blockIndex": 0,
+                "type": "SubjectCards",
+                "itemCount": 1
+              }
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "present_component",
+          "arguments": {
+            "resourceRef": "rr_50afc9bf3453478fbd001372431e13e5",
+            "blockIndex": 0
+          },
+          "value": {
+            "replyId": "b17fc245-9c05-4d72-b552-5fb6a365905b",
+            "blockIndex": 0,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 22062.852600000006,
+      "presentationStatus": "completed"
+    }
+  ],
+  "metrics": {
+    "totalMs": 22175.0243,
+    "startupMs": 11065.519199999999,
+    "modelRequests": 6,
+    "providerHttpRequests": 6,
+    "proposedToolCalls": 6,
+    "toolExecutions": 6,
+    "toolErrors": 1,
+    "mcpCalls": 1,
+    "mcpMs": 13166.6074,
+    "mcpInitializationMs": 13035.409999999998,
+    "cacheRpcCalls": 2,
+    "rpcDispatches": 3,
+    "upstreamRequests": 1,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 2.680000000000291,
+    "modelMs": 6565.538399999996,
+    "providerPayloadBytesMax": 43573,
+    "inputTokensMax": 9977,
+    "inputTokensSum": 11559,
+    "contextInputTokensMax": 12200,
+    "contextInputTokensSum": 69543,
+    "reasoningTokensSum": 361,
+    "outputTokensSum": 1119,
+    "cacheReadTokensSum": 57984,
+    "cacheWriteTokensSum": 0,
+    "totalTokensSum": 70662,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 4299,
+    "firstTextMs": 22037.4483,
+    "firstCompleteResultMs": 22044.786300000003,
+    "providerFirstTextMs": 20077.8489,
+    "firstPublishedBlockMs": 18797.8525,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "inputTokens": 9977,
+        "contextInputTokens": 10489,
+        "reasoningTokens": 185,
+        "outputTokens": 324,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 10813,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 36484,
+        "durationMs": 1448.7699999999986,
+        "firstTextMs": null,
+        "firstThinkingMs": 306.8714999999993,
+        "visibleThinkingMs": 723.5946000000004,
+        "thinkingChars": 849,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 576,
+        "contextInputTokens": 11328,
+        "reasoningTokens": 7,
+        "outputTokens": 48,
+        "cacheReadTokens": 10752,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11376,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 39996,
+        "durationMs": 814.4661000000015,
+        "firstTextMs": null,
+        "firstThinkingMs": 526.0552000000025,
+        "visibleThinkingMs": 195.53219999999783,
+        "thinkingChars": 35,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 273,
+        "contextInputTokens": 11537,
+        "reasoningTokens": 0,
+        "outputTokens": 44,
+        "cacheReadTokens": 11264,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11581,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 40937,
+        "durationMs": 7.58810000000085,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 392,
+        "contextInputTokens": 11912,
+        "reasoningTokens": 0,
+        "outputTokens": 111,
+        "cacheReadTokens": 11520,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12023,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 42602,
+        "durationMs": 755.3914999999979,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 173,
+        "contextInputTokens": 12077,
+        "reasoningTokens": 0,
+        "outputTokens": 75,
+        "cacheReadTokens": 11904,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12152,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43137,
+        "durationMs": 480.79359999999724,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "inputTokens": 168,
+        "contextInputTokens": 12200,
+        "reasoningTokens": 169,
+        "outputTokens": 517,
+        "cacheReadTokens": 12032,
+        "cacheWriteTokens": 0,
+        "totalTokens": 12717,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 43573,
+        "durationMs": 3058.5290999999997,
+        "firstTextMs": 1095.279300000002,
+        "firstThinkingMs": 113.92269999999917,
+        "visibleThinkingMs": 967.5637000000024,
+        "thinkingChars": 728,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 0,
+    "terminalModelErrors": 0,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 54,
+    "initialToolCount": 9,
+    "initialToolSchemaBytes": 21069,
+    "initialProviderPayloadBytes": 36484,
+    "validatedFinals": 1,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 1,
+    "publishedComponents": 1
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "subjects",
+          "exact": [
+            1006
+          ]
+        },
+        "passed": true,
+        "detail": "交付作品ID：1006"
+      },
+      {
+        "rule": {
+          "kind": "component",
+          "type": "SubjectCards"
+        },
+        "passed": true,
+        "detail": "完整组件：SubjectCards"
+      },
+      {
+        "rule": {
+          "kind": "evidence",
+          "subjectIds": [
+            1006
+          ],
+          "fields": [
+            "summary"
+          ]
+        },
+        "passed": true,
+        "detail": "实际模型可见字段：[[1006,[\"summary\"]]]"
+      }
+    ],
+    "semanticReview": "pending",
+    "rubric": "卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。"
+  },
+  "confirmations": [],
+  "network": [
+    {
+      "seq": 1,
+      "timestampMs": 1791477040865.8374,
+      "elapsedMs": 5701.4454,
+      "durationMs": 2.680000000000291,
+      "source": "fixture",
+      "path": "/v0/subjects/1006",
+      "method": "GET",
+      "status": 200,
+      "write": false,
+      "subjectId": 1006,
+      "body": null,
+      "fixtureMiss": false
+    }
+  ],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-20261008\\model-candidate-smoke-r3\\runs\\candidate\\resource-card\\1\\tracelog\\2026-10-09\\01a11c5a-053a-7798-b2b1-345e52a07a98\\d949e0d4441edcca512590d65c3766e3"
+  ],
+  "captureIssues": []
+}

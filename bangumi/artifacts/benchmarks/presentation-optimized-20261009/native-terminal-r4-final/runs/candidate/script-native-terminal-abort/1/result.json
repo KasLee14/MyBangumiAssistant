@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "caseId": "script-native-terminal-abort",
+  "family": "scripted-native-terminal",
+  "variant": "candidate",
+  "repeat": 1,
+  "protocolHash": "4a6cfc0fb171fb5cfe5ba79eade3c5925094f8dc334588070d55c45155c83631",
+  "versionHash": "bfbd14e93345a88a70e7657b9b63d818bfd6afc984a8798b00379ee765fd01a9",
+  "model": "faux/faux-1",
+  "thinking": "off",
+  "mode": "fixture",
+  "outcome": "passed",
+  "error": "BENCHMARK_EXPECTED_TERMINAL_FAILURE",
+  "turns": [
+    {
+      "prompt": "执行固定canonical终止验收。",
+      "final": {
+        "content": [
+          {
+            "type": "text",
+            "text": "保留前缀。",
+            "nextType": "Callout"
+          },
+          {
+            "type": "Callout",
+            "pending": false,
+            "props": {
+              "tone": "progress",
+              "text": "验收进度"
+            }
+          }
+        ]
+      },
+      "text": "保留前缀。\n验收进度",
+      "tools": [
+        {
+          "name": "read_component_index",
+          "arguments": {
+            "query": "Callout"
+          },
+          "value": {
+            "version": "f5c3d8f6ec6530ba",
+            "entries": [
+              {
+                "name": "Callout",
+                "category": "文字",
+                "purpose": "展示业务提示和结果状态，内部格式错误不放入正文",
+                "data": "业务状态和提示文字"
+              }
+            ],
+            "total": 1,
+            "offset": 0,
+            "nextOffset": null,
+            "categories": [
+              "作品",
+              "统计",
+              "进度",
+              "事实",
+              "事件",
+              "标签",
+              "人物图片",
+              "文字",
+              "链接"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "read_component_spec",
+          "arguments": {
+            "names": [
+              "Callout"
+            ]
+          },
+          "value": {
+            "version": "f5c3d8f6ec6530ba",
+            "status": "activated",
+            "tools": [
+              "render_Callout"
+            ]
+          },
+          "error": false
+        },
+        {
+          "name": "render_Callout",
+          "arguments": {
+            "tone": "progress",
+            "text": "验收进度",
+            "before": "保留前缀。"
+          },
+          "value": {
+            "replyId": "216b6eb8-bf60-4c9d-b4bd-35b8b7c6959b",
+            "blockIndex": 1,
+            "reused": false
+          },
+          "error": false
+        }
+      ],
+      "durationMs": 145.86429999999928,
+      "presentationStatus": "aborted"
+    }
+  ],
+  "metrics": {
+    "totalMs": 168.5656999999992,
+    "startupMs": 8046.5453,
+    "modelRequests": 3,
+    "providerHttpRequests": 0,
+    "proposedToolCalls": 3,
+    "toolExecutions": 3,
+    "toolErrors": 0,
+    "mcpCalls": 0,
+    "mcpMs": 0,
+    "mcpInitializationMs": 0,
+    "cacheRpcCalls": 0,
+    "rpcDispatches": 0,
+    "upstreamRequests": 0,
+    "upstreamWriteRequests": 0,
+    "upstreamMs": 0,
+    "modelMs": 15.482700000000477,
+    "providerPayloadBytesMax": 45757,
+    "inputTokensMax": 4704,
+    "inputTokensSum": 5047,
+    "contextInputTokensMax": 9408,
+    "contextInputTokensSum": 19800,
+    "reasoningTokensSum": null,
+    "outputTokensSum": 38,
+    "cacheReadTokensSum": 9705,
+    "cacheWriteTokensSum": 5048,
+    "totalTokensSum": 19838,
+    "estimatedCost": 0,
+    "usageUnavailableRequests": 0,
+    "modelToolResultBytes": 648,
+    "firstTextMs": 78.64109999999891,
+    "firstCompleteResultMs": null,
+    "providerFirstTextMs": null,
+    "firstPublishedBlockMs": 78.64109999999891,
+    "confirmationsMs": 0,
+    "duplicateReads": 0,
+    "requests": [
+      {
+        "userTurn": 1,
+        "toolCount": 6,
+        "toolSchemaBytes": 11608,
+        "displayToolNames": [],
+        "displaySchemaBytes": 0,
+        "contextMessageBytes": 26545,
+        "repeatedMessageBytes": 0,
+        "inputTokens": 4704,
+        "contextInputTokens": 9408,
+        "reasoningTokens": null,
+        "outputTokens": 21,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 4704,
+        "totalTokens": 9429,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 41594,
+        "durationMs": 7.020599999999831,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 7,
+        "toolSchemaBytes": 12196,
+        "displayToolNames": [
+          "render_Callout"
+        ],
+        "displaySchemaBytes": 589,
+        "contextMessageBytes": 29005,
+        "repeatedMessageBytes": 26542,
+        "inputTokens": 297,
+        "contextInputTokens": 5298,
+        "reasoningTokens": null,
+        "outputTokens": 17,
+        "cacheReadTokens": 4704,
+        "cacheWriteTokens": 297,
+        "totalTokens": 5315,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 45044,
+        "durationMs": 4.270599999999831,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      },
+      {
+        "userTurn": 1,
+        "toolCount": 7,
+        "toolSchemaBytes": 12196,
+        "displayToolNames": [
+          "render_Callout"
+        ],
+        "displaySchemaBytes": 589,
+        "contextMessageBytes": 29718,
+        "repeatedMessageBytes": 28998,
+        "inputTokens": 46,
+        "contextInputTokens": 5094,
+        "reasoningTokens": null,
+        "outputTokens": 0,
+        "cacheReadTokens": 5001,
+        "cacheWriteTokens": 47,
+        "totalTokens": 5094,
+        "estimatedCost": 0,
+        "providerPayloadBytes": 45757,
+        "durationMs": 4.191500000000815,
+        "firstTextMs": null,
+        "firstThinkingMs": null,
+        "visibleThinkingMs": null,
+        "thinkingChars": 0,
+        "responseModel": null
+      }
+    ],
+    "outputErrors": 0,
+    "blankOutputErrors": 0,
+    "schemaOutputErrors": 0,
+    "jsonOutputErrors": 0,
+    "modelErrors": 1,
+    "terminalModelErrors": 1,
+    "recoveryScheduled": 0,
+    "recoveryRunning": 0,
+    "recoveryRecovered": 0,
+    "recoveryStopped": 0,
+    "strictToolsSent": 0,
+    "toolDeclarationsSent": 20,
+    "initialToolCount": 6,
+    "initialToolSchemaBytes": 11608,
+    "initialProviderPayloadBytes": 41594,
+    "validatedFinals": 0,
+    "prefixMonotonic": true,
+    "prefixDuplications": 0,
+    "firstRoundFailed": false,
+    "firstOutputAttemptFailed": false,
+    "localArgumentRepairs": 0,
+    "argumentRejections": 0,
+    "schemaArgumentRejections": 0,
+    "modelArgumentCorrections": 0,
+    "preparedComponents": 0,
+    "publishedComponents": 0,
+    "renderedComponents": 1,
+    "displaySchemaBytesSum": 1178,
+    "displaySchemaBytesMax": 589,
+    "toolSchemaBytesSum": 36000,
+    "toolSchemaBytesMax": 12196,
+    "contextMessageBytesSum": 85268,
+    "contextMessageBytesMax": 29718,
+    "repeatedMessageBytesSum": 55540,
+    "userTurnInitialDisplaySchemas": [
+      {
+        "userTurn": 1,
+        "names": [],
+        "bytes": 0
+      }
+    ],
+    "activatedDisplaySets": [
+      {
+        "userTurn": 1,
+        "names": [
+          "render_Callout"
+        ],
+        "responseBytes": 78,
+        "containsSchema": false
+      }
+    ],
+    "displayLoadoutMismatches": 0,
+    "requestsAfterTerminalCommit": 0
+  },
+  "grade": {
+    "passed": true,
+    "checks": [
+      {
+        "rule": {
+          "kind": "text",
+          "pattern": "保留前缀"
+        },
+        "passed": true,
+        "detail": "文本断言通过"
+      },
+      {
+        "rule": {
+          "kind": "presentation_terminal",
+          "status": "aborted",
+          "prefix": "保留前缀。"
+        },
+        "passed": true,
+        "detail": "canonical终态=aborted；成功正文=0；终态错误=1；已发布前缀保留一次"
+      }
+    ],
+    "semanticReview": "not_required",
+    "rubric": null
+  },
+  "confirmations": [],
+  "network": [],
+  "traceDirectories": [
+    "E:\\Project\\BangumiAgent-pi-publish\\bangumi\\artifacts\\benchmarks\\presentation-optimized-20261009\\native-terminal-r4-final\\runs\\candidate\\script-native-terminal-abort\\1\\tracelog\\2026-10-09\\01a11d35-59e3-71c1-a59a-3790cee4920e\\12e437fa63ba0f4d74b3f89e094abc0e"
+  ],
+  "captureIssues": [],
+  "historyProofs": [
+    {
+      "userTurn": 1,
+      "requestIndex": 0,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 1,
+      "texts": [],
+      "projectionAudits": []
+    },
+    {
+      "userTurn": 1,
+      "requestIndex": 2,
+      "texts": [],
+      "projectionAudits": []
+    }
+  ]
+}

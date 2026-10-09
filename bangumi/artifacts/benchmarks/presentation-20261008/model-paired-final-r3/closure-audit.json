@@ -1,0 +1,13 @@
+{
+  "closedAt": "2026-10-08T16:54:01.696Z",
+  "planned": 40,
+  "recorded": 40,
+  "candidate": "6c5e862fa668e2c6665a24beae5f00b10ca7c5a9bab2b8d8b1400a47f1770680",
+  "expectedCandidate": "6c5e862fa668e2c6665a24beae5f00b10ca7c5a9bab2b8d8b1400a47f1770680",
+  "control": "06fe7fd155181c366aaab1ad2394a260041b9bdfd863c4c2c3279773a4ab35f6",
+  "expectedControl": "06fe7fd155181c366aaab1ad2394a260041b9bdfd863c4c2c3279773a4ab35f6",
+  "modelConfigHash": "62a1b441d29fbfb33eb88f5c87808d672077808d572ed0f10c4215b9fde14c83",
+  "expectedModelConfigHash": "62a1b441d29fbfb33eb88f5c87808d672077808d572ed0f10c4215b9fde14c83",
+  "captureIssues": [],
+  "stable": true
+}

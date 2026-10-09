@@ -1,0 +1,54 @@
+{
+  "stoppedAt": "2026-10-08T16:02:47.008Z",
+  "reason": "Repeated HTTP400 prepare_component root schema rejection; user-authorized scoped stop",
+  "plannedRuns": 40,
+  "recordedRuns": 7,
+  "pendingRuns": 33,
+  "runnerPid": 25836,
+  "remainingOwnedWorkers": 0,
+  "baselineEligible": false,
+  "outcomes": [
+    {
+      "caseId": "facts-basic",
+      "variant": "control",
+      "repeat": 1,
+      "outcome": "passed"
+    },
+    {
+      "caseId": "facts-basic",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "errored"
+    },
+    {
+      "caseId": "facts-basic",
+      "variant": "candidate",
+      "repeat": 2,
+      "outcome": "errored"
+    },
+    {
+      "caseId": "facts-basic",
+      "variant": "control",
+      "repeat": 2,
+      "outcome": "passed"
+    },
+    {
+      "caseId": "resource-card",
+      "variant": "control",
+      "repeat": 1,
+      "outcome": "passed"
+    },
+    {
+      "caseId": "resource-card",
+      "variant": "candidate",
+      "repeat": 1,
+      "outcome": "errored"
+    },
+    {
+      "caseId": "resource-card",
+      "variant": "candidate",
+      "repeat": 2,
+      "outcome": "errored"
+    }
+  ]
+}

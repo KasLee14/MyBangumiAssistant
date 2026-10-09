@@ -1,0 +1,11 @@
+{
+  "reason": "Root authorized ReferenceReadGate completion-consumption fix after this capture; these remain valid development evidence only and are excluded from final frozen-version acceptance.",
+  "version": "5abbb5b6f471c3cd51cb00a5ed3ea5dba13552ab26b6bc147b2ea9360e20db49",
+  "supersededDirectories": [
+    "native-arguments-final-r3",
+    "native-terminal-final-r3",
+    "negative-native-final-r3"
+  ],
+  "summary": "offline-final-r3-summary.json",
+  "realModelRequests": 0
+}
