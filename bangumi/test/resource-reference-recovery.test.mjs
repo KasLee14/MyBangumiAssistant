@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { ModelRuntime, SessionManager } from '@earendil-works/pi-coding-agent';
 import { fauxProvider, fauxAssistantMessage, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 import { createBangumiRuntime } from '../dist/src/pi-host.js';
-import { createBangumiExtension } from '../dist/src/extension.js';
+import { createLegacyBangumiExtension as createBangumiExtension } from './legacy-provider-fixture.mjs';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { AppError } from '../dist/src/support/errors.js';
 import { getCurrentTools } from '@earendil-works/pi-ai';
@@ -41,6 +41,9 @@ async function fixture(t, mode) {
     return fauxAssistantMessage([fauxToolCall('get_subject_details', { subject_id: mode === 'scope' ? 3 : 2 }, { id: `retry-${calls.length}` })], { stopReason: 'toolUse' });
   };
   const planned = mode === 'success' ? [initial, expired, retry, () => response([card(refs.get(2), 2)])]
+    : mode === 'repeat_id' ? [initial, expired, retry,
+      fauxAssistantMessage([fauxToolCall('get_subject_details', { subject_id: 2 }, { id: 'retry-2' })], { stopReason: 'toolUse' }),
+      transcript => { assert.equal(feedback(transcript).goal.strategy, 'report_failure'); return response([{ type: 'text', text: '原来源已尝试读取，不能重复请求。' }]); }]
     : mode === 'stuck' ? [initial, expired, retry, () => response([card(oldRef, 2)]), retry, () => response([card(oldRef, 2)])]
     : mode === 'scope' ? [initial, expired, retry, transcript => { assert.equal(feedback(transcript).goal.strategy, 'report_failure'); return response([{ type: 'text', text: '查询范围改变已被拒绝，保留已完成部分。' }]); }]
     : [initial, expired, transcript => { assert.equal(feedback(transcript).goal.strategy, 'report_failure'); return response([{ type: 'text', text: '账户已改变，仅保留已完成部分，未重新读取。' }]); }];
@@ -84,4 +87,13 @@ test('恢复模型尝试改变原source成员时在RPC前被阻断，不扩大�
   const f = await fixture(t, 'scope');
   assert.deepEqual(f.calls.map(call => call.args.subject_id), [1, 2]);
   assert.ok(f.records.some(row => row.stage === 'reference_read_failed'));
+});
+
+test('来源RPC完成后模型复用同callID也被真实执行hook拒绝，不进行第二次重读', async t => {
+  const f = await fixture(t, 'repeat_id');
+  assert.deepEqual(f.calls.map(call => call.args.subject_id), [1, 2, 2]);
+  assert.equal(f.faux.state.callCount, 7);
+  assert.ok(f.records.some(row => row.stage === 'reference_read_failed'));
+  assert.equal(f.answer.stopReason, 'stop');
+  assert.deepEqual(f.answer.content.filter(part => part.type === 'SubjectCards').flatMap(part => part.props.items.map(item => item.id)), [1]);
 });

@@ -1,0 +1,693 @@
+[
+  {
+    "id": "facts-basic",
+    "version": 1,
+    "family": "facts",
+    "tags": [
+      "details",
+      "fields"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "查询条目1001的名称、评分、首播日期和集数，给出条目链接。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "exact": [
+          1001
+        ]
+      },
+      {
+        "kind": "text",
+        "pattern": "8\\.4"
+      },
+      {
+        "kind": "text",
+        "pattern": "2024[-年/]0?1[-月/]0?8"
+      },
+      {
+        "kind": "text",
+        "pattern": "12"
+      },
+      {
+        "kind": "evidence",
+        "subjectIds": [
+          1001
+        ],
+        "fields": [
+          "score",
+          "date",
+          "totalEpisodes"
+        ]
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 160
+    }
+  },
+  {
+    "id": "resource-card",
+    "version": 1,
+    "family": "resources",
+    "tags": [
+      "resource",
+      "component",
+      "evidence"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "详细介绍条目1006的剧情，用SubjectCards卡片展示作品，并根据你读过的简介解释其悬疑主线。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "exact": [
+          1006
+        ]
+      },
+      {
+        "kind": "component",
+        "type": "SubjectCards"
+      },
+      {
+        "kind": "evidence",
+        "subjectIds": [
+          1006
+        ],
+        "fields": [
+          "summary"
+        ]
+      }
+    ],
+    "semanticRubric": "卡片事实与缓存一致；解释应基于模型读过的简介，不将展示补全当作推理依据。",
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 160
+    }
+  },
+  {
+    "id": "followup-filter",
+    "version": 1,
+    "family": "multi-turn",
+    "tags": [
+      "history",
+      "reference",
+      "form"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "介绍条目1001、1002和1005的名称、评分及作品形式，给出链接。",
+      "还是刚才这三部，只保留TV动画，给出名称和链接。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "turn": 0,
+        "exact": [
+          1001,
+          1002,
+          1005
+        ]
+      },
+      {
+        "kind": "subjects",
+        "turn": 1,
+        "exact": [
+          1001,
+          1005
+        ]
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 128,
+      "mcpCalls": 300
+    }
+  },
+  {
+    "id": "recovery-once",
+    "version": 1,
+    "family": "recovery",
+    "tags": [
+      "recovery",
+      "network"
+    ],
+    "core": true,
+    "fixture": "read-once",
+    "turns": [
+      "查询条目1001的评分和首播日期；若只读接口暂时失败，可以在有限次数内恢复，给出最终核实的信息。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "exact": [
+          1001
+        ]
+      },
+      {
+        "kind": "evidence",
+        "subjectIds": [
+          1001
+        ],
+        "fields": [
+          "score",
+          "date"
+        ]
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 160
+    }
+  },
+  {
+    "id": "card-style-followup",
+    "version": 1,
+    "family": "component-tools-followup",
+    "tags": [
+      "live-model",
+      "history",
+      "component",
+      "style"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "读取固定条目1001的基本资料和评分，用SubjectCards卡片展示，再讨论它的评分是否偏高。",
+      "把刚才那段评分讨论换成贴吧老哥的口吻，事实保持一致，直接用自然文字回答。",
+      "说得温和一点，用一句普通文字告诉我应不应该补这部作品，不需要再次展示卡片。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "turn": 0,
+        "exact": [
+          1001
+        ]
+      },
+      {
+        "kind": "component",
+        "turn": 0,
+        "type": "SubjectCards"
+      },
+      {
+        "kind": "text",
+        "turn": 2,
+        "pattern": ".+"
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 120
+    }
+  },
+  {
+    "id": "facts-card-complete",
+    "version": 1,
+    "family": "presentation-facts",
+    "tags": [
+      "live-model",
+      "presentation"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "读取条目1001的名称、媒体类型、评分、首播日期、简介和封面，以SubjectCards卡片完整展示这些事实及条目链接。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "exact": [
+          1001
+        ]
+      },
+      {
+        "kind": "component",
+        "type": "SubjectCards"
+      },
+      {
+        "kind": "delivered_fields",
+        "type": "SubjectCards",
+        "subjectIds": [
+          1001
+        ],
+        "fields": [
+          "id",
+          "name",
+          "kind",
+          "score",
+          "date",
+          "summary",
+          "image",
+          "url"
+        ]
+      },
+      {
+        "kind": "evidence",
+        "subjectIds": [
+          1001
+        ],
+        "fields": [
+          "score",
+          "date",
+          "summary",
+          "image"
+        ]
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 160
+    }
+  },
+  {
+    "id": "facts-data-table",
+    "version": 1,
+    "family": "presentation-table",
+    "tags": [
+      "live-model",
+      "presentation"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "读取条目1001和1002的名称、评分、首播日期，用DataTable表格展示两部作品，各列完整保留这些事实，并在表格下给出这两部条目链接。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "exact": [
+          1001,
+          1002
+        ]
+      },
+      {
+        "kind": "component",
+        "type": "DataTable"
+      },
+      {
+        "kind": "component_text",
+        "type": "DataTable",
+        "pattern": "8\\.4"
+      },
+      {
+        "kind": "component_text",
+        "type": "DataTable",
+        "pattern": "8\\.1"
+      },
+      {
+        "kind": "component_text",
+        "type": "DataTable",
+        "pattern": "2024-01-08"
+      },
+      {
+        "kind": "component_text",
+        "type": "DataTable",
+        "pattern": "2024-04-12"
+      },
+      {
+        "kind": "evidence",
+        "subjectIds": [
+          1001,
+          1002
+        ],
+        "fields": [
+          "score",
+          "date"
+        ]
+      },
+      {
+        "kind": "component_text",
+        "type": "DataTable",
+        "pattern": "星港追踪"
+      },
+      {
+        "kind": "component_text",
+        "type": "DataTable",
+        "pattern": "玻璃海的回声"
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 160
+    }
+  },
+  {
+    "id": "facts-info-box",
+    "version": 1,
+    "family": "presentation-infobox",
+    "tags": [
+      "live-model",
+      "presentation"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "读取条目1001的名称、评分、首播日期和总集数，用InfoBox信息框展示这些字段，在框后给出条目链接。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "exact": [
+          1001
+        ]
+      },
+      {
+        "kind": "component",
+        "type": "InfoBox"
+      },
+      {
+        "kind": "component_text",
+        "type": "InfoBox",
+        "pattern": "8\\.4"
+      },
+      {
+        "kind": "component_text",
+        "type": "InfoBox",
+        "pattern": "2024-01-08"
+      },
+      {
+        "kind": "component_text",
+        "type": "InfoBox",
+        "pattern": "12"
+      },
+      {
+        "kind": "evidence",
+        "subjectIds": [
+          1001
+        ],
+        "fields": [
+          "score",
+          "date",
+          "totalEpisodes"
+        ]
+      },
+      {
+        "kind": "component_text",
+        "type": "InfoBox",
+        "pattern": "星港追踪"
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 160
+    }
+  },
+  {
+    "id": "selection-text-interleave",
+    "version": 1,
+    "family": "presentation-selection",
+    "tags": [
+      "live-model",
+      "presentation"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "读取条目1001、1002、1005的名称、媒体类型、评分、首播日期与简介，只从这三部选择评分至少8.0的TV动画。回答严格按顺序：先文字写筛选条件，再用SubjectCards卡片展示符合条件的作品，最后文字解释入选理由。不要在最终回答列出被排除作品的名称或链接。"
+    ],
+    "rules": [
+      {
+        "kind": "subjects",
+        "exact": [
+          1001
+        ]
+      },
+      {
+        "kind": "component",
+        "type": "SubjectCards"
+      },
+      {
+        "kind": "sequence",
+        "types": [
+          "text",
+          "SubjectCards",
+          "text"
+        ]
+      },
+      {
+        "kind": "evidence",
+        "subjectIds": [
+          1001,
+          1002,
+          1005
+        ],
+        "fields": [
+          "score",
+          "platform"
+        ]
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 160
+    }
+  },
+  {
+    "id": "native-plain-text",
+    "version": 1,
+    "family": "presentation-native-text",
+    "tags": [
+      "live-model",
+      "presentation"
+    ],
+    "core": true,
+    "fixture": "standard",
+    "turns": [
+      "只用一句自然文字说明：你可以通过读取Bangumi资料来帮助我比较作品。此轮无需查询作品或展示组件。"
+    ],
+    "rules": [
+      {
+        "kind": "text",
+        "pattern": "Bangumi|作品"
+      },
+      {
+        "kind": "subjects",
+        "exact": []
+      }
+    ],
+    "confirmation": "reject",
+    "budget": {
+      "timeoutMs": 300000,
+      "modelRequests": 18,
+      "toolExecutions": 64,
+      "mcpCalls": 160
+    }
+  },
+  {
+    "id": "script-native-trailing-comma",
+    "version": 1,
+    "family": "scripted-native-arguments",
+    "tags": [
+      "offline-script",
+      "presentation"
+    ],
+    "core": false,
+    "fixture": "standard",
+    "turns": [
+      "执行固定原生参数故障验收。"
+    ],
+    "rules": [
+      {
+        "kind": "text",
+        "pattern": "本地修复完成"
+      },
+      {
+        "kind": "text",
+        "pattern": "错误草稿|未闭合的值",
+        "absent": true
+      },
+      {
+        "kind": "argument_recovery",
+        "localRepairs": 1,
+        "rejections": 0,
+        "modelCorrections": 0
+      }
+    ],
+    "confirmation": "reject",
+    "offlineScript": "native_trailing_comma",
+    "budget": {
+      "timeoutMs": 60000,
+      "modelRequests": 8,
+      "toolExecutions": 12,
+      "mcpCalls": 12
+    }
+  },
+  {
+    "id": "script-native-duplicate-key",
+    "version": 1,
+    "family": "scripted-native-arguments",
+    "tags": [
+      "offline-script",
+      "presentation"
+    ],
+    "core": false,
+    "fixture": "standard",
+    "turns": [
+      "执行固定原生参数故障验收。"
+    ],
+    "rules": [
+      {
+        "kind": "text",
+        "pattern": "模型纠参完成"
+      },
+      {
+        "kind": "text",
+        "pattern": "错误草稿|未闭合的值",
+        "absent": true
+      },
+      {
+        "kind": "argument_recovery",
+        "localRepairs": 0,
+        "rejections": 1,
+        "modelCorrections": 1
+      }
+    ],
+    "confirmation": "reject",
+    "offlineScript": "native_duplicate_key",
+    "budget": {
+      "timeoutMs": 60000,
+      "modelRequests": 8,
+      "toolExecutions": 12,
+      "mcpCalls": 12
+    }
+  },
+  {
+    "id": "script-native-truncated-value",
+    "version": 1,
+    "family": "scripted-native-arguments",
+    "tags": [
+      "offline-script",
+      "presentation"
+    ],
+    "core": false,
+    "fixture": "standard",
+    "turns": [
+      "执行固定原生参数故障验收。"
+    ],
+    "rules": [
+      {
+        "kind": "text",
+        "pattern": "模型纠参完成"
+      },
+      {
+        "kind": "text",
+        "pattern": "错误草稿|未闭合的值",
+        "absent": true
+      },
+      {
+        "kind": "argument_recovery",
+        "localRepairs": 0,
+        "rejections": 1,
+        "modelCorrections": 1
+      }
+    ],
+    "confirmation": "reject",
+    "offlineScript": "native_truncated_value",
+    "budget": {
+      "timeoutMs": 60000,
+      "modelRequests": 8,
+      "toolExecutions": 12,
+      "mcpCalls": 12
+    }
+  },
+  {
+    "id": "script-native-terminal-error",
+    "version": 1,
+    "family": "scripted-native-terminal",
+    "tags": [
+      "offline-script",
+      "presentation"
+    ],
+    "core": false,
+    "fixture": "standard",
+    "turns": [
+      "执行固定canonical终止验收。"
+    ],
+    "rules": [
+      {
+        "kind": "text",
+        "pattern": "保留前缀"
+      },
+      {
+        "kind": "presentation_terminal",
+        "status": "error",
+        "prefix": "保留前缀。"
+      }
+    ],
+    "confirmation": "reject",
+    "offlineScript": "native_terminal_error",
+    "expectedTerminal": "error",
+    "budget": {
+      "timeoutMs": 60000,
+      "modelRequests": 8,
+      "toolExecutions": 12,
+      "mcpCalls": 12
+    }
+  },
+  {
+    "id": "script-native-terminal-abort",
+    "version": 1,
+    "family": "scripted-native-terminal",
+    "tags": [
+      "offline-script",
+      "presentation"
+    ],
+    "core": false,
+    "fixture": "standard",
+    "turns": [
+      "执行固定canonical终止验收。"
+    ],
+    "rules": [
+      {
+        "kind": "text",
+        "pattern": "保留前缀"
+      },
+      {
+        "kind": "presentation_terminal",
+        "status": "aborted",
+        "prefix": "保留前缀。"
+      }
+    ],
+    "confirmation": "reject",
+    "offlineScript": "native_terminal_abort",
+    "expectedTerminal": "error",
+    "budget": {
+      "timeoutMs": 60000,
+      "modelRequests": 8,
+      "toolExecutions": 12,
+      "mcpCalls": 12
+    }
+  }
+]

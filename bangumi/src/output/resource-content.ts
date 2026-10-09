@@ -28,7 +28,9 @@ export function resourceResolverFor(context: TranscriptContext): ResourceContent
   // ModelRuntime.normalizeContext 重建信封，但共享同一条请求的 messages 数组。
   return contexts.get(context) ?? contexts.get(context.messages);
 }
-const fail = (message: string): never => { throw new ContentOutputError(message, 'schema', [], [{ path: '/props/resourceRef', rule: 'resource_reference', message }], 'resource_reference_invalid'); };
+const fail = (message: string, details = [{ path: '/props/resourceRef', rule: 'resource_reference', message }]): never => {
+  throw new ContentOutputError(message, 'schema', [], details, 'resource_reference_invalid');
+};
 function resourceReadFailure(error: unknown): ContentOutputError {
   const safe = safeError(error);
   const reason = ['RESOURCE_EXPIRED', 'RESOURCE_REF_EXPIRED', 'RESOURCE_VERSION_CHANGED', 'CANDIDATE_REF_EXPIRED'].includes(safe.code)
@@ -152,11 +154,35 @@ function selectRows(value: Row, props: ResourceReferenceProps, kind: ComponentKi
       const actual = row[name] ?? (name === 'entity' ? value.entity : undefined);
       return actual === expected || name === 'entity' && actual === 'subject_candidate' && expected === 'subject';
     }));
-    if (matches.length !== 1) return fail('引用成员不存在或复合主键不唯一。');
+    if (matches.length !== 1) return fail('引用成员不存在或复合主键不唯一。', [{ path: '/props/items', rule: 'resource_membership', message: '选择成员必须属于当前引用且身份唯一。' }]);
     return matches[0]!;
   });
-  if (new Set(selected).size !== selected.length) return fail('引用成员重复。');
+  if (new Set(selected).size !== selected.length) return fail('引用成员重复。', [{ path: '/props/items', rule: 'resource_member_duplicate', message: '选择成员不能重复指向同一缓存对象。' }]);
   return selected;
+}
+/** 宿主合并使用同一成员选择守卫，身份不进入模型；无明确实体或主键时拒绝跨源合并。 */
+export function resourceSelectionIdentities(value: Row, props: ResourceReferenceProps, kind: ComponentKind): string[] {
+  const body = value.kind === 'candidate_continuation' && record(value.result) ? value.result : value;
+  return selectRows(body, props, kind).map(row => {
+    let entity = String(row.entity ?? body.entity ?? '');
+    if (entity === 'subject_candidate') entity = 'subject';
+    if (kind === 'SubjectCards') entity = 'subject';
+    if (!['subject', 'character', 'person', 'episode', 'revision', 'user', 'index'].includes(entity)) {
+      const candidates = ['character', 'person', 'episode', 'subject'].filter(name => row[`${name}Id`] === row.id && typeof row.id === 'number');
+      entity = candidates.length === 1 ? candidates[0]! : '';
+    }
+    const id = row[`${entity}Id`] ?? row.id ?? (entity === 'user' ? row.username : undefined);
+    if (!entity || !(typeof id === 'number' && Number.isSafeInteger(id) && id > 0 || typeof id === 'string' && id.trim()))
+      return fail('缓存没有可核实的实体身份，不能跨来源合并。');
+    const identities: Row = { entity, id };
+    if (kind !== 'SubjectCards' && kind !== 'Gallery' && kind !== 'LinkList') {
+      for (const key of ['subjectId', 'characterId', 'personId', 'episodeId', 'revisionId', 'targetKind', 'targetId', 'relationId', 'ownerId'])
+        if (row[key] !== undefined && key !== `${entity}Id`) identities[key] = row[key];
+      const scope = record(body.scope) ? body.scope : {};
+      if (row.ownerId !== undefined || scope.username !== undefined) identities.owner = row.ownerId ?? scope.username;
+    }
+    return JSON.stringify(identities);
+  });
 }
 /** 只将明确作品身份送给宿主；关联角色/章节等身份仍按原复合主键选取。 */
 function subjectSelection(props: ResourceReferenceProps): CachedResourceSelection | undefined {
@@ -207,7 +233,7 @@ export async function expandResourceContent(kind: ComponentKind, input: Resource
   }
   if (props.partIndex !== undefined) return fail('普通资源不支持 partIndex。');
   if (Object.keys(props).some(key => key !== 'resourceRef' && !referenceControls[kind].includes(key))) return fail(`${kind} 不支持此引用展示参数。`);
-  if (props.fields && props.columns) return fail('表格不能同时提供 fields 与 columns。');
+  if (props.fields && props.columns) return fail('表格不能同时提供 fields 与 columns。', ['fields', 'columns'].map(field => ({ path: `/props/${field}`, rule: 'mutually_exclusive', message: 'fields与columns只能选择一种。' })));
   if (value.responseView === 'reference' && Array.isArray(value.data) && value.data.length === 0
     && record(value.set) && Number(value.set.resultCount) > 0)
     return fail('此引用只保存候选进度，没有展示成员窗口；请沿 resultRef 读取缓存成员字段后使用新的资源引用，不能将非空结果展示为空集合。');

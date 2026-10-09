@@ -4,7 +4,7 @@ import { fauxProvider, fauxAssistantMessage, fauxToolCall } from '@earendil-work
 import { withProviderFetch } from '../dist/src/pi-host.js';
 import { ContentOutputError } from '../dist/src/output/content-schema.js';
 import { bindResourceResolver } from '../dist/src/output/resource-content.js';
-import { CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
+import { LEGACY_CONTENT_OUTPUT_INSTRUCTION as CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
 import { RecoveryController } from '../dist/src/output/recovery.js';
 import { attachOutputCheckpoint, outputCheckpoint } from '../dist/src/output/recovery-checkpoint.js';
 import { AppError, diagnosedError } from '../dist/src/support/errors.js';
@@ -79,6 +79,7 @@ function host() {
   const end = (assistant, toolResults = []) => handlers.get('turn_end')({ message: assistant, toolResults, messageEntryId: 'assistant-error' });
   return {
     session, end, events, tools: () => activeTools,
+    executionEnd: (toolCallId, toolName) => handlers.get('tool_execution_end')({ type: 'tool_execution_end', toolCallId, toolName }),
     remember: (tool, args, value) => end(fauxAssistantMessage([fauxToolCall(tool, args, { id: 'source-call' })], { stopReason: 'toolUse' }),
       [{ toolName: tool, toolCallId: 'source-call', details: { value } }]),
     fail: (reason, draft, prefix = []) => end(attachOutputCheckpoint(withAssistantDiagnostic(message(prefix, 'error'), diagnostic(reason)),
@@ -151,11 +152,21 @@ test('续查wrapper的来源、成员和原条件被固定登记，失效恢复�
   const f = feedback(h.fail('resource_reference_refresh_required', { type: 'SubjectCards', props: { resourceRef: 'rr_continuation' } }));
   assert.equal(f.goal.strategy, 'replan_read'); assert.deepEqual(f.referenceSource.memberIds, [42, 24]);
   assert.deepEqual(f.referenceSource.args, args); assert.deepEqual(h.tools(), ['continue_subject_query']);
-  const changed = await h.session.agent.beforeToolCall({ toolCall: { name: 'continue_subject_query' }, args: { ...args, limit: 3 } });
+  const originalCall = { id: 'refresh-call', name: 'continue_subject_query' };
+  const changed = await h.session.agent.beforeToolCall({ toolCall: originalCall, args: { ...args, limit: 3 } });
   assert.equal(changed.block, true);
-  assert.equal(await h.session.agent.beforeToolCall({ toolCall: { name: 'continue_subject_query' }, args }), undefined);
-  const duplicate = await h.session.agent.beforeToolCall({ toolCall: { name: 'continue_subject_query' }, args });
-  assert.equal(duplicate.block, true); assert.match(duplicate.reason, /不能重复请求/);
+  h.executionEnd(originalCall.id, originalCall.name); // 未获准的错误参数调用不能消费原来源许可。
+  assert.equal(await h.session.agent.beforeToolCall({ toolCall: originalCall, args }), undefined);
+  assert.equal(await h.session.agent.beforeToolCall({ toolCall: originalCall, args }), undefined, '同次执行可经过extension及agent双hook');
+  const wrongId = await h.session.agent.beforeToolCall({ toolCall: { ...originalCall, id: 'another-read' }, args });
+  assert.equal(wrongId.block, true);
+  const wrongParams = await h.session.agent.beforeToolCall({ toolCall: originalCall, args: { ...args, cursor: 'cc_changed' } });
+  assert.equal(wrongParams.block, true);
+  h.executionEnd('another-read', originalCall.name);
+  assert.equal(await h.session.agent.beforeToolCall({ toolCall: originalCall, args }), undefined, '错ID的结束事件不消费正在执行的许可');
+  h.executionEnd(originalCall.id, originalCall.name);
+  const duplicate = await h.session.agent.beforeToolCall({ toolCall: originalCall, args });
+  assert.equal(duplicate.block, true); assert.match(duplicate.reason, /不能重复/);
 });
 
 for (const kind of ['DataTable', 'InfoBox', 'TagCloud', 'LinkList', 'StatsCard', 'Timeline']) test(`${kind}缺少宿主可核验的成员顺序时拒绝定向重读，不能以同查询参数替换成员`, () => {

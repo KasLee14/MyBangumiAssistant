@@ -15,7 +15,9 @@ bangumi/benchmarks/
 !bangumi/benchmarks/
 bangumi/benchmarks/*
 !bangumi/benchmarks/component-tools-cases.json
+!bangumi/benchmarks/presentation-cases.json
 bangumi/artifacts/benchmarks/component-tools-*
+bangumi/artifacts/benchmarks/presentation-*
 bangumi/artifacts/prepare-deepseek-responses.ps1
 !bangumi/scripts/
 bangumi/scripts/*

@@ -59,7 +59,7 @@ export function inputRows(root) {
     for (const [name, child] of Object.entries(schema.properties ?? {})) visit(child, path ? `${path}.${name}` : name, schema.required?.includes(name), branch, nextRefs);
     if (schema.items && typeof schema.items === 'object') visit(schema.items, `${path}[]`, true, branch, nextRefs);
     for (const kind of ['allOf', 'oneOf', 'anyOf']) for (const [index, child] of (schema[kind] ?? []).entries()) {
-      const name = child.properties?.tool?.const;
+      const name = child.properties?.tool?.const ?? child.properties?.component?.enum?.[0];
       visit(child, path, required, [branch, name ? `${kind}: ${name}${child.required?.includes('index_from') ? '（index_from分支）' : ''}` : `${kind} ${index + 1}`].filter(Boolean).join('；'), nextRefs);
     }
     if (schema.if) for (const kind of ['then', 'else']) if (schema[kind]) visit(schema[kind], path, false, `${kind}: ${condition(schema.if)}`, nextRefs);
@@ -68,8 +68,10 @@ export function inputRows(root) {
   return rows;
 }
 /** 输出嵌套结构按实际形状去重，每个公共结构只声明一次。 */
-export function renderMcpDocument(tools, batchInput) {
+export function renderMcpDocument(tools, batchInput, hostTools = []) {
   if (!tools.length || new Set(tools.map(tool => tool.name)).size !== tools.length) throw Error('工具目录必须非空且名称不能重复。');
+  const allNames = [...tools.map(tool => tool.name), 'execute_write_batch', ...hostTools.map(tool => tool.name)];
+  if (new Set(allNames).size !== allNames.length) throw Error('底层与宿主工具名称不能重复。');
   const models = [], modelKeys = new Map(), modelNames = new Set();
   function shape(raw, root, refs = new Set()) {
     if (raw === null || typeof raw !== 'object') return raw;
@@ -80,31 +82,31 @@ export function renderMcpDocument(tools, batchInput) {
     }
     return Object.fromEntries(Object.keys(raw).filter(key => !['$defs', 'description', 'title'].includes(key)).sort().map(key => [key, shape(raw[key], root, refs)]));
   }
-  function register(raw, root, hint) {
-    const key = JSON.stringify(shape(raw, root));
+  function register(raw, root, hint, kind = 'output') {
+    const key = `${kind}:${JSON.stringify(shape(raw, root))}`;
     if (modelKeys.has(key)) return modelKeys.get(key);
     let name = hint.replace(/[^A-Za-z0-9_]/g, '_') || 'Object';
     const base = name; let suffix = 2;
     while (modelNames.has(name)) name = `${base}_${suffix++}`;
-    modelNames.add(name); modelKeys.set(key, name); models.push({ name, schema: dereference(raw, root), root });
+    modelNames.add(name); modelKeys.set(key, name); models.push({ name, schema: dereference(raw, root), root, kind });
     return name;
   }
-  function outputType(raw, root, hint) {
+  function outputType(raw, root, hint, kind = 'output') {
     const reference = raw?.$ref?.slice(8), schema = dereference(raw, root);
-    if (schema.type === 'array') return `array<${outputType(schema.items ?? {}, root, `${hint}Item`)}>`;
-    if (schema.anyOf || schema.oneOf) return [...new Set((schema.anyOf ?? schema.oneOf).map(child => outputType(child, root, hint)))].join(' / ');
-    if (schema.properties || schema.allOf) return register(raw, root, reference ?? hint);
+    if (schema.type === 'array') return `array<${outputType(schema.items ?? {}, root, `${hint}Item`, kind)}>`;
+    if (schema.anyOf || schema.oneOf) return [...new Set((schema.anyOf ?? schema.oneOf).map(child => outputType(child, root, hint, kind)))].join(' / ');
+    if (schema.properties || schema.allOf) return register(raw, root, reference ?? hint, kind);
     return simpleType(schema, root);
   }
-  function outputRows(raw, root, prefix, hint, branch = '') {
+  function outputRows(raw, root, prefix, hint, branch = '', kind = 'output') {
     const schema = dereference(raw, root), rows = [];
     for (const [field, childRaw] of Object.entries(schema.properties ?? {})) {
-      const child = dereference(childRaw, root), path = prefix ? `${prefix}.${field}` : field;
-      const type = field === 'scope' ? 'object（本工具输入字段）' : outputType(childRaw, root, field === 'accessContext' ? 'AccessContext' : `${hint}_${field}`);
+      const child = dereference(kind === 'input' && root.properties?.[field] ? { ...root.properties[field], ...childRaw } : childRaw, root), path = prefix ? `${prefix}.${field}` : field;
+      const type = field === 'scope' ? 'object（本工具输入字段）' : outputType(child, root, field === 'accessContext' ? 'AccessContext' : `${hint}_${field}`, kind);
       rows.push([path, type, schema.required?.includes(field) ? '是' : '否', Object.hasOwn(child, 'default') ? literal(child.default) : '—', field === 'accessContext' ? '见公共结构' : constraints(child), [child.description, branch].filter(Boolean).join('；')]);
     }
-    for (const kind of ['allOf', 'oneOf', 'anyOf']) for (const [index, child] of (schema[kind] ?? []).entries()) rows.push(...outputRows(child, root, prefix, hint, `${kind} ${index + 1}`));
-    if (schema.if) for (const kind of ['then', 'else']) if (schema[kind]) rows.push(...outputRows(schema[kind], root, prefix, hint, `${kind}: ${condition(schema.if)}`));
+    for (const combination of ['allOf', 'oneOf', 'anyOf']) for (const [index, child] of (schema[combination] ?? []).entries()) rows.push(...outputRows(child, root, prefix, hint, `${combination} ${index + 1}`, kind));
+    if (schema.if) for (const selection of ['then', 'else']) if (schema[selection]) rows.push(...outputRows(schema[selection], root, prefix, hint, `${selection}: ${condition(schema.if)}`, kind));
     return rows.filter((row, index, all) => all.findIndex(value => JSON.stringify(value) === JSON.stringify(row)) === index);
   }
   function envelopes(raw, root, toolName) {
@@ -119,15 +121,23 @@ export function renderMcpDocument(tools, batchInput) {
     return `## \`${tool.name}\`\n\n输入字段\n\n${table(inputRows(tool.inputSchema))}\n\n成功输出字段\n\n${table(output)}`;
   });
   sections.push(`## \`execute_write_batch\`\n\n输入字段\n\n${table(inputRows(batchInput))}\n\n成功输出字段\n\n${table(BATCH_OUTPUT_FIELDS)}`);
-  const common = [];
+  for (const tool of hostTools) {
+    const output = envelopes(tool.outputSchema, tool.outputSchema, tool.name);
+    const fields = output.length ? output : outputRows(tool.outputSchema, tool.outputSchema, '', tool.name);
+    // 展示工具共享嵌套成员契约，字段只声明一次；不为扩充工具提高文档容量门槛。
+    const input = outputRows(tool.inputSchema, tool.inputSchema, '', `Input_${tool.name}`, '', 'input');
+    sections.push(`## \`${tool.name}\`\n\n输入字段\n\n${table(input)}\n\n成功输出字段\n\n${table(fields)}`);
+  }
+  const common = [], commonInput = [];
   for (let index = 0; index < models.length; index++) {
     const model = models[index];
-    common.push(`### \`${model.name}\`\n\n${table(outputRows(model.schema, model.root, '', model.name))}`);
+    const section = `### \`${model.name}\`\n\n${table(outputRows(model.schema, model.root, '', model.name, '', model.kind))}`;
+    (model.kind === 'input' ? commonInput : common).push(section);
     if (models.length > 500) throw Error('公共输出结构展开过多，检查循环引用。');
   }
   return ['# Bangumi MCP 字段声明',
-    `${tools.length} 个底层工具及宿主工具 execute_write_batch。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。`,
-    ...sections, '## 公共输出结构', ...common].join('\n\n').trimEnd() + '\n';
+    `${tools.length} 个底层工具及宿主工具 ${['execute_write_batch', ...hostTools.map(tool => tool.name)].join('、')}。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。`,
+    ...sections, ...(commonInput.length ? ['## 公共输入结构', ...commonInput] : []), '## 公共输出结构', ...common].join('\n\n').trimEnd() + '\n';
 }
 const BATCH_OUTPUT_FIELDS = [
   ['value.state', 'string', '是', '—', 'success / unchanged / partial / failed / unknown；进度更新 running', '整批状态'],
@@ -190,7 +200,7 @@ async function sourceFiles(directory) {
   return result;
 }
 export async function syncMcpDocument(checking = false) {
-  const sources = [...await sourceFiles(join(appRoot, 'src/mcp')), ...await sourceFiles(join(appRoot, 'src/support')), join(appRoot, 'src/extension.ts')];
+  const sources = [...await sourceFiles(join(appRoot, 'src/mcp')), ...await sourceFiles(join(appRoot, 'src/support')), ...await sourceFiles(join(appRoot, 'src/output')), join(appRoot, 'src/extension.ts')];
   for (const source of sources) {
     const compiled = join(appRoot, 'dist', relative(appRoot, source).replace(/\.ts$/, '.js'));
     let build; try { build = await stat(compiled); } catch { throw Error(`构建产物缺失：${relative(appRoot, compiled)}；请先统一构建。`); }
@@ -198,7 +208,9 @@ export async function syncMcpDocument(checking = false) {
   }
   const { TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/mcp/catalog.js')).href);
   const { BATCH_INPUT_SCHEMA } = await import(pathToFileURL(join(appRoot, 'dist/src/mcp/batch-write.js')).href);
-  const rendered = renderMcpDocument(TOOL_DEFINITIONS, BATCH_INPUT_SCHEMA);
+  const { PRESENTATION_TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/output/presentation-contract.js')).href);
+  const { COMPONENT_READ_TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/output/component-tools.js')).href);
+  const rendered = renderMcpDocument(TOOL_DEFINITIONS, BATCH_INPUT_SCHEMA, [...COMPONENT_READ_TOOL_DEFINITIONS, ...PRESENTATION_TOOL_DEFINITIONS]);
   const original = (await readFile(documentPath, 'utf8')).replace(/\r\n/g, '\n');
   if (checking && rendered !== original) throw Error('mcp.md与工具字段不一致；运行 node scripts/sync-mcp-doc.mjs 同步。');
   if (!checking && rendered !== original) await writeFile(documentPath, rendered, 'utf8');
@@ -208,5 +220,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (process.argv.slice(2).some(value => value !== '--check')) throw Error('只接受可选参数 --check。');
   await syncMcpDocument(process.argv.includes('--check'));
   const { TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/mcp/catalog.js')).href);
-  console.log(`${process.argv.includes('--check') ? '字段一致性校验通过' : '字段文档同步完成'}：${TOOL_DEFINITIONS.length}底层工具及execute_write_batch。`);
+  console.log(`${process.argv.includes('--check') ? '字段一致性校验通过' : '字段文档同步完成'}：${TOOL_DEFINITIONS.length}底层工具及宿主写入、展示工具。`);
 }

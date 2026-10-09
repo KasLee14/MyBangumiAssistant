@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
 import type { AssistantMessage, TSchema } from '@earendil-works/pi-ai';
 import type { ExtensionContext, ToolDefinition } from '@earendil-works/pi-coding-agent';
-import { safeError, sanitizeErrorDiagnostic } from '../support/errors.js';
+import { safeError, sanitizeErrorDiagnostic, credentialValues, redact } from '../support/errors.js';
 import { assistantErrorDiagnostic, correlateDiagnostic, takeErrorDebug, isErrorDiagnostic, type ErrorDiagnostic } from '../support/error-diagnostic.js';
 import { TOOL_DEFINITIONS } from '../mcp/catalog.js';
 import { analyzeEvents } from './analyze.js';
@@ -66,6 +66,17 @@ export class TraceRun {
     const safe = traceRedact(value, partial);
     if (safe === '[FULLY_REDACTED: serialization_failed]') this.writer.issue('serialization_failed');
     return this.writer.payload(safe);
+  }
+  /** 展示故障原文保留重复键/空白，不经过JSON.parse归一化；先脱敏再入既有payload队列。 */
+  presentationArgumentsPayload(raw: string): PayloadRef {
+    const secrets = credentialValues();
+    let safe = redact(raw, secrets);
+    for (const secret of secrets) {
+      for (let length = Math.min(secret.length - 1, safe.length); length > 0; length--) {
+        if (safe.endsWith(secret.slice(0, length))) { safe = safe.slice(0, -length) + '[PARTIAL_REDACTED]'; break; }
+      }
+    }
+    return this.writer.payload({ rawArguments: safe, redacted: true, offsetBasis: 'original_raw_before_redaction' });
   }
 
   emit(event: string, data: TraceData = {}, span = this.root, final = false): void {
@@ -403,6 +414,13 @@ export class TraceRecorder implements TraceHost {
 
   record(event: string, value: unknown): void {
     this.observe(() => this.recordOnce(event, value));
+  }
+  /** 仅由展示repaired/rejected审计调用；debug_ref永远只进入本地trace事件。 */
+  presentationArgumentsDebug(metadata: TraceData, raw: string): void {
+    this.observe(() => {
+      const scope = this.scopes.getStore(), run = scope?.run ?? this.current;
+      if (run) run.emit('presentation.arguments_debug', { ...metadata, debug_ref: run.presentationArgumentsPayload(raw) }, scope?.span);
+    });
   }
 
   private recordOnce(event: string, value: unknown): void {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AssistantMessage } from '@earendil-works/pi-ai';
 import { assistantErrorDiagnostic, isErrorDiagnostic } from '../support/error-diagnostic.js';
+import { isPresentationSource, PRESENTATION_ENTRY_TYPE, type PresentationSnapshot } from '../output/reply-assembler.js';
 import type {
   AgentMessage,
   ThinkingLevel,
@@ -705,6 +706,7 @@ export class WebSession {
    */
   private rebuild(): void {
     this.items = [];
+    this.presentationReplies.clear();
     this.recoveryReplies.clear();
     this.hostDiagnosticIds.clear();
     this.turnItems.clear();
@@ -742,6 +744,9 @@ export class WebSession {
     for (const entry of this.runtime.session.sessionManager.buildContextEntries()) {
       const at = stamp(entry.timestamp);
       if (at > lastTimestamp) lastTimestamp = at;
+      if (entry.type === 'custom' && entry.customType === PRESENTATION_ENTRY_TYPE) {
+        this.updatePresentationReply(entry.data, at, true); continue;
+      }
       if (entry.type === 'custom' && entry.customType === 'bangumi/recovery') {
         const data = entry.data as { diagnostic?: unknown } | undefined;
         if (isErrorDiagnostic(data?.diagnostic)) this.noteHostDiagnostic(data.diagnostic, at);
@@ -823,7 +828,7 @@ export class WebSession {
           );
           this.noteToolCall();
         }
-        const blocks = blocksFromMessage(message);
+        const blocks = isPresentationSource(message) ? [] : blocksFromMessage(message);
         const usage = usageView(message.usage);
         this.accumulateUsage(message.usage);
         const recovered = this.updateRecoveryReply(message, blocks, true);
@@ -909,6 +914,9 @@ export class WebSession {
 
     switch (event.type) {
       case 'entry_appended': {
+        if (event.entry.type === 'custom' && event.entry.customType === PRESENTATION_ENTRY_TYPE) {
+          this.updatePresentationReply(event.entry.data); break;
+        }
         if (event.entry.type === 'custom' && event.entry.customType === 'bangumi/recovery') {
           const data = event.entry.data as { stage?: string; attempt?: number; maxAttempts?: number } | undefined;
           if (data && ['scheduled', 'running'].includes(data.stage ?? '')) {
@@ -961,7 +969,7 @@ export class WebSession {
         // 这道判断只兜住手写样例与将来的形状漂移，**不做 delta 回退**。（联合里的
         // `done` 成员没有 partial，所以按可选字段取。）
         const partial = (update as { partial?: { content?: unknown } }).partial;
-        if (partial !== undefined && Array.isArray(partial.content)) {
+        if (partial !== undefined && Array.isArray(partial.content) && !(event.message.role === 'assistant' && isPresentationSource(event.message))) {
           const blocks = blocksFromContent(partial.content, this.liveBlocks);
           if (event.message.role === 'assistant' && this.updateRecoveryReply(event.message, blocks)) this.liveBlocks = [];
           else this.liveBlocks = blocks;
@@ -997,7 +1005,7 @@ export class WebSession {
           break;
         }
         if (message.role === "assistant") {
-          const blocks = blocksFromMessage(message);
+          const blocks = isPresentationSource(message) ? [] : blocksFromMessage(message);
           const recovered = this.updateRecoveryReply(message, blocks, true);
           const completedTime = Date.now();
           // 思考先落条目：这一帧之后 `liveThinking` 就被清空，不落条目它便只存在于流式期。
@@ -1020,7 +1028,7 @@ export class WebSession {
               ...(usage === undefined ? {} : { usage }),
             });
           this.noteAssistantStep();
-          this.liveBlocks = [];
+          if (!isPresentationSource(message)) this.liveBlocks = [];
           this.liveThinking = "";
           if (message.stopReason === "error") {
             this.turnStatus = "error";
@@ -1143,6 +1151,27 @@ export class WebSession {
   private recoveryChain(message: AssistantMessage): string | undefined {
     const value = message.diagnostics?.findLast(item => item.type === 'application_recovery')?.details?.chainId;
     return typeof value === 'string' ? value : undefined;
+  }
+  private presentationReplies = new Map<string, number>();
+  /** 内部宿主记录投影为既有正文条目；实时和历史使用同一个完整快照。 */
+  private updatePresentationReply(data: unknown, at = Date.now(), history = false): void {
+    if (!data || typeof data !== 'object') return;
+    const snapshot = data as PresentationSnapshot;
+    if (snapshot.version !== 1 || typeof snapshot.replyId !== 'string' || !Array.isArray(snapshot.content)) return;
+    const blocks = blocksFromContent(snapshot.content);
+    if (snapshot.status === 'open' && !history) { this.liveBlocks = blocks; return; }
+    const id = this.presentationReplies.get(snapshot.replyId);
+    const item = id === undefined ? undefined : this.items.find(value => value.id === id);
+    if (item?.kind === 'assistant') {
+      const extendsPrefix = blocks.length >= item.content.length && item.content.every((value, index) => JSON.stringify(value) === JSON.stringify(blocks[index]));
+      if (extendsPrefix && JSON.stringify(item.content) !== JSON.stringify(blocks)) { item.content = blocks; item.version++; }
+    } else if (hasRenderableBlock(blocks)) {
+      this.presentationReplies.set(snapshot.replyId, this.push({ id: this.nextItemId++, kind: 'assistant', content: blocks,
+        turn: this.currentTurn, step: this.currentStep || 1,
+        timing: { stepStartTime: this.stepStartedAt || at, firstTokenTime: this.firstTokenTime || at, completedTime: at },
+      }).id);
+    }
+    if (snapshot.status !== 'open') { this.liveBlocks = []; this.turnStatus = snapshot.status === 'completed' ? 'completed' : snapshot.status; this.terminalReported = true; }
   }
   private recoveryStatus(message: AssistantMessage): string | undefined {
     const value = message.diagnostics?.findLast(item => item.type === 'application_recovery')?.details?.status;

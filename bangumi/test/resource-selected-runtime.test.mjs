@@ -6,7 +6,7 @@ import { join, resolve, sep } from 'node:path';
 import { ModelRuntime, SessionManager } from '@earendil-works/pi-coding-agent';
 import { fauxProvider, fauxAssistantMessage, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 import { createBangumiRuntime } from '../dist/src/pi-host.js';
-import { createBangumiExtension } from '../dist/src/extension.js';
+import { createLegacyBangumiExtension as createBangumiExtension } from './legacy-provider-fixture.mjs';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { validateMixedContent } from '../dist/src/output/content-schema.js';
 

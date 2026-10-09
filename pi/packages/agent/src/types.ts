@@ -10,6 +10,7 @@ import type {
 	SimpleStreamOptions,
 	TextContent,
 	Tool,
+	ToolArgumentContext,
 	ToolResultMessage,
 	TranscriptContext,
 	Usage,
@@ -468,7 +469,7 @@ export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any
 	 * Optional compatibility shim for raw tool-call arguments before schema validation.
 	 * Must return an object that matches `TParameters`.
 	 */
-	prepareArguments?: (args: unknown) => Static<TParameters>;
+	prepareArguments?: (args: unknown, context?: ToolArgumentContext) => Static<TParameters>;
 	/**
 	 * JSON Schema of `structuredContent` in successful results. Tools that declare it should always
 	 * set `structuredContent`.

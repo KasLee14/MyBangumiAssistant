@@ -8,10 +8,10 @@ import { join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { ContentDecoder } from '../dist/src/output/content-decoder.js';
 import { withProviderFetch, createBangumiRuntime } from '../dist/src/pi-host.js';
-import { createBangumiExtension } from '../dist/src/extension.js';
+import { createLegacyBangumiExtension as createBangumiExtension } from './legacy-provider-fixture.mjs';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { bindResourceResolver, expandResourceContent } from '../dist/src/output/resource-content.js';
-import { CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
+import { LEGACY_CONTENT_OUTPUT_INSTRUCTION as CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
 import { outputCheckpoint } from '../dist/src/output/recovery-checkpoint.js';
 import { projectTranscriptForModel } from '../dist/src/output/model-context.js';
 
@@ -78,15 +78,22 @@ test('全部资源组件有确定映射，关系复合身份、章节进度与�
   for (const part of [{ type: 'Callout', pending: false, props: { tone: 'success', text: '完成' } }, { type: 'QuoteBlock', pending: false, props: { mono: false, text: '引用' } }]) assert.deepEqual(await expandResourceContent(part.type, props, async () => resource({ presentation: { content: [part] } })), part);
 });
 
-test('模型请求保留当前工具引用，清除旧轮引用且不改变canonical历史', () => {
+test('模型请求保留原工具配对及必填引用，过期只作历史说明且不改变canonical历史', () => {
   const transcript = { messages: [
     { role: 'assistant', content: [{ type: 'toolCall', id: 'cached-read', name: 'read_cached_resource', arguments: { resource_ref: ref, fields: ['name'] } }] },
-    { role: 'toolResult', content: [{ type: 'text', text: JSON.stringify({ value: { resourceRef: ref, id: 1 } }) }] },
+    { role: 'toolResult', toolCallId: 'cached-read', toolName: 'read_cached_resource', isError: false, content: [{ type: 'text', text: JSON.stringify({ value: { resourceRef: ref, id: 1 } }) }] },
   ] };
+  const original = structuredClone(transcript);
   const resolver = Object.assign(async () => resource(subject), { isCurrent: value => value === ref });
-  assert.ok(JSON.stringify(projectTranscriptForModel(transcript, resolver)).includes(ref));
-  assert.equal(JSON.stringify(projectTranscriptForModel(transcript)).includes(ref), false);
-  assert.ok(JSON.stringify(transcript).includes(ref));
+  const current = projectTranscriptForModel(transcript, resolver), historical = projectTranscriptForModel(transcript);
+  for (const projected of [current, historical]) {
+    assert.deepEqual(projected.messages[0].content[0].arguments, original.messages[0].content[0].arguments);
+    assert.equal(projected.messages[1].toolCallId, 'cached-read');
+    assert.deepEqual(JSON.parse(projected.messages[1].content[0].text), JSON.parse(original.messages[1].content[0].text));
+  }
+  assert.equal(JSON.stringify(current).includes('当前请求未验证可复用'), false);
+  assert.match(JSON.stringify(historical), /历史引用仅标识原操作.*当前请求未验证可复用/);
+  assert.deepEqual(transcript, original);
 });
 
 test('provider上下文去除本地完整结果及诊断快照，canonical会话仍保存原对象', () => {
@@ -144,7 +151,14 @@ test('真实会话宿主在轮次缓存清理前保存展开快照，重开会�
         if (typeof value === 'string') { for (const needle of ['缓存独有简介', 'example.invalid/cover', returnedRef]) if (value.includes(needle)) matches.push({ path, needle, value: value.slice(0, 300) }); }
         else if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) visit(item, `${path}/${key}`);
       }; visit(transcript); thirdAudit = { matches };
-      assert.equal(wire.includes('缓存独有简介'), false); assert.equal(wire.includes('example.invalid/cover'), false); assert.equal(wire.includes(returnedRef), false);
+      assert.equal(wire.includes('缓存独有简介'), false); assert.equal(wire.includes('example.invalid/cover'), false);
+      const sourceCall = transcript.messages.flatMap(message => message.role === 'assistant' ? message.content : [])
+        .find(part => part.type === 'toolCall' && part.id === 'read-resource');
+      const sourceResult = transcript.messages.find(message => message.role === 'toolResult' && message.toolCallId === 'read-resource');
+      assert.deepEqual(sourceCall.arguments, { subject_id: 1 });
+      assert.equal(sourceResult.toolName, 'get_subject_details');
+      assert.equal(JSON.parse(sourceResult.content[0].text).value.resourceRef, returnedRef);
+      assert.match(wire, /历史引用仅标识原操作.*当前请求未验证可复用/);
       assert.ok(wire.includes('模型选择理由')); assert.ok(wire.includes('缓存作品'));
       return fauxAssistantMessage('{"content":[{"type":"text","text":"继续讨论"}]}');
     },

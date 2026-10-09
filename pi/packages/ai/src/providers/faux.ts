@@ -20,6 +20,7 @@ import type {
 } from "../types.ts";
 import { createAssistantMessageEventStream } from "../utils/event-stream.ts";
 import { getSystemMessageText } from "../utils/text.ts";
+import { getToolCallArgumentSource, setToolCallArgumentSource } from "../utils/tool-call-arguments.ts";
 
 const DEFAULT_API = "faux";
 const DEFAULT_PROVIDER = "faux";
@@ -281,6 +282,20 @@ function splitStringByTokenSize(text: string, minTokenSize: number, maxTokenSize
 
 function cloneMessage(message: AssistantMessage, api: string, provider: string, modelId: string): AssistantMessage {
 	const cloned = structuredClone(message);
+	for (const [index, block] of cloned.content.entries()) {
+		if (block.type !== "toolCall") continue;
+		const original = message.content[index];
+		const source = original?.type === "toolCall" ? getToolCallArgumentSource(original) : undefined;
+		// Faux has a complete structured argument value; preserve explicit malformed evidence in fixtures.
+		setToolCallArgumentSource(
+			block,
+			source ?? {
+				raw: JSON.stringify(block.arguments),
+				state: "complete",
+				source: "terminal_response",
+			},
+		);
+	}
 	return {
 		...cloned,
 		api,

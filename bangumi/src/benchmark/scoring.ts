@@ -43,6 +43,53 @@ export function gradeCase(test: BenchmarkCase, turns: TurnObservation[], fixture
       case 'component':
         walk(turn?.final, row => { if (row.type === rule.type && row.pending === false) passed = true; });
         detail = '完整组件：' + rule.type; break;
+      case 'component_text':
+        walk(turn?.final, row => {
+          if (row.type === rule.type && row.pending === false && new RegExp(rule.pattern, 'u').test(outputText(row))) passed = true;
+        });
+        detail = '完整' + rule.type + '组件内部应含：' + rule.pattern; break;
+      case 'sequence': {
+        const blocks = record(turn?.final).content;
+        const types = Array.isArray(blocks) ? blocks.map(block => String(record(block).type)) : [];
+        let next = 0;
+        for (const type of types) if (type === rule.types[next]) next++;
+        passed = next === rule.types.length;
+        detail = '实际正文顺序：' + types.join(' → '); break;
+      }
+      case 'delivered_fields': {
+        const rows: Data[] = [];
+        walk(turn?.final, block => {
+          if (block.type === rule.type && block.pending === false) {
+            const items = record(block.props).items;
+            if (Array.isArray(items)) rows.push(...items.map(record));
+          }
+        });
+        const present = (value: unknown) => value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0);
+        passed = rule.subjectIds.every(id => {
+          const subject = fixture.subjects.find(subject => subject.id === id);
+          if (!subject) return false;
+          const expected: Data = { id, name: subject.name, nameCn: subject.name, kind: 'anime', score: subject.score,
+            date: subject.date, summary: subject.summary, image: 'https://example.invalid/benchmark/' + id + '.png' };
+          return rows.some(row => Number(row.id ?? row.subjectId) === id && rule.fields.every(field => {
+            if (!present(row[field])) return false;
+            if (field === 'url') return new RegExp('^https://(?:bgm\\.tv|bangumi\\.tv|chii\\.in)/subject/' + id + '/?$').test(String(row[field]));
+            return !Object.hasOwn(expected, field) || row[field] === expected[field];
+          }));
+        });
+        detail = '最终完整组件字段：' + JSON.stringify(rows.map(row => ({ id: row.id ?? row.subjectId,
+          fields: rule.fields.filter(field => present(row[field])) }))); break;
+      }
+      case 'argument_recovery':
+        passed = metrics !== undefined && metrics.localArgumentRepairs === rule.localRepairs
+          && metrics.argumentRejections === rule.rejections && metrics.modelArgumentCorrections === rule.modelCorrections
+          && metrics.terminalModelErrors === 0 && metrics.validatedFinals === test.turns.length;
+        detail = '本地语法修复=' + metrics?.localArgumentRepairs + '；拒绝=' + metrics?.argumentRejections
+          + '；后续模型调用成功纠参=' + metrics?.modelArgumentCorrections; break;
+      case 'presentation_terminal':
+        passed = turn?.presentationStatus === rule.status && (turn?.text ?? '').split(rule.prefix).length - 1 === 1
+          && metrics !== undefined && metrics.validatedFinals === 0 && metrics.terminalModelErrors > 0 && metrics.prefixMonotonic;
+        detail = 'canonical终态=' + turn?.presentationStatus + '；成功正文=' + metrics?.validatedFinals
+          + '；终态错误=' + metrics?.terminalModelErrors + '；已发布前缀保留一次'; break;
       case 'visible_text':
         passed = values.some(value => JSON.stringify(value).includes(rule.text));
         detail = '模型可见资料应含：' + rule.text; break;

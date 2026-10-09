@@ -10,6 +10,7 @@ import { ModelRuntime, SessionManager } from '@earendil-works/pi-coding-agent';
 import { fauxProvider, fauxAssistantMessage, fauxText, fauxThinking, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 import { lazyStream } from '@earendil-works/pi-ai';
 import { createBangumiExtension } from '../dist/src/extension.js';
+import { createLegacyBangumiExtension } from './legacy-provider-fixture.mjs';
 import { createBangumiRuntime } from '../dist/src/pi-host.js';
 import { parseLauncherArgs } from '../dist/src/launcher.js';
 import { LocalMcpClient } from '../dist/src/mcp/client.js';
@@ -25,15 +26,13 @@ const gate = () => { let release; const promise = new Promise(resolve => { relea
 const text = content => typeof content === 'string' ? content : content.filter(part => part.type === 'text').map(part => part.text).join('');
 const message = (content, options) => {
   const assistant = fauxAssistantMessage(content, options);
-  // 模拟最终文字走默认 provider 契约；工具调用和思考仍走原生通道。
-  const blocks = assistant.content.map(part => part.type === 'text'
-    ? { ...part, text: JSON.stringify({ content: [{ type: 'text', nextType: null, text: part.text }] }) } : part);
-  return { ...assistant, content: blocks,
+  // 默认生成使用原生文字；旧JSON正文验收由fixture显式选择legacy扩展。
+  return { ...assistant,
     usage: { input: 8, output: 3, cacheRead: 2, cacheWrite: 0, totalTokens: 13, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } };
 };
 
 test('入口规范化单独记录content.normalized，无错误恢复且不记录额外字段值', async t => {
-  const f = await fixture(t);
+  const f = await fixture(t, { legacy: true });
   f.faux.setResponses([fauxAssistantMessage(JSON.stringify({ metadata: { opaque: 'ignored-private-value' }, type: 'json_object', content: [{ type: 'text', text: '事实' }] }))]);
   await f.runtime.session.prompt('规范化记录'); await f.runtime.session.waitForIdle();
   const run = summaries(f.traceDir).find(item => item.value.purpose === 'agent');
@@ -55,9 +54,7 @@ function payload(directory, ref) { assert.ok(ref.path); return JSON.parse(readFi
 test('模型失败诊断关联trace/span，原始输出仅在脱敏的本地debug载荷保留', async t => {
   const secret = 'diagnostic-trace-private-20261006'; registerCredentials([secret]);
   const raw = JSON.stringify({ content: [{ type: 'Callout', pending: false, props: { tone: 'success', text: '可见事实', extra: secret } }] });
-  const f = await fixture(t, { responses: [message(raw, { stopReason: 'stop' })] });
-  // fixture的正常回答会包为text；改为上游直接返回组件线路，单次失败即可验收日志。
-  f.faux.setResponses([fauxAssistantMessage(raw)]);
+  const f = await fixture(t, { legacy: true, responses: [message(raw, { stopReason: 'stop' })] });
   f.runtime.session.setAutoRetryEnabled(false);
   await f.runtime.session.prompt('只验证错误诊断'); await f.runtime.session.waitForIdle();
   const failed = f.runtime.session.sessionManager.getBranch().findLast(entry => entry.type === 'message' && entry.message.role === 'assistant').message;
@@ -71,7 +68,7 @@ test('模型失败诊断关联trace/span，原始输出仅在脱敏的本地debu
   assert.equal(JSON.stringify(event.data.diagnostic).includes('responseText'), false);
 });
 
-async function fixture(t, { responses = [message('离线回答')], client, named = true, trace = true, title, modelOptions = {} } = {}) {
+async function fixture(t, { responses = [message('离线回答')], client, named = true, trace = true, title, modelOptions = {}, legacy = false } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'bangumi-tracing-'));
   const traceDir = join(root, 'tracelog');
   const runtimes = [];
@@ -91,7 +88,7 @@ async function fixture(t, { responses = [message('离线回答')], client, named
   const create = async (manager = SessionManager.create(root, join(root, 'sessions')), selectedClient = client) => {
     if (named && !manager.getSessionName()) manager.appendSessionInfo('离线日志测试');
     const runtime = await createBangumiRuntime({ cwd: root, agentDir: root, sessionManager: manager, modelRuntime,
-      provider: 'faux', model: 'faux-1', thinkingLevel: 'low', extension: pi => { createBangumiExtension({ authDir: join(root, 'auth'), timeoutMs: 1000,
+      provider: 'faux', model: 'faux-1', thinkingLevel: 'low', extension: pi => { (legacy ? createLegacyBangumiExtension : createBangumiExtension)({ authDir: join(root, 'auth'), timeoutMs: 1000,
         proxy: null, ...(trace ? { trace: { directory: typeof trace === 'string' ? trace : traceDir, onWarning: code => warnings.push(code) } } : {}),
         client: selectedClient ?? { call: async (name, args, signal, guard) => { calls.push({ name, args }); return defaultService.call(name, args, signal, guard); }, close: async () => {} },
         channel: { canConfirm: () => true, confirm: async () => true, canLogin: () => false, notify: () => {} },

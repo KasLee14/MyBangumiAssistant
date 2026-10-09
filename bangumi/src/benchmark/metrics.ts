@@ -1,5 +1,17 @@
 import type { NetworkEvent, RequestMetric, RunMetrics } from './schema.js';
 import { record } from './schema.js';
+import { traceHash } from '../tracing/redact.js';
+import { COMPONENT_KINDS } from '../output/content-schema.js';
+
+const renderNames = new Set(COMPONENT_KINDS.map(kind => `render_${kind}`));
+const prepareNames = new Set(COMPONENT_KINDS.map(kind => `prepare_${kind}`));
+const render = (name: string) => renderNames.has(name);
+const display = (name: string) => render(name) || prepareNames.has(name) || ['prepare_component', 'present_component', 'present_text'].includes(name);
+const byteLength = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
+interface PayloadMetric {
+  toolCount: number; toolSchemaBytes: number; displayToolNames: string[]; displaySchemaBytes: number;
+  contextMessageBytes: number; repeatedMessageBytes: number;
+}
 
 const number = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 export function blankMetrics(): RunMetrics {
@@ -9,11 +21,16 @@ export function blankMetrics(): RunMetrics {
     contextInputTokensMax: null, contextInputTokensSum: null, reasoningTokensSum: null,
     outputTokensSum: null, cacheReadTokensSum: null, cacheWriteTokensSum: null, totalTokensSum: null,
     estimatedCost: null, usageUnavailableRequests: 0, modelToolResultBytes: 0, firstTextMs: null,
-    firstCompleteResultMs: null, confirmationsMs: 0, duplicateReads: 0, requests: [],
+    firstCompleteResultMs: null, providerFirstTextMs: null, firstPublishedBlockMs: null, confirmationsMs: 0, duplicateReads: 0, requests: [],
     outputErrors: 0, blankOutputErrors: 0, schemaOutputErrors: 0, jsonOutputErrors: 0,
     modelErrors: 0, terminalModelErrors: 0, recoveryScheduled: 0, recoveryRunning: 0, recoveryRecovered: 0, recoveryStopped: 0,
     strictToolsSent: 0, toolDeclarationsSent: 0, initialToolCount: null, initialToolSchemaBytes: null,
-    initialProviderPayloadBytes: null, validatedFinals: 0, prefixMonotonic: true, prefixDuplications: 0 };
+    initialProviderPayloadBytes: null, validatedFinals: 0, prefixMonotonic: true, prefixDuplications: 0,
+    firstRoundFailed: false, firstOutputAttemptFailed: null, localArgumentRepairs: 0, argumentRejections: 0, schemaArgumentRejections: 0,
+    modelArgumentCorrections: 0, preparedComponents: 0, publishedComponents: 0,
+    renderedComponents: 0, displaySchemaBytesSum: 0, displaySchemaBytesMax: null, toolSchemaBytesSum: 0, toolSchemaBytesMax: null,
+    contextMessageBytesSum: 0, contextMessageBytesMax: null, repeatedMessageBytesSum: 0,
+    userTurnInitialDisplaySchemas: [], activatedDisplaySets: [], displayLoadoutMismatches: 0, requestsAfterTerminalCommit: 0 };
 }
 /** 只计数和打时间点；不保存流片段、凭据或假造不可见思考。 */
 export class MetricsCollector {
@@ -21,6 +38,22 @@ export class MetricsCollector {
   private started = performance.now();
   private pendingPayloadBytes: number | null = null;
   private active: { metric: RequestMetric; start: number; lastThinking: number | null } | undefined;
+  private failedPresentationTools = new Set<string>();
+  private nativePresentation = false;
+  private firstOutputToolId: string | undefined;
+  private userTurn = 0;
+  private turnFirstPayload = false;
+  private terminalCommitted = false;
+  private seenMessages = new Set<string>();
+  private expectedDisplaySet: string[] | undefined;
+  private pendingPayloadMetric: PayloadMetric | undefined;
+  startUserTurn(userTurn: number): void {
+    this.userTurn = userTurn; this.turnFirstPayload = false; this.terminalCommitted = false; this.expectedDisplaySet = undefined;
+  }
+  providerHttpRequest(): void {
+    this.value.providerHttpRequests = (this.value.providerHttpRequests ?? 0) + 1;
+    if (this.terminalCommitted) this.value.requestsAfterTerminalCommit++;
+  }
   start(startupMs: number, offline: boolean): void {
     this.started = performance.now(); this.value.startupMs = startupMs;
     this.value.providerHttpRequests = offline ? 0 : 0;
@@ -32,6 +65,35 @@ export class MetricsCollector {
   }
   payloadTools(payload: unknown): void {
     const tools = Array.isArray(record(payload).tools) ? record(payload).tools as unknown[] : [];
+    const definitions = tools.map(tool => record(record(tool).function).name ? record(record(tool).function) : record(tool));
+    const displayTools = definitions.filter(tool => display(String(tool.name)));
+    const displayNames = displayTools.map(tool => String(tool.name));
+    const displayBytes = displayTools.length ? byteLength(displayTools.map(tool => tool.parameters ?? tool.input_schema ?? {})) : 0;
+    const schemasBytes = byteLength(definitions.map(tool => tool.parameters ?? tool.input_schema ?? {}));
+    const context = record(payload).messages ?? record(payload).input ?? [];
+    const messages = Array.isArray(context) ? context : [context];
+    let repeated = 0;
+    const current = new Set<string>();
+    for (const message of messages) {
+      const hash = traceHash(message);
+      if (this.seenMessages.has(hash)) repeated += byteLength(message);
+      current.add(hash);
+    }
+    current.forEach(hash => this.seenMessages.add(hash));
+    const contextBytes = byteLength(context);
+    const metric = { toolCount: tools.length, toolSchemaBytes: schemasBytes, displayToolNames: displayNames,
+      displaySchemaBytes: displayBytes, contextMessageBytes: contextBytes, repeatedMessageBytes: repeated };
+    if (this.active) Object.assign(this.active.metric, metric); else this.pendingPayloadMetric = metric;
+    this.value.displaySchemaBytesSum += displayBytes; this.value.displaySchemaBytesMax = Math.max(this.value.displaySchemaBytesMax ?? 0, displayBytes);
+    this.value.toolSchemaBytesSum += schemasBytes; this.value.toolSchemaBytesMax = Math.max(this.value.toolSchemaBytesMax ?? 0, schemasBytes);
+    this.value.contextMessageBytesSum += contextBytes; this.value.contextMessageBytesMax = Math.max(this.value.contextMessageBytesMax ?? 0, contextBytes);
+    this.value.repeatedMessageBytesSum += repeated;
+    if (!this.turnFirstPayload) {
+      this.value.userTurnInitialDisplaySchemas.push({ userTurn: this.userTurn, names: displayNames, bytes: displayBytes });
+      this.turnFirstPayload = true;
+    }
+    if (this.expectedDisplaySet !== undefined && JSON.stringify([...displayNames].sort()) !== JSON.stringify([...this.expectedDisplaySet].sort()))
+      this.value.displayLoadoutMismatches++;
     this.value.initialToolCount ??= tools.length;
     this.value.initialToolSchemaBytes ??= Buffer.byteLength(JSON.stringify(tools.map(tool =>
       record(tool).parameters ?? record(record(tool).function).parameters ?? record(tool).input_schema ?? {})));
@@ -65,21 +127,42 @@ export class MetricsCollector {
         if (data.stage === 'recovered') this.value.recoveryRecovered++;
         if (['stopped', 'cancelled', 'checkpoint_conflict', 'tool_recovery_stopped'].includes(String(data.stage))) this.value.recoveryStopped++;
       }
+      if (entry.type === 'custom' && entry.customType === 'bangumi/presentation_arguments') {
+        if (data.stage !== 'schema' && data.status === 'repaired') this.value.localArgumentRepairs++;
+        if (data.stage !== 'schema' && data.status === 'rejected') this.value.argumentRejections++;
+        if (data.stage === 'schema' && data.status === 'rejected') this.value.schemaArgumentRejections++;
+      }
+      if (entry.type === 'custom' && entry.customType === 'bangumi/presentation') {
+        this.nativePresentation = true;
+        const content = Array.isArray(data.content) ? data.content : [];
+        if (content.length) this.value.firstPublishedBlockMs ??= now - this.started;
+        if (content.some(part => record(part).type === 'text' && String(record(part).text ?? '').length))
+          this.value.firstTextMs ??= now - this.started;
+        if (data.status === 'completed') this.value.firstCompleteResultMs ??= now - this.started;
+        if (data.status === 'completed') this.terminalCommitted = true;
+        if (this.value.firstOutputAttemptFailed === null && ['completed', 'error', 'aborted'].includes(String(data.status)))
+          this.value.firstOutputAttemptFailed = data.status !== 'completed';
+      }
     }
     if (event.type === 'message_start' && message.role === 'assistant') {
       if (this.active) this.finishRequest({});
       this.value.modelRequests++;
       this.active = { start: now, lastThinking: null, metric: {
+        userTurn: this.userTurn, toolCount: null, toolSchemaBytes: null, displayToolNames: [], displaySchemaBytes: null,
+        contextMessageBytes: null, repeatedMessageBytes: null,
         inputTokens: null, contextInputTokens: null, reasoningTokens: null, outputTokens: null, cacheReadTokens: null, cacheWriteTokens: null, totalTokens: null,
         estimatedCost: null, providerPayloadBytes: this.pendingPayloadBytes, durationMs: 0, firstTextMs: null, firstThinkingMs: null,
         visibleThinkingMs: null, thinkingChars: 0, responseModel: null,
       } };
+      if (this.pendingPayloadMetric) Object.assign(this.active.metric, this.pendingPayloadMetric);
+      this.pendingPayloadMetric = undefined;
       this.pendingPayloadBytes = null;
     }
     if (event.type === 'message_update' && this.active) {
       const delta = record(event.assistantMessageEvent), elapsed = now - this.active.start;
       if (delta.type === 'text_delta') {
-        this.active.metric.firstTextMs ??= elapsed; this.value.firstTextMs ??= now - this.started;
+        this.active.metric.firstTextMs ??= elapsed; this.value.providerFirstTextMs ??= now - this.started;
+        if (!this.nativePresentation) this.value.firstTextMs ??= now - this.started;
       }
       if (delta.type === 'thinking_delta') {
         this.active.metric.firstThinkingMs ??= elapsed; this.active.lastThinking = elapsed;
@@ -90,10 +173,39 @@ export class MetricsCollector {
     if (event.type === 'tool_execution_end' && event.isError === true) this.value.toolErrors++;
     if (event.type === 'message_end' && message.role === 'toolResult') {
       this.value.modelToolResultBytes += Buffer.byteLength(JSON.stringify(message.content ?? []));
+      const name = String(message.toolName);
+      if (name === 'read_component_spec' && message.isError !== true) {
+        const parts = Array.isArray(message.content) ? message.content : [];
+        for (const part of parts) {
+          try {
+            const result = record(JSON.parse(String(record(part).text ?? '')));
+            if (result.status !== 'activated' || !Array.isArray(result.tools)) continue;
+            const names = result.tools.map(tool => typeof tool === 'string' ? tool : String(record(tool).name)).filter(display);
+            this.expectedDisplaySet = names;
+            const containsSchema = Object.keys(result).some(key => /schema|parameters|specs/i.test(key))
+              || result.tools.some(tool => Object.keys(record(tool)).some(key => /schema|parameters/i.test(key)));
+            this.value.activatedDisplaySets.push({ userTurn: this.userTurn, names, responseBytes: byteLength(result), containsSchema });
+          } catch { /* 非activation旧协议保留原始观测，不伪造新架构审计。 */ }
+        }
+      }
+      if (display(name)) {
+        if (this.value.firstOutputAttemptFailed === null && (this.firstOutputToolId === undefined || this.firstOutputToolId === message.toolCallId))
+          this.value.firstOutputAttemptFailed = message.isError === true;
+        if (message.isError === true) {
+          this.failedPresentationTools.add(name);
+          if (this.value.modelRequests === 1) this.value.firstRoundFailed = true;
+        } else {
+          if (this.failedPresentationTools.delete(name)) this.value.modelArgumentCorrections++;
+          if (name === 'prepare_component' || prepareNames.has(name)) this.value.preparedComponents++;
+          if (name === 'present_component') this.value.publishedComponents++;
+          if (render(name)) this.value.renderedComponents++;
+        }
+      }
     }
     if (event.type === 'message_end' && message.role === 'assistant') {
       if (message.stopReason === 'error' || message.stopReason === 'aborted') {
         this.value.modelErrors++;
+        if (this.value.modelRequests === 1) this.value.firstRoundFailed = true;
         const diagnostics = Array.isArray(message.diagnostics) ? message.diagnostics : [];
         const structured = diagnostics.map(item => record(record(record(item).details).diagnostic));
         const diagnostic = structured.find(row => typeof row.code === 'string' && row.code.startsWith('CONTENT_'))
@@ -105,9 +217,14 @@ export class MetricsCollector {
           if (code === 'CONTENT_OUTPUT_EMPTY') this.value.blankOutputErrors++;
           if (code === 'CONTENT_SCHEMA_INVALID') this.value.schemaOutputErrors++;
           if (code.startsWith('CONTENT_JSON_')) this.value.jsonOutputErrors++;
+          if (this.value.firstOutputAttemptFailed === null && (code.startsWith('CONTENT_') || diagnostic?.origin === 'content' || diagnostic?.origin === 'output'))
+            this.value.firstOutputAttemptFailed = true;
         } else {
           const description = String(message.errorMessage ?? '') + ' ' + String(diagnostic?.reason ?? '') + ' ' + JSON.stringify(diagnostic?.issues ?? []);
-          if (/CONTENT_|content_|json_|schema_|blank|empty_output|output_/i.test(description)) this.value.outputErrors++;
+          if (/CONTENT_|content_|json_|schema_|blank|empty_output|output_/i.test(description)) {
+            this.value.outputErrors++;
+            if (this.value.firstOutputAttemptFailed === null) this.value.firstOutputAttemptFailed = true;
+          }
           if (/blank|empty_output|empty_response|whitespace|CONTENT_OUTPUT_EMPTY/i.test(description)) this.value.blankOutputErrors++;
           if (/schema|field|component|type_mismatch/i.test(description)) this.value.schemaOutputErrors++;
           // 旧格式没有结构化诊断时，已识别空白仍归为空输出，不能同时误算未闭合 JSON。
@@ -116,8 +233,16 @@ export class MetricsCollector {
         }
       }
       const calls = Array.isArray(message.content) ? message.content.filter(part => record(part).type === 'toolCall') : [];
+      if (this.value.firstOutputAttemptFailed === null && this.firstOutputToolId === undefined) {
+        const first = calls.find(call => display(String(record(call).name)));
+        if (typeof record(first).id === 'string') this.firstOutputToolId = String(record(first).id);
+      }
       this.value.proposedToolCalls += calls.length;
-      if (message.stopReason === 'stop' && calls.length === 0) this.value.firstCompleteResultMs ??= now - this.started;
+      const source = Array.isArray(message.diagnostics) && message.diagnostics.some(item => record(item).type === 'bangumi_presentation_source');
+      if (!source && message.stopReason === 'stop' && calls.length === 0) {
+        this.value.firstCompleteResultMs ??= now - this.started;
+        this.value.firstOutputAttemptFailed ??= false;
+      }
       this.finishRequest(message);
     }
   }

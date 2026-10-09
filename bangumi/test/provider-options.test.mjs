@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { shouldUseMixedContent, withContentConstraint } from '../dist/src/output/provider-options.js';
 import { CONTENT_OUTPUT_SYSTEM_MARKER, ContentOutputError } from '../dist/src/output/content-schema.js';
+import { PRESENTATION_SYSTEM_MARKER } from '../dist/src/output/presentation-contract.js';
 import { COMPONENT_SELECTION_INSTRUCTION, validateRequiredComponents } from '../dist/src/output/component-selection.js';
 import { createBangumiExtension } from '../dist/src/extension.js';
 
@@ -133,7 +134,14 @@ test('normal extension start replaces stale output rules with the default contra
   const event = { systemPromptOptions: { sections: { bangumi_content_output: 'stale output rules' } } };
   for (const handler of hooks.get('before_agent_start') ?? []) handler(event, {});
   const section = event.systemPromptOptions.sections.bangumi_content_output;
-  assert.ok(section.includes(CONTENT_OUTPUT_SYSTEM_MARKER));
+  assert.ok(section.includes(PRESENTATION_SYSTEM_MARKER));
+  assert.equal(section.includes(CONTENT_OUTPUT_SYSTEM_MARKER), false);
+  assert.ok(section.includes('render_<组件名>'));
+  assert.ok(section.includes('下一请求声明'));
+  assert.ok(section.includes('before') && section.includes('after'));
+  assert.ok(section.includes('final=true'));
+  assert.ok(section.includes('sources'));
+  assert.ok(section.includes('present_component'));
   assert.ok(section.includes(COMPONENT_SELECTION_INSTRUCTION));
   assert.ok(section.includes('默认用 SubjectCards'));
   assert.ok(section.includes('用户明确要求纯文本'));

@@ -18,11 +18,16 @@ export interface CaseComparison {
   metrics: Record<string, MetricDelta>;
 }
 export const COMPARISON_METRICS: Array<keyof RunMetrics> = [
+  'modelRequests', 'proposedToolCalls', 'toolExecutions', 'toolErrors',
   'mcpCalls', 'mcpMs', 'mcpInitializationMs', 'upstreamRequests', 'contextInputTokensMax', 'contextInputTokensSum', 'inputTokensSum', 'outputTokensSum',
   'cacheReadTokensSum', 'modelToolResultBytes', 'totalMs', 'modelMs', 'estimatedCost',
   'outputErrors', 'blankOutputErrors', 'schemaOutputErrors', 'jsonOutputErrors', 'modelErrors', 'terminalModelErrors',
   'recoveryScheduled', 'recoveryRunning', 'recoveryRecovered', 'recoveryStopped', 'strictToolsSent',
   'initialToolCount', 'initialToolSchemaBytes', 'initialProviderPayloadBytes', 'validatedFinals', 'prefixDuplications',
+  'localArgumentRepairs', 'argumentRejections', 'schemaArgumentRejections', 'modelArgumentCorrections', 'preparedComponents', 'publishedComponents',
+  'providerFirstTextMs', 'firstTextMs', 'firstPublishedBlockMs', 'firstCompleteResultMs',
+  'renderedComponents', 'displaySchemaBytesSum', 'displaySchemaBytesMax', 'toolSchemaBytesSum', 'toolSchemaBytesMax',
+  'contextMessageBytesSum', 'contextMessageBytesMax', 'repeatedMessageBytesSum', 'displayLoadoutMismatches', 'requestsAfterTerminalCommit',
 ];
 export function median(values: number[]): number | null {
   if (!values.length) return null;
@@ -91,6 +96,10 @@ export function summarize(rows: RunObservation[]) {
     return [key, { availableRuns: values.length, total: values.length ? values.reduce((a, b) => a + b, 0) : null }];
   }));
   return { runs: rows.length, outcomes, passRate: mean(rows.map(row => row.outcome === 'passed' ? 1 : 0)),
+    firstRoundFailureRuns: rows.filter(row => row.metrics.firstRoundFailed === true).length,
+    firstRoundFailureRate: mean(rows.filter(row => typeof row.metrics.firstRoundFailed === 'boolean').map(row => row.metrics.firstRoundFailed ? 1 : 0)),
+    firstOutputAttemptFailureRuns: rows.filter(row => row.metrics.firstOutputAttemptFailed === true).length,
+    firstOutputAttemptFailureRate: mean(rows.filter(row => typeof row.metrics.firstOutputAttemptFailed === 'boolean').map(row => row.metrics.firstOutputAttemptFailed ? 1 : 0)),
     macroFamilyPassRate: mean([...families.values()].map(values => mean(values)!)),
     semanticPending: rows.filter(row => row.grade.semanticReview === 'pending').length, totals };
 }
@@ -106,6 +115,25 @@ export async function readSuite(path: string): Promise<SuiteResult> {
       || !Array.isArray(record(row.grade).checks)) throw new Error('评测运行记录格式无效。');
   }
   return value as unknown as SuiteResult;
+}
+/** 比较必须证明整份计划完成及逐运行绑定冻结版本；部分进度仍可展示但不进入性能配对。 */
+export function comparisonEvidence(suite: SuiteResult): RunObservation[] {
+  const manifest = record(suite.manifest), planned = manifest.plannedRuns;
+  const key = (row: Record<string, unknown>) => String(row.variant) + ':' + String(row.caseId) + ':' + String(row.repeat);
+  const plannedKeys = Array.isArray(planned) ? planned.map(item => key(record(item))) : [];
+  const actualKeys = suite.observations.map(row => key(row as unknown as Record<string, unknown>));
+  const complete = plannedKeys.length > 0 && new Set(plannedKeys).size === plannedKeys.length
+    && new Set(actualKeys).size === actualKeys.length && actualKeys.length === plannedKeys.length
+    && actualKeys.every(id => plannedKeys.includes(id));
+  return suite.observations.map(row => {
+    const issues: string[] = [];
+    if (!complete) issues.push('incomplete_planned_runs');
+    const expected = record(record(manifest.versions)[row.variant]).hash;
+    if (typeof expected !== 'string' || row.versionHash !== expected) issues.push('runtime_version_mismatch');
+    if (manifest.protocolHash !== suite.protocolHash || row.protocolHash !== suite.protocolHash) issues.push('protocol_manifest_mismatch');
+    if (!issues.length) return row;
+    return { ...row, outcome: 'incomplete_capture', captureIssues: [...row.captureIssues, ...issues] };
+  });
 }
 const escape = (value: unknown) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 function sparkline(values: Array<number | null>): string {
@@ -123,10 +151,11 @@ export async function writeReport(directory: string, suite: SuiteResult, baselin
     if (!name || !names.includes(name)) throw new Error('结果中没有所选variant。');
     return rows.filter(row => row.variant === name);
   };
-  const control = baseline ? select(baseline.observations, selection.baselineVariant)
-    : (variants.length === 2 ? suite.observations.filter(run => run.variant === 'control') : []);
-  const candidate = baseline ? select(suite.observations, selection.candidateVariant)
-    : suite.observations.filter(run => run.variant === (variants.length === 2 ? 'candidate' : variants[0]));
+  const comparable = comparisonEvidence(suite);
+  const control = baseline ? select(comparisonEvidence(baseline), selection.baselineVariant)
+    : (variants.length === 2 ? comparable.filter(run => run.variant === 'control') : []);
+  const candidate = baseline ? select(comparable, selection.candidateVariant)
+    : comparable.filter(run => run.variant === (variants.length === 2 ? 'candidate' : variants[0]));
   const comparison = control.length ? compareObservations(control, candidate) : null;
   const planned = record(suite.manifest).plannedRuns;
   const plannedRuns = Array.isArray(planned) ? planned.length : suite.observations.length;

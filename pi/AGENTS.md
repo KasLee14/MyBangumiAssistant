@@ -23,6 +23,7 @@
 - Never remove or downgrade code to fix type errors from outdated deps; upgrade the dep instead.
 - Use only erasable TypeScript syntax (Node strip-only mode) in code checked by the root config (`packages/*/src`, `packages/*/test`, `packages/coding-agent/examples`): no parameter properties, `enum`, `namespace`/`module`, `import =`, `export =`, or other constructs needing JS emit. Use explicit fields with constructor assignments.
 - Always ask before removing functionality or code that appears intentional.
+- Provider raw tool argument evidence lives in `packages/ai/src/utils/tool-call-arguments.ts` as WeakMap metadata, never serialized into messages or replay. In-process tool-call clones must explicitly transfer it with `copyToolCallArgumentSource`. Tool `prepareArguments` receives optional `ToolArgumentContext` before schema validation; consumers requiring complete raw JSON must check both argument evidence and the assistant message's final stop reason.
 - Do not preserve backward compatibility unless the user asks for it.
 - Never hardcode key checks (e.g. `matchesKey(keyData, "ctrl+x")`). Add defaults to `DEFAULT_EDITOR_KEYBINDINGS` or `DEFAULT_APP_KEYBINDINGS` so they stay configurable.
 - Never modify `packages/ai/src/models.generated.ts` directly; update `packages/ai/scripts/generate-models.ts` instead, then regenerate. Including the resulting `models.generated.ts` diff is always OK, even if regeneration includes unrelated upstream model metadata changes.

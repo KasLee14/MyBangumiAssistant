@@ -691,11 +691,20 @@ function shouldTerminateToolBatch(finalizedCalls: FinalizedToolCallOutcome[]): b
 	return finalizedCalls.length > 0 && finalizedCalls.every((finalized) => finalized.result.terminate === true);
 }
 
-function prepareToolCallArguments(tool: AgentTool<any>, toolCall: AgentToolCall): AgentToolCall {
+function prepareToolCallArguments(
+	tool: AgentTool<any>,
+	toolCall: AgentToolCall,
+	assistantMessage: AssistantMessage,
+	signal: AbortSignal | undefined,
+): AgentToolCall {
 	if (!tool.prepareArguments) {
 		return toolCall;
 	}
-	const preparedArguments = tool.prepareArguments(toolCall.arguments);
+	const preparedArguments = tool.prepareArguments(toolCall.arguments, {
+		toolCall,
+		assistantMessage,
+		...(signal === undefined ? {} : { signal }),
+	});
 	if (preparedArguments === toolCall.arguments) {
 		return toolCall;
 	}
@@ -723,7 +732,7 @@ async function prepareToolCall(
 	}
 
 	try {
-		const preparedToolCall = prepareToolCallArguments(tool, toolCall);
+		const preparedToolCall = prepareToolCallArguments(tool, toolCall, assistantMessage, signal);
 		const validatedArgs = validateToolArguments(tool, preparedToolCall);
 		if (config.beforeToolCall) {
 			const beforeResult = await config.beforeToolCall(

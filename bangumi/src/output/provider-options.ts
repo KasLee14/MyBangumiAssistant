@@ -6,9 +6,11 @@ import { CONTENT_OUTPUT_SYSTEM_MARKER, ContentOutputError } from './content-sche
 import { PROVIDER_CONTENT_SCHEMA } from './provider-content.js';
 import { componentCatalogFor, providerSchemaForComponents, strictProviderSchema } from './component-catalog.js';
 import { orderDeepSeekRecoveryReasoning } from './deepseek-responses-replay.js';
+import { shouldUsePresentation } from './presentation-output.js';
 
 /** 只读取有效系统规则；用户或工具结果不能启用应用输出协议。 */
 export function shouldUseMixedContent(model: Model<Api>, context: TranscriptContext): boolean {
+  if (shouldUsePresentation(context)) return false;
   const system = getCurrentSystemMessage(context.messages);
   if (!system || !getSystemMessageText(system).includes(CONTENT_OUTPUT_SYSTEM_MARKER)) return false;
   if (model.api !== 'openai-responses' && model.api !== 'openai-completions') {
@@ -72,6 +74,15 @@ function constrainPayload(payload: unknown, model: Model<Api>, context: Transcri
 export function withContentConstraint<T extends Api, O extends ProviderRequestOptions<Model<T>>>(
   model: Model<T>, context: TranscriptContext, options: O | undefined,
 ): O | undefined {
+  if (shouldUsePresentation(context)) {
+    const originalCallback = options?.onPayload;
+    return { ...options, onPayload: async (payload: unknown, callbackModel: Model<T>) => {
+      const replacement = await originalCallback?.(payload, callbackModel);
+      const value = replacement ?? payload;
+      if (!isOfficialDeepSeekResponses(model) || !object(value) || !Array.isArray(value.input)) return value;
+      return { ...value, input: value.input.map(item => object(item) && item.role === 'developer' ? { ...item, role: 'system' } : item) };
+    } } as O;
+  }
   if (!shouldUseMixedContent(model, context)) return options;
   const originalCallback = options?.onPayload;
   return {
