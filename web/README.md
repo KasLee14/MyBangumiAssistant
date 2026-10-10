@@ -37,9 +37,7 @@ Bangumi 助手 Web 终端：http://127.0.0.1:8787/?token=<一次性令牌>
 
 风格名是「**分层表面 + 弹性动效**」：结构上清晰直观，视觉上克制而精致——层级由强对比文字阶梯与主色点睛建立，而不是靠装饰。
 
-> **这一节只讲结论。外观的唯一事实源是设计决策记录**：`web/docs/design/decisions.md`（总表与进度）与 `web/docs/design/decisions/G-tokens.md`（令牌总表），验收标准是与 `web/docs/design/index.html` 里的样张逐项一致。改外观前先读它们，口径冲突时以决策记录为准；开发知识库见 [AGENTS.md](AGENTS.md)。
->
-> ⚠️ **`web/docs/design/` 整棵目录被 `.gitignore` 忽略**，**新克隆的仓库里没有它**——这些文件只存在于本机工作树。引用它们时请按「本地开发资产」理解。
+> **外观取值以源码为准**：色值与档位看 `styles/bgm.css` 与 `styles/tokens.css`，动效看 `styles/tokens.css` 与 `components/motion/motionTokens.ts`。原设计决策记录（`web/docs/design/`）与回归用例（`docs/agents/regression/`）已删除，副本在 `artifacts/web-design-backup/`；分层细节文档（`web/docs/agents/`）也已删除，副本在 `artifacts/web-agents-docs-backup/`。开发知识库只剩 [AGENTS.md](AGENTS.md)。
 
 - 配色以**粉色与白色**为两色核心：主色 `#ec6570`（HSL 355 78% 66%）用于选中态与强调，表面与描边全部由它用 `color-mix()` 就地派生，**页面不出现中性灰表面**（页面底与侧栏是极浅粉，对话区与内容区纯白，卡片与浮层是更浅一档的粉）；文字仍是中性深色，语义色（交互蓝 `#369cf8`、链接蓝 `#0084b4`、危险红、成功绿、警告黄、焦点环）保持原值。主色本身的白字对比度只有约 3.1:1，所以实心按钮另取加深一档的 `--bgm-primary-deep`（≈4.7:1，达到 AA）。
 - **表面按内容类型分配装饰预算**（本项目最重要的一条外观判断）：**浮起层用玻璃**（输入卡、命令候选、思考强度菜单、统计浮层、弹窗、Toast、首屏示例 chip；同时出现的模糊层不超过 3 个）、**只有数据可视化用柔光**（统计条形与进度条的渐变填充 + 端点高光 + 光晕）、**文本密集类与内容卡片一律素**（纯色 + 描边 + 留白 + 字重）。**装饰性径向底光与环境光已全部删除**，面板底只用纯色阶梯（页面底 / 内嵌块 / 卡片浅面 / 白面四档）。
@@ -70,7 +68,7 @@ Bangumi 助手 Web 终端：http://127.0.0.1:8787/?token=<一次性令牌>
 
 ## 验证
 
-**本节只保留参考点仍然成立的结论。** 界面重构（第七轮，2026-10-06）之前的实测明细——顶栏连接 chip、粘性会话头、旧弹窗的 `getComputedStyle` 数值、`TurnView` / `ToolActivity` 一代的渲染核对——**均已作废，不再列在本文件**，需要回溯时用 `git log -- web/README.md` 看历史版本。当前回归用例见 [AGENTS.md](AGENTS.md) §索引「改动完成后回归验证」，外观验收以 `web/docs/design/index.html` 的样张为准。
+**本节只保留参考点仍然成立的结论。** 界面重构（第七轮，2026-10-06）之前的实测明细——顶栏连接 chip、粘性会话头、旧弹窗的 `getComputedStyle` 数值、`TurnView` / `ToolActivity` 一代的渲染核对——**均已作废，不再列在本文件**，需要回溯时用 `git log -- web/README.md` 看历史版本。回归用例目录已删除，现在只有 `npm run typecheck` 与手工验证。
 
 在 `bangumi/` 执行 `npm run typecheck` 与 `npm run build`。仍然成立的实测：
 

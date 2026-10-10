@@ -101,9 +101,7 @@ html[data-input-modality='pointer'] body :focus-visible:not(:read-write) {
   background: transparent;
 }
 
-/* 圆角曲率：支持时所有圆角走 superellipse(1.4)——值取自样张 `web/style-demo-type.html`
-   的 C 列（用户选定的「柔和 + 超椭圆」：样张把 `corner-shape: superellipse(1.4)`
-   写在列容器上、由内部全部元素继承）。1.4 比上游默认的 1.5 略圆，
+/* 圆角曲率：支持时所有圆角走 superellipse(1.4)——1.4 比上游默认的 1.5 略圆，
    观感是「柔而不圆」，不是方圆形。
    全圆形状（胶囊、圆形）在各自组件里用 corner-shape: round opt out。 */
 @supports (corner-shape: superellipse(1.4)) {
@@ -174,7 +172,7 @@ html[data-input-modality='pointer'] body :focus-visible:not(:read-write) {
   --app-space-24: 24px;
   --app-space-32: 32px;
 
-  /* ---- 侧栏：展开宽与抽屉内容宽（[C44](../docs/design/decisions/C44-sidebar.md)）----
+  /* ---- 侧栏：展开宽与抽屉内容宽（C44）----
      `--app-sidebar-full` 是全站**唯一**那份 264px：`.appFrame` 把它绑给 `--app-sidebar-width`，
      收起态再把后者重绑成 0，于是「位移量」仍能从 `--app-sidebar-full` 取到。
      内容宽写成字面值而不是 `calc(var(--app-sidebar-width) - …)`：后者在收起态会解析成 0，
@@ -182,8 +180,8 @@ html[data-input-modality='pointer'] body :focus-visible:not(:read-write) {
   --app-sidebar-full: 264px;
   --app-sidebar-content: 248px;
 
-  /* ---- 行高节奏（值取自样张 `web/style-demo-type.html` 的 C · 强对比阶梯）----
-     样张只给了两档：1.5（标题 / 次级 / 微标签 / 数值）与 1.72（正文）。
+  /* ---- 行高节奏----
+     取值只有两档：1.5（标题 / 次级 / 微标签 / 数值）与 1.72（正文）。
      2026-10-06 令牌收敛：`tight` / `loose` 两个零消费者别名删除，只留 base 一档。 */
   --app-line-base: 1.72;
 
@@ -210,28 +208,29 @@ html[data-input-modality='pointer'] body :focus-visible:not(:read-write) {
 
   /* ---- 玻璃：浮起层的**唯一来源**（输入卡 / 命令候选 / 思考菜单 /
      统计浮层 / 弹窗 / Toast 都只引用这三个，不各写一份 rgba + blur）---- */
-  --app-glass-fill: rgba(255, 255, 255, .74);   /* 0.74 取自样张 web/style-demo-glass.html 的输入卡 */
+  --app-glass-fill: rgba(255, 255, 255, .74);   /* 0.74 取自输入卡 */
   --app-glass-stroke: rgba(255, 255, 255, .88);
   --app-glass-blur: blur(20px) saturate(160%);
 
-  /* ---- 底光：**已删除**（[G07](docs/design/decisions/G07-glow.md) 定「底光与环境光全部去掉」，
+  /* ---- 底光：**已删除**（G07 定「底光与环境光全部去掉」，
      G-tokens §五 把 `--app-glow-ambient` 记为**删除**）。
      表面只用纯色：页面底 / 白面 / 内嵌块 / 卡片浅面四档，不再叠加任何装饰性径向渐变。
      因此 `--bgm-primary-warm` 与 `--app-glow-ambient` 都已移除；`frame.css` 里两处消费点同步删掉。
      **任何地方都不得再新增装饰性径向渐变底光**——这是本决策的硬约束。 */
 
   /* ---- 层次：阴影大而柔，色相由深粉棕派生（不用中性灰）----
-     五档语义：raised 给内嵌元素、chip 给胶囊与标签、card 给浮起卡片、
-     panel 给浮层、float 给弹窗的深扩散（最大模糊 72px，是 panel 的两倍多）。 */
+     四档语义：raised 给内嵌元素、chip 给胶囊与标签、card 给浮起卡片、
+     panel 给浮层与弹窗（C41 把弹窗一并收口到这一档）。 */
   --app-shadow-card: 0 2px 4px color-mix(in srgb, var(--bgm-primary-text) 8%, transparent), 0 6px 14px color-mix(in srgb, var(--bgm-primary-text) 12%, transparent);
   --app-shadow-raised: 0 1px 2px color-mix(in srgb, var(--bgm-primary-text) 8%, transparent), 0 3px 8px color-mix(in srgb, var(--bgm-primary-text) 10%, transparent);
   --app-shadow-panel: 0 3px 10px color-mix(in srgb, var(--bgm-primary-text) 14%, transparent), 0 12px 28px color-mix(in srgb, var(--bgm-primary-text) 18%, transparent);
   /* 胶囊微投影（标签云）：单层 6px，落在 raised 与 card 之间——换成任一个都会明显变重/变双。 */
   --app-shadow-chip: 0 2px 6px color-mix(in srgb, var(--bgm-primary-text) 7%, transparent);
-  /* 弹窗深扩散（[C21](../docs/design/decisions/C21-modal.md)：无蒙层、靠扩散阴影表达层次）。
-     只给 `.modalSurface` 用，经 `.appGlass` 的 `--glass-shadow` 钩子注入。 */
-  --app-shadow-float: 0 2px 8px color-mix(in srgb, var(--bgm-primary-text) 10%, transparent), 0 32px 72px -20px color-mix(in srgb, var(--bgm-primary-text) 34%, transparent);
-  /* 侧栏向右的发散阴影（[C44](../docs/design/decisions/C44-sidebar.md) 的表面 D）。
+  /* 这里原有第五档 `--app-shadow-float`（弹窗深扩散，最大模糊 72px，依据 C21）。**已删除（零引用）**：
+     `modal.css` 按 C41 定稿收口到共享档 `--app-shadow-panel`（最大模糊 28px），
+     并明确不覆写 `--glass-shadow`，它因此失去唯一消费者。
+     弹窗阴影要再加深就改 `modal.css` 的 `--glass-shadow`，**不要复活这枚令牌**。 */
+  /* 侧栏向右的发散阴影（C44 的表面 D）。
      侧栏与对话区**同为白面**（落差 1.000:1），分层完全由这一条承担，因此它的横向偏移最大、
      模糊最远——它是全站唯一一条单向扩散的阴影。色相仍由深粉棕派生，不引入中性灰。 */
   --app-shadow-edge: 26px 0 60px -24px color-mix(in srgb, var(--bgm-primary-text) 36%, transparent);

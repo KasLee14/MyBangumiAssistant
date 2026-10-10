@@ -1,6 +1,5 @@
 /*
- * magicui BentoGrid 的样式（形态依据样张 `web/docs/design/demo.css:3530-3643`，
- * 那是「用项目 CSS 重写原件」的定稿版本）。随组件走：由 `BentoGrid.tsx` 顶部 import。
+ * magicui BentoGrid 的样式。随组件走：由 `BentoGrid.tsx` 顶部 import。
  *
  * 与原件的关系、四处改造与一处修正，见 `BentoGrid.tsx` 的文件头注释。
  * 本文件只消费 `--bgm-*` / `--app-*` 令牌，不写裸色值。

@@ -182,7 +182,7 @@
   min-width: 0;
 }
 
-/* 触发条（用量胶囊与上下文环）——[C32](../../docs/design/decisions/C32-stats-dock.md) 定稿 **D**：
+/* 触发条（用量胶囊与上下文环）——C32 定稿 **D**：
    **常态无底、无描边**（纯文字 + 环），只在 hover / 展开时浮起一层浅底。
    理由：这一行是「附注」不是两个按钮，常态与可点控件抢注意力会让人误以为它是主操作。
    两处（`.statsPill` / `.contextTrigger`）**合并成一条选择器列表**——它们本来就该长同一副样子，
@@ -243,9 +243,9 @@
   color: var(--bgm-warn);
 }
 
-/* 注意坐标系：这里的 `viewBox` 是 16×16，所以描边 2 约等于样张
-   `web/style-demo-data.html` 里 64×64 坐标系下 `stroke-width: 7` 的视觉粗细
-   （7 / 64 ≈ 0.11，2 / 16 ≈ 0.125）。**不要照搬 7**——那是另一个坐标系的值。 */
+/* 注意坐标系：这里的 `viewBox` 是 16×16，描边 2 的视觉粗细相当于
+   64×64 坐标系下的 `stroke-width: 7`（7 / 64 ≈ 0.11，2 / 16 ≈ 0.125）。
+   **不要照搬 7**——那是另一个坐标系的值。 */
 .contextTrack {
   fill: none;
   stroke: var(--bgm-border);
@@ -257,10 +257,10 @@
   stroke: var(--bgm-text-muted);
   stroke-width: 2;
   stroke-linecap: round;
-  /* 柔光化（样张 data.html 的 C 列）：给**环形整体**一层主色柔光，而不是给描边加阴影
+  /* 柔光化：给**环形整体**一层主色柔光，而不是给描边加阴影
      ——`drop-shadow` 跟着圆弧走，观感更接近「发光」。偏移与模糊同样按坐标系缩放
-     （样张 64 单位下的 `0 3px 8px` → 这里 `0 2px 4px`）。
-     样张另有一个 SVG 渐变描边，但本环只有 14px 显示尺寸、渐变不可辨，故不引入。 */
+     。
+     另有 SVG 渐变描边方案，但本环只有 14px 显示尺寸、渐变不可辨，故不引入。 */
   filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--bgm-primary) 28%, transparent));
   transition: stroke-dasharray var(--app-dur-slow) var(--app-ease-out);
 }
@@ -269,9 +269,9 @@
   stroke: var(--bgm-warn);
 }
 
-/* 浮层表面 —— [C32](../../docs/design/decisions/C32-stats-dock.md) 定稿 **D**：**去玻璃改素面卡**
+/* 浮层表面 —— C32 定稿 **D**：**去玻璃改素面卡**
    （`--bgm-surface` + 1px 描边 + `--app-shadow-card`）。
-   这是把 [C21](../../docs/design/decisions/C21-modal.md)/[C30](../../docs/design/decisions/C30-composer.md)
+   这是把 C21/C30
    那条「浮起层里只有弹窗与输入卡保留玻璃」贯彻到底：读数面板背后是纯色白面，
    玻璃在它身上只剩「发白的卡片」。
    `.appGlass` 仍然挂在元素上（共享类不改），这里把它那一组属性**就地覆盖**——
@@ -431,7 +431,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--app-space-8);
-  /* [C31](../../docs/design/decisions/C31-composer-seat.md) 定稿 C：输入卡与**内容列同宽**。
+  /* C31 定稿 C：输入卡与**内容列同宽**。
      表达式逐字照抄 `.appStageColumn`（`frame.css`）——两处必须是同一个表达式，
      否则卡与上面的消息列会错开（实测原先是 143px）。两态共用，不按 `data-phase` 分叉。 */
   width: 100%;
@@ -456,7 +456,7 @@
 
 /* 卡外一行：思考强度 + 读数。L-B 之后输入卡只留「输入 + 发送」，
    这两样移到卡外同一行；读数浮层仍向上展开。
-   **水平居中**（值取自样张 `web/style-demo-layout.html` 的 L-B 列 `.v-b .dockRow`）：
+   **水平居中**：
    早先写成 space-between，两端被扯开，与「卡外一行附注」的语义相反。 */
 .appComposerDock {
   display: flex;
@@ -474,7 +474,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  /* [C30](../../docs/design/decisions/C30-composer.md)：内层卡片圆角由容器档升到**浮层档**，
+  /* C30：内层卡片圆角由容器档升到**浮层档**，
      与外壳 `.appGlow` 的圆角一致——两层圆角不同时，玻璃边缘会在内层露一圈「台阶」。 */
   border-radius: var(--app-radius-float);
 }
@@ -513,7 +513,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  /* [C30](../../docs/design/decisions/C30-composer.md)：底行高 44 → **48px**，
+  /* C30：底行高 44 → **48px**，
      跟着发送键从 34 长到 36 一起放宽（行高不跟着走会让键上下各贴 4px）。 */
   min-height: 48px;
   padding: var(--app-space-6) var(--app-space-10) var(--app-space-6) 14px;
@@ -558,13 +558,13 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  /* [C30](../../docs/design/decisions/C30-composer.md)：发送键 34 → **36px**（与纯图标按钮同档）。 */
+  /* C30：发送键 34 → **36px**（与纯图标按钮同档）。 */
   width: 36px;
   height: 36px;
   padding: 0;
   border: 0;
   border-radius: var(--app-radius-control);
-  /* [G01](../../docs/design/decisions/G01-primary.md) 硬约束：白字底用加深一档的 deep
+  /* G01 硬约束：白字底用加深一档的 deep
      （4.66:1），hover 回到主色本身「亮起来」——与 `cards.css` 的 `.button.primary` 同向。
      原先常态是主色（3.15:1）、hover 再混黑加深，方向正好相反。 */
   background: var(--bgm-primary-deep);
@@ -584,7 +584,7 @@
 
 .appSendButton:disabled {
   /* 浅粉底（`--bgm-border`）**不能配白字**——实测对比度约 1.1:1，箭头几乎不可见，
-     与 [C33](../../docs/design/decisions/C33-thinking-picker.md) 修掉的那处是同一类问题。
+     与 C33 修掉的那处是同一类问题。
      按 C33 的取向改成主色深字，禁用态仍然可辨认。 */
   background: var(--bgm-border);
   color: var(--bgm-primary-text);
@@ -617,7 +617,7 @@
 }
 
 /* 浮层入场：**从触发点展开**（用户选定的浮层动效方案 B）。
-   形变取自样张：`scale(.92) translateY(6px)` → 无，240ms 走弹性曲线。
+   形变：`scale(.92) translateY(6px)` → 无，240ms 走弹性曲线。
    缩放负责「从这里长出来」，位移负责「贴着触发点」——只写位移会像整块滑入，而不是展开。 */
 @keyframes app-popup-in {
   from {

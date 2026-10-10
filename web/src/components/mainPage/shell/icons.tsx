@@ -29,7 +29,7 @@ export function EditIcon(): ReactNode {
  *
  * 与上面两枚不同，这一枚画在 **24 网格**上：16 网格里塞 8 个齿 + 中心圆，缩到 16px
  * 显示会糊成一团。线宽按 `16 / 24` 折算，屏幕上的视觉线宽仍是图标族的 1.4px
- * （`2.1 × 16 / 24 = 1.4`）。画法由 [C45](../../docs/design/decisions/C45-settings-entry.md)
+ * （`2.1 × 16 / 24 = 1.4`）。画法由 C45
  * 的图标对照里「甲 · 描边齿轮（feather）」定稿。
  */
 export function GearIcon(): ReactNode {

@@ -25,7 +25,7 @@ export function Toast(): ReactNode {
   return (
     <AnimatePresence>
       {notice ? (
-        /* [C42](../../docs/design/decisions/C42-toast.md) 定稿 C：进出**对称**（y16 + scale .98）。
+        /* C42 定稿 C：进出**对称**（y16 + scale .98）。
            原先退出是 y8 + scale .99，收得比进场轻——一条提示「出去」的动作与「进来」不一致。 */
         <motion.div
           className="appGlass appToast"

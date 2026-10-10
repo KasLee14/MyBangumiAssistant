@@ -106,7 +106,7 @@ export function StatsCard({ view }: { view: StatsView }): ReactNode {
             {headlineNumber === null ? headline.value : (
               // ReactBits Counter（参考 https://www.reactbits.dev/components/counter）：数字首次出现时滚到位。
               // 关掉官方那两层上下渐隐（gradientHeight=0）——它服务的是整屏大字，这里是 28px 的行内读数。
-              // fontSize 必须与 `content.css` 的 `.contentStatHeadlineValue` 一致（[C06](../../docs/design/decisions/C06-stats-card.md)
+              // fontSize 必须与 `content.css` 的 `.contentStatHeadlineValue` 一致（C06
               // 定稿 28px）：它以**内联样式**下发，会盖掉 CSS 里那一档——写 30 就等于 CSS 的 28px 从未生效。
               <Counter
                 value={headlineNumber}

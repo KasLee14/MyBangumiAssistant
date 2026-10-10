@@ -14,7 +14,7 @@
 
 /* ---------------------------------------------------------------- 顶栏骨架 */
 
-/* **主界面已不再使用顶栏**（[C01](../docs/design/decisions/C01-app-top-bar.md) 决定删除它，
+/* **主界面已不再使用顶栏**（C01 决定删除它，
    品牌 / 折叠 / 新建 / 连接状态 / 设置全部迁进侧栏）。这个骨架保留给两个次要入口
    ——调试页与组件库文档页，它们各自仍需要一条「品牌 + 栏目 + 动作」的横条。
    主界面外壳的网格里已经没有 `top` 行。 */
@@ -156,7 +156,7 @@
 }
 
 .appNavRow:hover {
-  /* [G10](../../docs/design/decisions/G10-ux.md)：hover 底色 6% → 10%；
+  /* G10：hover 底色 6% → 10%；
      并补 1px 描边——焦点环换成主色后，粉底（顶栏/侧栏）上的可辨性下降，
      需要描边兜底。`.appNavRow` 已有 `border: 1px solid transparent`，这里只给颜色。 */
   background: color-mix(in srgb, var(--bgm-primary) 10%, transparent);
@@ -172,13 +172,13 @@
 }
 
 /* 这里原有「当前态的左侧主色竖条」（`::before` + `scaleY` 弹性展开）。
-   按样张 `web/style-demo-layout.html` 的 L-B 列，当前项只靠
+   当前项只靠
    **粉底 + 主色描边 + 主色字 + 500 字重** 四件事区分，不加额外装饰——竖条与「素面」方向相反，故移除。 */
 
 .appNavRow:focus-visible {
-  /* 焦点环只有一个来源：`--bgm-focus`（[G10](../../docs/design/decisions/G10-ux.md)
+  /* 焦点环只有一个来源：`--bgm-focus`（G10
      把「2px 交互蓝」换成「3px 主色 45%」）。
-     **内描边**（[C04](../../docs/design/decisions/C04-stagger.md)）：`outline-offset: -2px`
+     **内描边**（C04）：`outline-offset: -2px`
      让环贴在行内侧。外描边会在行与行之间多占 3px，短列表逐项入场时看得出错位。 */
   outline: 1px solid var(--app-hairline-strong);
   outline-offset: -2px;
@@ -259,7 +259,7 @@
 /* 短列表用；长列表（会话轮次、长表格）用一次性入场，避免最后一项等太久。
    只动 opacity / transform，参数全部来自令牌。
 
-   **延迟表 4 档扩到 8 档**（[C04](../../docs/design/decisions/C04-stagger.md) 定稿 B · 尾部不堆叠）：
+   **延迟表 4 档扩到 8 档**（C04 定稿 B · 尾部不堆叠）：
    4 档时第 5 项起同时出现，8 行的短列表会在尾部一次冒出 4 行。第 9 项起沿用第 8 档。
 
    `overflow: clip` 是必需的：入场位移把行往下推 8px，滚动容器会因此短暂多出一条滚动条
@@ -300,13 +300,13 @@
 /* ---------------------------------------------------------------- 视口驱动入场 */
 
 /* `in` 类由 utils/revealOnScroll.ts 添加。只动 opacity / transform。
-   值取自样张 `web/style-demo-scroll.html` 的视口入场：初始 `translateY(10px)`，
+   值取自视口入场定稿：初始 `translateY(10px)`，
    **两条属性走两条曲线**——透明度用精确曲线（不做弹性，免得中途「亮一下又暗」），
    位移用弹性曲线（这才是「浮上来」的手感）。
    减少动态效果时**直接可见**——绝不允许因为跳过动画而让元素卡在不可见状态。 */
 .appReveal {
   opacity: 0;
-  /* [G10](../../docs/design/decisions/G10-ux.md) 的视口入场：位移与时长都走令牌
+  /* G10 的视口入场：位移与时长都走令牌
      ——位移吸附到 `--app-shift-panel`(16px)、时长吸附到 `--app-dur-slow`(360ms)。
      原先是写死的 10px / 320ms（G10 原文要求 18px / 460ms，本次按「不新增档位」收敛）。 */
   transform: translateY(var(--app-shift-panel));

@@ -11,7 +11,7 @@ const message = (error: unknown): string => (error instanceof Error ? error.mess
 const providerText = (provider: ProviderOptionView): string =>
   `${provider.label} · ${AUTH_LABEL[provider.authSource]} · ${provider.modelCount} 个模型`;
 
-/** 副标题的后半句：按凭据来源换说法，拼在提供方名之后；`stored` 那一档照样张定稿。 */
+/** 副标题的后半句：按凭据来源换说法，拼在提供方名之后；`stored` 那一档按定稿。 */
 const AUTH_SUBTITLE: Record<ProviderOptionView['authSource'], string> = {
   stored: '已有保存在本机的密钥；重新填入会覆盖它。',
   runtime: '本次运行已填入密钥；重新填入会覆盖它。',
@@ -235,7 +235,7 @@ export function ModelDialog(): ReactNode {
       /* 底部两端：清除靠左，取消 / 应用靠右。这一块由 `Modal` 放进 `.dlgActions`
          （space-between）里；有清除键时两个确认动作要先捆成一个右侧组，否则它们
          会被摊到两端、把「取消」推到中间；没有清除键时就直接给两个按钮——那时
-         分居两端正是样张里的样子。 */
+         分居两端。 */
       footer={(
         <>
           {canClear ? (

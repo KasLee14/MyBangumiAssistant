@@ -42,7 +42,7 @@ interface ModalProps {
    * 「已关闭但还要留在 DOM 里播完退场动画」期间传入。
    *
    * 之所以要外部告诉它，是因为**退场动画播完才允许卸载**——见
-   * `overlays/DialogStage.tsx` 与 `docs/design/decisions/C41-dialog-stage.md`。
+   * `overlays/DialogStage.tsx` 与 C41。
    */
   leaving?: boolean;
   /**
@@ -117,7 +117,7 @@ export function Modal({ title, eyebrow, wide = false, onClose, children, footer,
   );
 
   return (
-    /* 遮罩层**不带动画也不带背景**（[C21](../../docs/design/decisions/C21-modal.md) 定稿 B：无蒙层），
+    /* 遮罩层**不带动画也不带背景**（C21 定稿 B：无蒙层），
        只负责整屏定位与接住外部点击。此前它自己有一段 opacity 淡入——那是纯属多余的合成层：
        它没有背景，透明度变了也看不见，却把 `.modalSurface` 一起拖进「opacity < 1」的子树里，
        正好触发上面第 ① 条的平台限制。 */

@@ -58,7 +58,7 @@ export interface LibrarySection {
    * 该 kind 的其它形态（可选）。
    *
    * 属于**第 1 块「UI 预览」内部**，不占第五块：详情页的结构契约仍是四块，这里只是让
-   * 同一块里多出几张同构的预览卡（见 `docs/agents/page/library.md` §规则）。
+   * 同一块里多出几张同构的预览卡（详情页的四块结构契约见 `ComponentPage.tsx` 的 `PAGE_ANCHORS`）。
    */
   variants?: readonly LibraryVariant[];
   /** 空数据形态，用来验证每个组件的空态；与 `payload` 同形。 */
@@ -141,7 +141,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
       { field: 'hint', type: 'string', required: '可选', note: '排序口径一类的补充说明' },
       ...SUBJECT_ITEM,
     ],
-    // 这一条原先指向 Spotlight Card；该组件已按用户选择（interaction 样张的「A · 只精修状态反馈」）移除。
+    // 这一条原先指向 Spotlight Card；该组件已按用户选择移除。
     // 网格卡现在没有 vendor 落点，只保留 hover 抬升与封面缓推（纯 CSS）。
     reference: null,
   },

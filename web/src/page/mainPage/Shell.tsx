@@ -15,13 +15,13 @@ import { selectDisplayedContent, selectHeroPhase, selectPacedTail } from '../../
 /**
  * 主界面外壳：唯一的装配点。
  *
- * [C01](../../docs/design/decisions/C01-app-top-bar.md) 删掉顶栏之后，外壳只有两列：
+ * C01 删掉顶栏之后，外壳只有两列：
  * **侧栏 | 对话区**。侧栏承载全部应用级入口（品牌、新建、会话列表、用户行），
  * 对话区就是消息流与输入卡；收起态的两个气泡绝对定位在 `.appFrame` 上（不参与 grid）。
  *
  * 只做两件事：从 store 取数据、按槽位交给组件。业务逻辑一律不在这里——
  * 唯一的例外是首屏那两枚入口：示例点击要写输入草稿（全局状态）、
- * 「设置」要开设置弹窗（[C45](../../docs/design/decisions/C45-settings-entry.md) 定稿 ③），
+ * 「设置」要开设置弹窗（C45 定稿 ③），
  * 两者都在这里注入回调，让 `Hero` 保持 props 驱动（`components/mainPage/conversation/**` 不读 store）。
  *
  * `MotionConfig reducedMotion="user"`：系统开了「减少动态效果」时，motion 会自动

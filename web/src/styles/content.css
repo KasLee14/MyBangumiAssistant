@@ -13,10 +13,12 @@
  * ============================================================ */
 
 /* ---------- 语义色派生：四态提示、条形与强调 ----------
-   下面这三个变量只在 `.contentBlock` 上算一次，全部由 --bgm-* 令牌派生：
-   - 强调文字与警告底色都由令牌混合得到，**不需要任何主题分支**，
+   下面两个变量只在 `.contentBlock` 上算一次，全部由 --bgm-* 令牌派生：
+   - 强调文字与警告色都由令牌混合得到，**不需要任何主题分支**，
      也不依赖宿主把主题属性加在哪个元素上。
-   - 两行同属性是刻意的兜底：不支持 color-mix 的环境用上面那行的固定值。 */
+   （原有四枚 `--content-accent` / `--content-accent-soft` / `--content-warn-soft` /
+     `--content-bar-default` 因**零引用**已删除：强调色走 `--content-accent-text`，
+     warning 态只用 `--content-warn`，统计条的默认填充就是 `.contentFill` 基类的柔光渐变。） */
 
 /* ---------- 通用骨架 ---------- */
 .contentBlock {
@@ -27,13 +29,7 @@
   min-width: 0;
   /* 强调文字：用品牌色与正文之间更深的一档，白底上对比度更稳。 */
   --content-accent-text: color-mix(in srgb, var(--bgm-primary) 24%, var(--bgm-text-strong));
-  --content-accent-soft: color-mix(in srgb, var(--bgm-primary) 10%, var(--app-surface));
-  --content-accent: var(--bgm-primary);
-  /* 统计条形的默认填充：原为中性灰（--bgm-text-weak），配色重构后取主色与白之间的
-     中间档，与 [data-tone="primary"]（主粉）、[data-tone="muted"]（浅粉）拉开层次。 */
-  --content-bar-default: color-mix(in srgb, var(--bgm-primary) 62%, var(--app-surface));
   --content-warn: var(--bgm-warn);
-  --content-warn-soft: color-mix(in srgb, var(--bgm-warn) 8%, var(--app-surface));
 }
 
 /* ============================================================
@@ -72,11 +68,11 @@
   background: color-mix(in srgb, var(--bgm-primary) 5%, transparent);
 }
 
-/* InfoBox 的行：hover 是「左→右淡粉痕 + 左内边距右移 4px」（样张 content.html 的 `.row`）。
+/* InfoBox 的行：hover 是「左→右淡粉痕 + 左内边距右移 4px」。
    它的内容本来就是「键 + 值」两列，再加一条左侧指示条会与键列抢注意力。
 
-   [C08](../../docs/design/decisions/C08-info-box.md) 定稿 B：纵向内距 8 → 9px（行高 39 → 41）、
-   分隔线由 solid 改 dashed。**左右内距按样张保持不动**（样张 `demo.css:2721` 只覆写上下）：
+   C08 定稿 B：纵向内距 8 → 9px（行高 39 → 41）、
+   分隔线由 solid 改 dashed。**左右内距保持不动**：
    左 2px 是本段自己的值，右 8px 来自共享基类。这里把四个方向一次写清，是为了让「同一属性
    只有一个来源」（原先只写 `padding-left: 2px`，右内距仍从基类继承，读代码时看不出结果是多少）。 */
 .contentInfoRow {
@@ -95,7 +91,7 @@
 
 /* 左侧指示条：从中间弹性展开，只动 transform。
    用 `::after` 而不是 `::before`——Timeline 的节点占着 `::before`。
-   **InfoBox 不在这张表里**：样张给它的 hover 反馈是「整行淡粉痕 + 左内边距右移 4px」
+   **InfoBox 不在这张表里**：它的 hover 反馈是「整行淡粉痕 + 左内边距右移 4px」
    （`padding-left: 2px → 6px`），与指示条是两种表态，同时用等于同一件事说两遍。 */
 .contentRow::after,
 .contentSubjectRow::after {
@@ -125,10 +121,10 @@
   display: block;
   transform-origin: left center;
   border-radius: var(--bgm-r-pill);
-  /* 值取自 [G06](../../docs/design/decisions/G06-decor.md) 定稿 C「更铺开」，
-     样张 `global/06-decor.html:39` 的三个变量即定稿值：
+  /* 值取自 G06 定稿 C「更铺开」，
+     三个变量即定稿值：
      **渐变混合 60% / 光晕 `0 0 14px` 55%**（原 72% / 10px 35%——更透、光晕更远）。
-     端点高光仍是一条 1px 白色内描边（**样张没有用伪元素做端点圆点**，别自己加）。 */
+     端点高光仍是一条 1px 白色内描边。 */
   background: linear-gradient(90deg,
     color-mix(in srgb, var(--bgm-primary) 60%, var(--bgm-primary-mist)), var(--bgm-primary));
   box-shadow:
@@ -157,9 +153,9 @@
 .contentInfoLabel,
 .contentCalloutTone {
   font: var(--app-font-note);
-  /* **不套**拉丁大写 + 宽字距（[G04](../../docs/design/decisions/G04-type.md) 定稿 C「去拉丁化」，
-     并由 [C08](../../docs/design/decisions/C08-info-box.md) 点名收口）。
-     这里原先写的是 `text-transform: uppercase` + `.08em` 宽字距，依据是一份更早的字体样张；
+  /* **不套**拉丁大写 + 宽字距（G04 定稿 C「去拉丁化」，
+     并由 C08 点名收口）。
+     这里原先写的是 `text-transform: uppercase` + `.08em` 宽字距；
      G04 已明确「小字一律不用大写 / 宽字距 / 等宽」——中文上 `text-transform` 不生效，
      但宽字距会生效，于是同一套「微标签」在中文里显得松散、在拉丁里全大写。两者一并去掉。 */
   color: var(--bgm-text-weak);
@@ -173,7 +169,7 @@
   background: var(--bgm-surface);
 }
 /* 区块标题：**直接用字体阶梯的标题档**（17px/600/−0.02em），不要自造 13px。
-   样张 `content.html` 的 `.blockTitle` 与 `type.html` 的 C 列都是这个值；
+   这个档位与卡内小标题拉开层级；
    自造的 13px 会让条目标题比卡内小标题还小，层级倒挂。 */
 .contentBlockTitle {
   margin: 0 0 var(--app-space-10);
@@ -223,7 +219,7 @@
 }
 
 /* ---------- 标签胶囊（subjects 内联用 / tags 云共用）----------
-   材质取自样张 `content.html` 的 `.tag`：**白→surface-alt 的微渐变 + 淡粉描边 + 微投影**，
+   材质：**白→surface-alt 的微渐变 + 淡粉描边 + 微投影**，
    而不是主色浅底——标签是「内容」不是「选中态」，用主色底会与选中/强调的语义撞车。 */
 .contentTag {
   display: inline-flex;
@@ -248,9 +244,9 @@
     transform var(--app-dur-base) var(--app-ease-spring);
 }
 .contentTag[data-selected="true"] {
-  /* [G01](../../docs/design/decisions/G01-primary.md) 硬约束：白字不落在 `--bgm-primary`
+  /* G01 硬约束：白字不落在 `--bgm-primary`
      上（只有 3.15:1），实心块一律改用加深一档的 `--bgm-primary-deep`（4.66:1）。
-     [C11](../docs/design/decisions/C11-tag-cloud.md) 原写「选中项底色 #ec6570 / 白字 不变」，
+     C11 原写「选中项底色 #ec6570 / 白字 不变」，
      本次按 G01 收口，C11 那一行已同步改写。 */
   border-color: var(--bgm-primary-deep);
   background: var(--bgm-primary-deep);
@@ -268,8 +264,8 @@
  * ============================================================ */
 .contentSubjectGrid {
   display: grid;
-  /* [C05](../../docs/design/decisions/C05-subject-cards.md) 定稿 B：栅格改**固定 3 列**
-     （样张 `demo.css:2557`）。原先是 `auto-fill, minmax(112px, 1fr)`——在 780px 的内容列里
+  /* C05 定稿 B：栅格改**固定 3 列**
+     。原先是 `auto-fill, minmax(112px, 1fr)`——在 780px 的内容列里
      会开 6 列，三张卡只占左边一小条，集合看起来像「没排满」。 */
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--app-space-10);
@@ -284,7 +280,7 @@
   text-decoration: none;
   color: inherit;
   border: 1px solid var(--bgm-border);
-  /* 圆角由控件档升到**容器档**（C05 定稿；样张 `demo.css:2497`）：卡片是内容容器，
+  /* 圆角由控件档升到**容器档**：卡片是内容容器，
      控件档 10px 让封面墙显得零碎。 */
   border-radius: var(--app-radius-panel);
   background: var(--app-surface);
@@ -306,8 +302,7 @@
 .contentSubjectCover {
   position: relative;
   aspect-ratio: 3 / 4;
-  /* 无图占位底：粉调渐变（样张 `content.html` 的 `.cover` 是
-     `linear-gradient(150deg, primary-soft, sunken)`），比平色更像「等着放图」。 */
+  /* 无图占位底：粉调渐变，比平色更像「等着放图」。 */
   background: linear-gradient(150deg, var(--bgm-primary-soft), var(--bgm-sunken));
   overflow: hidden;
 }
@@ -316,10 +311,10 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* 封面自身**不设圆角**（C05 定稿；样张 `demo.css:2498`）：圆角交给卡片的 `overflow: hidden`
+  /* 封面自身**不设圆角**：圆角交给卡片的 `overflow: hidden`
      统一裁切。各自设一遍会在封面四角与卡片描边之间留出一圈缝隙。 */
   border-radius: 0;
-  /* 缓推：hover 时图**放大而不是位移**，免得与卡片的抬升打架。样张给的是 420ms，本次收敛吸附到 `--app-dur-slower`(450ms)。
+  /* 缓推：hover 时图**放大而不是位移**，免得与卡片的抬升打架。本次收敛吸附到 `--app-dur-slower`(450ms)。
      只动 transform；减少动效时由文件末尾的兜底关掉。 */
   transition: transform var(--app-dur-slower) var(--app-ease-out);
 }
@@ -343,8 +338,7 @@ a.contentSubjectCard:focus-visible { outline: 0; box-shadow: var(--bgm-focus); b
   font: var(--app-font-tiny);
   color: var(--bgm-text-weak);
 }
-/* 文字区：封面之下的一层内距容器（[C05](../../docs/design/decisions/C05-subject-cards.md) 定稿；
-   样张 `demo.css:2490-2491`）。卡片自己不写内距——写了封面会被一起推进去、四周露出卡片底色。
+/* 文字区：封面之下的一层内距容器。卡片自己不写内距——写了封面会被一起推进去、四周露出卡片底色。
    名称的上边距同时归零：它与封面的间距由这层的内距表达，不再各写一份。 */
 .contentSubjectBody {
   padding: 9px 10px 11px;
@@ -352,7 +346,7 @@ a.contentSubjectCard:focus-visible { outline: 0; box-shadow: var(--bgm-focus); b
 .contentSubjectBody .contentSubjectName {
   margin-top: 0;
 }
-/* 名称：样张是 `13.5px / 600 / -0.01em` 且**单行省略**——
+/* 名称：`13.5px / 600 / -0.01em` 且**单行省略**——
    两行 clamp 会让封面墙的卡片高度参差，破坏网格对齐。 */
 .contentSubjectName {
   margin: 9px 0 0;
@@ -364,7 +358,7 @@ a.contentSubjectCard:focus-visible { outline: 0; box-shadow: var(--bgm-focus); b
   text-overflow: ellipsis;
   color: var(--bgm-text-strong);
 }
-/* 中文名副标题（样张的网格卡有这一行）：比原名低一档、弱一色，单行省略 */
+/* 中文名副标题：比原名低一档、弱一色，单行省略 */
 .contentSubjectNameCn {
   margin: 1px 0 0;
   font: var(--app-font-note);
@@ -387,7 +381,7 @@ a.contentSubjectCard:focus-visible { outline: 0; box-shadow: var(--bgm-focus); b
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* 由**内容撑开**（样张是 `padding: 2px 6px`），不再定死 17×17：
+  /* 由**内容撑开**，不再定死 17×17：
      不同 kind 的短名长短不一，定宽会把两字名挤成一团。 */
   padding: 2px var(--app-space-6);
   font: var(--app-font-tiny);
@@ -458,8 +452,8 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 .contentTagGlare {
   display: block;
   width: 100%;
-  /* [C11](../../docs/design/decisions/C11-tag-cloud.md) 定稿 B：内距 4px → **0**
-     （样张 `demo.css:4045` 只保留这一条覆盖）。4px 会让整片标签云左右各多缩进 4px，
+  /* C11 定稿 B：内距 4px → **0**
+     。4px 会让整片标签云左右各多缩进 4px，
      与同栏其它区块的左缘对不齐。若将来掠光被裁，正确做法是 `padding: 4px; margin: -4px`。 */
   padding: 0;
 }
@@ -493,7 +487,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 .contentSubjectRow:nth-child(7), .contentLinkRow:nth-child(7) { animation-delay: calc(var(--app-stagger) * 6); }
 .contentInfoRow:nth-child(8), .contentTimelineRow:nth-child(8),
 .contentSubjectRow:nth-child(8), .contentLinkRow:nth-child(8) { animation-delay: calc(var(--app-stagger) * 7); }
-/* 第 9 项起沿用第 8 档（与 `.appStagger` 同一张表，见 [C04](../../docs/design/decisions/C04-stagger.md)）：
+/* 第 9 项起沿用第 8 档（与 `.appStagger` 同一张表，见 C04）：
    4 档封顶时第 5 行起同时出现，短列表尾部会一次冒出好几行。 */
 .contentInfoRow:nth-child(n+9), .contentTimelineRow:nth-child(n+9),
 .contentSubjectRow:nth-child(n+9), .contentLinkRow:nth-child(n+9) { animation-delay: calc(var(--app-stagger) * 8); }
@@ -504,7 +498,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 /* ============================================================
  * stats：统计卡
  * ============================================================ */
-/* 主数字行：**没有分隔线**（样张 `content.html` 的 `.cardHead` 只有 flex + margin）。
+/* 主数字行：**没有分隔线**。
    数据区本来就带上下 hairline，头部再来一条会把卡片切成三段。 */
 .contentStatHeadline {
   display: flex;
@@ -514,7 +508,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 .contentStatHeadlineValue {
   font-family: var(--bgm-mono);
-  /* 28px / 500：样张 `.num.xl` 的档位。700 会与「强对比阶梯」的标题档打架。 */
+  /* 28px / 500：主数值档。700 会与「强对比阶梯」的标题档打架。 */
   font-size: 28px;
   font-weight: 500;
   line-height: 1;
@@ -526,7 +520,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   font: var(--app-font-note);
   color: var(--bgm-text-weak);
 }
-/* 行标签：**定宽 20px 右对齐 + 等宽**（样张 `.lbl`），
+/* 行标签：**定宽 20px 右对齐 + 等宽**，
    这样 8.6 / 10.0 这类长短不一的刻度能对齐。 */
 .contentStatLabel {
   width: 20px;
@@ -560,7 +554,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   padding: 0;
   list-style: none;
 }
-/* 行：**flex 而不是 grid**（样张用的是 `display: flex; gap: 10px`），
+/* 行：**flex 而不是 grid**，
    三个槽位由标签与数值的定宽自己撑出来，轨道 `flex: 1` 吃掉中间。 */
 .contentStatBarRow {
   display: flex;
@@ -570,9 +564,9 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 .contentStatBarRow:last-child { border-bottom: 0; }
 /* 尺寸与位置留在这一层；柔光填充来自共享基类（.contentFill 那一组）。
-   **`flex: 1` 是必需的**（[C06](../../docs/design/decisions/C06-stats-card.md) 点名的实现漏项）：
+   **`flex: 1` 是必需的**（C06 点名的实现漏项）：
    父级 `.contentStatBarRow` 是 flex，轨道不写 `flex: 1` 就按内容宽计算——而它是空的，
-   于是宽度塌成 0，横条根本看不见（样张 `demo.css:2603` 正是这一条）。 */
+   于是宽度塌成 0，横条根本看不见。 */
 .contentStatTrack { position: relative; height: 9px; flex: 1; }
 .contentStatBar {
   width: 100%;
@@ -581,13 +575,12 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
      值来自组件内联写入的 `--content-bar`（不是内联 transform——keyframes 的 `to` 帧会盖掉它）。 */
   transform: scaleX(var(--content-bar, 1));
   transition: transform var(--app-dur-slow) var(--app-ease-out);
-  /* 入场：样张 `demo.css:2589-2595` 的 `statBarIn`（360ms + spring）。
+  /* 入场：`statBarIn`（360ms + spring）。
      `backwards` 而不是 `both`：`both` 会把动画末帧冻结，此后数据更新既不走 transition
      也不再采样，横条就此不动了。`backwards` 只在动画期间接管，播完回到元素正常值。 */
   animation: statBarIn var(--app-dur-slow) var(--app-ease-spring) backwards;
 }
-/* 横条入场（[C06](../../docs/design/decisions/C06-stats-card.md)：样张的定稿列渲染了这条，
-   与进度条的 `progBarIn` 同一套参数）。`to` 帧必须写变量而不是 `scaleX(1)`。 */
+/* 横条入场。`to` 帧必须写变量而不是 `scaleX(1)`。 */
 @keyframes statBarIn {
   from { transform: scaleX(0); }
   to { transform: scaleX(var(--content-bar, 1)); }
@@ -685,7 +678,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   gap: var(--app-space-10);
   margin: 0 0 9px;
 }
-/* 左侧是**说明文本**（「已看 7 / 13 话」）而不是读数：样张是 `12.5px / text-muted`、非等宽。
+/* 左侧是**说明文本**（「已看 7 / 13 话」）而不是读数：`12.5px / text-muted`、非等宽。
    这一块的主数字是右侧百分比，左文本抢了数值档会让层级变成双头。 */
 .contentProgressValue {
   font: var(--app-font-sub);
@@ -696,7 +689,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   color: var(--bgm-text-strong);
   letter-spacing: var(--app-tracking-num);
 }
-/* 轨道 8 → **9px**（[C07](../../docs/design/decisions/C07-progress-view.md) 定稿 B；样张 `demo.css:2663`）：
+/* 轨道 8 → **9px**：
    原先写 8px 并注了「进度轨 8 / 分布轨 9 刻意不同」，但同一张图里两种轨道高度差 1px
    只会显得没对齐，分布轨的 9px 才是定稿。 */
 .contentProgressTrack { height: 9px; }
@@ -726,8 +719,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   padding: 0;
   list-style: none;
 }
-/* 章节格逐项入场（[C07](../../docs/design/decisions/C07-progress-view.md) 定稿：补填充与章节格入场；
-   值取自样张 `demo.css:2640-2651`）。这一组比别处**多一档**——第 10 格起沿用第 9 档：
+/* 章节格逐项入场。这一组比别处**多一档**——第 10 格起沿用第 9 档：
    一话一格，网格里同时有十几格是常态，8 档封顶会让后几格齐出。 */
 .contentEpGrid > * {
   animation: contentRowIn var(--app-dur-slow) var(--app-ease-spring) both;
@@ -741,7 +733,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 .contentEpGrid > *:nth-child(8) { animation-delay: calc(var(--app-stagger) * 7); }
 .contentEpGrid > *:nth-child(9) { animation-delay: calc(var(--app-stagger) * 8); }
 .contentEpGrid > *:nth-child(n+10) { animation-delay: calc(var(--app-stagger) * 9); }
-/* 章节格：42×42 固定方块（样张 `content.html` 的 `.ep`）+ 单元格档圆角 12 +
+/* 章节格：42×42 固定方块+ 单元格档圆角 12 +
    `--bgm-surface-alt` 底 + `border-soft` 描边。用**固定列宽**而不是 `1fr`：
    格子在窄容器里被拉宽就不再是「方块」，而它是「一话」的视觉单位。 */
 .contentEpCell {
@@ -772,7 +764,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   color: var(--bgm-primary-text);
 }
 .contentEpCell[data-state="current"] {
-  /* [G01](../../docs/design/decisions/G01-primary.md) 硬约束：整格是实心主色块，
+  /* G01 硬约束：整格是实心主色块，
      白字必须落在加深一档的 deep 上，所以渐变的**两端**都走 deep 系
      （原终点是主色本身，只有 3.15:1）。 */
   border-color: transparent;
@@ -791,7 +783,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
    这里只补「键值两列」的宽度分配（标签由 .contentLabel 那一组管字体）。 */
 .contentInfoLabel {
   flex: none;
-  /* 5.2em：样张 content.html 的 `.k` 宽度。键是短标签，用 em 能跟着字号缩放。 */
+  /* 5.2em：`.k` 的宽度。键是短标签，用 em 能跟着字号缩放。 */
   width: 5.2em;
   overflow-wrap: anywhere;
 }
@@ -845,7 +837,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 .contentTable tbody td,
 .contentTable tbody th {
-  /* 12px 四边（样张 v2 的单元格内距）；原先纵向 8px 偏挤，数字行挤在一起 */
+  /* 12px 四边；原先纵向 8px 偏挤，数字行挤在一起 */
   padding: var(--app-space-12);
   color: var(--bgm-text);
   text-align: left;
@@ -920,19 +912,18 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 .contentTimelineList {
   position: relative;
   margin: 0;
-  /* 左内距 16 → **18px**（[C10](../../docs/design/decisions/C10-timeline.md) 定稿 C；
-     样张 `demo.css:2910`）：节点从 7px 环改成 11px 描边环之后，竖轴要跟着外移，
+  /* 左内距 16 → **18px**：节点从 7px 环改成 11px 描边环之后，竖轴要跟着外移，
      否则节点会压到正文的左边。 */
   padding: 0 0 0 18px;
   list-style: none;
 }
-/* 行的四个内距一次写清（样张 `demo.css:2911` 是 `padding: 8px 0`）：
+/* 行的四个内距一次写清：
    Timeline 的行是「时间 | 正文 | actor」三列，左右不留内距才能让三列与竖轴对齐；
    共享基类给的 12px 左内距会让整行右移、节点与竖轴错位。 */
 .contentTimelineRow {
   padding: 8px 0;
 }
-/* 竖轴：**1px 纯色**（样张 content.html 的 `.axis` 是 `1px solid var(--border)`）。
+/* 竖轴：**1px 纯色**。
    原先那条「主色→hairline→透明」的渐变会把轴线切成三段，观感像进度条而不是时间轴。 */
 .contentTimelineList::before {
   content: "";
@@ -952,7 +943,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   top: 14px;
   width: 11px;
   height: 11px;
-  /* **用 border 画环而不是 box-shadow 环**（[C10](../../docs/design/decisions/C10-timeline.md)）：
+  /* **用 border 画环而不是 box-shadow 环**（C10）：
      box-shadow 的环画在布局盒**之外**，7px 盒 + 2px 环的中心落在 3.5px 处，
      与竖轴中心（5.5px）差 2px，节点看起来总是偏左。改成 11px 盒 + `border: 2px` +
      `box-sizing: border-box` 之后，中心 = −18 + 18 + 5.5 = 5.5px，与竖轴同心。 */
@@ -963,18 +954,18 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   background: var(--app-surface);
 }
 /* 最新一条（列表首项）用主色节点 + 一圈外发光：时间线天然倒序，第一个就是「刚发生」。
-   外圈 **3px**（样张值，原为 5px）——圈太大会压到相邻行。 */
+   外圈 **3px**——圈太大会压到相邻行。 */
 .contentTimelineRow:first-child::before {
   border-color: var(--bgm-primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--bgm-primary) 18%, transparent);
 }
 .contentTimelineTime {
   flex: none;
-  /* 88px 定宽（样张 `.t`）：时间戳长短不一，定宽才能让右侧正文的左边界对齐 */
+  /* 88px 定宽：时间戳长短不一，定宽才能让右侧正文的左边界对齐 */
   width: 88px;
   font: var(--app-font-note);
   font-family: var(--bgm-mono);
-  /* 允许折行（C10 定稿；样张 `demo.css:2912` 把 `nowrap` 改回 `normal`）：
+  /* 允许折行：
      「2026-04-12 21:40」在 88px 的列里放不下，nowrap 会把它挤成一行并顶破列宽。 */
   white-space: normal;
   color: var(--bgm-text-weak);
@@ -986,7 +977,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   overflow-wrap: anywhere;
   color: var(--bgm-text);
 }
-/* actor 是**行尾的弱色列**（样张 `.actor`：`flex: none; font: var(--app-font-note); color: text-weak`），
+/* actor 是**行尾的弱色列**，
    不是正文前缀的主色强调——它是「谁做的」这一维元信息，与时间同级。 */
 .contentTimelineActor {
   flex: none;
@@ -1015,7 +1006,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 .contentGalleryTrack {
   display: flex;
   gap: var(--app-space-10);
-  /* [C12](../../docs/design/decisions/C12-gallery.md) ①：顶部留出「3px 抬升 + 阴影向上扩散」
+  /* C12 ①：顶部留出「3px 抬升 + 阴影向上扩散」
      的余量（16px），再用负 margin 抵消它带来的布局位移——只有裁剪边界上移，
      卡片与标题的视觉距离不变。**不能**把 `overflow-y` 改成 visible：
      `overflow-x: auto` 会把另一方向的计算值也变成 auto，白冒一条纵向滚动条。 */
@@ -1027,8 +1018,8 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   overflow-y: hidden;
   scrollbar-width: thin;
 }
-/* [C12](../../docs/design/decisions/C12-gallery.md) ②：WebKit 的横向滚动条收成 6px 细条
-   （样张 `demo.css:4075-4080`）。`scrollbar-width: thin` 只在 Firefox 生效，
+/* C12 ②：WebKit 的横向滚动条收成 6px 细条
+   。`scrollbar-width: thin` 只在 Firefox 生效，
    Chromium/WebKit 上会落回约 17px 的系统滚动条，把 104px 的卡片排压掉一截高度。
    thumb 用 `--bgm-border`（粉调），不引入中性灰。 */
 .contentGalleryTrack::-webkit-scrollbar { height: 6px; }
@@ -1039,7 +1030,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 .contentGalleryTrack:focus-visible { outline: 0; box-shadow: var(--bgm-focus); border-radius: var(--bgm-r-sm); }
 .contentGalleryItem { flex: none; width: 104px; }
-/* 链接本身**不带外观**：样张 `content.html` 里封面就是卡片
+/* 链接本身**不带外观**：封面就是卡片
    （描边、圆角、阴影、hover 抬升全在封面上），外套再画一层会变成双层描边。 */
 .contentGalleryCard {
   display: block;
@@ -1047,7 +1038,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   color: inherit;
   transition: transform var(--app-dur-base) var(--app-ease-spring);
 }
-/* 封面即卡片：正方形（样张 `aspect-ratio: 1 / 1`）+ 控件档圆角 + 描边 + 两级阴影 */
+/* 封面即卡片：正方形+ 控件档圆角 + 描边 + 两级阴影 */
 .contentGalleryCover {
   position: relative;
   display: flex;
@@ -1100,7 +1091,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 /* ============================================================
  * compare：修改前后对比（V3 · 点睛对比）
  * ------------------------------------------------------------
- * 样张 `style-demo-content-v2.html` 的 V3 列是**每行一条 flex 线、没有表头**：
+ * V3 列是**每行一条 flex 线、没有表头**：
  * 字段名是行首的弱色小标签，值只呈现「旧 → 新」，行尾给一个「已修改」标签。
  * 之前这里是三列表格 + 表头——三列表头会把每条记录压成窄格，中文字段名与长值都容易被截，
  * 而中间那支箭头本身已经说清了列义。
@@ -1111,8 +1102,8 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   list-style: none;
 }
 .contentCompareLine {
-  /* [C13](../../docs/design/decisions/C13-compare-table.md) 定稿 B · V1 精密对齐：
-     **五列 grid**（样张 `demo.css:4144-4152`）。原先是 flex，箭头与标签的位置随旧值长度
+  /* C13 定稿 B · V1 精密对齐：
+     **五列 grid**。原先是 flex，箭头与标签的位置随旧值长度
      漂移——同一张表里各行的箭头对不齐，根因就是「没有固定列」。标签列定宽 4.6em 之后，
      未变化行（只有 4 个子元素）也不会再让列位错乱。 */
   position: relative;
@@ -1123,7 +1114,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   padding: 11px var(--app-space-10);
   border-bottom: 1px solid var(--bgm-border-soft);
 }
-/* hover 时左缘弹出一条 2px 主色指示条（样张 `demo.css:4153-4167`）：与内容行同一语汇，
+/* hover 时左缘弹出一条 2px 主色指示条：与内容行同一语汇，
    只动 transform，减少动效时由文件末尾的兜底关掉。 */
 .contentCompareLine::before {
   content: '';
@@ -1157,7 +1148,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 /* 新值：加粗 + 大一号（这就是 V3 的「点睛」），但**不带底色**——
    「语义色不做整块底色」是防土硬规则之一。
-   字号：样张写 13.5px，而 G-tokens §三 把小字收敛成四档（10/12/13/14）并明确
+   字号：原始值 13.5px，而 G-tokens §三 把小字收敛成四档（10/12/13/14）并明确
    「13.5 并入 body(14) 与 note(12)」——这里取最接近的 **sub(13px)**，差 0.5px 已登记。 */
 .contentCompareAfter ins {
   font: var(--app-font-sub);
@@ -1187,8 +1178,8 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 /* ============================================================
  * quote：引用块
  * ============================================================ */
-/* [C14](../../docs/design/decisions/C14-quote-block.md) 定稿 B · V2 代码查看器
-   （样张 `demo.css:2972-3000`）：外框带 0.5px 描边、区块内距归零（标题与正文各自管内距）、
+/* C14 定稿 B · V2 代码查看器
+   ：外框带 0.5px 描边、区块内距归零（标题与正文各自管内距）、
    标题**独立成条**、正文左侧留出 34px 的**槽位**并画一条槽线。
    原先是一条「内嵌块」——淡粉底、无描边、标题与正文挤在同一层里。 */
 .contentQuote {
@@ -1213,7 +1204,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   position: relative;
   margin: 0;
   /* 左 34px 是**槽位**：`::before` 在 26px 处画一条 1px 槽线，线左留给行号。
-     等宽 + **不折行**：样张都是 `white-space: pre` 配 `overflow-x: auto`——
+     等宽 + **不折行**：`white-space: pre` 配 `overflow-x: auto`——
      日志一旦折行，「一行一条」的结构就散了，逐字保真也就没了意义。 */
   padding: 10px 12px 10px 34px;
   font: var(--app-font-note);
@@ -1233,7 +1224,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 .contentQuoteMono {
   /* 两个变体在样式上只剩 tab 宽度：等宽与不折行已由上面那条统一给。
-     样张里 mono 块**没有**独立底色与圆角，原先的白底 + 14px 圆角属于多做的装饰。 */
+     mono 块**没有**独立底色与圆角，原先的白底 + 14px 圆角属于多做的装饰。 */
   tab-size: 2;
   font-family: var(--bgm-mono);
 }
@@ -1242,7 +1233,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
  * callout：三段式提示（四态）
  * ============================================================ */
 /* 三段式：左标记 + 右侧一列（**tone 在上、正文在下**），detail 跨到行尾。
-   样张 `content-fix` 里 tone 就在正文上方；原先「mark / text / tone 三列同行」会把 tone
+   tone 就在正文上方；原先「mark / text / tone 三列同行」会把 tone
    挤到与正文同一行，读起来像句尾附注，而不是这条提示的性质。 */
 .contentCallout {
   display: grid;
@@ -1253,7 +1244,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
     "detail detail";
   align-items: baseline;
   gap: 2px 8px;
-  padding: 11px 13px;   /* 样张 content-fix 的内距（原 7px 10px 偏挤） */
+  padding: 11px 13px;   /* 内距（原 7px 10px 偏挤） */
   position: relative;
   overflow: hidden;
   font: var(--app-font-sub);
@@ -1263,10 +1254,9 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   border: 1px solid var(--bgm-border-soft);
   border-radius: var(--app-radius-control);
   background: var(--bgm-surface);
-  padding-left: 15px;   /* 给左侧短条留出位置（样张 v2 C2 的 padding-left） */
+  padding-left: 15px;   /* 给左侧短条留出位置 */
 }
-/* 左侧语义条：**上下内缩 10px 的短条**（样张 v2 的 C2 是
-   `::before { left: 0; top: 10px; bottom: 10px; width: 2px }`），而不是通高的 border-left。
+/* 左侧语义条：**上下内缩 10px 的短条**，而不是通高的 border-left。
    通高会把整条提示「框」起来，短条才像「在这一点上做了标记」。
    四态只改这里的 background，其余一律不动。 */
 .contentCallout::before {
@@ -1289,7 +1279,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   pointer-events: none;
 }
 /* 组合类：把 vendor 那两层星光的色带压窄（默认 `width: 300%`，等于整块都在泛光）。
-   样张 `content-fix` 的修正版是 **34%** —— 一条细光扫过，而不是整块发光。
+   修正版是 **34%** —— 一条细光扫过，而不是整块发光。
    这是「给既有组件类加属性」的既定做法，不去改 vendor 自己的类。 */
 .contentCalloutGlow .starBorderGradientBottom,
 .contentCalloutGlow .starBorderGradientTop {
@@ -1324,7 +1314,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 .contentCalloutDetail {
   grid-area: detail;
   margin: 5px 0 0;
-  /* 12px（样张 content-fix 的 `.coDetail`）——**不要用微标签档**：
+  /* 12px——**不要用微标签档**：
      那档是 10px/600/大写，套在整句补充说明上会变成「小号粗体大写句」 */
   font: var(--app-font-note);
   line-height: var(--app-line-base);
@@ -1345,7 +1335,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   list-style: none;
 }
 .contentLinkRow {
-  /* 行用**单元格档圆角 12**（样张 content-fix 的 `--r-cell`）：它是一行而不是一张卡，
+  /* 行用**单元格档圆角 12**：它是一行而不是一张卡，
      与容器档 18 拉开一档，免得「每行都像一张卡」 */
   border-radius: var(--app-radius-cell);
   transition: background var(--app-dur-fast) var(--app-ease-out);
@@ -1361,7 +1351,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   color: inherit;
   transition: background var(--app-dur-fast) var(--app-ease-out);
 }
-/* 链接标签：**深色中性**而不是蓝色——样张 `content-fix` 是 `13.5px / 500 / var(--text-strong)`，
+/* 链接标签：**深色中性**而不是蓝色——`13.5px / 500 / var(--text-strong)`，
    hover 时才转主色深字。蓝色 `--bgm-link` 是站点外链的语义色，用在这里会破掉粉白双色体系。 */
 .contentLinkLabel {
   min-width: 0;
@@ -1375,7 +1365,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 .contentLinkHint {
   margin-left: auto;
   flex: none;
-  /* 域名提示：11.5px **等宽**（样张 content-fix 的 `.hint`）+ 弱色——
+  /* 域名提示：11.5px **等宽**+ 弱色——
      等宽让不同长度的域名右边界看起来齐。 */
   font: var(--app-font-note);
   font-family: var(--bgm-mono);
@@ -1416,8 +1406,8 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
  * 只有标记着色，不做整条彩色横幅；原始数据折叠，不铺满会话。
  * ============================================================ */
 .contentFallback {
-  /* [C18](../../docs/design/decisions/C18-content-fallback.md) 定稿 B：**素面 + 左侧 2px 短条**
-     （样张 `demo.css:3859-3877`，与 Callout 的 C2 同一套语汇）。
+  /* C18 定稿 B：**素面 + 左侧 2px 短条**
+     。
      原先是「整块危险色软底 + 红描边」——语义色铺满整块，把「提示」做成了「警报」；
      现在语义只由两处承担：左侧短条与标记字形。 */
   position: relative;
@@ -1485,7 +1475,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   .contentSubjectCard:hover {
       border-color: color-mix(in srgb, var(--bgm-primary) 38%, transparent);
       box-shadow: var(--app-shadow-card);
-      /* -3px：样张 content.html 的卡片 hover 抬升（原为 -2px，与 Gallery 也不一致） */
+      /* -3px：卡片 hover 抬升（原为 -2px，与 Gallery 也不一致） */
       transform: translateY(-3px);
   }
 }
@@ -1501,7 +1491,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 
 /* 这里原有 `.contentEpCell:active { transform: scale(.97) }`。已删除：
-   章节格是**展示用**的（表示某话的状态），不是按钮；样张里也没有按下态。
+   章节格是**展示用**的（表示某话的状态），不是按钮；也没有按下态。
    「可点的东西才给按下反馈」——给了反而误导。 */
 
 .contentTable tbody tr {
@@ -1515,13 +1505,13 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 
 /* 这里原有「hover 点亮该行节点」的规则（`.contentTimelineRow:hover::before` 改成主色 45%）。
-   已删除：样张里 Timeline 的节点只区分「最新一条」（首项主色 + 外圈）与其余（空心），
+   已删除：Timeline 的节点只区分「最新一条」（首项主色 + 外圈）与其余（空心），
    行 hover 只换整行底色——节点跟着 hover 变色会让人以为「点一下会展开这一条」。 */
 
 @media (hover: hover) {
   /* 标签云不是可点元素（见 components 文档）：hover 只表示「这条可以读得更清楚」，不承诺点击 */
   .contentTag:hover {
-      /* 38%：样张 content.html 的胶囊 hover 描边浓度（原 55% 偏重） */
+      /* 38%：胶囊 hover 描边浓度（原 55% 偏重） */
       border-color: color-mix(in srgb, var(--bgm-primary) 38%, transparent);
       color: var(--bgm-primary-text);
       transform: translateY(-2px);
@@ -1538,7 +1528,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   }
   .contentGalleryCard:hover .contentGalleryCover {
       border-color: color-mix(in srgb, var(--bgm-primary) 38%, transparent);
-      /* [C12](../../docs/design/decisions/C12-gallery.md) ③：hover 阴影从静止档（card）
+      /* C12 ③：hover 阴影从静止档（card）
          换到**浮层档**（panel），否则观感变化只剩描边色、「hover 抬不起来」。
          C12 自己注明：更贴切的做法是在 G05 里补一档「hover 卡片阴影」，本项借浮层档表达「抬一档」。 */
       box-shadow: var(--app-shadow-panel);
@@ -1552,7 +1542,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 /* ---------- 超椭圆的例外：胶囊与正圆必须退出 ----------
    `tokens.css` 把 `corner-shape: superellipse(1.4)` 下发到所有元素，但**胶囊与正圆不能吃它**：
    超椭圆会把「半圆端」压成偏方的形状，胶囊看起来就不再是胶囊。
-   样张 `content.html` 与 `type.html` 都在 `.pill` / `.round` 上显式 `corner-shape: round` 退出。
+   `.pill` / `.round` 都显式 `corner-shape: round` 退出。
    这里把内容条目里所有圆形与胶囊状元素列全——**以后新增胶囊元素要一并加进这张表**。 */
 .contentTag,
 .contentTagCount,
@@ -1577,8 +1567,8 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 }
 
 /* ---------- 内容块骨架（`pending`：载荷还在传） ----------
-   [C17](../../docs/design/decisions/C17-content-skeleton.md) 定稿 B：**加一条可关的扫光**
-   （样张 `demo.css:3895-3919`）。原先这里写着「骨架表达的是"还没到"，不需要无限扫光」——
+   C17 定稿 B：**加一条可关的扫光**
+   。原先这里写着「骨架表达的是"还没到"，不需要无限扫光」——
    那正是被推翻的 A 方案。开关就是语义本身：`[aria-busy='true']` 才挂扫光，
    容器上还有 `prefers-reduced-motion` 的兜底。
    `min-height` 兜住骨架→真实数据替换时的布局抖动（不追求与真实块等高：骨架期载荷未知）。 */
@@ -1629,7 +1619,7 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
 
 @media (prefers-reduced-motion: reduce) {
   .contentSkeleton { animation: none; }
-  /* 扫光是常驻循环：减少动态效果时一并关掉（[C17](../../docs/design/decisions/C17-content-skeleton.md)
+  /* 扫光是常驻循环：减少动态效果时一并关掉（C17
      明确要求「reduced-motion 双开关」）。 */
   .contentSkeletonBar::after { animation: none; }
 }

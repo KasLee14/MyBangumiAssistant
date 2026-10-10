@@ -71,18 +71,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  /* [C38](../../docs/design/decisions/C38-message-parts.md) 定稿 B：气泡最大宽 78% → **88%**。 */
+  /* C38 定稿 B：气泡最大宽 78% → **88%**。 */
   max-width: 88%;
 }
 
-/* 用户气泡：按样张 `web/style-demo-layout.html` 的 L-B 列——
-   `#fdeff0`（主色浅底）+ `1px solid rgba(236,101,112,.22)` + **主色深字** + 四角一致 + **无阴影**。
-   早先写成「右下角收一档的不对称圆角 + raised 阴影 + 中性深字」，三处都偏离样张：
-   样张里用户消息是**唯一使用主色深字**的文本，「我说的」靠这个区分，而不是靠阴影与切角。 */
+/* 用户气泡：`#fdeff0`（主色浅底）+ `1px solid rgba(236,101,112,.22)` + **主色深字** + 四角一致 + **无阴影**。
+   早先写成「右下角收一档的不对称圆角 + raised 阴影 + 中性深字」，三处都不成立：
+   用户消息是**唯一使用主色深字**的文本，「我说的」靠这个区分，而不是靠阴影与切角。 */
 .bubble {
   padding: var(--app-space-10) 15px;
   border: 1px solid color-mix(in srgb, var(--bgm-primary) 22%, transparent);
-  /* [C38](../../docs/design/decisions/C38-message-parts.md)：圆角由控件档升到**容器档 14px**
+  /* C38：圆角由控件档升到**容器档 14px**
      ——气泡是内容容器而不是按钮，与它同一视觉层的卡片都走这一档。 */
   border-radius: var(--app-radius-panel);
   background: var(--bgm-primary-soft);
@@ -99,7 +98,7 @@ body {
 }
 
 .assistantBody {
-  /* 样张里助手正文**没有任何前缀装饰**（无边线、无引导标记）：与用户气泡的区别靠
+  /* 助手正文**没有任何前缀装饰**（无边线、无引导标记）：与用户气泡的区别靠
      「气泡底 + 主色深字」就够了。原先那条 2px 左边线属于多余装饰，与「素面」方向相反，故移除。
      行距仍是「干净、留白」的主要来源。C35 决策 D：正文段距 16 → 20px。 */
   display: flex;
@@ -753,13 +752,13 @@ body {
   /* 收起态的两个气泡绝对定位在本层，所以这里必须是定位基准。 */
   position: relative;
   display: grid;
-  /* [C01](../docs/design/decisions/C01-app-top-bar.md)：顶栏已删除，外壳只剩「侧栏 | 对话区」两列。 */
+  /* C01：顶栏已删除，外壳只剩「侧栏 | 对话区」两列。 */
   grid-template-columns: var(--app-sidebar-width) minmax(400px, 1fr);
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: 'side main';
   height: 100%;
   overflow: hidden;
-  /* **没有底光**（[G07](../docs/design/decisions/G07-glow.md) 定「全部去掉」，G-tokens §五 记
+  /* **没有底光**（G07 定「全部去掉」，G-tokens §五 记
      `--app-glow-ambient` 为**删除**）：表面只用纯色，不叠加任何装饰性径向渐变。 */
   background-color: var(--bgm-bg);
   /* 折叠是一次「流程过渡」：列宽跟着走，而不是整块跳变。 */
@@ -781,7 +780,7 @@ body {
 }
 
 .appSidebar {
-  /* [C44b](../docs/design/decisions/C44-sidebar.md)：白底 + 向右的发散阴影、**去掉描边**。
+  /* C44b：白底 + 向右的发散阴影、**去掉描边**。
      侧栏与对话区同为白面（落差 1.000:1），分层完全靠这条阴影。
      `position: relative; z-index: 1` 是必需的：两块都是 grid item，对话区在 DOM 里靠后、
      会把侧栏投出的阴影盖掉。 */
@@ -822,7 +821,7 @@ body {
 
 /* ---------------------------------------------------------------- 侧栏 · 顶部一行 */
 
-/* 品牌 + 连接状态点 + 折叠钮（[C43](../docs/design/decisions/C43-header.md) 定稿 D：
+/* 品牌 + 连接状态点 + 折叠钮（C43 定稿 D：
    原来挂在顶栏上的那几件事全部落到这一行与底部用户行）。 */
 .appSidebarTop {
   display: flex;
@@ -1004,7 +1003,7 @@ body {
 
 /* ---------------------------------------------------------------- 侧栏 · 底部用户行 */
 
-/* 底部一行：头像 + 用户名 + 设置入口。[C45](../docs/design/decisions/C45-settings-entry.md)
+/* 底部一行：头像 + 用户名 + 设置入口。C45
    定稿 B：这里原来是「···」浮层菜单（设置 + 三入口互链），现在**只有一枚齿轮按钮、单击直达设置**
    ——菜单连同它在 `Sidebar.tsx` 里的开合状态一起删掉了，所以这一行不再需要 `position: relative`
    （原先只为给那个绝对定位的浮层做定位祖先）。 */
@@ -1043,7 +1042,7 @@ body {
 
 /* 菜单**行**的基类（浮层本身由各自的使用方给：行内菜单是 `.appNavMenu`）。
    底部用户行那套浮层菜单（`.appMenu` / `.appMenuSep` / `.appMenuLabel`）已随
-   [C45](../docs/design/decisions/C45-settings-entry.md) 定稿 B 删除——底部改成齿轮按钮直达设置，
+   C45 定稿 B 删除——底部改成齿轮按钮直达设置，
    这一族现在只服务行内展开的置顶菜单。 */
 .appMenuRow {
   display: flex;
@@ -1078,7 +1077,7 @@ body {
 
 /* ---------------------------------------------------------------- 收起态的两个入口气泡 */
 
-/* [C44b](../docs/design/decisions/C44-sidebar.md) 定稿：绝对定位在 `.appFrame` 上（不参与 grid），
+/* C44b 定稿：绝对定位在 `.appFrame` 上（不参与 grid），
    只在收起态出现。展开态与收起态各有一份入口，两者永远不会同时可见。 */
 .appCollapseBubbles {
   position: absolute;
@@ -1175,11 +1174,11 @@ body {
 
 /* 主色图标按钮。
    **产品侧已无消费点**：它原先只服务顶栏那枚「新建会话」图标按钮，而主界面顶栏已按
-   [C01](../../docs/design/decisions/C01-app-top-bar.md) 删除、新建改成了侧栏的实心主色整行
-   `.appSidebarNew`。保留它是因为**样张脚手架仍在用**（`web/docs/design/demo.js` 的三处
-   旧外壳样本）——等样张脚手架也升级到新外壳后，这一组规则应当一并删掉。 */
+   C01 删除、新建改成了侧栏的实心主色整行
+   `.appSidebarNew`。保留它原本是因为演示脚手架仍在用——那批演示文件已删除，
+   这一组规则现在没有任何消费者，可以随下次清理一并删掉。 */
 .appIconButtonAccent {
-  /* [G01](../../docs/design/decisions/G01-primary.md) 硬约束 + [C44](../docs/design/decisions/C44-sidebar.md)：
+  /* G01 硬约束 + C44：
      白字底用 `--bgm-primary-deep`（4.66:1），hover 回到主色本身「亮起来」
      ——原先方向相反（常态浅色、hover 反而加深）。 */
   background: var(--bgm-primary-deep);
@@ -1196,7 +1195,7 @@ body {
   background: var(--bgm-primary);
   border-color: var(--bgm-primary);
   color: var(--bgm-on-accent);
-  /* [G10](../docs/design/decisions/G10-ux.md)：hover 抬升统一 3px（原 -1px） */
+  /* G10：hover 抬升统一 3px（原 -1px） */
   transform: translateY(-3px);
 }
 
@@ -1217,14 +1216,13 @@ body {
 
 /* 会话头（C34 决策：删除）——对话区顶部不再有任何粘性行，「我在哪个会话」只由侧栏表态
    （`.appNavRow[data-current]`）。原先由它撑出的顶部留白现在由 `.appStageFlow` 的 20px 上内边距
-   承担：样张 C35 / C36 的壳本来就是无会话头形态，顶部内距就是那 20px，所以这里不另加值。
+   承担：C35 / C36 的壳本来就是无会话头形态，顶部内距就是那 20px，所以这里不另加值。
    不要在后继组件里悄悄把标题行加回来（C03 的同一条约束）。 */
 
 /* 连接状态胶囊（26px + 圆点 + 文案）。
    **产品侧已无消费点**：连接状态已收成侧栏品牌行里的 8px 状态点（`.appSidebarStatus`，
-   [C43](../../docs/design/decisions/C43-header.md) 定稿 D）。保留这一组同样是因为
-   **样张脚手架仍在用**（`web/docs/design/demo.js` 的八处旧外壳样本）——
-   样张脚手架升级到新外壳后应与 `.appIconButtonAccent` 一并删除。 */
+   C43 定稿 D）。保留这一组原本同样是因为演示脚手架仍在用——那批演示文件已删除，
+   现在它与 `.appIconButtonAccent` 一样没有消费者，可一并删除。 */
 .appChip {
   display: inline-flex;
   align-items: center;
@@ -1267,7 +1265,7 @@ body {
   z-index: 40;
   max-width: min(420px, calc(100vw - 40px));
   padding: var(--app-space-12) var(--app-space-16);
-  /* 表面来自共享类 `.appGlass`。圆角走**浮层档**（[G-tokens](../docs/design/decisions/G-tokens.md) §二
+  /* 表面来自共享类 `.appGlass`。圆角走**浮层档**（G-tokens §二
      把 Toast 明确归入浮层档；用户 2026-10-06 裁示「以 G-tokens 为准」）。
      早先这里写的是控件档 10px 并注了「窄条降一档」，与令牌表归类相反，已改回。
      进出的动效在 JS 里（`overlays/Toast.tsx`）。 */
@@ -1301,7 +1299,7 @@ body {
   min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  /* 平滑滚动（样张 web/style-demo-scroll.html 的滚动方案里有 scroll-behavior: smooth）：
+  /* 平滑滚动：
      轮次导航跳转与「回到底部」都用它，避免瞬移。 */
   scroll-behavior: smooth;
 }
@@ -1377,8 +1375,7 @@ body {
   line-height: 1.75;
 }
 
-/* 流式光标：**实心方块**而不是字符（值取自样张 `web/style-demo-shell.html` 的 `.caret`：
-   圆角 2px、主色、1.06s 硬切闪烁）。**C36 决策 B：宽度 4 → 6px**——4px 在 130% 缩放下
+/* 流式光标：**实心方块**而不是字符。**C36 决策 B：宽度 4 → 6px**——4px 在 130% 缩放下
    接近一根细线，6px 才像一个「正在写」的块；高度 13px 与节奏不变。
    `TextType` 只负责挂这个类，尺寸与闪烁都由这里给；`prefers-reduced-motion` 下由文件末尾的兜底保留常亮。 */
 .appStreamingCursor {
@@ -1389,7 +1386,7 @@ body {
   margin-left: 2px;
   vertical-align: -2px;
   background: var(--bgm-primary);
-  /* 流式光标闪烁：[C36](../docs/design/decisions/C36-streaming.md) 定「1.06s `steps(1)` 硬切，不变」。
+  /* 流式光标闪烁：C36 定「1.06s `steps(1)` 硬切，不变」。
      这是**动画自身的周期参数**（不是过渡时长），所以不并入 `--app-dur-*` 阶梯——
      吸附到 450ms 会让光标几乎连续亮着。此处登记为「动画专属参数」豁免。 */
   animation: app-cursor-blink 1.06s steps(1) infinite;
@@ -1421,8 +1418,7 @@ body {
   /* 不设 gap：BlurText 逐词渲染时自己在词间插不换行空格，再加 gap 会撑出双倍词距。 */
   gap: 0;
   margin: 0;
-  /* 值取自 [C37](../../docs/design/decisions/C37-hero.md) 定稿样张
-     （`components/C37-hero.html:55-56` 的覆盖值）：标题 **32px / 700 / -.035em**。
+  /* 值取自 C37 定稿：标题 **32px / 700 / -.035em**。
      首屏是唯一允许「重字重 + 紧字距」的地方，与会话正文的 600/17px 拉开对比。
      32px 属「展示型大字」，按 G-tokens §一 第 3 条的成文例外直接写 px。 */
   font-size: 32px;
@@ -1442,7 +1438,7 @@ body {
 }
 
 .appHeroSample {
-  /* [C37](../../docs/design/decisions/C37-hero.md) 定稿 B + C：示例改**胶囊档**
+  /* C37 定稿 B + C：示例改**胶囊档**
      （`--bgm-r-pill` / 13px 字 / `9px 14px` 内距）。原先是控件档 10px + 12px 字 + 7px 11px，
      三枚并排时圆角不够、字偏小，与 32px 的标题落差也不够。阴影仍走 raised 档，hover 升一档。 */
   --glass-radius: var(--bgm-r-pill);
@@ -1463,7 +1459,7 @@ body {
   box-shadow: var(--app-shadow-card);
 }
 
-/* 首屏的设置入口。[C45](../docs/design/decisions/C45-settings-entry.md) 定稿 ③，
+/* 首屏的设置入口。C45 定稿 ③，
    **2026-10-10 修订**：从「示例**下方**的同材质玻璃胶囊」改成**说明与示例之间**的
    **实心深档**按钮——底色 / 字色 / hover 变亮三件事与侧栏「开启新对话」（`.appSidebarNew`）完全一致
    （深档实心 `--bgm-primary-deep` + `--bgm-on-accent`：主色配白字只有 3.15:1，达不到 AA）。

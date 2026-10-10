@@ -60,12 +60,12 @@ function GridCard({ item }: { item: SubjectCardView }): ReactNode {
           卡片的指针反馈只保留 hover 抬升与阴影加深。 */}
       <Shell url={item.url} className="contentSubjectCard">
         <Cover className="contentSubjectCover" image={item.image} name={item.name} />
-        {/* 文字区是**一层独立的内距容器**（[C05](../../docs/design/decisions/C05-subject-cards.md)
+        {/* 文字区是**一层独立的内距容器**（C05
             定稿：内距 `9px 10px 11px`）。卡片自己不能带内距，否则封面会被一起推进去、
             四周露出卡片底色；名称的上边距也归零——间距由这层的内距表达，不再各写一份。 */}
         <div className="contentSubjectBody">
           <p className="contentSubjectName">{item.name}</p>
-          {/* 中文名：样张的网格卡有这一行（`11.5px / text-muted`，见 content.html 的 `.cn`）。
+          {/* 中文名：网格卡有这一行（`11.5px / text-muted`）。
               与原名相同、或宿主没给时都不渲染——免得同一串字出现两遍。 */}
           {item.nameCn === undefined || item.nameCn === '' || item.nameCn === item.name ? null : (
             <p className="contentSubjectNameCn">{item.nameCn}</p>

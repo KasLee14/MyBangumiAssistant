@@ -12,7 +12,7 @@ import { OVERVIEW_HREF, componentHref, navigate, useRoute } from './router';
  * 组件库文档页的骨架（**自绘**）。
  *
  * 形态与调试页一致：顶栏横跨全宽（复用共享组件 `AppTopBar`），下面才是
- * 「左导航 | 内容 | 页内目录」。主界面已按 [C01](../../docs/design/decisions/C01-app-top-bar.md)
+ * 「左导航 | 内容 | 页内目录」。主界面已按 C01
  * 删除顶栏（功能迁进侧栏），本页与调试页仍需要它。工具页不再有「另有一套外观」的例外——
  * 玻璃、圆角、弹性曲线、导航行都来自同一套令牌与共享类（`.appNavRow` / `.appTopBar*` / `.appEmpty`）。
  *

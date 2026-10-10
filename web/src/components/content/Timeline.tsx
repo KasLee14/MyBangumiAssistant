@@ -21,7 +21,7 @@ export function Timeline({ view }: { view: TimelineView }): ReactNode {
             <li key={`${entry.time}-${index}`} className="contentTimelineRow">
               <time className="contentTimelineTime">{entry.time}</time>
               <p className="contentTimelineText">{entry.text}</p>
-              {/* actor 是**行尾的独立列**（[C10](../../docs/design/decisions/C10-timeline.md) 定稿）：
+              {/* actor 是**行尾的独立列**（C10 定稿）：
                   它原先在 `<p>` 内部，而 `content.css` 给的是行内 flex 项写法
                   （`flex: none; margin-left: auto`）——`margin-left: auto` 在 `<p>` 里不生效，
                   actor 只能当正文前缀，还把正文挤成两段。移出来之后它才真正落到行尾。 */}

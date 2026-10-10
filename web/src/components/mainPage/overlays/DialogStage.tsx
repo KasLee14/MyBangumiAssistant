@@ -18,7 +18,7 @@ type DialogId = typeof DIALOG_IDS[number];
  * 首次渲染的三个弹窗全都落进「没打开、也没被标记退场」那一支，于是一律按 `leaving` 渲染一遍
  * （实测：加载后 758ms 时 `输入邮箱与密码(leaving) | 设置(leaving) | 历史会话(leaving)`
  * 三个 `.modalSurface` 同时在 DOM 里，各自播完 360ms 的 `modalOut` 才消失）。
- * 因为弹窗**不做 opacity 淡入**（[C41](../../docs/design/decisions/C41-dialog-stage.md)：
+ * 因为弹窗**不做 opacity 淡入**（C41：
  * `opacity < 1` 会让 `backdrop-filter` 失效），这段退场动画全程不透明，肉眼就是
  * 「一打开页面闪出两个弹窗」（登录那个 `prompt` 为空、没有内容，所以数出来是两个）。
  *

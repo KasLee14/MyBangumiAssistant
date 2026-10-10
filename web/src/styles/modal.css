@@ -15,7 +15,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  /* **无蒙层**（2026-10-06 定案，见 `docs/design/decisions/C21-modal.md` 与 `G09-overlay.md`）。
+  /* **无蒙层**（2026-10-06 定案，见 C21 与 G09）。
      此前这里写的是上游那枚遮罩别名（重定向为「深粉棕 26%」，G09 的旧结论；该别名已随
      第七轮令牌层清理删除），它与 C21 的定稿「无蒙层、层次靠扩散阴影」冲突；
      本轮按用户裁示去掉整屏压暗。
@@ -35,10 +35,9 @@
   padding: 0;
   color: var(--bgm-text);
   /* 表面来自共享类 `.appGlass`（玻璃 + 半透明白描边 + 浮层圆角 + `--glass-shadow` 默认档）。
-     **这里不覆写 `--glass-shadow`**：[C41](../docs/design/decisions/C41-dialog-stage.md) 定稿 A
-     与样张 `components/C41-dialog-stage.html:58-60` 都写明「弹窗阴影维持共享档
+     **这里不覆写 `--glass-shadow`**：C41 定稿 A 写明「弹窗阴影维持共享档
      `--app-shadow-panel`（两段、最大模糊 28px）」。此前覆写成 `--app-shadow-float`
-     （最大 72px），是 C21 与 C41 两份决策互斥的那一段；按「以样张为准」收口到共享档。
+     （最大 72px），是 C21 与 C41 两份决策互斥的那一段；按「以定稿为准」收口到共享档。
      弹窗从屏心撑开，所以 origin 是中心。 */
   transform-origin: center;
 }
@@ -48,7 +47,7 @@
 }
 
 /* ---------------------------------------------------------------- 进出动画
- * [G09](../docs/design/decisions/G09-overlay.md) / [C41](../docs/design/decisions/C41-dialog-stage.md)
+ * G09 / C41
  * 的定稿（进出对称的 `scale .98 + y 4px` · 360ms · `--app-ease-out`）不变，
  * 只换载体：从 `motion` 的 JS 逐帧内联样式换成这两个 keyframes。
  *
@@ -137,22 +136,21 @@
    弹窗内的按钮已全部改用 `.dlgBtn`，这条随之失去消费点——焦点环搬到了 `.dlgBtn:focus-visible`。 */
 
 /* ============================================================
- * 弹窗骨架 `.dlg*`（C22–C28，样张 `components/C21-C28-dialogs.html`）
+ * 弹窗骨架 `.dlg*`
  * ------------------------------------------------------------
- * 值取自样张的定稿列（`demo.css:3257-3506`）。这一套取代了原先的
+ * 值取自定稿列。这一套取代了原先的
  * `.modalHeader / .modalBody / .modalFooter / .modalField / .modalInput /
  * .modalCheck / .modalHint / .modalStatus / .modalClose / .modalChoiceRow /
  * .settingsRow / .pickerList / .pickerRow`——8 个弹窗组件全部迁到 `.dlg*` 之后，
  * 旧骨架的规则已从本文件删除，不再留第二个来源。
- * （样张 `demo.js` 的 `modalRows()` 里还有旧类名的查询，样本本身已是 `.dlg*` 结构，
- * 删样式不改变样张渲染，本次未越界改动样张资产。）
+ * 
  *
  * 与旧骨架的三点结构性差别：
  * ① 只有一个 `.dlgPane`（单列 gap 18 / padding 20），不再分「头 / 身 / 脚」三段各自的描边与内距；
  * ② 标题块（`.dlgHead`）带副标题，关闭键绝对定位在右上角，不再占标题行；
  * ③ 底部 `.dlgActions` 两端对齐（次要靠左、主靠右），不再靠 `.note { flex: 1 }` 把按钮推右。
  *
- * 字号：样张里写的是 13.5px / 11.5px，而 G-tokens §三 已把小字收敛成四档
+ * 字号：原始值是 13.5px / 11.5px，而 G-tokens §三 已把小字收敛成四档
  * （10 / 12 / 13 / 14）并明确「13.5 并入 body(14) 与 note(12)」——这里按四档取
  * 13px（sub）与 12px（note），差 0.5px 已登记在交付说明里。
  *
@@ -162,7 +160,7 @@
  * ② 焦点环只有一个来源 `--bgm-focus`（`bgm.css`），不要在各处再写一份 outline；
  * ③ 弹窗里的次要 / 描边按钮 hover 走**主色系**（G01：不再是交互蓝 `--bgm-interactive`，
  *    那在粉白弹窗里是唯一的冷色块）；
- * ④ 展示型大字（≥15px 的标题）按字号收敛决策**不令牌化**，`.dlgTitle` 的 17px 是样张定稿值。
+ * ④ 展示型大字（≥15px 的标题）按字号收敛决策**不令牌化**，`.dlgTitle` 的 17px 是定稿值。
  * ============================================================ */
 
 .dlgPane {
@@ -345,7 +343,7 @@ textarea.dlgInput {
   width: 8px;
   height: 8px;
   border-radius: var(--bgm-r-pill);
-  /* 样张漏写这一条：8px 的正圆会被下发的超椭圆曲率压成方形，必须显式退出。 */
+  /* 8px 的正圆会被下发的超椭圆曲率压成方形，必须显式退出。 */
   corner-shape: round;
   background: var(--bgm-primary);
 }
@@ -548,7 +546,7 @@ textarea.dlgInput {
 }
 
 /* 主操作：实心加深档配白字（G01 硬约束），hover 在同一色系里再深一点——
-   **不做抬升、不加阴影**（样张定稿：弹窗内的按钮不参与浮起层的层次语言）。 */
+   **不做抬升、不加阴影**。 */
 .dlgBtnPrimary {
   border: 1px solid transparent;
   background: var(--bgm-primary-deep);

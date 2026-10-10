@@ -51,7 +51,7 @@ export function BangumiLoginDialog(): ReactNode {
     <Modal
       /* 新骨架下 `eyebrow` 是**标题下方的副标题**（`.dlgSub`），不再是旧骨架的分组名——
          原先传的「设置」会显示成「Bangumi 登录 / 设置」。这里换成 C23 定稿的副标题
-         （样张 `demo.js:1963`）。 */
+         。 */
       eyebrow="人机验证在默认浏览器里完成，这里只显示进度。"
       title="Bangumi 登录"
       onClose={close}

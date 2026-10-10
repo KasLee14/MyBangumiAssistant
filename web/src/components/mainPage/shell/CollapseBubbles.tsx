@@ -3,7 +3,7 @@ import { useActions } from '../../../store/hooks';
 import { EditIcon, PanelIcon } from './icons';
 
 /**
- * 收起态左上角的两个入口气泡（[C44](../../docs/design/decisions/C44-sidebar.md) 的 C44b 定稿）。
+ * 收起态左上角的两个入口气泡（C44 的 C44b 定稿）。
  *
  * 抽屉式收起之后侧栏宽度归零，品牌、折叠钮与「开启新对话」都滑出窗口，
  * 所以这两个入口必须落在侧栏**之外**：它们绝对定位在 `.appFrame` 上（不参与 grid），

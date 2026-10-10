@@ -41,8 +41,7 @@ export const DURATION = {
   /** 360ms：弹窗、侧栏折叠、区块进入。 */
   slow: 0.36,
   /**
-   * 460ms：内容块的**滚动入场**（[C19](../../../docs/design/decisions/C19-message-blocks.md)
-   * 定稿 18px / 460ms，样张 `demo.css:3832-3839` 的 `blkInG10`）。
+   * 460ms：内容块的**滚动入场**。
    *
    * 这一档只在 JS 侧消费（`AnimatedContent` 由 motion 驱动），CSS 侧没有对应消费点，
    * 所以不建同名 CSS 令牌——「CSS 与 JS 一一对应」是为了防止同一个过渡出现两条曲线，

@@ -42,7 +42,7 @@ function AccountIcon(): ReactNode {
 }
 
 /**
- * 设置弹窗：四格状态总览（[C29](../../docs/design/decisions/C29-settings-dialog.md) 定稿）。
+ * 设置弹窗：四格状态总览（C29 定稿）。
  *
  * 形态由「四行清单 + 每行一个『编辑』按钮」改成 **magicui `BentoGrid` 的四格**：
  * 模型配置与模型选择各跨两行（大卡）、代理端口与登录状态各一行（小卡）。

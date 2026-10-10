@@ -36,7 +36,7 @@ export function Callout({ view }: { view: CalloutView }): ReactNode {
           className="contentCalloutGlow"
           animated
           thickness={0}
-          /* 流光参数取自样张 `web/style-demo-content-fix.html` 的修正版：
+          /* 流光参数取自修正版：
              色带透明度 12%（直接用主色会太抢）、单程 2.2s（默认 6s 太慢，看不出在流动）；
              色带宽度由 `.contentCalloutGlow` 的组合类规则压到 34%（vendor 默认 300%）。 */
           color="color-mix(in srgb, var(--bgm-interactive) 12%, transparent)"

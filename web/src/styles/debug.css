@@ -8,7 +8,7 @@
  * ============================================================ */
 
 /* 调试页的输入列比主界面侧栏宽（`data-mode="debug"`），并且它**保留顶栏**。
-   主界面按 [C01](../docs/design/decisions/C01-app-top-bar.md) 删掉了顶栏、`.appFrame`
+   主界面按 C01 删掉了顶栏、`.appFrame`
    只剩 `'side main'` 两列一行；而调试页仍需要一条「品牌 + 栏目 + 动作」的横条，
    所以这里把**三段式网格恢复回来**——只作用于 `[data-mode='debug']`，主界面不受影响。
    （不恢复的话 `AppTopBar` 会被自动放置到隐式的第二行，宽度只等于侧栏列宽。） */
@@ -123,7 +123,7 @@
 }
 
 .debugButton[data-primary='true'] {
-  /* [G01](../../docs/design/decisions/G01-primary.md) 硬约束：白字底用加深一档的 deep。 */
+  /* G01 硬约束：白字底用加深一档的 deep。 */
   background: var(--bgm-primary-deep);
   border-color: var(--bgm-primary-deep);
   color: var(--bgm-on-accent);

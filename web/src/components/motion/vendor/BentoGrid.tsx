@@ -4,7 +4,7 @@ import './BentoGrid.css';
 /**
  * magicui `BentoGrid` / `BentoCard`（源码：https://magicui.design/r/bento-grid.json）。
  *
- * **为什么拷进来**：[C29](../../../docs/design/decisions/C29-settings-dialog.md) 定稿要求设置弹窗
+ * **为什么拷进来**：C29 定稿要求设置弹窗
  * 改用这个组件（用户指定「直接用」，不是「参考思路」）。原件是 Tailwind + shadcn `Button` +
  * `@radix-ui/react-icons`，本项目三者都没有，因此按 `web/AGENTS.md` §技术栈约束第 5 条
  * 做「源码拷贝 + 四处改造」，用项目 CSS 重写它的结构与交互。
@@ -15,7 +15,7 @@ import './BentoGrid.css';
  * 2. **Tailwind 类名换成一份 CSS**：`BentoGrid.css` 随组件走（`Xxx.tsx` 顶部 import），
  *    不并进 `styles/`；
  * 3. **行高改写**：原件的 `auto-rows-[22rem]`（352px）是营销页尺寸，弹窗里放不下两行，
- *    这里取 118px——**这是与原件唯一的尺寸偏差**，值来自样张 `demo.css:3542`；
+ *    这里取 118px——**这是与原件唯一的尺寸偏差**；
  * 4. **动画只动 `transform` / `opacity`**；无常驻循环（原件也没有）；`prefers-reduced-motion`
  *    下全部静止。
  *

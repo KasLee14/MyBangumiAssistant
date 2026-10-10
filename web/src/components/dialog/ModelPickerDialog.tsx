@@ -55,7 +55,7 @@ export function ModelPickerDialog(): ReactNode {
       title="模型选择"
       eyebrow={subtitle}
       onClose={actions.closePane}
-      /* 两个动作交给 `Modal` 放进 `.dlgActions`：它的 space-between 就是样张里的
+      /* 两个动作交给 `Modal` 放进 `.dlgActions`：它的 space-between 就是定稿里的
          「取消靠左、主按钮靠右」，不需要再包一层。 */
       footer={(
         <>

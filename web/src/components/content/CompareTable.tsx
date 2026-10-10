@@ -4,7 +4,7 @@ import type { CompareView } from '../../../../bangumi/src/web/protocol';
 /**
  * 修改前后对比（V3 · 点睛对比）。
  *
- * 结构取自样张 `style-demo-content-v2.html` 的 V3 列：**每行一条 flex 线**，
+ * 结构取自 V3 列：**每行一条 flex 线**，
  * 没有表头——字段名是行首的弱色小标签，值只呈现「旧 → 新」。
  *
  * 为什么不留表头：三列表头会把每条记录压成窄格，中文字段名与长值都容易被截；

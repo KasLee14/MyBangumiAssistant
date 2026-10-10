@@ -31,7 +31,7 @@
 
 **违反后果**：前端有 HMR 会立刻生效，宿主不会——于是整条链路上只有一半更新了，症状看起来像前端 bug（实测记录：界面里没有任何过程控制行，因为宿主还是旧的投影；见 [../web/AGENTS.md](../web/AGENTS.md) §现状）。**处理**：`cd bangumi && npm run build`（= `build:web` + 宿主 `tsc` + 复制策略 Skills），或回仓库根跑 `node start.mjs`。
 
-**1. 每次开发后都要更新对应的知识库文档。** 新增/删除/改名的源码文件、新增的约束、改动的分层边界，都要在**同一次开发里**落进本文（§规则、§索引的表）；跨到前端或写入边界的，同时更新 [../web/AGENTS.md](../web/AGENTS.md)。四段式（`简介 / 使用说明 / 规则 / 索引`）的格式规范见 [../web/docs/agents/readme.md](../web/docs/agents/readme.md) §规则。
+**1. 每次开发后都要更新对应的知识库文档。** 新增/删除/改名的源码文件、新增的约束、改动的分层边界，都要在**同一次开发里**落进本文（§规则、§索引的表）；跨到前端或写入边界的，同时更新 [../web/AGENTS.md](../web/AGENTS.md)——前端的分层细节文档（原 `web/docs/agents/`）已于 2026-10-10 整体删除，那一份 `web/AGENTS.md` 现在是前端知识库的全部。
 
 **违反后果**：下一次对话按过期文档改错地方。知识库越用越不可信——这比没有知识库更糟。
 
@@ -237,7 +237,7 @@ mcp/transport.ts       Bangumi 上游 HTTP（v0 / p1 / web / community 四个来
 
 **`test/` 是什么规模、测什么**：64 个 `*.test.mjs`、加 2 个**辅助 fixture**（`web-fixture.mjs`、`frontend-content-fixture.mjs`，不以 `.test.mjs` 结尾所以不会被 `node --test test/*.test.mjs` 直接跑）、加 `fixtures/infobox-source-shapes.json`。测试全部是宿主侧契约测试（MCP 协议审计、候选漏斗、写入回执与恢复、额度、预览、轨迹等）。
 
-**它其实碰到了一点点前端**，这点值得写清：`frontend-content-fixture.mjs` 会用 `typescript` 的 `transpileModule` **读取并转译前端的** `web/src/components/content/registry.tsx`、`web/src/components/content/validate.ts` 与 `web/src/page/library/samples.ts`，再用它们校验载荷；`web-fixture.mjs` 则直接起一个真实的 `startWebTerminal`（离线 `fauxProvider`）来测 SSE 帧与会话生命周期。**但这仍然不是前端测试**：没有 React 渲染、没有 DOM、没有交互。前端回归靠 [../web/AGENTS.md](../web/AGENTS.md) 指向的文档化用例 + `npm run typecheck`。
+**它其实碰到了一点点前端**，这点值得写清：`frontend-content-fixture.mjs` 会用 `typescript` 的 `transpileModule` **读取并转译前端的** `web/src/components/content/registry.tsx`、`web/src/components/content/validate.ts` 与 `web/src/page/library/samples.ts`，再用它们校验载荷；`web-fixture.mjs` 则直接起一个真实的 `startWebTerminal`（离线 `fauxProvider`）来测 SSE 帧与会话生命周期。**但这仍然不是前端测试**：没有 React 渲染、没有 DOM、没有交互。前端回归目前只有 `npm run typecheck`（只覆盖类型层）——[../web/AGENTS.md](../web/AGENTS.md) §现状 明确记录**前端没有任何文档化回归资产**（原 `web/docs/agents/regression/` 已删除）。
 
 **为什么前端产物落在 `bangumi/dist/web`**（两条互相独立的证据）：
 

@@ -6,21 +6,21 @@ import { enterDebug } from '../../../utils/debugMode';
 import { relativeTimeLabel, sessionDayGroup, SESSION_GROUP_ORDER } from '../../../utils/relativeTime';
 import { EditIcon, GearIcon, PanelIcon } from './icons';
 
-/** 会话行尾「···」的开合目标。[C45](../../docs/design/decisions/C45-settings-entry.md) 之后，
+/** 会话行尾「···」的开合目标。C45 之后，
     侧栏里只剩这一处菜单（底部那套浮层菜单已删）。 */
 type OpenMenu = { kind: 'row'; sessionId: string } | null;
 
 /**
  * 侧栏：**唯一的外壳**。
  *
- * [C01](../../docs/design/decisions/C01-app-top-bar.md) 删掉顶栏之后，原来挂在顶栏上的
- * 四件事 + 一条栏目槽全部落到这里（[C43](../../docs/design/decisions/C43-header.md) 定稿 D）：
+ * C01 删掉顶栏之后，原来挂在顶栏上的
+ * 四件事 + 一条栏目槽全部落到这里（C43 定稿 D）：
  *
  * - 顶部一行：品牌（双击进调试页）· 连接状态点（8px，常态可见）· 折叠按钮；
  * - 第二行：实心主色整行「开启新对话」——**侧栏唯一的主色实心操作**
- *   （首屏那枚设置入口取同一组颜色，见 [C45](../../docs/design/decisions/C45-settings-entry.md) 的 2026-10-10 修订）；
- * - 列表：置顶 / 今天 / 昨天 / 7 天内 / 更早（[C44](../../docs/design/decisions/C44-sidebar.md)）；
- * - 底部一行：头像 + 用户名 + 齿轮「设置」入口（[C45](../../docs/design/decisions/C45-settings-entry.md)
+ *   （首屏那枚设置入口取同一组颜色，见 C45 的 2026-10-10 修订）；
+ * - 列表：置顶 / 今天 / 昨天 / 7 天内 / 更早（C44）；
+ * - 底部一行：头像 + 用户名 + 齿轮「设置」入口（C45
  *   定稿 B：原来这里是一枚「···」，点开是「设置 + 目录 / 调试页」浮层菜单；现在齿轮**单击直达设置**，
  *   菜单与那三个入口一并删掉——调试页仍可双击上面的品牌进入）。
  *
@@ -176,7 +176,7 @@ export function Sidebar(): ReactNode {
                       onClick={() => { resume(session); }}
                     >
                       <span className="appNavTitle">{session.name || '新会话'}</span>
-                      {/* 置顶组里不再显示时间：这一组的排序由用户决定，时间没有意义（C43 样张）。 */}
+                      {/* 置顶组里不再显示时间：这一组的排序由用户决定，时间没有意义。 */}
                       {group.label === '置顶' ? null : <span className="appNavMeta">{metaOf(session)}</span>}
                     </button>
                     {/* 行 hover 时行尾的时间**换成**这个按钮（同一位置交叉淡入，见 `frame.css`）。 */}

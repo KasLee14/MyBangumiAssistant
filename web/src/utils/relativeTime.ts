@@ -67,7 +67,7 @@ function dayOffset(zero: number, days: number): number {
 /**
  * 侧栏时间分组：今天 / 昨天 / 7 天内 / 更早。
  *
- * [C44](../../docs/design/decisions/C44-sidebar.md) 把分组从「今天 / 更早」改成四档；
+ * C44 把分组从「今天 / 更早」改成四档；
  * 「置顶」不在这里判——它不是时间档，而是一个**独立于时间**的分组，由侧栏先按
  * `ui.pinned` 挑出去（见 `components/mainPage/shell/Sidebar.tsx`）。
  *

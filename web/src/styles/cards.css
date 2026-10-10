@@ -88,8 +88,8 @@
 }
 
 /* 宿主生成的业务说明：次级字号、保留换行，浏览器不截断也不改写。
-   形态取自 [C39](../../docs/design/decisions/C39-confirmation-card.md) 定稿 C
-   （样张 `components/C39-confirmation-card.html:21-27` 的覆盖值）：
+   形态取自 C39 定稿 C
+   ：
    **去底去边、改留白 + 左侧 2px 槽线**，字号降次级档 13px。原来的做法是「内嵌块」
    （sunken 底 + 四边 1px + 四角圆角 + 正文 14px），它让预览区比确认卡本身还重。 */
 .planPreview {
@@ -160,7 +160,7 @@
 .button.primary:hover:not(:disabled) {
   background: var(--bgm-primary);
   border-color: var(--bgm-primary);
-  /* [G10](../../docs/design/decisions/G10-ux.md)：hover 抬升统一 3px（原 -1px） */
+  /* G10：hover 抬升统一 3px（原 -1px） */
   transform: translateY(-3px);
 }
 
@@ -168,7 +168,7 @@
   border: 0.5px solid var(--bgm-border);
 }
 
-/* 描边按钮的 hover（2026-10-06 定案，见 `docs/design/decisions/G01-primary.md` §补充）：
+/* 描边按钮的 hover（2026-10-06 定案，见 G01 §补充）：
    原来与 `.button.ghost` 共用一条规则，填 `--bgm-interactive`（#369cf8 不透明交互蓝）。
    那支蓝是配色重构的漏网，它让「取消 / 设置行 / 登录按钮」在悬停时整体变冷、
    而按下时又跳回蓝色。
