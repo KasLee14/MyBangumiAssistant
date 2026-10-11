@@ -6,7 +6,7 @@
  * - 只用 `--bgm-*` 令牌。界面只有浅色一套外观，本文件因此不写任何主题分支：
  *   只用 color-mix 从令牌派生出强调色与警告色，也不关心主题属性挂在哪一层。
  * - 类名统一 `content` 前缀，与 web/src/components/content/ 下的组件一一对应，
- *   docs/bgm-design/component-library.html 的静态复刻用的是同一批类名。
+ *   `component-library.html` 的静态复刻用的是同一批类名（该设计稿不在本仓库）。
  * - 颜色一律走令牌；语义色需要的浅底/深字用 `color-mix()` 就地算，
  *   不写死十六进制，换令牌即可整体换色。
  * - 布局自适应容器宽度：网格用 auto-fill，表格类在窄宽度下横向滚动而不是挤爆。

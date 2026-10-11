@@ -20,7 +20,7 @@ import { PATH } from '../constants/paths';
  * 主界面 `/`、调试页 `/debug`、文档页 `/library`（总览为索引路由）与其详情
  * `/library/components/:kind`，外加全局未命中 `*`。
  *
- * 只有页面级分流进 URL；会话、弹窗、过程区开合仍在 store（见 `web/README.md` §路由）。
+ * 只有页面级分流进 URL；会话、弹窗、过程区开合仍在 store（见 `web/docs/agents/router.md` 规则 4）。
  */
 
 /** 文档页索引路由：`sections` 由骨架经 `<Outlet context>` 下发，总览页自己仍是 props 驱动。 */

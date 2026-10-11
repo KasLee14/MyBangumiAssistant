@@ -1,8 +1,8 @@
 /* ============================================================
    Bangumi 令牌层
    ------------------------------------------------------------
-   依据 docs/bgm-design/ui-style.md（bgm.tv r771 实测）与已确认的
-   docs/bgm-design/style-preview.html。
+   依据 `ui-style.md`（bgm.tv r771 实测）与已确认的 `style-preview.html`
+   （两份设计稿均不在本仓库）。
 
    本文件**只有 `--bgm-*` 令牌的定义，不含任何形态规则**
    （形态规则就近写在各组件样式文件里：frame.css / composer.css / cards.css /

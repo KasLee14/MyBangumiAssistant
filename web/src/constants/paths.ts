@@ -14,7 +14,7 @@
 /**
  * 页面级路径。
  *
- * 只有「哪个页面」进 URL：会话、弹窗、过程区开合仍在 store 里（见 `web/README.md` §路由），
+ * 只有「哪个页面」进 URL：会话、弹窗、过程区开合仍在 store 里（见 `web/docs/agents/router.md` 规则 4），
  * 所以这里没有 `:sessionId` 一类的动态段——唯一的动态段是文档页要展示的组件 kind。
  */
 export const PATH = {

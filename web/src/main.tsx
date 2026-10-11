@@ -36,7 +36,7 @@ import './page/library/styles/library.css';
  * 与 `data-debug` 标记都已删除——前者进了路由表（`/` 与 `/debug`），后者早就没有消费方
  * （调试页样式作用域改用 `.appFrame[data-mode='debug']`，见 `styles/debug.css`）。
  *
- * 样式引入链的顺序是契约（见 `web/README.md` §样式）：
+ * 样式引入链的顺序是契约（见 `web/docs/agents/styles.md` 规则 4）：
  * base 七族令牌 → common → 主界面四件（frame / composer / cards / modal）→ content → debug → library。
  * 改造前这条链在 `main.tsx` 与已删除的 `library.tsx` 各写一次，现在只有这一处；
  * `bgm.css` 原先夹在主界面四件之后（让「谁定义颜色」在链里一眼可见），现在随令牌层进

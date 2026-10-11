@@ -8,9 +8,10 @@ import {
  * 内容条目运行时校验
  * ------------------------------------------------------------
  * 零依赖手写守卫：前端源码位于 `web/`，要引第三方运行时库（zod/ajv）必须在
- * `vite.config.ts` 里加 alias 指向 `bangumi/node_modules`，本轮刻意不动构建配置，
- * 因此这里不引入任何库。规则与 `docs/bgm-design/component-library.html` 第 13 节
- * 「宿主接入清单」逐条对应，宿主侧将来要做权威校验时可直接翻译成 JSON Schema。
+ * `bangumi/vite.config.ts` 里加 alias 指向 `bangumi/node_modules`，本轮刻意不动构建配置，
+ * 因此这里不引入任何库。规则与 `web/docs/agents/components.md` 的规则 2 / 规则 5 一致
+ * （原始设计稿 `component-library.html` 第 13 节「宿主接入清单」不在本仓库）；
+ * 宿主侧将来要做权威校验时可直接翻译成 JSON Schema。
  *
  * 三条刻意的边界：
  * 1. **不校验 `id` / `version`**：它们是信封字段，由调用方补齐（宿主天然有，
