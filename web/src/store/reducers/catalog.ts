@@ -3,8 +3,9 @@ import type {
   ModelOptionView,
   ProviderOptionView,
   SessionOptionView,
-} from '../../../../bangumi/src/web/protocol';
-import { mergeCommands, type CommandHint } from '../../utils/commands';
+} from '../../types/protocol';
+import { mergeCommands } from '../../utils/commands';
+import type { CommandHint } from '../../types/commands';
 import type { AppAction } from './index';
 
 /**

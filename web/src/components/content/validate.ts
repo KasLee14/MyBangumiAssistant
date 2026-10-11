@@ -1,6 +1,7 @@
+import type { ContentKind } from '../../types/content';
 import {
   isBaseTranscriptKind, isContentKind,
-  type BaseTranscriptKind, type ContentKind,
+  type BaseTranscriptKind,
 } from './registry';
 
 /* ============================================================

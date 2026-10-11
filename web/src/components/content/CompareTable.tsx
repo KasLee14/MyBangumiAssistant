@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { CompareView } from '../../../../bangumi/src/web/protocol';
+import type { CompareView } from '../../types/protocol';
 
 /**
  * 修改前后对比（V3 · 点睛对比）。

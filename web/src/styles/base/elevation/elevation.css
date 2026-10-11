@@ -1,0 +1,33 @@
+/*
+ * base · elevation：玻璃三枚 --app-glass-* 与阴影四档 --app-shadow-*（含 --bgm-shadow-*
+ * 两枚的删除说明）。由 styles/tokens.css 与 styles/bgm.css 按令牌族拆出，原文逐行照搬。
+ */
+
+:root {
+  /* 这里原有 `--bgm-shadow-soft`（`0 0 5px` 主色 45%）与 `--bgm-shadow-modal`
+     （站点实测的弹窗外发光，改由深粉棕派生）。**两枚均已删除（零引用）**：
+     阴影统一走 `tokens.css` 的 `--app-shadow-*` 四档（raised / chip / card / panel）。 */
+
+  /* ---- 玻璃：浮起层的**唯一来源**（输入卡 / 命令候选 / 思考菜单 /
+     统计浮层 / 弹窗 / Toast 都只引用这三个，不各写一份 rgba + blur）---- */
+  --app-glass-fill: rgba(255, 255, 255, .74);   /* 0.74 取自输入卡 */
+  --app-glass-stroke: rgba(255, 255, 255, .88);
+  --app-glass-blur: blur(20px) saturate(160%);
+
+  /* ---- 层次：阴影大而柔，色相由深粉棕派生（不用中性灰）----
+     四档语义：raised 给内嵌元素、chip 给胶囊与标签、card 给浮起卡片、
+     panel 给浮层与弹窗（C41 把弹窗一并收口到这一档）。 */
+  --app-shadow-card: 0 2px 4px color-mix(in srgb, var(--bgm-primary-text) 8%, transparent), 0 6px 14px color-mix(in srgb, var(--bgm-primary-text) 12%, transparent);
+  --app-shadow-raised: 0 1px 2px color-mix(in srgb, var(--bgm-primary-text) 8%, transparent), 0 3px 8px color-mix(in srgb, var(--bgm-primary-text) 10%, transparent);
+  --app-shadow-panel: 0 3px 10px color-mix(in srgb, var(--bgm-primary-text) 14%, transparent), 0 12px 28px color-mix(in srgb, var(--bgm-primary-text) 18%, transparent);
+  /* 胶囊微投影（标签云）：单层 6px，落在 raised 与 card 之间——换成任一个都会明显变重/变双。 */
+  --app-shadow-chip: 0 2px 6px color-mix(in srgb, var(--bgm-primary-text) 7%, transparent);
+  /* 这里原有第五档 `--app-shadow-float`（弹窗深扩散，最大模糊 72px，依据 C21）。**已删除（零引用）**：
+     `modal.css` 按 C41 定稿收口到共享档 `--app-shadow-panel`（最大模糊 28px），
+     并明确不覆写 `--glass-shadow`，它因此失去唯一消费者。
+     弹窗阴影要再加深就改 `modal.css` 的 `--glass-shadow`，**不要复活这枚令牌**。 */
+  /* 侧栏向右的发散阴影（C44 的表面 D）。
+     侧栏与对话区**同为白面**（落差 1.000:1），分层完全由这一条承担，因此它的横向偏移最大、
+     模糊最远——它是全站唯一一条单向扩散的阴影。色相仍由深粉棕派生，不引入中性灰。 */
+  --app-shadow-edge: 26px 0 60px -24px color-mix(in srgb, var(--bgm-primary-text) 36%, transparent);
+}

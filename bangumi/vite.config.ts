@@ -25,7 +25,16 @@ const webPort = Number(process.env.BGM_DEV_PORT ?? 5173);
 
 export default defineConfig({
   root: webRoot,
-  base: './',
+  /**
+   * **必须是绝对路径 `/`**：资源引用是 `./assets/...` 时，History 路由的深链
+   *（`/library/components/DataTable`）会把它解析成 `/library/components/assets/...`，
+   * 静态托管方没有这个文件 → 404 → 整页白屏。实测确认过，浏览器控制台报的是
+   *「Refused to apply style … MIME type ('text/plain')」与一条 404。
+   *
+   * 改造前用 `'./'` 是为了让两个 HTML 入口在任意挂载路径下都能工作；现在只有一个入口、
+   * 且路由是路径式的，资源就必须从根开始绝对定位。
+   */
+  base: '/',
   plugins: [react()],
   /**
    * 开发服务器：前端由 Vite 直接提供（HMR），`/api` 反代给同时运行的宿主进程。
@@ -53,6 +62,8 @@ export default defineConfig({
       'react-dom': resolve(modules, 'react-dom'),
       redux: resolve(modules, 'redux'),
       'react-redux': resolve(modules, 'react-redux'),
+      // 路由：v7 是单包（原 `react-router-dom` 已并入），前端只在 `web/src/router/` 里用。
+      'react-router': resolve(modules, 'react-router'),
       // 动效库：只有 v2 界面用它。子路径别名必须排在裸包名之前，否则 `motion/react`
       // 会先命中 `motion` 规则、被截成一个没有 `react` 子路径的目录。
       'motion/react': resolve(modules, 'motion/dist/es/react.mjs'),
@@ -69,17 +80,15 @@ export default defineConfig({
     sourcemap: false,
     chunkSizeWarningLimit: 1200,
     /**
-     * 两个入口：主界面（index.html）与内容组件库文档页（library.html）。
+     * **单一入口**：`web/index.html`。rollup 的默认入口就是 root 下的 `index.html`，
+     * 所以这里不再写 `rollupOptions.input`。
      *
-     * 文档页与主界面共用同一份令牌、`content.css` 与真实内容组件，因此必须同源构建，
-     * 否则「预览所见」与「会话所见」会各走一套样式。dev server 不需要这项配置——
-     * 它按请求路径直接服务 root 下的任意 HTML。
+     * 组件库文档页不再是独立入口——它是这一份 bundle 里的一条路由（`/library`），与主界面
+     * 共用同一份令牌、`content.css` 与真实内容组件，所以「预览所见 = 会话所见」这条判据不变。
+     *
+     * dev server 侧不用配：它是 `appType: 'spa'`（默认），未命中的路径本来就回落 `index.html`，
+     * 因此 `/debug`、`/library/components/DataTable` 这些深链在开发下直接可用。
+     * 生产侧由 `src/web/server.ts` 的 SPA 兜底负责。
      */
-    rollupOptions: {
-      input: {
-        index: resolve(webRoot, 'index.html'),
-        library: resolve(webRoot, 'library.html'),
-      },
-    },
   },
 });

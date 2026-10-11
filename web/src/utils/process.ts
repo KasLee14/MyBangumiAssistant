@@ -1,5 +1,5 @@
-import type { ToolFamily } from '../../../bangumi/src/web/protocol';
-import type { ProcessItem } from './turns';
+import type { ProcessKind, ProcessSummary } from '../types/process';
+import type { ProcessItem } from '../types/turns';
 
 /**
  * 过程组的汇总与文案。
@@ -9,18 +9,6 @@ import type { ProcessItem } from './turns';
  * 文案，等于给协议加一个高频字段，而且这条文案不涉及脱敏与业务语义。因此活动词留在前端，
  * 而**工具名、参数摘要、结果文本**仍由宿主导出（见 `bangumi/src/web/tool-view.ts`）。
  */
-
-/** 过程项的族：工具族，或思考。 */
-export type ProcessKind = ToolFamily | 'reasoning';
-
-/** 过程组汇总：状态行的标题与计数都从这里来。 */
-export interface ProcessSummary {
-  readonly total: number;
-  /** 各族计数，按数量降序（并列保持首次出现顺序）。 */
-  readonly counts: readonly (readonly [ProcessKind, number])[];
-  /** 正在进行的项（running / waiting）；没有时是 null。 */
-  readonly active: ProcessItem | null;
-}
 
 /** 过程项的族。 */
 export function processKind(item: ProcessItem): ProcessKind {

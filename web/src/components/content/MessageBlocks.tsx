@@ -1,6 +1,6 @@
 import { memo, type ReactNode } from 'react';
-import type { MessageBlock } from '../../../../bangumi/src/web/protocol';
-import { DURATION, SHIFT } from '../motion/motionTokens';
+import type { MessageBlock } from '../../types/protocol';
+import { DURATION, SHIFT } from '../../constants/motion';
 import { AnimatedContent } from '../motion/vendor/AnimatedContent';
 import { ContentBlock } from './index';
 import { Markdown } from './markdown';

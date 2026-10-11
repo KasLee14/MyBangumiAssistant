@@ -3,7 +3,7 @@ import type {
   ProxyPayload,
   SessionOptionView,
   ThinkingLevelName,
-} from '../../../bangumi/src/web/protocol';
+} from '../types/protocol';
 import {
   answerConfirmation,
   cancelLogin,
@@ -21,7 +21,8 @@ import {
   submitProxy,
   rememberSession,
 } from '../utils/api';
-import { helpText, type CommandHint } from '../utils/commands';
+import { helpText } from '../utils/commands';
+import type { CommandHint } from '../types/commands';
 import {
   answerStarted,
   answerSettled,

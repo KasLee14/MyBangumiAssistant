@@ -1,0 +1,29 @@
+/*
+ * base · motion：--app-dur-* / --app-ease-* / --app-shift-* / --app-stagger，与
+ * components/motion/motionTokens.ts 一一对应。由 styles/tokens.css 按令牌族拆出，原文逐行照搬。
+ */
+
+:root {
+  /* ---- 时长阶梯：与 motionTokens.ts 的 DURATION 一一对应 ---- */
+  --app-dur-instant: 100ms;
+  --app-dur-fast: 150ms;
+  --app-dur-base: 240ms;
+  --app-dur-slow: 360ms;
+  --app-dur-slower: 450ms;
+
+  /* ---- 缓动：与 motionTokens.ts 的 EASE_* 一一对应 ----
+     spring 用于悬停抬升、浮层进出与列表入场；`-soft` 是它的**大面积收敛版**
+     ——浮层与弹窗这类大面只允许极小的过冲，否则整块会显得弹跳。 */
+  --app-ease-out: cubic-bezier(.22, 1, .36, 1);
+  --app-ease-in-out: cubic-bezier(.4, 0, .2, 1);
+  --app-ease-spring: cubic-bezier(.34, 1.9, .64, 1);
+  --app-ease-spring-soft: cubic-bezier(.34, 1.22, .64, 1);
+
+  /* ---- 位移刻度：入场位移只有两级，避免每处各写一个距离 ---- */
+  --app-shift-row: 8px;
+  --app-shift-panel: 16px;
+
+  /* ---- 逐项错峰间隔（与 motionTokens.ts 的 STAGGER 对应）----
+     只给短列表；长列表用一次性入场，避免最后一项等太久。 */
+  --app-stagger: 55ms;
+}

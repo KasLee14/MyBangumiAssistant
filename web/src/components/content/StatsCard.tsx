@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import type { StatEntryView, StatsView } from '../../../../bangumi/src/web/protocol';
+import type { StatEntryView, StatsView } from '../../types/protocol';
 import { Counter } from '../motion/vendor/Counter';
 
 /** 条形/柱形长度：ratio 缺失或越界时给出可预期的兜底，不让 NaN 进到样式里。 */

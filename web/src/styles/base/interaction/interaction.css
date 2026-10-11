@@ -1,0 +1,81 @@
+/*
+ * base · interaction：焦点环（--bgm-focus 与两条 :focus-visible 规则）与滚动条皮肤
+ * （::-webkit-scrollbar* 全部规则 + --app-scrollbar-*）。由 styles/tokens.css 与 styles/bgm.css 拆出。
+ */
+
+/* ---------------------------------------------------------------- 焦点环 */
+
+/* 焦点环：声明颜色与标准宽度，样式留给控件自己（禁用 outline 的控件保持 none）。
+   上游的焦点环颜色 / 宽度两枚令牌已删除：环色直接用项目主色，
+   组件要改环色就在自己的规则里覆写 `outline-color`，不要再引入一层间接令牌。
+   （按钮等控件的另一条焦点通道是 `--bgm-focus` 的 box-shadow 环，见 `bgm.css`。） */
+:focus-visible {
+  outline-color: var(--bgm-primary);
+  outline-width: 2px;
+}
+
+/* 指针操作时不显示焦点环；可编辑控件在点击时仍保留自己的焦点反馈。 */
+html[data-input-modality='pointer'] body :focus-visible:not(:read-write) {
+  outline-color: transparent;
+}
+
+/* ---------------------------------------------------------------- 滚动条皮肤 */
+
+/* 四枚 `--app-scrollbar-*` 令牌定义在文件末尾的 `--app-*` 段（滑块 = 主色 22% 混白，
+   悬停 38%），这里只负责把它们接到滚动条上。抬高的表面（菜单、弹层）在自己的容器上
+   重绑宽度与边距（`.menuViewport` 用 6px / 12px）——**滑块深浅不再分档**：上游那套
+   l1 / l2 两级别名已删除，两级原值本来就完全相同。 */
+
+/* 两条路径互斥：非 auto 的 scrollbar-width/color 会让 Chromium 丢弃全部
+   ::-webkit-scrollbar 规则（含 hover），因此只在没有该伪元素的引擎上用标准属性。 */
+@supports not selector(::-webkit-scrollbar) {
+  body,
+  body * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--app-scrollbar-thumb) transparent;
+  }
+}
+
+::-webkit-scrollbar {
+  width: var(--app-scrollbar-width);
+  height: var(--app-scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+  margin-block: var(--app-scrollbar-track-margin);
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  /* 上游那枚滑块描边宽度令牌（值 0px）已就地写：它只为配合下面的
+     `background-clip: content-box` 给滑块做内缩，要调内缩就改这里。 */
+  border: 0 solid transparent;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--app-scrollbar-thumb);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--app-scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+:root {
+  /* 焦点环（G10）：3px 主色 45%。
+     换成主色环后，粉底（顶栏 / 侧栏）上的可聚焦元素另补 1px 描边保证可辨性
+     ——见 `frame.css` 的 `.appTopBarTab` 与 `common.css` 的 `.appNavRow`。 */
+  --bgm-focus: 0 0 0 3px color-mix(in srgb, var(--bgm-primary) 45%, transparent);
+
+  /* ---- 滚动条：滑块由主色派生（22% 混白 = 浅粉），悬停加深到 38%。
+     宽度与轨道边距只给「全局默认」，抬高的浮层可在自己的容器上重绑
+     （`.menuViewport` 用 6px / 12px）；滑块深浅**不再分档**——上游的
+     上游那套滑块 / 悬停两级别名（共四枚）取值完全相同，已随别名层删除。 */
+  --app-scrollbar-thumb: color-mix(in srgb, var(--bgm-primary) 22%, var(--bgm-surface));
+  --app-scrollbar-thumb-hover: color-mix(in srgb, var(--bgm-primary) 38%, var(--bgm-surface));
+  --app-scrollbar-width: 5px;
+  --app-scrollbar-track-margin: 0px;
+}

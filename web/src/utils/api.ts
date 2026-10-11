@@ -2,7 +2,8 @@ import type {
   ApiErrorView, CatalogView, ClearCredentialPayload, ConfirmPayload, CredentialPayload,
   LoginInputPayload, ModelPayload, ProxyPayload, ServerEvent, SessionPayload, SubmitPayload,
   ThinkingPayload,
-} from '../../../bangumi/src/web/protocol';
+} from '../types/protocol';
+import type { StreamHandlers } from '../types/api';
 
 /**
  * 宿主命令接口。
@@ -125,11 +126,6 @@ export async function fetchCatalog(): Promise<CatalogView> {
   const response = await fetch('./api/catalog', { headers: { accept: 'application/json', ...headers() } });
   if (!response.ok) throw new Error(`无法读取模型、会话或命令列表（HTTP ${response.status}）。`);
   return await response.json() as CatalogView;
-}
-
-export interface StreamHandlers {
-  onFrame(frame: ServerEvent): void;
-  onStatus(connected: boolean): void;
 }
 
 /** 会话状态事件流；帧走默认事件名，EventSource 自带重连，宿主重启后会自动接回。 */

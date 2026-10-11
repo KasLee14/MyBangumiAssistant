@@ -389,22 +389,22 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
     throw new AppError('INVALID_INPUT', '未知的 Web 终端命令。');
   };
 
-  const serveStatic = async (res: ServerResponse, pathname: string): Promise<void> => {
-    let relative: string;
-    try { relative = pathname === '/' ? 'index.html' : decodeURIComponent(pathname).replace(/^\/+/, ''); }
-    catch { sendText(res, 400, '请求路径无效。'); return; }
-    const target = resolve(assetsDir, normalize(relative));
-    if (!target.startsWith(assetsDir + sep)) { sendText(res, 404, '未找到资源。'); return; }
+  /**
+   * 命中一个真实文件就发送它；返回 false 表示「这个路径没有对应文件」。
+   *
+   * `cache-control` 对**所有 `.html`** 都是 `no-store`：HTML 引用带内容哈希的 assets，
+   * HTML 一旦进缓存（哪怕只有原来的 1 小时），改完前端后刷新拿到的仍是旧 HTML + 旧 assets，
+   * 看起来就像「改动没生效」。实测踩过：只豁免 `index.html` 时，另外一个 HTML 入口落进
+   * `max-age` 分支，组件库文档页长时间显示旧的示例数据（封面地址改了、页面上还是旧地址），
+   * 排查方向会被完全带偏。现在只剩一个 HTML 入口，这条规则照旧（含 SPA 兜底发出的那份）。
+   */
+  const sendFile = async (res: ServerResponse, target: string): Promise<boolean> => {
     const type = MIME[extname(target).toLowerCase()];
-    if (!type) { sendText(res, 404, '未找到资源。'); return; }
+    if (!type) return false;
     let info;
     try { info = await stat(target); }
-    catch { sendText(res, 404, '未找到静态资源；请先运行 npm run build:web。'); return; }
-    if (!info.isFile()) { sendText(res, 404, '未找到资源。'); return; }
-    // **两个 HTML 入口都不能缓存**：它们引用带内容哈希的 assets，HTML 一旦进缓存（哪怕只有
-    // 原来的 1 小时），改完前端后刷新拿到的仍是旧 HTML + 旧 assets，看起来就像「改动没生效」。
-    // 实测踩过：只豁免 `index.html` 时，`library.html` 落进下面的 `max-age` 分支，组件库文档页
-    // 长时间显示旧的示例数据（封面地址改了、页面上还是旧地址），排查方向会被完全带偏。
+    catch { return false; }
+    if (!info.isFile()) return false;
     const html = extname(target).toLowerCase() === '.html';
     res.writeHead(200, {
       'content-type': type, 'content-length': info.size, ...SECURITY_HEADERS,
@@ -416,6 +416,31 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
       stream.on('close', () => finish());
       stream.pipe(res);
     }).catch(() => { res.destroy(); });
+    return true;
+  };
+
+  /**
+   * 静态资源；返回值表示「是否已经响应」，调用方据此决定还要不要试 SPA 兜底。
+   *
+   * `fallbackToIndex` 为真时，**只有请求路径没有扩展名**才回落到 `index.html`。这是前端
+   * History 路由（`/debug`、`/library`、`/library/components/DataTable`）需要的 SPA 兜底：
+   * 那些地址不是磁盘上的文件，不兜底就是 404，深链与刷新全部失效。带扩展名的路径
+   *（`/nope.js`、`/assets/...`）**不兜底**——它们是资源请求，拿 HTML 冒充资源会把
+   *「文件不见了」伪装成「页面正常」，浏览器只会报一个语法错误，排查方向会被带偏。
+   */
+  const serveStatic = async (res: ServerResponse, pathname: string, fallbackToIndex = false): Promise<boolean> => {
+    let relative: string;
+    try { relative = pathname === '/' ? 'index.html' : decodeURIComponent(pathname).replace(/^\/+/, ''); }
+    catch { sendText(res, 400, '请求路径无效。'); return true; }
+    const target = resolve(assetsDir, normalize(relative));
+    // `normalize` 已折叠 `..`，这里再挡一次前缀：解析结果必须仍落在静态目录内。
+    if (!target.startsWith(assetsDir + sep)) { sendText(res, 404, '未找到资源。'); return true; }
+    if (await sendFile(res, target)) return true;
+    if (fallbackToIndex && extname(relative) === '') {
+      if (await sendFile(res, resolve(assetsDir, 'index.html'))) return true;
+    }
+    sendText(res, 404, '未找到静态资源；请先运行 npm run build:web。');
+    return true;
   };
 
   const server = createServer((req, res) => {
@@ -477,7 +502,9 @@ export async function startWebTerminal(options: WebTerminalOptions): Promise<Web
         sendJson(res, 200, result ?? { ok: true });
         return;
       }
-      if (req.method === 'GET' || req.method === 'HEAD') { await serveStatic(res, url.pathname); return; }
+      // 其余 GET/HEAD 一律当静态资源；未命中且路径没有扩展名时由 serveStatic 回落 `index.html`
+      //（前端 History 路由的深链与刷新都靠这一条）。
+      if (req.method === 'GET' || req.method === 'HEAD') { await serveStatic(res, url.pathname, true); return; }
       sendText(res, 405, '不支持的请求方法。');
     })().catch(error => {
       const info = safeError(error);

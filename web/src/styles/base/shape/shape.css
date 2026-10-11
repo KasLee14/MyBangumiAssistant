@@ -1,0 +1,38 @@
+/*
+ * base · shape：圆角半径 --bgm-r-* 与 --app-radius-*，以及超椭圆曲率 --dsw-corner-shape
+ * 与其 @supports (corner-shape: superellipse(1.4)) 块。由 styles/tokens.css 与 styles/bgm.css 拆出。
+ */
+
+:root {
+  /* 圆角阶梯（G-tokens §二，元素越小圆角越小）：
+     单元格 8 / 控件 10 / 容器 14 / 浮层 18 / 胶囊 999。
+     曲率由 `tokens.css` 的 `--dsw-corner-shape` 一处统一下发，这里只管四档半径。 */
+  --bgm-r-sm: 8px;
+  --bgm-r-md: 10px;
+  --bgm-r-lg: 14px;
+  --bgm-r-tag: 18px;
+  --bgm-r-pill: 999px;
+
+  /* ---- 圆角四档：**元素越小圆角越小**，避免小控件吃大圆角产生果冻感 ----
+     单元格（表头格 / 单元格 / 小徽章）→ 控件（按钮 / 输入框 / 标签）
+     → 容器（卡片 / 区块）→ 浮层（弹窗 / 浮层 / 输入卡）。 */
+  --app-radius-cell: var(--bgm-r-sm);
+  --app-radius-control: var(--bgm-r-md);
+  --app-radius-panel: var(--bgm-r-lg);
+  --app-radius-float: var(--bgm-r-tag);
+}
+
+/* 圆角曲率：支持时所有圆角走 superellipse(1.4)——1.4 比上游默认的 1.5 略圆，
+   观感是「柔而不圆」，不是方圆形。
+   全圆形状（胶囊、圆形）在各自组件里用 corner-shape: round opt out。 */
+@supports (corner-shape: superellipse(1.4)) {
+  :root {
+    --dsw-corner-shape: superellipse(1.4);
+  }
+
+  *,
+  *::before,
+  *::after {
+    corner-shape: var(--dsw-corner-shape);
+  }
+}

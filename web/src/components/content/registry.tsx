@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import type { MessageBlock } from '../../../../bangumi/src/web/protocol';
+import type { ContentKind } from '../../types/content';
+import type { MessageBlock } from '../../types/protocol';
 import { Callout } from './Callout';
 import { CompareTable } from './CompareTable';
 import { DataTable } from './DataTable';
@@ -30,17 +31,14 @@ import { Timeline } from './Timeline';
  * ============================================================ */
 
 /** 协议里的块类型与内容块类型从这里转出，调用点不必再深入 `protocol.ts`。 */
-export type { ContentBlockView, MessageBlock } from '../../../../bangumi/src/web/protocol';
+export type { ContentBlockView, MessageBlock } from '../../types/protocol';
 
 /**
- * 12 个定制组件的 `type`。
- *
- * 取值就是**组件名**（与 `components/content/` 的文件名一致），因此不再需要「语义名 →
- * 组件」的对照表：`type` 直接说明该用哪个组件渲染。
+ * 12 个定制组件的 `type` 清单在 `types/content.ts`（跨模块共享的叶子定义：注册表、接收侧
+ * 校验、文档页数据、调试页都消费它）。**这份注册表**只负责两件联动的事：用
+ * `satisfies { [K in ContentKind]: ContentRenderer<K> }` 保证 12 个键逐键齐全，
+ * 并在文件末尾用 `ContentRegistryCoverage` 拦住「协议加了 type、清单忘了扩」。
  */
-export type ContentKind =
-  | 'SubjectCards' | 'StatsCard' | 'ProgressView' | 'InfoBox' | 'DataTable' | 'Timeline'
-  | 'TagCloud' | 'Gallery' | 'CompareTable' | 'QuoteBlock' | 'Callout' | 'LinkList';
 
 /**
  * 某个 kind 对应的协议块成员。

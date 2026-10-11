@@ -8,7 +8,7 @@ import {
   type UIEvent
 } from 'react';
 import { motion, useInView } from 'motion/react';
-import { DURATION, EASE_OUT } from '../motionTokens';
+import { DURATION, EASE_OUT } from '../../../constants/motion';
 import './AnimatedList.css';
 
 interface AnimatedItemProps {

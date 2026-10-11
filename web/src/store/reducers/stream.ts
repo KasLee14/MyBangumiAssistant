@@ -1,4 +1,4 @@
-import type { ChatScalarsView, MessageBlock, ServerEvent, TranscriptItemView } from '../../../../bangumi/src/web/protocol';
+import type { ChatScalarsView, MessageBlock, ServerEvent, TranscriptItemView } from '../../types/protocol';
 import type { AppAction } from './index';
 
 /** 首帧到达前的占位状态；文案与终端启动提示保持一致。 */

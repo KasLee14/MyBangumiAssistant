@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { TimelineView } from '../../../../bangumi/src/web/protocol';
+import type { TimelineView } from '../../types/protocol';
 
 /**
  * 时间线。

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { CalloutView } from '../../../../bangumi/src/web/protocol';
+import type { CalloutView } from '../../types/protocol';
 import { StarBorder } from '../motion/vendor/StarBorder';
 
 /**

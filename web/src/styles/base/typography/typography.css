@@ -1,0 +1,64 @@
+/*
+ * base · typography：Montserrat 三条 @font-face、字体栈 --bgm-font / --bgm-mono，以及字号阶梯
+ * --app-font-*（含 markdown 四档）、--app-line-base、--app-tracking-*。由 styles/tokens.css 与
+ * styles/bgm.css 按令牌族拆出，原文逐行照搬；字体文件已随本文件移到 ./fonts/。
+ */
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(./fonts/montserrat-regular.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(./fonts/montserrat-light.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(./fonts/montserrat-medium.woff2) format('woff2');
+}
+
+:root {
+  /* ---- 行高节奏----
+     取值只有两档：1.5（标题 / 次级 / 微标签 / 数值）与 1.72（正文）。
+     2026-10-06 令牌收敛：`tight` / `loose` 两个零消费者别名删除，只留 base 一档。 */
+  --app-line-base: 1.72;
+
+  /* ---- 字号阶梯：**四档**（字号 + 字重 + 行高打包）----
+     本表定于 2026-10-06 的字号收敛：**15px 及以上的展示型大字明确豁免令牌化**
+     （标题 17 / 区块 16 / 页面 20 / 数值 21 / 首屏 26 / 统计 28 一律直接写 px），
+     小字只保留下面四档，避免「十几个档位谁也不管谁」。
+     字距单独成对令牌，因为 font 简写装不下 letter-spacing。 */
+  --app-font-body: 400 14px/1.72 var(--bgm-font);
+  --app-font-sub: 400 13px/1.5 var(--bgm-font);
+  --app-font-note: 400 12px/1.5 var(--bgm-font);
+  --app-font-tiny: 500 10px/1.5 var(--bgm-font);
+  --app-tracking-title: -0.02em;
+  --app-tracking-num: -0.02em;
+
+  /* ---- Markdown 标题四档：值照搬上游 markdown 标题令牌（21 / 19 / 18 / 14px），字体栈换成
+     `--bgm-font`。上游把正文尺寸做成可变轴（JS 往根上注入一个 10–22px 的正文字号，标题与
+     正文共享那段像素差）；本应用固定正文 14px，因此这里直接写定值，不再有 calc 链。
+     h4 与正文同号、只加粗——它与 `--app-font-body` 的差别只在字重与行高。 ---- */
+  --app-font-md-h1: 700 21px/30px var(--bgm-font);
+  --app-font-md-h2: 700 19px/28px var(--bgm-font);
+  --app-font-md-h3: 700 18px/26px var(--bgm-font);
+  --app-font-md-h4: 600 14px/24px var(--bgm-font);
+
+  --bgm-font: "SF Pro SC", "SF Pro Display", "PingFang SC", "Lucida Grande",
+    "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif, "Hiragino Sans GB";
+  /* 代码字体栈：末尾**补中文兜底**。裸 `monospace` 在 Windows 上会把中文交给宋体
+     （被删的上游代码字体栈正是为这条理由补了 'PingFang SC' / 'Microsoft YaHei'），
+     这里沿用同一处理，不让「等宽」把中文的字体质量换掉。 */
+  --bgm-mono: Menlo, Monaco, Consolas, "Courier New", "PingFang SC", "Microsoft YaHei", monospace;
+}

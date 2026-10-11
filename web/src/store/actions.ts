@@ -1,4 +1,4 @@
-import type { CatalogView, MessageBlock, SessionOptionView } from '../../../bangumi/src/web/protocol';
+import type { CatalogView, MessageBlock, SessionOptionView } from '../types/protocol';
 import type { CatalogAction } from './reducers/catalog';
 import type { PendingEcho, StreamAction, StreamDeltaFrame, StreamFrame } from './reducers/stream';
 import type { SettingsPane, UiAction } from './reducers/ui';

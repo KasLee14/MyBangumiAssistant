@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStore } from 'react-redux';
-import type { MessageBlock } from '../../../bangumi/src/web/protocol';
+import type { MessageBlock } from '../types/protocol';
 import { pacedDone, pacedUpdated } from './actions';
 import type { AppAction } from './actions';
 import { useAppDispatch } from './hooks';

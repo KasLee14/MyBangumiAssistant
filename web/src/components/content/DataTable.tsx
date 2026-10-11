@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type { TableView } from '../../../../bangumi/src/web/protocol';
+import type { TableView } from '../../types/protocol';
 
 type SortState = { key: string; desc: boolean } | null;
 

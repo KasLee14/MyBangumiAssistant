@@ -1,0 +1,26 @@
+/*
+ * base · space：4px 网格间距刻度 --app-space-*，侧栏宽 --app-sidebar-full /
+ * --app-sidebar-content。由 styles/tokens.css 按令牌族拆出，原文逐行照搬。
+ */
+
+:root {
+  /* ---- 间距刻度：4px 网格，**按 px 值命名**，全站间距只从这八档里取 ----
+     2026-10-06 令牌收敛：补入实测最常用的 6px 与 10px 两档（原先是裸值，
+     合计 76 处卡在 8px 与 12px 之间）；40px 与 48px 两档零消费者，一并删除。 */
+  --app-space-4: 4px;
+  --app-space-6: 6px;
+  --app-space-8: 8px;
+  --app-space-10: 10px;
+  --app-space-12: 12px;
+  --app-space-16: 16px;
+  --app-space-24: 24px;
+  --app-space-32: 32px;
+
+  /* ---- 侧栏：展开宽与抽屉内容宽（C44）----
+     `--app-sidebar-full` 是全站**唯一**那份 264px：`.appFrame` 把它绑给 `--app-sidebar-width`，
+     收起态再把后者重绑成 0，于是「位移量」仍能从 `--app-sidebar-full` 取到。
+     内容宽写成字面值而不是 `calc(var(--app-sidebar-width) - …)`：后者在收起态会解析成 0，
+     把内容一起压扁——抽屉的全部意义就是内容宽度在收起全程恒定。 */
+  --app-sidebar-full: 264px;
+  --app-sidebar-content: 248px;
+}

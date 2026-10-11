@@ -231,6 +231,16 @@
   color: var(--bgm-text-weak);
 }
 
+/* 路由兜底页（`src/router/NotFound.tsx`）的容器：整屏居中，内容是被它包住的 `.appEmpty`。
+   放在共享层而不是某一个页面里，是因为任何入口都可能落进这个兜底页。 */
+.appFallbackPage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--app-space-24);
+}
+
 /* ---------------------------------------------------------------- 微标签与胶囊 */
 
 /* 微标签：11.5/500 弱色。

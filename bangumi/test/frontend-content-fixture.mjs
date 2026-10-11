@@ -9,7 +9,7 @@ const transpile = source => ts.transpileModule(source, { compilerOptions: {
 const registrySource = await readFile(new URL('web/src/components/content/registry.tsx', root), 'utf8');
 export const registry = Object.fromEntries([...registrySource.matchAll(/  (\w+): \{(?:\s*limit: \{ field: '(\w+)', max: (\d+) \},)?/g)]
   .map(([, kind, limitField, max]) => [kind, { ...(max ? { limit: { field: limitField, max: Number(max) } } : {}) }]));
-export const sectionsModule = await import(dataModule(transpile(await readFile(new URL('web/src/page/library/samples.ts', root), 'utf8'))));
+export const sectionsModule = await import(dataModule(transpile(await readFile(new URL('web/src/page/library/constants/sections.ts', root), 'utf8'))));
 // base 条目清单也**从 registry.tsx 提取**，不再在 fixture 里维护第二份副本：
 // 这份副本曾经随协议改动漂移（`activity` 改名为 `reasoning`/`tool`/`turn` 后没跟上），
 // 而 `BASE_KINDS` 的注释明确写着「清单只此一份」。

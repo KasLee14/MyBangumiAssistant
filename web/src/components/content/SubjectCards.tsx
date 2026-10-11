@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type { SubjectCardView, SubjectCollectionView, SubjectKind } from '../../../../bangumi/src/web/protocol';
+import type { SubjectCardView, SubjectCollectionView, SubjectKind } from '../../types/protocol';
 /* SpotlightCard 已移除：用户在 style-demo-interaction.html 里选的是「A · 只精修状态反馈」，
    明确排除了指针跟随类效果。详见 GridCard 的注释。 */
 

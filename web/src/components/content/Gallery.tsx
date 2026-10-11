@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type { GalleryView } from '../../../../bangumi/src/web/protocol';
+import type { GalleryView } from '../../types/protocol';
 
 type GalleryItem = GalleryView['items'][number];
 

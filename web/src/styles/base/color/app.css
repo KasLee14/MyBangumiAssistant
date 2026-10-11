@@ -1,0 +1,54 @@
+/*
+ * 设计 token 层。
+ *
+ * 上游：deepseek-harness 客户端主题包（MIT 许可）
+ *   https://github.com/deepseek-ai/deepseek-harness
+ *   packages/client/ui-theme/src/styles/{design-platform,base,focus,scrollbar,corner-shape}.css
+ *
+ * **第七轮令牌层清理（2026-10-06）已把上游 DSH 令牌整体删除**（平台色板、语义别名、
+ * markdown 字体令牌、滚动条皮肤、elevation、焦点环宽度），消费点改指 `--app-*` /
+ * `--bgm-*` 或就地 `color-mix()`。因此本文件只定义 `--app-*`；唯一保留的上游令牌是
+ * `--dsw-corner-shape`（超椭圆曲率，见下面的 @supports 块）。
+ *
+ * Montserrat 的 @font-face 仍在（OFL，见 fonts/Montserrat-OFL.txt），但 `--bgm-font` 改走
+ * 系统 UI 字体栈之后界面已不再使用这份字体（原先靠上游字体栈令牌的重定向接入）。
+ *
+ * 本应用只有浅色一套外观：没有 body[data-ds-dark-theme] 覆盖块，也没有任何主题切换机制。
+ */
+
+/* ------------------------------------------------------------------ *
+ * 上游 `gradient-shadow-text.css` 那一批令牌（elevation / mask-blur /
+ * menu-backdrop-filter / markdown 字体轴）已在第七轮令牌层清理中删除，消费点改指：
+ *   · 发丝描边 → `--app-hairline`（`composer.css` 的 `.menuMaterial` 就地把上游那条
+ *     「0 0 0 0.5px <色>」的 box-shadow 形状写回去——它是阴影，不是一个颜色值）；
+ *   · 浮层模糊 → `--app-glass-blur`（玻璃三枚 `--app-glass-*` 是浮起层的唯一来源）；
+ *   · markdown 四档标题 → 本文件 `--app-font-md-h1..h4`，正文 / 表格 / 代码走字号阶梯四档。
+ * 上游思考文本的渐变令牌本次同样未移植。
+ * ------------------------------------------------------------------ */
+
+/* ---------------------------------------------------------------- 外观层令牌
+ *
+ * 时长、缓动、位移与 spring 与 components/motion/motionTokens.ts 一一对应：
+ * 改一处必须同时改另一处，否则同一个界面会出现两条缓动曲线。
+ *
+ * 层次、表面、圆角与字体阶梯全部由 `--bgm-*` 派生，不新增色值
+ * （上游色板与语义别名已删，全站色值只有 `bgm.css` 一份来源）。
+ * 这一层同时是**沉淀层**：全站重复出现的形态先在这里定义一次，组件样式只消费、
+ * 不再各写一份（清单见 docs/ui-restyle-plan.md §四）。
+ * ---------------------------------------------------------------- */
+:root {
+  /* ---- 底光：**已删除**（G07 定「底光与环境光全部去掉」，
+     G-tokens §五 把 `--app-glow-ambient` 记为**删除**）。
+     表面只用纯色：页面底 / 白面 / 内嵌块 / 卡片浅面四档，不再叠加任何装饰性径向渐变。
+     因此 `--bgm-primary-warm` 与 `--app-glow-ambient` 都已移除；`frame.css` 里两处消费点同步删掉。
+     **任何地方都不得再新增装饰性径向渐变底光**——这是本决策的硬约束。 */
+
+  /* ---- 表面与描边：全部由 --bgm-* 派生，不新增色值 ---- */
+  --app-surface: var(--bgm-surface);
+  --app-surface-sunken: var(--bgm-bg);
+  --app-surface-tint: color-mix(in srgb, var(--bgm-surface) 86%, var(--bgm-primary-soft));
+  --app-hairline: color-mix(in srgb, var(--bgm-border) 62%, transparent);
+  --app-hairline-strong: color-mix(in srgb, var(--bgm-border) 88%, transparent);
+  --app-primary-veil: color-mix(in srgb, var(--bgm-primary) 14%, transparent);
+  --app-accent-veil: color-mix(in srgb, var(--bgm-interactive) 12%, transparent);
+}

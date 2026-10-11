@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { QuoteView } from '../../../../bangumi/src/web/protocol';
+import type { QuoteView } from '../../types/protocol';
 
 /**
  * 引用块（工具原始输出、日志、需要保真的文本）。

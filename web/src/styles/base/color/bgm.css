@@ -1,0 +1,96 @@
+/* ============================================================
+   Bangumi 令牌层
+   ------------------------------------------------------------
+   依据 docs/bgm-design/ui-style.md（bgm.tv r771 实测）与已确认的
+   docs/bgm-design/style-preview.html。
+
+   本文件**只有 `--bgm-*` 令牌的定义，不含任何形态规则**
+   （形态规则就近写在各组件样式文件里：frame.css / composer.css / cards.css /
+   modal.css / content.css）。
+
+   第七轮令牌层清理（2026-10-06）之后**不再做别名重定向**：原先这里有一大段把上游
+   DSH 语义别名（色板别名、specific 组、elevation、滚动条等）重定向到 `--bgm-*` 的
+   机制，随着上游 DSH 令牌整体删除而一并去掉——消费点已直接改指 `--app-*` / `--bgm-*`。
+   因此原来那条「重定向必须同时写 `:root` 与 `body`」的坑不再适用：变量重定向靠「后定义
+   覆盖先定义」，只写 `:root` 时 body 子树拿到的仍是上游默认值。
+
+   配色口径（配色重构后）：以**粉色与白色**为核心，**不使用中性灰表面**。
+   表面与描边一律由 --bgm-primary 就地 color-mix 派生（不新增色值），白色只
+   出现在对话区 / 顶栏 / 卡片 / 浮层；文字色阶保持中性深色，语义色（交互蓝、
+   链接蓝、危险红、成功绿、警告黄、焦点环）一律保持原值。
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Bangumi 令牌：浅色
+   ------------------------------------------------------------ */
+:root {
+  /* 主色：由 #f09199 提饱和为 #ec6570（hsl 355 78% 66%）。
+     派生色全部由它混白 / 混深得出，不新增色值。 */
+  --bgm-primary: #ec6570;
+  --bgm-primary-soft: color-mix(in srgb, var(--bgm-primary) 10%, #fff);
+  --bgm-primary-text: color-mix(in srgb, var(--bgm-primary) 62%, #2f2f33);
+  /* 实心按钮的底色：比主色深一档，让白字达到 AA（≈4.7:1） */
+  --bgm-primary-deep: color-mix(in srgb, var(--bgm-primary) 72%, #2f2f33);
+  /* 实心底上的前景色（实心按钮 / 选中标签 / 选中集数格的白字）。
+     白色是中性端点，收成令牌后全站白字只此一处来源——以后要整体调整
+     （例如换米白）只改这一行。 */
+  --bgm-on-accent: #fff;
+  /* 描边按钮 hover 的填充（2026-10-06 定案，见 decisions/G01-primary.md §补充）。
+     原先是走一块**不透明交互蓝**（#369cf8），粉白体系里唯一一块冷色。改为
+     「与实心主按钮同族、只是同色系深一档」：底色与白字都取 `--bgm-primary-deep`
+     （实测白字 4.66:1，达 AA）。
+     单独收成令牌是因为 `.button.ghost`（悬停填 `--bgm-interactive`）与
+     `.button.reject`（悬停填 `--bgm-danger`）仍走各自的填充，不能整体改。 */
+  --bgm-primary-hover-fill: var(--bgm-primary-deep);
+  --bgm-interactive: #369cf8;
+  /* 这里原有 `--bgm-link`（`#0084b4` 站点链接蓝）。**已删除（零引用）**：
+     全站链接一律「主色深字 + 下划线」，三处注释明确拒绝这枚蓝色
+     （frame.css 正文链接、library.css 参考行、content.css 对比行）。 */
+  --bgm-danger: #c00;
+  --bgm-danger-soft: #fdf1f1;
+  --bgm-danger-border: #e9c4c4;
+  --bgm-success: #4caf50;
+  --bgm-success-border: #cbe3cb;
+  /* 这里原有 `--bgm-success-soft` / `--bgm-success-text`（成功态的浅底与深字）。**已删除（零引用）**：
+     success 态只用原值 `--bgm-success`（content.css 的 callout、frame.css 的状态点与提示条），
+     浅底统一走 `--bgm-sunken`。danger 侧的 `-soft` / `-border` 仍有消费者，故保留
+     ——不要按「对称性」把它们也删掉。 */
+  --bgm-warn: #8a6d1f;
+
+  /* 表面阶梯：粉白两色体系，全部由主色就地派生（不新增色值）。
+     由深到浅：sunken（内嵌块）→ bg（页面与侧栏）→ surface-alt（卡片与浮层）
+     → surface（纯白：对话区、顶栏、卡片）。
+     配色重构：原先的中性灰阶梯（#f5f5f5 / #fafafa）整体粉调化，
+     页面上不再出现灰色表面；层级仍靠底色分区 + hairline 收边表达。
+     **2026-10-06 落地 G02/G-tokens：更淡一档 `9 / 15 / 4`**（原 `13 / 20 / 6`）——
+     页面底 13→9%、内嵌块 20→15%、卡片浅面 6→4%，三档同时压淡、档间差保持。
+     **遮罩**：弹窗按 C21 / G09 的定稿改成
+     **无蒙层**，所以这里没有遮罩令牌——上游那枚遮罩别名及其重定向都已随别名层删除
+     （原先重定向为「深粉棕 26%」并只被 `modal.css` 的 `.modalOverlay` 消费）。
+     若将来恢复压暗，在 `modal.css` 里改，**不要在这里复活别名**。 */
+  --bgm-surface: #fff;
+  --bgm-surface-alt: color-mix(in srgb, var(--bgm-primary) 4%, #fff);
+  --bgm-bg: color-mix(in srgb, var(--bgm-primary) 9%, #fff);
+  --bgm-sunken: color-mix(in srgb, var(--bgm-primary) 15%, #fff);
+
+  --bgm-text: #444;
+  --bgm-text-strong: #333;
+  --bgm-text-muted: #666;
+  --bgm-text-weak: #999;
+  --bgm-text-disabled: #aaa;
+
+  /* 描边：同样走粉调，三档深浅由主色混白比例表达（原 #ddd / #eee / #e0e0e0） */
+  --bgm-border: color-mix(in srgb, var(--bgm-primary) 36%, #fff);
+  --bgm-border-soft: color-mix(in srgb, var(--bgm-primary) 20%, #fff);
+  --bgm-dotted: color-mix(in srgb, var(--bgm-primary) 30%, #fff);
+  /* 表单控件描边：比 hairline 再深一档，保证输入框边界可辨 */
+  --bgm-input-border: color-mix(in srgb, var(--bgm-primary) 42%, #fff);
+  /* 这里原有 `--bgm-close-icon`（站点 #TB_closeWindowButton 的 15px 细线 ×，以 mask 形式保存的
+     约 1.9 KB data URI）与 `--bgm-tint`（提示条浅块底，主色 26% 混白）。**两枚均已删除（零引用）**：
+     关闭键改用文字 `×` 字形（modal.css 的 `.dlgCloseTop`，见 Modal.tsx），
+     所有浅块底统一走 `--bgm-sunken`（主色 15%）。 */
+  /* 柔光渐变端点（进度条与统计竖柱的**浅端**）：`#ffd9d3` 不是纯「主色混白」
+     出来的（反解配比 R 0% / G 24.7% / B 30.8%，三通道不一致），所以保留精确值。
+     由 `.contentProgressBar` 与 `.contentStatColumnBar` 消费。 */
+  --bgm-primary-mist: #ffd9d3;
+}

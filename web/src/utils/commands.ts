@@ -1,13 +1,5 @@
-import type { CommandOptionView } from '../../../bangumi/src/web/protocol';
-
-/** 命令候选条目；本地命令带 action，后端命令只带 value。 */
-export interface CommandHint {
-  value: string;
-  label: string;
-  hint: string;
-  /** 需要浏览器侧处理的动作；后端命令没有它，按原样提交给宿主。 */
-  action?: 'help' | 'details' | 'exit' | 'model' | 'sessions' | 'new';
-}
+import type { CommandHint } from '../types/commands';
+import type { CommandOptionView } from '../types/protocol';
 
 /**
  * 只有前端能做的事情才留在本地表：切换本地菜单、展开过程折叠块、提示关闭标签页。

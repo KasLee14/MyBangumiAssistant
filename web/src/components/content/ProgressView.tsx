@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import type { ProgressView as ProgressViewModel } from '../../../../bangumi/src/web/protocol';
+import type { ProgressView as ProgressViewModel } from '../../types/protocol';
 
 type Episode = NonNullable<ProgressViewModel['episodes']>[number];
 type EpisodeState = Episode['state'];

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { InfoBoxView } from '../../../../bangumi/src/web/protocol';
+import type { InfoBoxView } from '../../types/protocol';
 
 /**
  * 键值信息栏（条目页左栏 infobox）。

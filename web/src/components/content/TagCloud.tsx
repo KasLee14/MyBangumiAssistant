@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { TagCloudItemView } from '../../../../bangumi/src/web/protocol';
+import type { TagCloudItemView } from '../../types/protocol';
 import { GlareHover } from '../motion/vendor/GlareHover';
 
 /**

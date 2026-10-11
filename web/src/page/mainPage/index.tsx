@@ -6,7 +6,7 @@ import {
 } from '../../store/hooks';
 import { usePacing } from '../../store/pacing';
 import { useStreamSubscription } from '../../store/stream';
-import { Shell } from './Shell';
+import { Shell } from './components/shell/Shell';
 
 /**
  * 主界面薄壳：五个生命周期订阅 + 外壳装配。
