@@ -33,10 +33,12 @@ export interface StageProps {
    * 收尾播放：流式已经结束，但屏幕上的字还没播完。
    *
    * 此时宿主已经把这一轮的回答落成条目，而流式区还在逐字显示同一段正文——所以要把
-   * **最后一轮**的助手正文藏起来，由流式区独占。这也是它能无缝交接的原因：位置不变、
+   * `pacedTurn` 所属回合的最后一条助手正文藏起来，由流式区独占。交接时位置不变、
    * 文本相同（流式区与条目走同一个 `MessageBlocks`）。
    */
   pacedTail: boolean;
+  /** 流式显示正文所属的宿主轮次；调试预览可省略。 */
+  pacedTurn?: number | null;
   /** `/details` 递增的展开计数。 */
   reveal: number;
   /**
@@ -60,7 +62,7 @@ export interface StageProps {
 
 export function Stage({
   items, liveContent, liveThinking, busy, status, cancelling, startedAt,
-  sessionId, reveal, pacedTail, openMap, onToggleProcess, onToggleRow, onConfirm, onReject,
+  sessionId, reveal, pacedTail, pacedTurn, openMap, onToggleProcess, onToggleRow, onConfirm, onReject,
   composer, hero, pendingEcho,
 }: StageProps): ReactNode {
   const [activeTurn, setActiveTurn] = useState<number | null>(null);
@@ -75,6 +77,9 @@ export function Stage({
   // 投影只在条目真正变化时重算：流式帧只改标量，items 引用不变，于是 turns 引用稳定，
   // 配合 Turn 的 memo 让历史轮次整体跳过重渲染。
   const turns = useMemo(() => projectTurns(items), [items]);
+  const streamingTurn = pacedTurn ?? turns.at(-1)?.turn;
+  const streaming = <Streaming liveContent={liveContent} liveThinking={liveThinking}
+    busy={busy} status={status} cancelling={cancelling} startedAt={startedAt} />;
   // 轮次导航只标记真实对话轮次；没有用户消息的前导项不算一轮。
   // （C34 决策删掉了会话头，所以这里不再有「会话头占据内容流前导」这件事。）
   const railTurns = useMemo(() => turns.filter(turn => turn.user !== null), [turns]);
@@ -182,13 +187,13 @@ export function Stage({
           {heroPhase ? hero : (
             <div className="appStageFlow" ref={flow}>
               <div className="appStageColumn">
-                {turns.map((turn, index) => (
+                {turns.map(turn => (
                   <Turn
                     key={turn.id}
                     turn={turn}
-                    running={busy && index === turns.length - 1}
-                    // 收尾播放只为最后一轮让位：更早的轮次与流式区无关。
-                    hideAssistant={pacedTail && index === turns.length - 1}
+                    running={busy && turn.turn === streamingTurn}
+                    hideAssistant={pacedTail && turn.turn === streamingTurn}
+                    streaming={turn.turn === streamingTurn ? streaming : undefined}
                     reveal={reveal}
                     openMap={openMap}
                     onToggleProcess={onToggleProcess}
@@ -197,15 +202,8 @@ export function Stage({
                     onReject={onReject}
                   />
                 ))}
+                {turns.length === 0 ? streaming : null}
                 {pendingEcho}
-                <Streaming
-                  liveContent={liveContent}
-                  liveThinking={liveThinking}
-                  busy={busy}
-                  status={status}
-                  cancelling={cancelling}
-                  startedAt={startedAt}
-                />
               </div>
             </div>
           )}

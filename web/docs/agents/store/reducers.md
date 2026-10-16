@@ -117,9 +117,10 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 |---|---|---|
 | `liveContent` | 宿主下发的**权威值**（协议标量，每帧整份覆盖） | `stream/frame`、`stream/delta` |
 | `pacedTarget` | 摊平正在追赶的**目标** | 流式期等于 `liveContent`；流式结束那一帧被**冻住**；`stream/pacedDone` 清空 |
-| `displayedContent` | **屏幕上的那一份**（组件经 `selectDisplayedContent` 读它） | `stream/paced` 推进；`stream/frame` 在本帧不进入收尾时跟随权威值；`stream/pacedDone` 清空 |
+| `displayedContent` | **屏幕上的那一份**（组件经 `selectDisplayedContent` 读它） | `stream/paced` 推进；同轮全量帧保留显示进度；换轮或换会话时对齐权威值；`stream/pacedDone` 清空 |
+| `pacedTurn` | 显示正文所属的宿主轮次，前端本地字段 | `stream/frame` 从最后一条宿主轮次边界读取，换会话重新建立 |
 
-后两个是**前端本地字段**：协议里没有它们，`INITIAL_STREAM_STATE` 里都是 `[]`。
+后三个是**前端本地字段**：协议里没有它们；两个数组初始为 `[]`，`pacedTurn` 初始为 `null`。
 
 **为什么要有投影**：上游正文以**突发批次**到达（宿主每 16ms 合并一帧，实测每帧正文中位数 10 字符；窗口 40ms 时中位数 27 字符、单帧最多 127 字符）。按到达直接渲染就是"停一下、冒十几个字"。同期把窗口收到 16ms 并发增量帧之后，浏览器长任务从每轮 24 个（最大 286ms）降到 0 个；但每帧仍可能有几个到十几个字，所以显示要再按**时间**摊平一次（实测 59.5 字/秒）。
 
@@ -135,20 +136,22 @@ return { ...state, ...frame.state, instanceId: frame.instanceId, revision: frame
 **收尾播放**：`stream/frame` 里除了上面三条帧合并规则，还要决定这一帧要不要让投影"继续播完"：
 
 ```ts
-const nextRound = frame.items.some(item => item.kind === 'user');
+const nextRound = owner !== state.pacedTurn; // owner 来自合并后的最后一条宿主轮次边界
 const tail = !switched && !nextRound
   && live.length === 0 && state.pacedTarget.length > 0 && state.displayedContent.length > 0;
 // ...
 pacedTarget: tail ? state.pacedTarget : live,
-displayedContent: tail ? state.displayedContent : live,
+displayedContent: tail || (!switched && !nextRound && live.length > 0)
+  ? state.displayedContent : live,
+pacedTurn: owner,
 ```
 
-即：**权威正文刚被清空**（`live.length === 0`，说明流式这一轮结束）、**不是换会话**、**本帧没有新的 `user` 条目**，且两个本地字段都非空时，把 `pacedTarget` / `displayedContent` **冻在上一帧的值上**，让剩下的字播完；其余情况两者都跟随权威值 `live`。
+即：权威正文清空、未换会话且宿主轮次不变时，保留未播完的目标与显示进度。同轮全量重发包含历史用户消息不算新轮；流式继续时全量帧更新目标，显示进度仍由 pacing 推进。纯思考增量也不清除收尾目标。
 
 两个"不让位"的分支各对应一种错：
 
 - **换会话**（`switched`）：整块状态重建，旧会话的尾巴不能带进新会话；
-- **本帧出现新的 `user` 条目**（`nextRound`）：旧回答的尾巴若继续播，会挂在新问题下面。
+- **宿主轮次改变**（`nextRound`）：旧回答立即交回原回合的历史条目，新轮显示状态重新建立。
 
 **违反后果**：不冻住 → 最后一段直接跳出来（实测显示到 475/545 就消失，用户看到的是"回答没写完"）；把 `nextRound` 那条判据漏掉 → 旧回答的尾巴显示在新一轮问答下面；把 `live.length === 0` 那条判据漏掉（流式期就判定为收尾）→ 目标与投影一起冻住，屏幕上的正文停住不再增长。
 
@@ -165,7 +168,7 @@ displayedContent: tail ? state.displayedContent : live,
 
 ### 乐观回显的撤下条件（`pendingEcho`）
 
-同一个 reducer 里维护 `pendingEcho`：本帧条目里出现**同文本的 user 条目**（宿主确认），或**帧的 `sessionId` 与回显记录的不一致**（换会话了），即撤下。
+同一个 reducer 里维护 `pendingEcho`：合并后的条目出现同文本且 `id > afterItemId` 的 user 条目（宿主确认），或帧的 `sessionId` 与回显记录不一致（换会话），即撤下。`afterItemId` 是提交前已有条目的最大 ID，同文历史消息不能确认新提交；请求失败只撤下属于该请求的本地回显。
 
 **必须放在 reducer，不能放进组件 effect**：这样"何时撤下"与帧处理在同一处、同一时刻决定，组件不必再为此挂副作用，也不会出现"帧已到、effect 还没跑"的空窗。
 

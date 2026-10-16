@@ -115,7 +115,7 @@ const doSomething = async (arg: string): Promise<void> => {
 几个容易忽略的行为：
 
 - `send(input)` 会在发出前拦截**未登记的斜杠命令**（不在 `catalog.commands` 里就只提示，不发宿主）；
-- `optimisticSend(input)` = `send` + 写入 `pendingEcho`；斜杠命令不写回显（它不产生对话轮次，气泡会挡在结果前面）；
+- `optimisticSend(input)` = `send` + 写入 `pendingEcho`（文本、会话 ID、提交前条目最大 ID）；失败只清理本次回显，历史同文提问不能提前确认新提交。斜杠命令不写前端乐观回显，由宿主建立回合并回显；
 - `openSettings(pane)` / `openSessions()` 会**先重取目录再打开**（失败则用已缓存的一份，让行内值可能略旧但不阻塞打开）；
 - `pickSession(session)` 先关弹窗再切会话；
 - `togglePinned(sessionId)` 是**纯本地**动作：只 `dispatch(pinnedToggled(sessionId))`，不发请求、不发提示，落盘由 `store/index.ts` 的订阅完成（见 [reducers.md](reducers.md) §规则「`ui/pinnedToggled` 只改数组，落盘交给订阅」）；

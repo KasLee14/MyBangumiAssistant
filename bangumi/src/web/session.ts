@@ -85,7 +85,7 @@ enum AgentSessionEventType {
    * `tool_execution_end` 落到条目上，重复处理只会多出一个真相，因此这里不列它。
    */
   TurnStart = "turn_start",
-  /** 新消息写入会话：本轮输入已回显时跳过 user 消息，避免出现重复条目。 */
+  /** 新消息写入会话：只消费当前提交的回显标记，其余 user 输入先建立轮次。 */
   MessageStart = "message_start",
   /** 助手消息的流式增量：从 `partial.content` 投影出流式内容块，不产生会话条目。 */
   MessageUpdate = "message_update",
@@ -363,8 +363,11 @@ export class WebSession {
     fail: (error: unknown) => void;
   } | null = null;
   private nextLoginId = 1;
-  /** 本轮输入是否已经回显，用于避免真实 user 消息重复出现。 */
-  private echoPending = false;
+  /** Web 提交按会话串行消费，等待期间不触发 Pi 的 input/展示状态重置。 */
+  private readonly submissions: string[] = [];
+  private submitting = false;
+  private disposed = false;
+  private activeSubmission: { echoPending: boolean } | null = null;
 
   constructor(options: WebSessionOptions) {
     this.runtime = options.runtime;
@@ -405,7 +408,7 @@ export class WebSession {
     this.stepStartedAt = 0;
     this.firstTokenTime = 0;
     this.thinkingStartedAt = 0;
-    this.echoPending = false;
+    this.activeSubmission = null;
     this.settlePending(false);
     this.rebuild();
     // 切换会话后重新取一次累计：新会话自己的历史也算进来，不残留上一个会话的数字。
@@ -470,7 +473,7 @@ export class WebSession {
         (message) => message.role === "user" || message.role === "assistant",
       ).length,
       current: false,
-      busy: this.busy,
+      busy: this.busy || this.submitting,
       awaitingConfirmation: this.pending !== null,
       awaitingLogin: this.login !== null || this.loginBusy,
     };
@@ -485,7 +488,7 @@ export class WebSession {
     const model = session.model;
     return {
       ready: true,
-      busy: this.busy,
+      busy: this.busy || this.submitting,
       cancelling: this.cancelling,
       startedAt: this.startedAt,
       status: this.status,
@@ -934,8 +937,8 @@ export class WebSession {
         this.cancelling = false;
         this.startedAt = Date.now();
         this.status = "正在处理";
-        // 一次提交 = 一个用户回合；浏览器按这个回合切分轮次，不再按 user 条目猜。
-        if (!this.recoveryPending) this.openTurn();
+        // Web 提交已在回显前开轮；无 Web 提交的 agent 启动才需要补建。
+        if (!this.activeSubmission && !this.recoveryPending) this.openTurn();
         break;
       case AgentSessionEventType.TurnStart:
         // 一次模型响应开始：步序号递增，并记下本步起点（首 token 延迟的基准）。
@@ -947,13 +950,22 @@ export class WebSession {
         const message = event.message;
         if (message.role === "user") {
           // 提交时已经回显过本轮输入；扩展命令不会产生 user 消息，所以这里才需要去重。
-          if (this.echoPending) {
-            this.echoPending = false;
+          if (this.activeSubmission?.echoPending) {
+            this.activeSubmission.echoPending = false;
             break;
           }
           const text = messageText(message);
-          if (text.trim())
+          if (text.trim()) {
+            // 非 Web 注入的用户输入同样必须先有边界；turn_start 已在此事件前发出。
+            const boundary = this.turnItems.get(this.currentTurn);
+            if (!boundary || this.items.some(item => item.kind === 'user' && item.id > boundary.id)) {
+              this.closeTurn(this.turnStatus);
+              this.openTurn();
+            }
+            this.currentStep = 1;
+            this.stepStartedAt = Date.now();
             this.push({ id: this.nextItemId++, kind: "user", text });
+          }
         } else if (message.role === "assistant" && this.currentStep === 0) {
           // `turn_start` 缺失时的兜底：步序号至少为 1，否则条目会落到「第 0 步」。
           this.currentStep = 1;
@@ -1449,32 +1461,53 @@ export class WebSession {
   async submit(input: string): Promise<void> {
     const text = input.trim();
     if (!text) throw new AppError("INVALID_INPUT", "输入不能为空。");
+    if (this.disposed) throw new AppError('WEB_CLOSED', 'Web 会话已关闭。');
     if (this.pending)
       throw new AppError(
         "CONFIRMATION_PENDING",
         "请先在浏览器中处理待确认的修改预览。",
       );
-    const session = this.runtime.session;
-    // 先回显本轮输入：扩展命令（例如 /bangumi-login-status）不产生 user 消息，
-    // 若不回显，浏览器会一直停在首屏，命令结果也无处显示。
-    this.echoPending = true;
-    this.push({ id: this.nextItemId++, kind: "user", text });
-    this.emit();
-    const options = session.isStreaming
-      ? { streamingBehavior: "followUp" as const }
-      : {};
-    void session
-      .prompt(text, options)
-      .catch((error) => {
-        this.hostProcess(exceptionErrorView(error).text);
-        if (!this.terminalReported) this.finishIncomplete();
-        this.closeTurn('error');
+    this.submissions.push(text);
+    if (!this.submitting) void this.drainSubmissions();
+  }
+
+  private async drainSubmissions(): Promise<void> {
+    this.submitting = true;
+    try {
+      while (!this.disposed && this.submissions.length > 0) {
+        const session = this.runtime.session;
+        // 等恢复、重试及压缩彻底结束后，才允许下一条输入重置展示资源。
+        await session.waitForIdle();
+        if (this.disposed) break;
+        const text = this.submissions.shift()!;
+        this.openTurn();
+        const submission = { echoPending: true };
+        this.activeSubmission = submission;
+        this.startedAt = Date.now();
+        this.status = '正在处理';
+        // 轮次边界和回显在同一帧发布；无模型调用的扩展命令也保留回显。
+        this.push({ id: this.nextItemId++, kind: 'user', text });
         this.emit();
-      })
-      // 本轮结束后复位：user 消息一定在本轮内出现，残留标记会影响下一轮。
-      .finally(() => {
-        this.echoPending = false;
-      });
+        try {
+          await session.prompt(text);
+          await session.waitForIdle();
+        } catch (error) {
+          if (!this.disposed && this.activeSubmission === submission) {
+            this.hostProcess(exceptionErrorView(error).text);
+            if (!this.terminalReported) this.finishIncomplete();
+            this.turnStatus = 'error';
+          }
+        } finally {
+          if (this.activeSubmission === submission) {
+            this.closeTurn(this.turnStatus);
+            this.activeSubmission = null;
+          }
+        }
+      }
+    } finally {
+      this.submitting = false;
+      if (!this.disposed) { this.startedAt = 0; this.status = ''; this.emit(); }
+    }
   }
 
   async cancel(): Promise<void> {
@@ -1761,6 +1794,8 @@ export class WebSession {
   }
 
   async dispose(): Promise<void> {
+    this.disposed = true;
+    this.submissions.length = 0;
     this.cancelLogin();
     this.loginDraft = null;
     this.unsubscribe?.();

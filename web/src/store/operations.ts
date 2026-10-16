@@ -30,6 +30,7 @@ import {
   credentialProviderSet,
   noticeSet,
   pendingEchoSet,
+  pendingEchoCleared,
   pinnedToggled,
   problemSet,
   revealIncremented,
@@ -148,10 +149,14 @@ export function createActions(store: AppStore): Actions {
     const text = input.trim();
     if (!text) return Promise.resolve();
     const started = send(input);
-    // 斜杠命令不产生对话轮次，回显气泡反而会挡在结果前面。
+    // 斜杠命令由宿主统一回显，前端不再添加临时气泡。
     if (text.startsWith('/') && !text.includes('\n')) return started;
-    dispatch(pendingEchoSet({ text, sessionId: state().stream.sessionId }));
-    return started;
+    const echo = { text, sessionId: state().stream.sessionId, afterItemId: state().stream.items.at(-1)?.id ?? 0 };
+    dispatch(pendingEchoSet(echo));
+    return started.catch(error => {
+      if (state().stream.pendingEcho === echo) dispatch(pendingEchoCleared());
+      throw error;
+    });
   };
 
   const switchSession = async (session?: SessionOptionView): Promise<void> => {

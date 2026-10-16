@@ -25,7 +25,7 @@
 
 `kind === 'turn'` 的条目**开启一个轮次组**：它是边界标记（起止时间、`status`、`messageCount` / `toolCallCount`、每轮 `usage`），本身不承载过程或正文。宿主在两个时刻发它：
 
-- **实时**：Pi 的 `agent_start` 开一轮、`agent_end` 封口（`session.ts` 的 `openTurn` / `closeTurn`）；
+- **实时**：宿主串行消费 Web 提交时先开轮、再加入用户回显，两者同帧发布；Pi 的 `agent_start` 复用该回合。恢复沿用同一回合，消费下一条排队输入前必须等待 Pi 静默（`session.ts` 的 `drainSubmissions` / `openTurn` / `closeTurn`）；
 - **历史重建**：落盘条目没有轮次字段（`SessionEntryBase` 只有 id/parentId/timestamp），宿主按「一条 user 消息开启一个用户回合」推导，规则与实时路径一致。
 
 **正因为它存在，前端才不需要「按 user 条目猜轮次」**——那是改造前的做法，宿主一换分组规则界面就不会跟。

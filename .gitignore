@@ -9,11 +9,9 @@
 /tests/
 /scripts/
 /.github/
-bangumi/tests/
 bangumi/scripts/
 bangumi/benchmarks/
-!bangumi/benchmarks/
-bangumi/benchmarks/*
+bangumi/test/
 bangumi/artifacts/
 !bangumi/benchmarks/component-tools-cases.json
 !bangumi/benchmarks/presentation-cases.json

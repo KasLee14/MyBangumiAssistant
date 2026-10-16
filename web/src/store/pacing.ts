@@ -83,6 +83,7 @@ export function advanceFrame(target: MessageBlock[], displayed: MessageBlock[], 
   if (real === undefined || shown === undefined) return null;
   // 最后一块不是文本块（内容块骨架等）时没有可摊平的字，直接对齐。
   if (real.type !== 'text' || shown.type !== 'text') return target;
+  if (!real.text.startsWith(shown.text)) return target;
   const backlog = real.text.length - shown.text.length;
   if (backlog <= 0) return null;
   if (backlog > MAX_BACKLOG) return target;

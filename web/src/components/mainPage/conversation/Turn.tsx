@@ -83,7 +83,7 @@ function BodyItem({ item, onConfirm, onReject }: {
 }
 
 export const Turn = memo(function Turn({
-  turn, running, reveal, hideAssistant = false,
+  turn, running, reveal, hideAssistant = false, streaming,
   openMap, onToggleProcess, onToggleRow, onConfirm, onReject,
 }: {
   turn: TurnGroup;
@@ -94,6 +94,8 @@ export const Turn = memo(function Turn({
    * （流式区与历史条目是同一个渲染入口，同时出现就是屏幕上两份同样的回答）。
    */
   hideAssistant?: boolean;
+  /** 当前轮次的流式正文、思考及状态行。 */
+  streaming?: ReactNode;
   /** 过程区的展开状态表（键见 `utils/process.ts`）；引用稳定时本组跳过重渲染。 */
   openMap: Readonly<Record<string, boolean>>;
   onToggleProcess(key: string, open: boolean): void;
@@ -101,7 +103,12 @@ export const Turn = memo(function Turn({
   onConfirm(id: string): void;
   onReject(id: string): void;
 }): ReactNode {
-  const body = hideAssistant ? turn.body.filter(item => item.kind !== 'assistant') : turn.body;
+  let lastAssistant: TranscriptItemView | undefined;
+  if (hideAssistant) for (let index = turn.body.length - 1; index >= 0; index--) {
+    const item = turn.body[index];
+    if (item?.kind === 'assistant') { lastAssistant = item; break; }
+  }
+  const body = lastAssistant ? turn.body.filter(item => item !== lastAssistant) : turn.body;
   const key = turnProcessKey(turn.turn);
   /**
    * 整轮过程的默认开合：**进行中的轮展开，历史轮折叠**（对齐 DSH 的默认呈现）。
@@ -137,6 +144,7 @@ export const Turn = memo(function Turn({
         {body.map(item => (
           <BodyItem key={item.id} item={item} onConfirm={onConfirm} onReject={onReject} />
         ))}
+        {streaming}
         {/* 收尾播放期间这一轮由流式区独占，操作行也跟着让位，避免出现又消失。 */}
         {hideAssistant ? null : <TurnActions turn={turn} />}
       </div>

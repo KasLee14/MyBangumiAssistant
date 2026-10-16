@@ -108,12 +108,12 @@ const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 
 **违反后果**：每帧重渲染整棵会话树。
 
-### 收尾播放期间最后一轮必须让位，光标只在 `busy` 时渲染
+### 收尾播放按所属轮次让位，光标只在 `busy` 时渲染
 
 三个 prop 是同一件事的三个必要条件，缺一个就在屏幕上露馅：
 
-- **`Stage` 的 `pacedTail`（必填）**：流式已经结束、但屏幕上的字还没播完（显示投影还在追赶 `pacedTarget`，见 [`store/pacing.ts`](../../../src/store/pacing.ts)）。`Stage` 只把它交给**最后一个** `Turn`：`hideAssistant={pacedTail && index === turns.length - 1}`——更早的轮次与流式区无关。
-- **`Turn` 的 `hideAssistant?: boolean`（默认 `false`）**：为真时先从 `turn.body` 过滤掉 `kind === 'assistant'` 的条目再渲染。收尾期间宿主已经把这一轮的回答落成条目，而流式区还在逐字显示同一段正文，不隐藏就是屏幕上两份同样的回答。
+- **`Stage` 的 `pacedTail`（必填）与 `pacedTurn`（可选）**：流式结束但正文未播完时，只让 `pacedTurn` 对应的 `Turn` 让位；调试预览省略轮次时回退到最后一组。`Streaming` 作为 props 槽位放在所属 `Turn` 的正文后、操作行前；无轮次时才在列表末尾显示。乐观回显放在其后，避免追问插进当前回答之前。
+- **`Turn` 的 `hideAssistant?: boolean`（默认 `false`）**：仅隐藏该轮最后一条助手正文，保留同轮前面已经完成的正文；收尾期间隐藏操作行。播完后历史条目接管，不重复显示。
 - **`Streaming` 的 `cursor`（= `busy`）**：为假时**不渲染**末尾的流式光标行（`LiveBlocks` 的 `cursor: boolean`）。光标表达的是「这一轮还在写」，而收尾播放期间宿主那一轮已经结束。
 
 **为什么能无缝交接**：位置不变、文本相同——流式区与历史条目走同一个 `MessageBlocks`（[AGENTS.md](../../../AGENTS.md) §规则 跨层强制约束第 5 条）。实测：流式结束时显示停在 36/200 字，随后按约 60 字/秒继续播完；期间最后一轮的助手正文被隐藏（`.assistantBody` 计数为 0），播完后条目接管（计数变 1）。
@@ -153,7 +153,7 @@ const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 
 `Turn` 只做装配，顺序是固定的：**用户气泡 → 过程区（`process.length > 0` 才渲染）→ 主体（`body` 逐条交 `BodyItem`）→ 轮尾操作行**。两边各有一条容易改错的约束：
 
-- `hideAssistant` 为真时**先从 `body` 里过滤掉 `assistant` 条目**再渲染（收尾播放的让位，见上一条），并且**不渲染 `TurnActions`**——否则操作行会随流式结束出现又消失；
+- `hideAssistant` 为真时只让最后一条助手正文为流式槽位让位，保留先前助手条目，并且不渲染 `TurnActions`；
 - 过程区的开合由两个 prop 决定：`openMap: Record<string, boolean>`（键见 [../utils/process.md](../utils/process.md)）与 `onToggleProcess(key, open)`；`Turn` 自己不 `useState`。理由：内容组件不读 store（[AGENTS.md](../../../AGENTS.md) §规则 跨层强制约束第 1 条），而且这些状态要跨流式帧存活、并在会话切换轮次重建后仍能恢复（见 [../store/readme.md](../store/readme.md) §状态边界）。`Shell` 与 `DebugPreview` 都用 `useCallback` 固定回调引用——`Turn` 与 `ProcessGroup` 都是 `memo`，每次新建回调会让它们在流式帧里全部重渲染。
 
 **默认开合**：`openMap[key]` 为 `undefined` 时走默认值「**进行中的轮展开、历史轮折叠**」（`running` 就是默认值）；一旦有记录值，**一律以用户的显式选择为准**——`false` 表示「用户主动折过」，不能被默认值覆盖，否则进行中的轮会被重新拉开。
@@ -236,8 +236,8 @@ const SEAT_BRANCHES: SeatBranch[] = [ /* confirmation, … */ ];
 | `shell/` | `Sidebar.tsx` | **唯一外壳**，自上而下：品牌行（品牌 `data-debug-toggle`，双击或回车/空格进调试页 + 8px 连接状态点 `.appSidebarStatus` + 折叠钮）+ 实心主色整行「开启新对话」（`.appSidebarNew`，侧栏唯一的主色实心操作）+ 分组列表（置顶 / 今天 / 昨天 / 7 天内 / 更早）+ 底部用户行（头像 + 用户名 + 齿轮设置入口 `.appIconButton`，**单击直达设置**——原「···」浮层菜单已按 [C45](../../design/decisions/C45-settings-entry.md) 定稿 B 删除）。行用共享基类 `.appNavRow`、逐项入场交给 `<Stagger>`；行 hover 时行尾的时间**换成**「···」按钮（`.appNavAction`）→ 置顶 / 取消置顶 | `catalog.sessions`、`stream.sessionId`、`stream.connected`、`stream.loginUsername`、`ui.collapsed`、`ui.switching`、`ui.pinned` | `toggleSidebar`、`newSession`、`resumeSession`、`togglePinned`、`openSettings(null)` |
 | | `CollapseBubbles.tsx` | 收起态左上角的两个带文字胶囊（展开 / 新对话），绝对定位在 `.appFrame` 上（不参与 grid），只在收起态可见 | —（只取动作） | `toggleSidebar`、`newSession` |
 | | `icons.tsx` | 外壳图标（`PanelIcon` / `EditIcon` / `GearIcon`），统一 16×16 显示 / 视觉线宽 1.4px / `currentColor`（`GearIcon` 画在 24 网格上，线宽写 2.1 折算） | — | — |
-| `conversation/` | `Stage.tsx` | 滚动容器、轮次列表、流式区、轮次导轨、贴底跟随（`ResizeObserver` 观察 `.appStageFlow`，见 §规则）；`pacedTail` 期间把最后一个 `Turn` 的助手正文藏起来；过程区的开合状态（`openMap`）与两个回调由它透传给 `Turn` | —（props） | —（props） |
-| | `Turn.tsx` | 一个轮次，固定四段：用户气泡 → 过程区（`TurnProcessBar` + `ProcessGroup`）→ 主体（`body` 逐条走 `BodyItem`）→ 轮尾 `TurnActions`；`hideAssistant`（可选，默认 `false`）为真时先过滤掉 `kind === 'assistant'` 的条目**并藏起操作行**；过程开合只读 `openMap` 并回调 `onToggleProcess` / `onToggleRow` | — | — |
+| `conversation/` | `Stage.tsx` | 滚动容器、轮次列表、流式区、轮次导轨、贴底跟随；按 `pacedTurn` 把流式槽位交给所属回合，收尾时隐藏该轮最后一条助手正文；过程开合 props 透传 | —（props） | —（props） |
+| | `Turn.tsx` | 用户气泡 → 过程区 → 历史正文 → 流式槽位 → 轮尾操作行；`hideAssistant` 只隐藏最后一条助手正文及操作行，保留先前正文；过程开合 props 驱动 | — | — |
 | | `ProcessGroup.tsx` | `TurnProcessBar`（轮首控制行：状态 / 耗时 / 「N 步」，`reveal` 递增时强制展开）与 `ProcessGroup`（过程行列表，`hidden="until-found"` 折叠容器）；一轮只有一级折叠 | — | — |
 | | `ProcessRows.tsx` | 过程区的两种原子行：`ReasoningRow`（思考）、`ToolRow`（工具，含子调用递归与结果体）、按 `kind` 分发的 `ProcessRow`；导出折叠容器 hook `useUntilFound` | — | — |
 | | `ProcessIcons.tsx` | 过程区图标（14px / 线宽 1.4 / `currentColor`）：按工具族的 `ProcessIcon`、`ReasoningIcon`、`ChevronIcon` | — | — |

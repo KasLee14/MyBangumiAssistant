@@ -43,6 +43,7 @@ export function Shell(): ReactNode {
   const pendingEcho = useAppSelector(state => state.stream.pendingEcho);
   // 收尾播放：历史条目里已经落库的同一段回答要让位给流式区（见 Stage 的同名 prop）。
   const pacedTail = useAppSelector(selectPacedTail);
+  const pacedTurn = useAppSelector(state => state.stream.pacedTurn);
   const reveal = useAppSelector(state => state.ui.reveal);
   /** 过程区的展开状态表：整轮与单个过程行共用同一张表（键不同，见 `utils/process.ts`）。 */
   const openMap = useAppSelector(state => state.ui.processOpen);
@@ -75,6 +76,7 @@ export function Shell(): ReactNode {
             sessionId={sessionId}
             reveal={reveal}
             pacedTail={pacedTail}
+            pacedTurn={pacedTurn}
             openMap={openMap}
             onToggleProcess={toggleProcess}
             onToggleRow={toggleProcess}

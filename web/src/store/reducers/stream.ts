@@ -33,6 +33,8 @@ export const INITIAL_SCALARS: ChatScalarsView = {
  */
 export interface PendingEcho {
   text: string;
+  /** 提交前已有条目的最大 ID，避免同文历史消息误确认本次回显。 */
+  afterItemId?: number;
   /** 发出这条消息时的会话 id，用于判断失败回滚是否还属于同一次会话。 */
   sessionId: string;
 }
@@ -60,6 +62,8 @@ export interface StreamState extends ChatScalarsView {
    * 播完由 `stream/pacedDone` 收尾，屏幕交回历史条目。
    */
   pacedTarget: MessageBlock[];
+  /** 显示正文所属的宿主轮次；换轮时旧尾巴交回历史条目。 */
+  pacedTurn: number | null;
   /**
    * 前端本地状态：正在应答中的确认 id，null 表示没有应答在途。
    *
@@ -80,6 +84,7 @@ export const INITIAL_STREAM_STATE: StreamState = {
   pendingEcho: null,
   displayedContent: [],
   pacedTarget: [],
+  pacedTurn: null,
   answering: null,
 };
 
@@ -144,7 +149,7 @@ export function streamReducer(state: StreamState = INITIAL_STREAM_STATE, action:
       // 乐观回显：宿主确认（真实 user 条目出现）或换到别的会话后撤下。
       const echo = state.pendingEcho;
       const settledByHost = echo !== null
-        && items.some(item => item.kind === 'user' && item.text === echo.text);
+        && items.some(item => item.kind === 'user' && item.id > (echo.afterItemId ?? 0) && item.text === echo.text);
       const otherSession = echo !== null && frame.state.sessionId !== echo.sessionId;
       const pendingEcho = echo === null || settledByHost || otherSession ? null : echo;
       // 应答在途：宿主已经给出结论（本帧的 pending 不再是那一条）或整体换了会话时
@@ -162,14 +167,21 @@ export function streamReducer(state: StreamState = INITIAL_STREAM_STATE, action:
        * 两种情况下不让位：换会话（整体重建）、新一轮的用户消息已经落条目（旧回答的尾巴
        * 若继续播，会挂在新问题下面）。
        */
-      const nextRound = frame.items.some(item => item.kind === 'user');
+      let owner: number | null = null;
+      for (let index = items.length - 1; index >= 0; index--) {
+        const item = items[index];
+        if (item?.kind === 'turn') { owner = item.turn; break; }
+      }
+      const nextRound = owner !== state.pacedTurn;
       const tail = !switched && !nextRound
         && live.length === 0 && state.pacedTarget.length > 0 && state.displayedContent.length > 0;
       return {
         ...state, ...frame.state,
         instanceId: frame.instanceId, revision: frame.revision, items, connected: true, pendingEcho, answering,
         pacedTarget: tail ? state.pacedTarget : live,
-        displayedContent: tail ? state.displayedContent : live,
+        displayedContent: tail || (!switched && !nextRound && live.length > 0)
+          ? state.displayedContent : live,
+        pacedTurn: owner,
       };
     }
     case 'stream/delta': {
@@ -194,7 +206,7 @@ export function streamReducer(state: StreamState = INITIAL_STREAM_STATE, action:
         ...frame.delta.scalars,
         liveContent,
         // 流式期的摊平目标就是权威值；一旦真的开始输出，任何冻住的旧尾巴都让位。
-        pacedTarget: liveContent,
+        pacedTarget: liveContent.length === 0 ? state.pacedTarget : liveContent,
         liveThinking: state.liveThinking + frame.delta.thinking,
         revision: frame.revision,
         connected: true,
