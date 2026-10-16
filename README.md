@@ -22,9 +22,10 @@ MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然�
 node bootstrap-pi.mjs
 ```
 
-运行命令配置数据库：
+在bangumi文件夹下运行命令配置数据库：
 
 ```
+cd bangumi
 npm run data:init -- --proxy http://<你的代理地址>
 npm run data:status
 npm run data:verify
