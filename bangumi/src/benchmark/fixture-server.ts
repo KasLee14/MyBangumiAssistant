@@ -10,8 +10,24 @@ async function main(): Promise<void> {
   const authDir = process.env.BANGUMI_AUTH_DIRECTORY;
   if (!authDir) throw new Error('缺少 benchmark 认证目录。');
   const config = JSON.parse(readFileSync(join(authDir, 'benchmark-config.json'), 'utf8')) as WorkerConfig;
-  if (!['fixture', 'live-read'].includes(config.mode)) throw new Error('服务器运行模式无效。');
+  if (!['fixture', 'live-read', 'local-archive'].includes(config.mode)) throw new Error('服务器运行模式无效。');
   const module = (name: string) => import(pathToFileURL(join(config.runtimeRoot, 'bangumi/dist/src/mcp', name + '.js')).href);
+  if (config.mode === 'local-archive') {
+    if (!config.knowledgeDir) throw new Error('本地评测缺少明确的 knowledgeDir。');
+    // 只包裹生产服务装配；不替换工具结果、数据库查询、缓存和输出校验。
+    globalThis.fetch = async () => {
+      appendFileSync(join(config.outputDir, 'local-network-attempts.jsonl'), JSON.stringify({ timestamp: new Date().toISOString(), blocked: true }) + '\n');
+      throw new Error('BENCHMARK_LOCAL_NETWORK_BLOCKED');
+    };
+    const [{ createBangumiMcpServer }, { BangumiMcpService }] = await Promise.all([module('server'), module('service')]);
+    const service = new BangumiMcpService({ knowledgeDir: config.knowledgeDir }), server = createBangumiMcpServer(service);
+    let closed = false;
+    const close = async () => { if (closed) return; closed = true; await service.close(); await server.close(); };
+    process.once('SIGINT', () => { void close(); }); process.once('SIGTERM', () => { void close(); });
+    await server.connect(new StdioServerTransport());
+    process.stdin.once('end', () => { void close(); });
+    return;
+  }
   const [{ createBangumiMcpServer }, { BangumiMcpService }, { createMcpTransport }] = await Promise.all([module('server'), module('service'), module('transport')]);
   const router = config.mode === 'fixture' ? new FixtureRouter(config.fixture, config.outputDir) : null, savedAt = Date.now() - 1000;
   const network = createPiTransport(config.proxy), networkStarted = performance.now();

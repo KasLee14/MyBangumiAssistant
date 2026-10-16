@@ -15,11 +15,11 @@ import { record, validateCases, type BenchmarkCase, type RunObservation, type Wo
 export const PROJECT_ROOT = resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 const flags = new Set(['model', 'thinking', 'suite', 'case', 'tag', 'repeats', 'label', 'out', 'root', 'control-root',
   'agent-dir', 'proxy', 'mode', 'cases', 'timeout-ms', 'max-model-requests', 'max-tools', 'max-total-requests', 'baseline', 'candidate',
-  'baseline-variant', 'candidate-variant', 'recovery']);
+  'baseline-variant', 'candidate-variant', 'recovery', 'knowledge-dir']);
 export function parseArguments(args: string[]): { command: string; values: Record<string, string>; offline: boolean; help: boolean } {
   const command = args[0]?.startsWith('--') ? 'run' : args.shift() ?? 'run', values: Record<string, string> = {};
   let offline = false, help = false;
-  if (!['run', 'compare', 'list'].includes(command)) throw new Error('命令必须是 run、compare 或 list。');
+  if (!['run', 'compare', 'list', 'local'].includes(command)) throw new Error('命令必须是 run、compare、list 或 local。');
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
     if (arg === '--offline') { offline = true; continue; }
@@ -121,23 +121,28 @@ export async function runWorker(config: WorkerConfig): Promise<RunObservation> {
   });
 }
 async function run(values: Record<string, string>, offline: boolean): Promise<void> {
-  const mode = values.mode ?? 'fixture';
-  if (!['fixture', 'live-read'].includes(mode) || offline && mode !== 'fixture') throw new Error('运行模式必须是 fixture 或 live-read；offline只能使用fixture。');
+  const mode = values.mode ?? (offline ? 'fixture' : 'local-archive');
+  if (!['fixture', 'live-read', 'local-archive'].includes(mode) || offline && mode !== 'fixture') throw new Error('运行模式必须是 fixture、live-read 或 local-archive；offline只能使用fixture。');
   const root = resolve(values.root ?? PROJECT_ROOT), controlRoot = values['control-root'] ? resolve(values['control-root']) : null;
-  const casesPath = resolve(values.cases ?? join(PROJECT_ROOT, 'bangumi/benchmarks', mode === 'fixture' ? 'cases.json' : 'live-cases.json'));
-  const catalog = validateCases(JSON.parse(await readFile(casesPath, 'utf8')));
+  if (mode === 'local-archive' && !values['knowledge-dir']) throw new Error('local-archive 必须显式指定 --knowledge-dir，避免误用其他数据库。');
+  if (mode === 'local-archive' && controlRoot) throw new Error('local-archive 不能与旧 HTTP 版本配对；数据与工具协议不同，须分层报告。');
+  const knowledgeDir = values['knowledge-dir'] ? resolve(values['knowledge-dir']) : undefined;
+  const dataFingerprint = mode === 'local-archive' ? await (await import('./local.js')).datasetFingerprint(knowledgeDir!) : null;
+  const casesPath = resolve(values.cases ?? join(PROJECT_ROOT, 'bangumi/benchmarks', mode === 'local-archive' ? 'local-archive-cases.json' : mode === 'fixture' ? 'component-tools-cases.json' : 'live-cases.json'));
+  let catalog = validateCases(JSON.parse(await readFile(casesPath, 'utf8')));
+  if (mode === 'local-archive') catalog = await (await import('./local.js')).localCaseExpectations(root, knowledgeDir!, dataFingerprint!.snapshotId, catalog);
   const suite = values.suite ?? (offline ? 'smoke' : 'core');
   if (!['smoke', 'core', 'full'].includes(suite)) throw new Error('suite必须是 smoke、core 或 full。');
   const ids = values.case?.split(','), tags = values.tag?.split(',');
   if (ids?.some(id => !catalog.some(test => test.id === id))) throw new Error('case包含未登记案例。');
-  let cases = catalog.filter(test => ids ? ids.includes(test.id) : suite === 'smoke' ? test.id === 'facts-basic' : suite === 'core' ? test.core : true);
+  let cases = catalog.filter(test => ids ? ids.includes(test.id) : suite === 'smoke' ? test.id === (mode === 'local-archive' ? 'local-facts' : 'facts-basic') : suite === 'core' ? test.core : true);
   if (tags) cases = cases.filter(test => tags.some(tag => test.tags.includes(tag)));
   if (!cases.length) throw new Error('案例筛选结果为空。');
   if (offline && cases.some(test => test.id !== 'facts-basic' && !test.offlineScript)) throw new Error('offline只能执行facts-basic或已登记offlineScript，不替代真实模型benchmark。');
   if (!offline && cases.some(test => test.offlineScript)) throw new Error('offlineScript只能在--offline中执行，不混入真实模型结果。');
   const recovery = values.recovery ?? 'disabled';
   if (!['enabled', 'disabled'].includes(recovery)) throw new Error('recovery必须是enabled或disabled。');
-  if (mode === 'live-read' && cases.some(test => test.tags.includes('write') || test.confirmation === 'approve')) throw new Error('live-read不接受写入场景。');
+  if (mode !== 'fixture' && cases.some(test => test.tags.includes('write') || test.confirmation === 'approve')) throw new Error('只读数据模式不接受写入场景。');
   const model = values.model ?? (offline ? 'faux/faux-1' : '');
   if (!/^[^/\s]+\/\S+$/.test(model) || offline && model !== 'faux/faux-1') throw new Error('必须用 --model 显式指定 provider/model。');
   const thinking = values.thinking ?? 'off';
@@ -160,7 +165,7 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
   const modelsPath = join(agentDir, 'models.json');
   const modelConfigHash = () => !offline && existsSync(modelsPath) ? traceHash(traceRedact(JSON.parse(readFileSync(modelsPath, 'utf8')))) : null;
   const protocol = { schemaVersion: 1, cases: catalog, effectiveCases: cases, fixtures,
-    harnessHash: traceHash(fileHashes(dirname(fileURLToPath(import.meta.url)))), model, thinking, mode, offline,
+    harnessHash: traceHash(fileHashes(dirname(fileURLToPath(import.meta.url)))), model, thinking, mode, offline, dataFingerprint,
     modelConfigHash: modelConfigHash(),
     proxy, repeats, maxRequests, retry: recovery, sessions: 'fresh-per-case', cache: 'cold-application-cache', helperTitles: 'disabled',
     runtimeEnvironment: { node: process.version, platform: process.platform, arch: process.arch, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
@@ -187,7 +192,7 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
     const config: WorkerConfig = { runtimeRoot, outputDir: join(output, 'runs', task.variant, task.test.id, String(task.repeat)),
       case: task.test, fixture: fixtures[task.test.fixture]!, variant: task.variant, repeat: task.repeat,
       protocolHash, versionHash, model, thinking, mode: mode as WorkerConfig['mode'], agentDir, proxy, offline,
-      recovery: recovery as 'enabled' | 'disabled' };
+      recovery: recovery as 'enabled' | 'disabled', ...(knowledgeDir ? { knowledgeDir } : {}) };
     let result: RunObservation;
     if (spent >= maxRequests) { result = fallback(config, 'not_run', 'global_model_request_budget_exhausted');
       mkdirSync(config.outputDir, { recursive: true }); atomicJson(join(config.outputDir, 'result.json'), result); }
@@ -213,6 +218,12 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
     observation.outcome = 'incomplete_capture'; observation.captureIssues.push('model_config_changed');
     atomicJson(join(runPaths[observations.indexOf(observation)]!, 'result.json'), observation);
   }
+  if (mode === 'local-archive' && traceHash(await (await import('./local.js')).datasetFingerprint(knowledgeDir!)) !== traceHash(dataFingerprint)) {
+    for (const observation of observations) {
+      observation.outcome = 'incomplete_capture'; observation.captureIssues.push('dataset_version_changed');
+      atomicJson(join(runPaths[observations.indexOf(observation)]!, 'result.json'), observation);
+    }
+  }
   await save();
   process.stdout.write('报告：' + join(output, 'report.html') + '\n');
   if (observations.some(run => run.outcome !== 'passed')) process.exitCode = 1;
@@ -220,10 +231,16 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const { command, values, offline, help } = parseArguments([...args]);
   if (help) {
-    process.stdout.write('benchmark run --model provider/model [--thinking off] [--suite core|full] [--case id,id] [--tag tag] [--repeats 3] [--control-root PATH] [--out PATH] [--agent-dir PATH] [--mode fixture|live-read] [--proxy direct] [--recovery disabled|enabled] [--max-total-requests 500]\nbenchmark run --offline [--cases benchmarks/component-tools-cases.json --suite full --tag offline-script --recovery enabled]\nbenchmark compare --baseline RESULTS_JSON --candidate RESULTS_JSON --out PATH\nbenchmark list [--cases PATH]\n'); return;
+    process.stdout.write('benchmark run --model provider/model [--thinking off] [--suite core|full] [--case id,id] [--tag tag] [--repeats 3] [--control-root PATH] [--out PATH] [--agent-dir PATH] [--mode fixture|live-read|local-archive] [--knowledge-dir PATH] [--proxy direct] [--recovery disabled|enabled] [--max-total-requests 500]\nbenchmark local --knowledge-dir PATH [--repeats 10] [--out PATH]\nbenchmark run --offline [--cases benchmarks/component-tools-cases.json --suite full --tag offline-script --recovery enabled]\nbenchmark compare --baseline RESULTS_JSON --candidate RESULTS_JSON --out PATH\nbenchmark list [--cases PATH]\n'); return;
+  }
+  if (command === 'local') {
+    if (offline || !values['knowledge-dir']) throw new Error('local 使用生产 stdio MCP 和真实本地数据库，必须指定 --knowledge-dir；不接收 --offline。');
+    if (Object.keys(values).some(key => !['root', 'knowledge-dir', 'repeats', 'out'].includes(key))) throw new Error('local 仅接受 --root、--knowledge-dir、--repeats 和 --out；真实模型评测使用 run --mode local-archive。');
+    await (await import('./local.js')).runLocalBenchmark({ root: resolve(values.root ?? PROJECT_ROOT), knowledgeDir: resolve(values['knowledge-dir']),
+      repeats: positive(values.repeats, 10, 100), ...(values.out ? { output: resolve(values.out) } : {}) }); return;
   }
   if (command === 'list') {
-    const cases = validateCases(JSON.parse(await readFile(resolve(values.cases ?? join(PROJECT_ROOT, 'bangumi/benchmarks/cases.json')), 'utf8')));
+    const cases = validateCases(JSON.parse(await readFile(resolve(values.cases ?? join(PROJECT_ROOT, 'bangumi/benchmarks/local-archive-cases.json')), 'utf8')));
     for (const test of cases) process.stdout.write(test.id + '\t' + test.family + '\t' + (test.core ? 'core' : 'extended') + '\t' + test.tags.join(',') + '\n');
     return;
   }

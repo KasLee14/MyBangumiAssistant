@@ -92,7 +92,30 @@ export function projectPresentationContent(value: unknown): unknown {
       return facts;
     });
   }
-  return { type: part.type, props: part.props };
+  let modelProjection: Row | undefined = record(part.modelProjection) ? part.modelProjection : undefined;
+  // 只限制发给模型的历史副本；完整表格、信息栏和时间线仍保存在Web与会话原文。
+  const rowsKey = part.type === 'DataTable' || part.type === 'InfoBox' ? 'rows' : part.type === 'Timeline' ? 'entries' : undefined;
+  if (rowsKey && Array.isArray(part.props[rowsKey])) {
+    const original = part.props[rowsKey] as unknown[], maxRows = 30;
+    let budget = 12_000, truncatedCells = 0;
+    part.props[rowsKey] = original.slice(0, maxRows).map(row => {
+      if (!record(row)) return row;
+      return Object.fromEntries(Object.entries(row).map(([key, cell]) => {
+        if (typeof cell !== 'string') return [key, cell];
+        const characters = Array.from(cell), allowed = Math.min(240, Math.max(0, budget));
+        if (characters.length <= allowed) { budget -= characters.length; return [key, cell]; }
+        truncatedCells++;
+        budget -= allowed;
+        return [key, allowed > 0 ? characters.slice(0, allowed - 1).join('') + '…' : ''];
+      }));
+    });
+    if (original.length > maxRows || truncatedCells) modelProjection = {
+      kind: 'bounded_display_summary', displayedRows: original.length, retainedRows: Math.min(original.length, maxRows),
+      omittedRows: Math.max(0, original.length - maxRows), truncatedCells,
+      note: '此处仅为历史展示摘要。完整字段和其余成员须按原条件重新查询；旧资源引用不能跨轮复用。',
+    };
+  }
+  return { type: part.type, props: part.props, ...(modelProjection ? { modelProjection } : {}) };
 }
 function resultFingerprint(pair: ToolPair): string {
   return JSON.stringify({ call: pair.call, id: pair.result.toolCallId, name: pair.result.toolName,

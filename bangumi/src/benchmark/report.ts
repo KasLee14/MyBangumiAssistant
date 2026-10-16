@@ -161,8 +161,10 @@ export async function writeReport(directory: string, suite: SuiteResult, baselin
   const plannedRuns = Array.isArray(planned) ? planned.length : suite.observations.length;
   const pendingRuns = Math.max(0, plannedRuns - suite.observations.length);
   const protocol = record(record(suite.manifest).protocol);
-  const evidence = protocol.offline === true ? '脚本模型＋固定上游（离线 smoke）'
-    : suite.observations[0]?.mode === 'live-read' || protocol.mode === 'live-read' ? '真实模型＋在线只读上游' : '真实模型＋固定上游';
+  const evidence = protocol.engine === 'direct-tools' ? '无模型：生产 stdio MCP＋真实 Archive SQLite＋宿主补全（不证明模型调度或浏览器显示）'
+    : protocol.offline === true ? '脚本模型＋固定上游（离线 smoke）'
+      : suite.observations[0]?.mode === 'local-archive' || protocol.mode === 'local-archive' ? '真实模型＋真实 Archive SQLite；数据查询禁止联网'
+        : suite.observations[0]?.mode === 'live-read' || protocol.mode === 'live-read' ? '真实模型＋在线只读上游' : '真实模型＋固定上游';
   const data = { schemaVersion: 1, protocolHash: suite.protocolHash,
     evidenceNotes: ['runtime 输出及恢复计数不替代浏览器 SSE 验证；UI 证据须使用专属 Web 测试。',
       'strictToolsSent 只统计实际模型请求声明的 strict 标记，脚本模型不证明服务端遵守 Schema。'],

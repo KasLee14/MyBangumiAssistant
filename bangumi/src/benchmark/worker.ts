@@ -163,6 +163,7 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     }
     const client = new LocalMcpClient({ authDir, timeoutMs: Math.min(300000, Math.max(1000, config.case.budget.timeoutMs)),
       proxy: null, entry: fileURLToPath(new URL('./fixture-server.js', import.meta.url)),
+      ...(config.knowledgeDir ? { knowledgeDir: config.knowledgeDir } : {}),
       onTrace: (event: string) => {
         if (event === 'dispatch') rpcDispatches++;
         if (event === 'initializing') initializationStart = performance.now();
@@ -173,7 +174,7 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     const guarded: McpCallClient = {
       async call(name, args, signal, guard, batch, read) {
         if (reason || collector.value.mcpCalls >= config.case.budget.mcpCalls) { stop('budget_exceeded'); throw new Error('BENCHMARK_BUDGET_EXCEEDED'); }
-        if (config.mode === 'live-read' && definitionByName.get(name)?.effect === 'write') throw new Error('BENCHMARK_LIVE_WRITE_BLOCKED');
+        if (config.mode !== 'fixture' && definitionByName.get(name)?.effect === 'write') throw new Error('BENCHMARK_LIVE_WRITE_BLOCKED');
         collector.value.mcpCalls++;
         checkpoint();
         if (definitionByName.get(name)?.effect === 'read') {
@@ -361,6 +362,7 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     await networkTransport.close();
   }
   let network: NetworkEvent[] = [], state: unknown = null;
+  if (config.mode === 'local-archive' && existsSync(join(config.outputDir, 'local-network-attempts.jsonl'))) captureIssues.push('local_data_network_attempted');
   try { if (existsSync(join(config.outputDir, 'network.jsonl'))) network = readFileSync(join(config.outputDir, 'network.jsonl'), 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)); } catch { captureIssues.push('invalid_network_capture'); }
   try { if (existsSync(join(config.outputDir, 'fixture-state.json'))) state = JSON.parse(readFileSync(join(config.outputDir, 'fixture-state.json'), 'utf8')); } catch { captureIssues.push('invalid_fixture_state'); }
   if (existsSync(traceDir)) for (const file of readdirSync(traceDir, { recursive: true }).filter(file => String(file).endsWith('summary.json'))) {
@@ -384,7 +386,7 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
   const result: RunObservation = { schemaVersion: 1, caseId: config.case.id, family: config.case.family,
     variant: config.variant, repeat: config.repeat, protocolHash: config.protocolHash, versionHash: config.versionHash,
     model: config.model, thinking: config.thinking, mode: config.mode, outcome, error, turns,
-    metrics: collector.finish(network, config.mode === 'fixture' || existsSync(join(config.outputDir, 'network.jsonl'))),
+    metrics: collector.finish(network, config.mode === 'fixture' || config.mode === 'local-archive' || existsSync(join(config.outputDir, 'network.jsonl'))),
     grade, confirmations, network, traceDirectories, captureIssues, historyProofs };
   if (result.outcome === 'passed' && !config.offline && result.metrics.providerHttpRequests !== result.metrics.modelRequests) {
     result.outcome = 'incomplete_capture'; result.captureIssues.push('provider_request_usage_incomplete');

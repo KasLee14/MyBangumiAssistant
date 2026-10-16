@@ -66,7 +66,7 @@ export function createPresentationTools(store: PresentationStore, assembler: Rep
   const preparedOwners = new Map<string, string>();
   const definitions: { name: string; component?: ComponentKind; description: string; parameters: JsonSchema; execute: (args: Record<string, unknown>, id: string, signal?: AbortSignal) => unknown | Promise<unknown> }[] = [
     ...RENDER_TOOL_DEFINITIONS.map(definition => ({ name: definition.name, component: definition.component, parameters: definition.inputSchema,
-      description: `原子展示${definition.component}：只用当前缓存resourceRef或有序sources及明确成员，宿主构建事实。before/after与组件整段校验后一次发布；final=true只在整批最后工具且全成功时完成回答。字段列、范围及来源限制按本schema，不传props。`,
+      description: `原子展示${definition.component}：只用当前缓存resourceRef或有序sources及明确成员，宿主构建事实。before/after与组件整段校验后一次发布；final=true只在整批最后工具且全成功时完成回答。字段列、范围及来源限制按本schema。成员只用members对象数组或subjectIds整数数组，不接受keys或JSON字符串，不传props。`,
       execute: async (args: Record<string, unknown>, id: string, signal?: AbortSignal) => {
         if (!catalog.isLoadedForRequest(definition.component)) throw new AppError('COMPONENT_SPEC_REQUIRED', '先通过read_component_spec加载本组件工具。');
         const { before, after, final, ...options } = args;

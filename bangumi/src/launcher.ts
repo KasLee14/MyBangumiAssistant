@@ -18,9 +18,8 @@ import { startWebTerminal } from './web/server.js';
 import { WebInteractionChannel } from './web/session.js';
 import { WebSessionManager } from './web/session-manager.js';
 import { TaskQueue } from './support/task-queue.js';
-import { restoreWriteRateLimits, WriteRateLimiter } from './mcp/write-rate-limit.js';
-import { WriteJournal } from './mcp/write-journal.js';
 import { runTraceAnalyze } from './tracing/cli.js';
+import { startArchiveUpdateScheduler } from './knowledge/scheduler.js';
 import type { TraceOptions } from './tracing/schema.js';
 
 export interface WebOptions { port: number; open: boolean }
@@ -107,14 +106,15 @@ const help = `MyBangumiAssistant · Pi ${VERSION}
   --session <路径或ID>    恢复指定 Pi 会话
   --no-session           内存会话
   --list-models          列出 Pi 模型
-  --data-dir <目录>      隔离登录和 Pi 数据（或 BANGUMI_PI_HOME）
+  --data-dir <目录>      隔离登录、本地数据库和 Pi 数据（或 BANGUMI_PI_HOME）
   --trace local|off      独立 tracelog，默认 local（或 BANGUMI_TRACE）
   --trace-dir <目录>     日志根目录，默认数据目录/tracelog（或 BANGUMI_TRACE_DIR）
   --proxy <地址>         显式 HTTP/HTTPS 代理
   --direct               显式直连，关闭自动发现
-  --timeout <毫秒>       Bangumi 请求超时，默认 60000
+  --timeout <毫秒>       本地 MCP 请求超时，默认 60000
 
-交互命令：/bangumi-login、/bangumi-login-status、/bangumi-logout。
+本地资料只读，不需要Bangumi登录。数据管理：npm run data:init / data:update / data:status / data:verify / data:rollback。
+交互命令：/bangumi-login、/bangumi-login-status、/bangumi-logout；登录状态不参与本地公共资料查询。
 模型、会话恢复、分支和压缩使用 Pi 原生 /model、/resume、/tree、/compact。
 模型配置保存在数据目录的 pi/models.json，密钥使用环境变量引用。
 `;
@@ -139,6 +139,7 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   const proxy = new ProxyController(await discoverProxy(options.proxy), proxyMode);
   const agentDir = join(options.dataDir, 'pi');
   const authDir = join(options.dataDir, 'auth');
+  const knowledgeDir = resolve(process.env.BANGUMI_KNOWLEDGE_DIR ?? join(options.dataDir, 'knowledge'));
   mkdirSync(agentDir, { recursive: true });
   mkdirSync(authDir, { recursive: true });
   const cwd = process.cwd();
@@ -157,17 +158,17 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   // Web 终端需要在浏览器里确认写入与输入登录字段，终端模式沿用原地的 Pi 组件。
   const webChannel = options.web ? new WebInteractionChannel() : undefined;
   const channel: InteractionChannel = webChannel ?? createTerminalChannel();
+  const store = new AccountSessionStore(authDir);
   const accountQueue = new TaskQueue();
-  const writeLimiter = new WriteRateLimiter();
-  const writeJournal = new WriteJournal(join(options.dataDir, 'writes', 'operations.jsonl'));
-  restoreWriteRateLimits(writeLimiter, writeJournal.entries());
+  const stopUpdates = args.listModels ? () => {} : startArchiveUpdateScheduler(knowledgeDir, () => proxy.current,
+    message => process.stderr.write(message + '\n'));
   let runtime;
   let webSessions: WebSessionManager | undefined;
   let printOwnsDisposal = false;
   try {
     runtime = await createBangumiRuntime({
       cwd, agentDir, sessionManager, fetch: transport.fetch,
-      extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel, accountQueue, writeLimiter, writeJournal,
+      extension: createBangumiExtension({ authDir, knowledgeDir, timeoutMs: options.timeoutMs, proxy, channel, store, accountQueue,
         ...(trace ? { trace } : {}) }),
       ...(args.provider === undefined ? {} : { provider: args.provider }),
       ...(args.model === undefined ? {} : { model: args.model }),
@@ -185,10 +186,10 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
     if (options.web && webChannel) {
       const modelRuntime = runtime.services.modelRuntime;
       webSessions = new WebSessionManager({ initial: { runtime, channel: webChannel },
-        store: new AccountSessionStore(authDir), cwd, sessionDir, proxy, timeoutMs: options.timeoutMs, accountQueue,
+        store, cwd, sessionDir, proxy, timeoutMs: options.timeoutMs, accountQueue,
         createRuntime: (manager, sessionChannel) => createBangumiRuntime({
           cwd, agentDir, sessionManager: manager, modelRuntime, fetch: transport.fetch,
-          extension: createBangumiExtension({ authDir, timeoutMs: options.timeoutMs, proxy, channel: sessionChannel, accountQueue, writeLimiter, writeJournal,
+          extension: createBangumiExtension({ authDir, knowledgeDir, timeoutMs: options.timeoutMs, proxy, channel: sessionChannel, store, accountQueue,
             ...(trace ? { trace } : {}) }),
           ...(args.provider === undefined ? {} : { provider: args.provider }),
           ...(args.model === undefined ? {} : { model: args.model }),
@@ -219,6 +220,7 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
       ...(initialMessage === undefined ? {} : { initialMessage }),
     });
   } finally {
+    stopUpdates();
     // print 模式自行处置运行时；其余分支（含 Web 终端退出后）由这里统一释放。
     try {
       if (webSessions) await webSessions.dispose();

@@ -7,22 +7,17 @@ import { AppError } from '../support/errors.js';
 import { compileSchema, outputIssues } from '../support/tool-schema.js';
 import { presentationPrepareSchema, RENDER_TOOL_DEFINITIONS, PREPARE_TOOL_DEFINITIONS } from './presentation-contract.js';
 import { getCurrentTools } from '@earendil-works/pi-ai';
+import { COMPONENT_DATA_PROFILES } from './component-data-profile.js';
 
-/** 这里只维护选择信息。字段、必填性和引用限制始终由实际校验 Schema 派生。 */
-const purposes: Record<ComponentKind, { category: string; purpose: string; data: string }> = {
-  SubjectCards: { category: '作品', purpose: '展示作品搜索、推荐及收藏结果，少量推荐优先封面卡片', data: '作品身份、名称、媒体类型，缓存作品引用' },
-  StatsCard: { category: '统计', purpose: '展示评分、数量分布和指标汇总', data: '标签及指标值、评分分布' },
-  ProgressView: { category: '进度', purpose: '展示观看进度和章节状态', data: '进度数值、章节和个人状态' },
-  InfoBox: { category: '事实', purpose: '展示单对象的键值信息', data: '单个对象的字段、资料信息' },
-  DataTable: { category: '事实', purpose: '按列比较多行事实、季度计数及行列数据', data: '列定义和对象行' },
-  Timeline: { category: '事件', purpose: '按时间展示事件', data: '事件时间、正文及参与者' },
-  TagCloud: { category: '标签', purpose: '展示标签及频次', data: '标签名称、计数、选中状态' },
-  Gallery: { category: '人物图片', purpose: '展示简单人物、角色候选或图片列表', data: '实体身份、名称及可用图片' },
-  CompareTable: { category: '事实', purpose: '展示前后变化', data: '同一字段的修改前后值' },
-  QuoteBlock: { category: '文字', purpose: '展示引用正文或代码', data: '引用文字' },
-  Callout: { category: '文字', purpose: '展示业务提示和结果状态，内部格式错误不放入正文', data: '业务状态和提示文字' },
-  LinkList: { category: '链接', purpose: '展示链接集合', data: '链接名称及绝对地址' },
-};
+/** 选择、字段补读和业务限制共用同一资料适配规则；协议字段仍由 Schema 派生。 */
+const purposes = Object.fromEntries(COMPONENT_KINDS.map(name => {
+  const { category, purpose, data } = COMPONENT_DATA_PROFILES[name];
+  return [name, { category, purpose, data }];
+})) as Record<ComponentKind, { category: string; purpose: string; data: string }>;
+function dataCapability(name: ComponentKind) {
+  const { sourceCapability, limitations, unavailableReason } = COMPONENT_DATA_PROFILES[name];
+  return { sourceCapability, limitations: [...limitations], ...(unavailableReason ? { unavailableReason } : {}) };
+}
 export type ComponentRepresentation = 'reference' | 'inline';
 export type ComponentRepresentationChoice = ComponentRepresentation | 'auto';
 const representationChoices = new Set(['auto', 'reference', 'inline']);
@@ -43,17 +38,18 @@ function applicableReferenceKinds(value: Record<string, unknown>, source: string
   if (value.format === 'cards') return ['SubjectCards'];
   if (value.format === 'table') return ['DataTable'];
   const entity = String(value.entity ?? '');
+  if (value.kind === 'local_aggregate') return ['DataTable', 'InfoBox'];
   const fields = Array.isArray(value.availableFields) ? value.availableFields : [];
   if (entity === 'subject' || entity === 'subject_candidate' || /subject|candidate/.test(source) && !/person|character|episode/.test(source))
-    return ['SubjectCards', 'InfoBox', 'DataTable', 'LinkList', 'TagCloud', ...(record(value.ratingDistribution) || fields.includes('ratingDistribution') ? ['StatsCard' as const] : [])];
+    return ['SubjectCards', 'Gallery', 'InfoBox', 'DataTable', 'LinkList', 'TagCloud', ...(fields.includes('date') ? ['Timeline' as const] : []), ...(record(value.ratingDistribution) || fields.includes('ratingDistribution') ? ['StatsCard' as const] : [])];
   if (/person|character/.test(entity) || /person|character/.test(source)) return ['Gallery', 'InfoBox', 'DataTable', 'LinkList'];
-  if (entity === 'episode' || /episode/.test(source)) return ['InfoBox', 'DataTable', 'LinkList', ...(fields.includes('episodeStatus') ? ['ProgressView' as const] : [])];
+  if (entity === 'episode' || /episode/.test(source)) return ['InfoBox', 'DataTable', 'LinkList', ...(fields.includes('airDate') || fields.includes('date') ? ['Timeline' as const] : []), ...(fields.includes('episodeStatus') ? ['ProgressView' as const] : [])];
   if (/collection/.test(source)) return ['SubjectCards', 'InfoBox', 'DataTable', 'LinkList'];
   if (record(value.before) && record(value.after)) return ['CompareTable'];
   if (entity) return ['InfoBox', 'DataTable', 'LinkList'];
   return [];
 }
-export const COMPONENT_CATALOG_VERSION = createHash('sha256').update(JSON.stringify({ representationProtocol: 3, purposes,
+export const COMPONENT_CATALOG_VERSION = createHash('sha256').update(JSON.stringify({ representationProtocol: 3, purposes, dataProfiles: COMPONENT_DATA_PROFILES,
   payloads: COMPONENT_PAYLOAD_SCHEMAS, prepareProtocol: 5, render: RENDER_TOOL_DEFINITIONS, selectedPrepare: PREPARE_TOOL_DEFINITIONS,
   prepare: COMPONENT_KINDS.map(presentationPrepareSchema), references: COMPONENT_KINDS.map(name => resourceReferenceSchema(name)) })).digest('hex').slice(0, 16);
 export interface ComponentCatalogAudit {
@@ -71,7 +67,7 @@ export function componentIndex(query: ComponentIndexQuery = {}) {
     if (!/^[\p{Script=Han}]+$/u.test(term) || term.length < 2) return false;
     return Array.from({ length: term.length - 1 }, (_, index) => term.slice(index, index + 2)).some(token => haystack.includes(token));
   };
-  const matched = COMPONENT_KINDS.map(name => ({ name, ...purposes[name] })).filter(item =>
+  const matched = COMPONENT_KINDS.map(name => ({ name, ...purposes[name], ...dataCapability(name) })).filter(item =>
     (!category || item.category.toLocaleLowerCase().includes(category))
     && terms.every(term => matchesTerm(`${item.name} ${item.category} ${item.purpose} ${item.data}`.toLocaleLowerCase(), term)));
   const offset = query.offset ?? 0, limit = query.limit ?? 6;
@@ -143,7 +139,7 @@ export class ComponentCatalogState {
       const kind = name as ComponentKind;
       const representation: ComponentRepresentation = choice === 'auto' ? this.referenceKinds.has(kind) && !['Callout', 'QuoteBlock'].includes(kind) ? 'reference' : 'inline' : choice;
       const props = componentPropsSchema(kind, representation);
-      return { name: kind, ...purposes[kind], representation, selectionId: this.selectionSequence + 1, sourceTurn: this.turn,
+      return { name: kind, ...purposes[kind], ...dataCapability(kind), representation, selectionId: this.selectionSequence + 1, sourceTurn: this.turn,
         selectionReason: choice !== 'auto' ? '模型明确选择此形式' : representation === 'reference' ? '本轮上下文存在实体或准备格式明确适用的缓存引用' : '本轮无明确适用缓存引用，或组件为创作文字',
         required: [...(props.required ?? [])], props,
         canonicalContract: '宿主完成结果独立使用严格COMPONENT_PAYLOAD_SCHEMAS校验；内部展开字段不是本次生成props字段。只填写上面唯一props契约，禁止混用reference与inline。',
@@ -166,7 +162,7 @@ export class ComponentCatalogState {
   }
   readPrepareSpecs(names: readonly string[]) {
     const read = this.readSpecs(names);
-    return { ...read, specs: read.specs.map(spec => ({ name: spec.name, ...purposes[spec.name],
+    return { ...read, specs: read.specs.map(spec => ({ name: spec.name, ...purposes[spec.name], ...dataCapability(spec.name),
       selectionId: spec.selectionId, sourceTurn: spec.sourceTurn,
       tool: 'prepare_component', prepare: presentationPrepareSchema(spec.name),
       constraints: [...(['QuoteBlock', 'Callout'].includes(spec.name) ? [] : ['明确成员必须来自此resourceRef的当前成员；单对象详情不能选择其他对象。保持用户完整范围，多个已有详情引用可分别准备和发布，不跨引用合并ID。']),
@@ -190,8 +186,9 @@ export class ComponentCatalogState {
       this.loaded.add(kind); this.successfulLoaded.add(kind); this.representations.set(kind, representation);
       this.latestSelections.set(kind, { representation, selectionId: this.selectionSequence, sourceTurn: this.turn });
     }
-    // 完整Schema只在下一request固定工具声明中出现，回执不重复整份契约。
-    return { version: COMPONENT_CATALOG_VERSION, status: 'activated' as const, tools };
+    // 完整Schema只在下一request固定工具声明中出现；回执给出数据能力，避免把业务缺失当参数错误重试。
+    return { version: COMPONENT_CATALOG_VERSION, status: 'activated' as const, tools,
+      capabilities: names.map(name => ({ name: name as ComponentKind, ...dataCapability(name as ComponentKind) })) };
   }
   /** 纯定义可跨轮复用；压缩/重建后仅承认真实可读的当前版本最新完整说明。 */
   reconcile(context: { messages: object }): void {

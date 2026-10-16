@@ -22,7 +22,11 @@ export function presentationPrepareSchema(component: ComponentKind): JsonSchema 
   const { partIndex: _partIndex, items, ...controls } = reference.properties!;
   return { type: 'object', additionalProperties: false, required: ['component', 'resourceRef'],
     properties: { component: { type: 'string', enum: [component] }, ...structuredClone(controls),
-      ...(component === 'CompareTable' ? {} : { subjectIds: { ...ids, maxItems: items?.maxItems ?? ids.maxItems }, ...(component === 'SubjectCards' ? {} : items ? { members: structuredClone(items) } : {}) }) } };
+      ...(component === 'CompareTable' ? {} : { subjectIds: { ...ids, maxItems: items?.maxItems ?? ids.maxItems }, ...(component === 'SubjectCards' ? {} : items ? { members: {
+        ...structuredClone(items), description: component === 'DataTable' || component === 'InfoBox'
+          ? '明确选择当前resourceRef成员。统计行使用entity=aggregate和该引用内的id；不同统计引用的行ID互不通用，不能提供或覆盖事实。'
+          : '只选择当前resourceRef中已核实的实体身份，不提供或覆盖事实。',
+      } } : {}) }) } };
 }
 export const PREPARE_COMPONENT_SCHEMA: JsonSchema = { type: 'object', anyOf: COMPONENT_KINDS.map(presentationPrepareSchema) };
 /** 固定工具名决定组件，声明与incoming校验使用同一份不可替换参数契约。 */

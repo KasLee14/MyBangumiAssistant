@@ -1,13 +1,15 @@
 import { randomUUID } from 'node:crypto';
+import type { CachedResourceSelection } from '../mcp/resource-contract.js';
 import { isDeepStrictEqual } from 'node:util';
 import { AppError, SchemaInputError } from '../support/errors.js';
 import { schemaArguments } from '../support/tool-schema.js';
 import { ContentOutputError, validateMixedPart, validateMixedContent, isComponentKind, type CompleteComponentPart, type ComponentKind } from './content-schema.js';
 import { expandResourceContent, resourceSelectionIdentities, type ResourceContentResolver, type ResourceReferenceProps } from './resource-content.js';
 import { componentToolSchema, presentationPrepareSchema, type PreparedPresentationSummary } from './presentation-contract.js';
+import { combinedSubjectCardRange, componentDataFields } from './component-data-profile.js';
 
 const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
-interface Dependency { ref: string; value: unknown; sourceTool: string; accessContext?: unknown; selection?: { subjectIds: number[] } }
+interface Dependency { ref: string; value: unknown; sourceTool: string; accessContext?: unknown; selection?: CachedResourceSelection }
 interface Prepared { generation: number; parts: CompleteComponentPart[]; dependencies: Dependency[]; identities?: string[] }
 function count(part: CompleteComponentPart): number {
   const props = part.props;
@@ -71,7 +73,10 @@ export class PresentationStore {
       for (const [sourceIndex, sourceArgs] of sources.entries()) {
         if (sourceArgs.subjectIds !== undefined && sourceArgs.members !== undefined) throw new SchemaInputError([{ path: '/sources', rule: 'member_choice', hint: '每个来源的subjectIds与members只能选择一种。' }]);
         const ref = sourceArgs.resourceRef as string, ids = sourceArgs.subjectIds as number[] | undefined;
-        const selection = ids ? { subjectIds: ids } : undefined;
+        const selectedFields = componentDataFields(component, controls);
+        const selection: CachedResourceSelection | undefined = ids || selectedFields?.length
+          ? { ...(ids ? { subjectIds: ids } : {}), ...(selectedFields?.length ? { fields: [...new Set(selectedFields)] } : {}) }
+          : undefined;
         const local = this.prepared.get(ref);
         if (local) {
           if (ids || sourceArgs.members || Object.keys(controls).length) throw new SchemaInputError([{ path: '/sources', rule: 'frozen_snapshot', hint: '宿主准备快照只用resourceRef/blockIndex，不能覆盖成员或展示字段。' }]);
@@ -130,13 +135,16 @@ export class PresentationStore {
     const field = fields[component];
     if (!field) throw new SchemaInputError([{ path: '/sources', rule: 'single_source', hint: '此组件没有可证明的跨来源组合语义，只允许一个来源。' }]);
     const first = structuredClone(parts[0]!.props) as Record<string, unknown>;
-    const allowed = new Set([field, 'title', ...(component === 'SubjectCards' ? ['layout'] : component === 'DataTable' ? ['columns'] : [])]);
+    const rangeFields = component === 'SubjectCards' ? ['total', 'hint'] : [];
+    const allowed = new Set([field, 'title', ...rangeFields, ...(component === 'SubjectCards' ? ['layout'] : component === 'DataTable' ? ['columns'] : [])]);
     for (const part of parts) {
       const props = part.props as Record<string, unknown>;
-      if (Object.keys(props).some(key => !allowed.has(key)) || [...allowed].filter(key => key !== field).some(key => !isDeepStrictEqual(first[key], props[key])))
+      if (Object.keys(props).some(key => !allowed.has(key)) || [...allowed].filter(key => key !== field && !rangeFields.includes(key)).some(key => !isDeepStrictEqual(first[key], props[key])))
         throw new SchemaInputError([{ path: '/sources', rule: 'source_conflict', hint: '各来源的列或固定展示属性冲突，不能猜测聚合事实或覆盖已准备快照。' }]);
     }
     first[field] = parts.flatMap(part => (part.props as Record<string, unknown>)[field] as unknown[]);
+    if (component === 'SubjectCards') Object.assign(first, combinedSubjectCardRange((first[field] as unknown[]).length,
+      parts.map(part => (part.type === 'SubjectCards' ? part.props.hint : undefined))));
     return validateMixedPart({ type: component, pending: false, props: first }) as CompleteComponentPart;
   }
   private freeze(prepared: Prepared, signal?: AbortSignal): PreparedPresentationSummary {

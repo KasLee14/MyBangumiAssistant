@@ -11,26 +11,28 @@ export const submissionRejectionSchema: JsonSchema = { type: 'object', additiona
 }, required: ['kind', 'httpStatus', 'upstreamCode', 'retryAfterMs'] };
 
 export interface AccessContext {
-  mode: 'account' | 'anonymous' | 'unverified';
+  mode: 'account' | 'anonymous' | 'unverified' | 'local';
   account: { id: number; username: string } | null;
   nsfw: { preference: boolean | null; allowed: boolean | null; state: 'enabled' | 'disabled' | 'unknown' | 'not_checked' };
-  source: 'p1' | 'v0' | 'web';
+  source: 'p1' | 'v0' | 'web' | 'archive';
   nsfwApplied: boolean;
   checkedAt: string;
+  snapshotId?: string;
   queryCoverage?: QueryCoverage;
 }
 const nullableBoolean = { type: ['boolean', 'null'] };
 export const accessContextSchema: JsonSchema = {
   type: 'object', additionalProperties: false,
   properties: {
-    mode: { enum: ['account', 'anonymous', 'unverified'] },
+    mode: { enum: ['account', 'anonymous', 'unverified', 'local'] },
     account: { anyOf: [{ type: 'null' }, { type: 'object', additionalProperties: false, properties: {
       id: { type: 'integer', minimum: 1 }, username: { type: 'string', minLength: 1, maxLength: 200 },
     }, required: ['id', 'username'] }] },
     nsfw: { type: 'object', additionalProperties: false, properties: {
       preference: nullableBoolean, allowed: nullableBoolean, state: { enum: ['enabled', 'disabled', 'unknown', 'not_checked'] },
     }, required: ['preference', 'allowed', 'state'] },
-    source: { enum: ['p1', 'v0', 'web'] }, nsfwApplied: { type: 'boolean' }, checkedAt: { type: 'string', maxLength: 50 },
+    source: { enum: ['p1', 'v0', 'web', 'archive'] }, nsfwApplied: { type: 'boolean' }, checkedAt: { type: 'string', maxLength: 50 },
+    snapshotId: { type: 'string', minLength: 1, maxLength: 120, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$' },
     queryCoverage: { type: 'object', additionalProperties: false, properties: {
       requested: { enum: ['account', 'exclude'] }, actual: { enum: ['account_visible', 'sfw_only', 'public_visible'] },
       nsfw: { enum: ['included', 'excluded', 'unknown'] }, totalKind: { enum: ['estimated', 'exact', 'unknown'] },
@@ -38,6 +40,12 @@ export const accessContextSchema: JsonSchema = {
     }, required: ['requested', 'actual', 'nsfw', 'totalKind', 'limitations'] },
   }, required: ['mode', 'account', 'nsfw', 'source', 'nsfwApplied', 'checkedAt'],
   allOf: [
+    { if: { properties: { mode: { const: 'local' } }, required: ['mode'] }, then: {
+      properties: { source: { const: 'archive' }, account: { type: 'null' }, snapshotId: { type: 'string', minLength: 1 } }, required: ['snapshotId'],
+    } },
+    { if: { properties: { source: { const: 'archive' } }, required: ['source'] }, then: {
+      properties: { mode: { const: 'local' }, snapshotId: { type: 'string', minLength: 1 } }, required: ['snapshotId'],
+    } },
     { if: { properties: { queryCoverage: { type: 'object', properties: { nsfw: { const: 'included' } }, required: ['nsfw'] } }, required: ['queryCoverage'] },
       then: { properties: { mode: { const: 'account' }, source: { const: 'p1' }, nsfwApplied: { const: true },
         nsfw: { type: 'object', properties: { allowed: { const: true } } },
@@ -74,7 +82,11 @@ export function checkAccessResponse(name: string, value: unknown, requireContext
   if (!compileSchema(accessContextSchema)(raw.accessContext)) invalid('MCP成功业务结果缺少有效权限上下文。');
   const context = raw.accessContext as AccessContext;
   if (context.mode === 'unverified') invalid('未核实的权限上下文不能作为成功结果。');
-  if (context.mode !== 'account' || context.source !== 'p1' || !context.nsfwApplied
+  if (context.mode === 'local' && raw.snapshotId !== undefined && raw.snapshotId !== context.snapshotId)
+    invalid('本地结果与数据快照上下文不一致。');
+  const nsfwScope = context.mode === 'local' && context.source === 'archive'
+    || context.mode === 'account' && context.source === 'p1';
+  if (!nsfwScope || !context.nsfwApplied
     || context.nsfw.allowed !== true || context.queryCoverage?.nsfw === 'excluded') {
     const visit = (item: unknown): void => {
       if (Array.isArray(item)) { item.forEach(visit); return; }

@@ -5,7 +5,8 @@ export type Data = Record<string, unknown>;
 export type Rule =
   | { kind: 'subjects'; turn?: number; exact?: number[]; allowed?: number[]; required?: number[]; min?: number; max?: number }
   | { kind: 'text'; turn?: number; pattern: string; absent?: boolean }
-  | { kind: 'component'; turn?: number; type: string }
+  | { kind: 'component'; turn?: number; type: string; absent?: boolean }
+  | { kind: 'component_props'; turn?: number; type: string; expected: Data }
   | { kind: 'component_text'; turn?: number; type: string; pattern: string }
   | { kind: 'sequence'; turn?: number; types: string[] }
   | { kind: 'delivered_fields'; turn?: number; type: string; subjectIds: number[]; fields: string[] }
@@ -104,7 +105,7 @@ export interface Grade {
 export type Outcome = 'passed' | 'failed' | 'timeout' | 'budget_exceeded' | 'errored' | 'invalid_fixture' | 'incomplete_capture' | 'not_run';
 export interface RunObservation {
   schemaVersion: 1; caseId: string; family: string; variant: string; repeat: number;
-  protocolHash: string; versionHash: string; model: string; thinking: string; mode: 'fixture' | 'live-read';
+  protocolHash: string; versionHash: string; model: string; thinking: string; mode: 'fixture' | 'live-read' | 'local-archive';
   outcome: Outcome; error: string | null; turns: TurnObservation[]; metrics: RunMetrics;
   grade: Grade; confirmations: Array<{ preview: string; accepted: boolean; timestampMs: number }>;
   network: NetworkEvent[]; traceDirectories: string[]; captureIssues: string[];
@@ -115,9 +116,10 @@ export interface RunObservation {
 export interface WorkerConfig {
   runtimeRoot: string; outputDir: string; case: BenchmarkCase; fixture: FixtureDefinition;
   variant: string; repeat: number; protocolHash: string; versionHash: string;
-  model: string; thinking: string; mode: 'fixture' | 'live-read'; agentDir: string;
+  model: string; thinking: string; mode: 'fixture' | 'live-read' | 'local-archive'; agentDir: string;
   proxy: string | null; offline: boolean;
   recovery?: 'enabled' | 'disabled';
+  knowledgeDir?: string;
 }
 export function record(value: unknown): Data {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Data : {};
@@ -150,7 +152,7 @@ export function validateCases(value: unknown): BenchmarkCase[] {
       const rule = record(rawRule), kind = rule.kind;
       const allowed: Record<string, string[]> = {
         subjects: ['kind', 'turn', 'exact', 'allowed', 'required', 'min', 'max'],
-        text: ['kind', 'turn', 'pattern', 'absent'], component: ['kind', 'turn', 'type'], component_text: ['kind', 'turn', 'type', 'pattern'], sequence: ['kind', 'turn', 'types'],
+        text: ['kind', 'turn', 'pattern', 'absent'], component: ['kind', 'turn', 'type', 'absent'], component_props: ['kind', 'turn', 'type', 'expected'], component_text: ['kind', 'turn', 'type', 'pattern'], sequence: ['kind', 'turn', 'types'],
         delivered_fields: ['kind', 'turn', 'type', 'subjectIds', 'fields'],
         argument_recovery: ['kind', 'localRepairs', 'rejections', 'modelCorrections'],
         presentation_terminal: ['kind', 'status', 'prefix'],
@@ -166,6 +168,9 @@ export function validateCases(value: unknown): BenchmarkCase[] {
       for (const key of ['count', 'min', 'max']) if (rule[key] !== undefined && (!Number.isSafeInteger(rule[key]) || Number(rule[key]) < 0)) throw new Error('规则计数无效。');
       if (kind === 'text') { if (typeof rule.pattern !== 'string' || rule.pattern.length > 2000) throw new Error('文本规则无效。'); new RegExp(rule.pattern, 'u'); }
       if (kind === 'component_text') { if (typeof rule.type !== 'string' || typeof rule.pattern !== 'string' || rule.pattern.length > 2000) throw new Error('组件文本规则无效。'); new RegExp(rule.pattern, 'u'); }
+      if (kind === 'component_props' && (typeof rule.type !== 'string' || !rule.type.length || !rule.expected
+        || typeof rule.expected !== 'object' || Array.isArray(rule.expected) || !Object.keys(rule.expected).length
+        || JSON.stringify(rule.expected).length > 100_000)) throw new Error('组件字段规则必须包含非空 expected 对象且不超过 100000 字符。');
       if (kind === 'subjects' && !['exact', 'allowed', 'required', 'min', 'max'].some(key => rule[key] !== undefined)) throw new Error('作品规则缺少约束。');
       if (kind === 'evidence' && (!Array.isArray(rule.subjectIds) || !rule.subjectIds.length && rule.selected !== true || !Array.isArray(rule.fields) || !rule.fields.length || rule.fields.some(field => typeof field !== 'string'))) throw new Error('证据规则无效。');
       if (kind === 'called' && (!Array.isArray(rule.names) || !rule.names.length || rule.names.some(name => typeof name !== 'string'))) throw new Error('工具规则无效。');

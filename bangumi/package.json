@@ -12,6 +12,12 @@
     "bangumi-agent": "dist/src/main.js"
   },
   "scripts": {
+    "data:init": "node dist/src/knowledge/cli.js init",
+    "data:import": "node dist/src/knowledge/cli.js import",
+    "data:update": "node dist/src/knowledge/cli.js update",
+    "data:status": "node dist/src/knowledge/cli.js status",
+    "data:verify": "node dist/src/knowledge/cli.js verify",
+    "data:rollback": "node dist/src/knowledge/cli.js rollback",
     "build:bench": "tsc -p tsconfig.json && node scripts/copy-strategy-skills.mjs",
     "bench:list": "npm run build:bench && node dist/src/benchmark/cli.js list",
     "bench:run": "npm run build:bench && node dist/src/benchmark/cli.js run",
@@ -25,6 +31,7 @@
     "start": "node dist/src/main.js"
   },
   "dependencies": {
+    "@bgm38/wiki": "0.3.3",
     "@earendil-works/pi-agent-core": "file:../pi/packages/agent",
     "@earendil-works/pi-ai": "file:../pi/packages/ai",
     "@earendil-works/pi-coding-agent": "file:../pi/packages/coding-agent",

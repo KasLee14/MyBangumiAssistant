@@ -3,23 +3,26 @@ import { isErrorDiagnostic } from '../support/error-diagnostic.js';
 import { isDeepStrictEqual } from 'node:util';
 import { compileSchema } from '../support/tool-schema.js';
 import { accessContextSchema, withAccessContext, type AccessContext } from './access-context.js';
+import { LOCAL_FIELDS } from './local-contract.js';
 export type ResourceData = Record<string, unknown>;
 export interface CachedResource { schemaVersion: 1; kind: 'cached_resource'; resourceRef: string; sourceTool: string; value: ResourceData; accessContext: AccessContext }
 /** 宿主展示读取的明确成员范围；不登记到模型 MCP 工具目录。 */
-export interface CachedResourceSelection { subjectIds: number[] }
+export interface CachedResourceSelection { subjectIds?: number[]; fields?: string[] }
 export type CachedResourceRpcResult = { resource: CachedResource } | { error: SafeError };
 export const CACHED_RESOURCE_SELECTION_LIMIT = 200;
 export const CACHED_RESOURCE_RPC_OPERATION = 'bangumi.readCachedResource';
 export interface CachedRange { offset?: number; limit?: number }
 export const RESOURCE_REF_PATTERN = '^rr_[a-f0-9]{32}$';
 export function cachedResourceSelection(value: unknown): CachedResourceSelection {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== 1 || !Object.hasOwn(value, 'subjectIds'))
-    throw new AppError('INVALID_INPUT', '缓存展示范围只允许 subjectIds。');
-  const ids = (value as ResourceData).subjectIds;
-  if (!Array.isArray(ids) || !ids.length || ids.length > CACHED_RESOURCE_SELECTION_LIMIT
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.keys(value).length || Object.keys(value).some(key=>!['subjectIds','fields'].includes(key)))
+    throw new AppError('INVALID_INPUT', '缓存展示范围只允许 subjectIds 和 fields，至少一项。');
+  const {subjectIds:ids,fields}=value as ResourceData;
+  if (ids!==undefined&&(!Array.isArray(ids) || !ids.length || ids.length > CACHED_RESOURCE_SELECTION_LIMIT
     || ids.some(id => !Number.isSafeInteger(id) || id < 1) || new Set(ids).size !== ids.length)
-    throw new AppError('INVALID_INPUT', '缓存展示作品须为非空、不重复的正整数列表，最多200项。');
-  return { subjectIds: [...ids] as number[] };
+    )throw new AppError('INVALID_INPUT', '缓存展示作品须为非空、不重复的正整数列表，最多200项。');
+  const allowed=new Set<string>([...LOCAL_FIELDS,'id','entity','group','count','averageScore']);
+  if(fields!==undefined&&(!Array.isArray(fields)||!fields.length||fields.length>80||new Set(fields).size!==fields.length||fields.some(field=>typeof field!=='string'||!allowed.has(field))))throw new AppError('INVALID_INPUT','宿主展示读取字段不在固定白名单。');
+  return {...(ids===undefined?{}:{subjectIds:[...ids as number[]]}),...(fields===undefined?{}:{fields:[...fields as string[]]})};
 }
 export function stripResourceRef(value: unknown): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
@@ -30,15 +33,14 @@ export const cachedResourceInputSchema = {
   type: 'object', additionalProperties: false,
   properties: {
     resource_ref: { type: 'string', pattern: RESOURCE_REF_PATTERN },
-    fields: { type: 'array', maxItems: 80, uniqueItems: true, items: { type: 'string', pattern: '^[A-Za-z][A-Za-z0-9]*$', maxLength: 80 } },
+    fields: { type: 'array', maxItems: 80, uniqueItems: true, items: { type: 'string', enum:[...LOCAL_FIELDS,'group','count','averageScore'] } },
     keys: {
       type: 'array', maxItems: 100, uniqueItems:true, items: {
         oneOf: [{ type: 'integer', minimum: 1 }, {
-          type: 'object', minProperties: 1, maxProperties: 8,
+          type: 'object', minProperties: 1, maxProperties: 3,
           properties: {
-            ...Object.fromEntries(['id','subjectId','personId','characterId','episodeId','revisionId','blogId','topicId','replyId','relationId','indexId','parentId'].map(key=>[key,{type:'integer',minimum:1}])),
-            code:{type:'integer',minimum:0},
-            ...Object.fromEntries(['username','userIdentifier','kind','entity'].map(key=>[key,{type:'string',minLength:1,maxLength:100}]))
+            ...Object.fromEntries(['id','subjectId','personId','characterId','episodeId','relationId'].map(key=>[key,{type:'integer',minimum:1}])),
+            entity:{type:'string',enum:['subject','person','character','episode','aggregate']}
           }, additionalProperties:false
         }]
       }

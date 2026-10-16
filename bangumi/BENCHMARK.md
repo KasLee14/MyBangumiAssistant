@@ -1,6 +1,36 @@
 # Bangumi benchmark
 
+## Archive 本地版
+
+本地版使用完整官方 Archive 导入的 SQLite；不使用 bangumi-data、向量模型或在线 Bangumi 接口。先完成 `data:init` 并构建宿主，再运行以下命令。`KNOWLEDGE_ROOT` 是含 `current.json`、`snapshots/` 的知识库根目录，必须显式指定，避免误用其他库。
+
+```powershell
+npm run build:bench
+node dist/src/benchmark/cli.js local --knowledge-dir KNOWLEDGE_ROOT --repeats 10 --out artifacts/benchmarks/local-performance
+node dist/src/benchmark/cli.js run --mode local-archive --knowledge-dir KNOWLEDGE_ROOT --model PROVIDER/MODEL --thinking off --suite core --repeats 2 --recovery enabled --out artifacts/benchmarks/local-model
+```
+
+第一条 `local` 命令不调用模型，实际经过生产 `LocalMcpClient`、stdio 目录握手和 Schema 校验、SQLite 查询、任务缓存及 `PresentationStore`。每次重复建立新子进程；暖查询保持连接但使用新任务上下文、释放旧缓存，不能靠复用业务结果制造加速。记录初始化、初始化加首次有效查询、暖读取、全文检索、筛选分页、关系、聚合、按需字段和宿主补全各阶段的中位数、P95 与字节数，输出 `local-performance.json`，并沿用现有 `results.json`、计划清单和 HTML 报告。冷连接仅指应用连接冷启动，未清空操作系统磁盘缓存。
+
+正确性与性能同一次执行：核对六个只读工具、默认身份投影、显式字段读取、宿主完整卡片、跨轮缓存拒绝、分页顺序、全文匹配总数、多职务关系证据及五类作品聚合计数。全文、聚合和多职务边的期望值由只读 SQLite 独立查询取得，失败运行保留，但不进入性能汇总。执行前后均验证实际数据库 SHA-256、清单和运行版本，数据或代码漂移标记 `incomplete_capture`。MCP 子进程中的全局 `fetch` 被阻断并记录任何尝试；包装器只装配生产 server/service，不模拟工具结果。
+
+第二条 `run --mode local-archive` 使用真实模型和 `benchmarks/local-archive-cases.json` 的九个代表任务，覆盖事实、表格、全文、关系、聚合、简介证据、评分卡、分页卡片和能力降级。生产验收显式指定 `--recovery enabled`，与应用的有界恢复一致；CLI 省略该参数仍为 `disabled`，适合单独观察首轮失败，不能将两种恢复协议混作同条件成功率比较。失败和中间恢复证据均保留，旧报告不能覆盖。模型请求会消耗额度；只读数据工具仍通过生产 stdio 和真实数据库运行。人工语义评审保持 `pending`，自动通过不证明推荐解释和叙述忠实于来源，也不替代浏览器验收。`fixture` 字段仅为沿用案例格式的评分元数据，该模式不向生产服务注入合成资料。
+
+不要将旧 HTTP 或合成 fixture 与本地 Archive 直接声称为同数据端到端加速。两者的数据版本、工具协议和能力范围不同；需要分别报告，或另外构造真正相同事实快照的可比方案。
+
+## 宿主字段与实际页面验收
+
+本地微基准在原有查询链路上集中增加组件字段核对，不增加分散的测试文件。每轮共 37 项硬检查，直接读取同一 SQLite 的规范化列、评分分布表、Wiki JSON、标签与关系作为独立 oracle。新增检查包括：评分卡原评分及完整 10→1 分布、count/sum 比例、零票不当作 0 分；卡片正常分页、明确选中成员及多个来源的总数口径；Wiki、事实表格、标签、公共放送时间线、缺图画廊和条目链接；已读取文本的精确引用及业务提示；个人进度与历史对照明确拒绝。覆盖 10 个可生成组件和 2 个不可用能力，不能描述为 12 个组件全部渲染成功。
+
+`component_props` 规则对最终完整组件 props 做字段子集核对；数组必须等长且有序，有限数值容差为 1e-12。预期值由独立 SQL 注入评分配置，不能回流到用户 prompt 或模型工具结果。`component` 的 `absent:true` 验证当前来源不支持的组件没有被伪造。人工语义评审仍独立保留，自动字段通过不替代来源解释的准确性。
+
+`benchmarks/local-component-page-cases.json` 集中保存 12 个独立页面 prompt、固定快照标识、只读 SQL、预期值和 DOM 验收要点。每个 prompt 在独立新会话提交，保存真实终态、DOM、canonical 和截图；仅 prompt 发送给模型，oracle 不进入模型上下文。SubjectCards、StatsCard、InfoBox、DataTable、TagCloud、Timeline、Gallery、LinkList、QuoteBlock、Callout 要求实际组件可见；ProgressView、CompareTable 要求诚实说明不可用并给出公共资料替代，不能计入原组件渲染通过。失败重试保留原 prompt 和失败证据，不覆盖旧记录。登录、设置、Web 源码和 Pi 上游不因验收而修改。
+
+修复前运行产物单独冻结并记录文件摘要；修复后统一构建、冻结源码与产物，再运行真实库微基准。微基准期间不同时运行模型或浏览器测试，减少互相干扰。比较只采用相同数据、相同阶段定义的指标；新增组件阶段不能与旧版总耗时直接声称同协议加速。
+
 ## 范围与入口
+
+以下 `fixture` / `live-read` 说明保留给冻结的旧版 checkout 和历史报告。本地只读版本使用上一节的 `local` / `local-archive`，不能将旧账户、社区和写入用例作为当前功能验收；旧版对照必须通过 `--root` 指向独立冻结构建，并显式选择旧模式及案例。当前 `list` 和真实模型运行默认本地九案例，兼容 `fixture` 模式默认 `component-tools-cases.json`；原来的 `cases.json` / `live-cases.json` 不在此分支中。
 
 离线回归验证确定性业务逻辑；benchmark 使用真实模型和真实 Pi/MCP 工具循环，评估调度、结果、上下文与耗时。默认 `fixture` 模式：只把 Bangumi 上游换为请求驱动的固定数据，生产 MCP 校验、分页、筛选、缓存、引用和组件展开照常执行。模型请求仍会联网并消耗模型额度。
 

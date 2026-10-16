@@ -6,22 +6,30 @@ import { COMPONENT_KINDS } from './content-types.js';
 import { PRESENTATION_ERROR_SCHEMA } from './presentation-contract.js';
 
 export const COMPONENT_READ_TOOL_NAMES = ['read_component_index', 'read_component_spec'] as const;
+const capabilityProperties = {
+  sourceCapability: { type: 'string', enum: ['available', 'limited', 'unavailable', 'text'] },
+  limitations: { type: 'array', items: { type: 'string' } },
+  unavailableReason: { type: 'string' },
+};
+const namedCapabilitySchema = { type: 'object', additionalProperties: false,
+  required: ['name', 'sourceCapability', 'limitations'],
+  properties: { name: { type: 'string', enum: [...COMPONENT_KINDS] }, ...capabilityProperties } };
 export const COMPONENT_READ_TOOL_DEFINITIONS = [
   { name: 'read_component_index', inputSchema: { type: 'object', additionalProperties: false, properties: {
     query: { type: 'string', maxLength: 100 }, category: { type: 'string', maxLength: 30 }, offset: { type: 'integer', minimum: 0, default: 0 }, limit: { type: 'integer', minimum: 1, maximum: 12, default: 6 },
-  } }, outputSchema: { anyOf: [{ type: 'object', additionalProperties: false, required: ['version', 'entries', 'total', 'offset', 'nextOffset', 'categories'], properties: { version: { type: 'string' }, entries: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['name', 'category', 'purpose', 'data'], properties: { name: { type: 'string' }, category: { type: 'string' }, purpose: { type: 'string' }, data: { type: 'string' } } } }, total: { type: 'integer' }, offset: { type: 'integer' }, nextOffset: { anyOf: [{ type: 'integer' }, { type: 'null' }] }, categories: { type: 'array', items: { type: 'string' } } } },
+  } }, outputSchema: { anyOf: [{ type: 'object', additionalProperties: false, required: ['version', 'entries', 'total', 'offset', 'nextOffset', 'categories'], properties: { version: { type: 'string' }, entries: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['name', 'category', 'purpose', 'data', 'sourceCapability', 'limitations'], properties: { name: { type: 'string' }, category: { type: 'string' }, purpose: { type: 'string' }, data: { type: 'string' }, ...capabilityProperties } } }, total: { type: 'integer' }, offset: { type: 'integer' }, nextOffset: { anyOf: [{ type: 'integer' }, { type: 'null' }] }, categories: { type: 'array', items: { type: 'string' } } } },
     { type: 'object', additionalProperties: false, required: ['error'], properties: { error: PRESENTATION_ERROR_SCHEMA } }] } },
   { name: 'read_component_spec', inputSchema: { type: 'object', additionalProperties: false, required: ['names'], properties: {
     names: { type: 'array', minItems: 1, maxItems: 12, uniqueItems: true, items: { type: 'string', enum: [...COMPONENT_KINDS] } },
     mode: { type: 'string', enum: ['render', 'prepare'], default: 'render' },
-  } }, outputSchema: { anyOf: [{ type: 'object', additionalProperties: false, required: ['version', 'status', 'tools'], properties: { version: { type: 'string' }, status: { type: 'string', enum: ['activated'] }, tools: { type: 'array', items: { type: 'string' } } } },
+  } }, outputSchema: { anyOf: [{ type: 'object', additionalProperties: false, required: ['version', 'status', 'tools', 'capabilities'], properties: { version: { type: 'string' }, status: { type: 'string', enum: ['activated'] }, tools: { type: 'array', items: { type: 'string' } }, capabilities: { type: 'array', minItems: 1, maxItems: 12, items: namedCapabilitySchema } } },
     { type: 'object', additionalProperties: false, required: ['error'], properties: { error: PRESENTATION_ERROR_SCHEMA } }] } },
 ];
 export function createComponentReadTools(state: ComponentCatalogState, activate?: (names: string[]) => void): ToolDefinition[] {
   const definitions = [
-    { name: 'read_component_index', description: '读取组件用途索引，不含字段Schema。不确定组件名称时按中文用途或分类发现；nextOffset非空时可遍历下一页。明确名称可直接read_component_spec。普通解释可只输出text。',
+    { name: 'read_component_index', description: '读取组件用途索引和Archive数据能力限制，不含字段Schema。不确定组件名称时按中文用途或分类发现；nextOffset非空时可遍历下一页。明确名称可直接read_component_spec。unavailable表示当前数据源不能生成，使用Callout或文字说明，不靠调整参数重试。',
       read: (args: Record<string, unknown>) => { const { audit: _audit, ...result } = state.readIndex(args); return result; } },
-    { name: 'read_component_spec', description: '按明确的固定组件名称直接加载render工具Schema到下一次真实模型请求，无需预读用途索引，回执仅版本和工具名。不在同批调用新工具。mode默认render；只有需要先冻结再发布时选择prepare加载高级两步工具。',
+    { name: 'read_component_spec', description: '按明确的固定组件名称加载render工具Schema到下一次真实模型请求，无需预读索引，回执含版本、工具名和数据能力。先按capabilities确认来源限制；unavailable时改用Callout或文字解释。不能同批调用新工具。mode默认render；需冻结后再发布时选择prepare。',
       read: (args: Record<string, unknown>) => {
         if (!activate) throw new Error('组件加载器没有连接当前Pi工具目录。');
         return state.loadSpecs(args.names as string[], args.mode === 'prepare' ? 'prepare' : 'render', activate);

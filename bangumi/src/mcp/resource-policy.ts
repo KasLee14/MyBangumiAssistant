@@ -1,6 +1,7 @@
 import { AppError } from '../support/errors.js';
 import type { ResourceData } from './resource-contract.js';
 const registered = new Set([
+  'query_entities', 'get_entities', 'query_relations', 'aggregate_entities', 'get_dataset_status',
   'get_daily_broadcast',
   'search_subjects',
   'browse_subjects',
@@ -145,6 +146,7 @@ export function registerResourcePolicy(name: string, schema: ResourceData, input
   ];
   // content是正文事实（字符串），仅容器名禁止；裸content请求社区正文仍合法。
   for (const field of containers.filter(field => field !== 'content')) keys.delete(field);
+  if(['query_entities','get_entities','query_relations'].includes(name))keys.add('fieldStates');
   const declared = [...keys].filter(key => /^[A-Za-z][A-Za-z0-9]*$/.test(key)).sort();
   fieldPolicies.set(name, new Set(declared));
   return declared;

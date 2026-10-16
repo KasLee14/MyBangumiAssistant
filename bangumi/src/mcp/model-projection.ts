@@ -43,6 +43,7 @@ export const identityProjectionKeys = [
 ] as const;
 const identity = new Set<string>(identityProjectionKeys);
 export const statusProjectionKeys = [
+  'snapshotId', 'requestedIds', 'missingIds',
   'schemaVersion',
   'resourceRef',
   'sourceTool',
@@ -124,6 +125,28 @@ const status = new Set<string>(statusProjectionKeys);
 /** 只投影登记工具的身份、流程元数据与显式字段，完整DTO永远留给宿主。 */
 export function projectModelResult(value: Data, name?: string, args: Data = {}): Data {
   if (name === 'read_cached_resource') return structuredClone(value);
+  // 统计值和数据状态是本次明确请求的结果，不通过实体字段策略误删。
+  if (name === 'aggregate_entities' || name === 'get_dataset_status') return structuredClone(value);
+  if(name&&['query_entities','get_entities','query_relations'].includes(name)){
+    const fields=Array.isArray(args.fields)?args.fields.filter((field):field is string=>typeof field==='string'):[];
+    assertResourceFields(name,fields);
+    const output=structuredClone(value);output.fields=fields;
+    if(Array.isArray(output.data))output.data=output.data.map(item=>{
+      if(!record(item))throw new AppError('MCP_INVALID_RESULT','本地查询成员缺少实体身份。');
+      const projected:Data={entity:item.entity,id:item.id};
+      const ranges:Data=record(item.fieldRanges)?structuredClone(item.fieldRanges):{};
+      for(const field of fields)if(Object.hasOwn(item,field)){
+        const data=item[field];
+        if(typeof data==='string'&&['summary','infoboxRaw'].includes(field)){
+          const characters=Array.from(data);projected[field]=characters.slice(0,500).join('');
+          if(characters.length>500)ranges[field]={offset:0,limit:500,total:characters.length,nextOffset:500,complete:false};
+        }else projected[field]=structuredClone(data);
+      }
+      if(Object.keys(ranges).length)projected.fieldRanges=ranges;
+      return projected;
+    });
+    return output;
+  }
   if (!name) {
     if (Array.isArray(value.fields)) args = { ...args, fields: value.fields };
     // 兼容显式候选投影调用；普通资源必须给出工具策略。

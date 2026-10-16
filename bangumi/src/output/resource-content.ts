@@ -1,9 +1,11 @@
 import { ContentOutputError, validateMixedPart, type ComponentKind, type CompleteComponentPart, type MixedPart, type Schema } from './content-schema.js';
 import type { TranscriptContext } from '@earendil-works/pi-ai';
-import { AppError, safeError } from '../support/errors.js';
+import { AppError, diagnosedError, safeError } from '../support/errors.js';
+import { createErrorDiagnostic } from '../support/error-diagnostic.js';
 import { isDeepStrictEqual } from 'node:util';
 import { resourceFields } from '../mcp/resource-policy.js';
 import type { CachedResourceSelection } from '../mcp/resource-contract.js';
+import { COMPONENT_DATA_PROFILES, ratingCardPresentation, subjectCardRange } from './component-data-profile.js';
 
 type Row = Record<string, unknown>;
 const record = (value: unknown): value is Row => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -44,14 +46,20 @@ function resourceReadFailure(error: unknown): ContentOutputError {
     { cause: error, ...(safe.diagnostic === undefined ? {} : { diagnostic: safe.diagnostic }),
       ...(safe.sourceTool === undefined ? {} : { sourceTool: safe.sourceTool }) });
 }
+const referenceEntities = ['subject', 'character', 'person', 'episode', 'revision', 'user', 'index'];
+const entityMemberSchema: Schema = { type: 'object', additionalProperties: false, properties: {
+  ...Object.fromEntries(['id', 'subjectId', 'episodeId', 'characterId', 'personId', 'revisionId', 'targetId', 'relationId', 'ownerId'].map(key => [key, { type: 'number' }])),
+  entity: { type: 'string', enum: referenceEntities }, targetKind: { type: 'string', enum: referenceEntities }, username: { type: 'string' },
+} };
+// 统计行ID只在本resourceRef内有意义，不复用作品ID或关系复合主键。
+const aggregateMemberSchema: Schema = { type: 'object', additionalProperties: false, required: ['entity', 'id'], properties: {
+  entity: { type: 'string', enum: ['aggregate'] }, id: { type: 'number' },
+} };
+const aggregateComponents = new Set<ComponentKind>(['DataTable', 'InfoBox']);
 export const RESOURCE_REFERENCE_SCHEMA: Schema = {
   type: 'object', additionalProperties: false, required: ['resourceRef'], properties: {
     resourceRef: { type: 'string', pattern: '^rr_[A-Za-z0-9_-]+$' },
-    items: { type: 'array', maxItems: 200, items: { type: 'object', additionalProperties: false, properties: {
-      ...Object.fromEntries(['id', 'subjectId', 'episodeId', 'characterId', 'personId', 'revisionId', 'targetId', 'relationId', 'ownerId'].map(key => [key, { type: 'number' }])),
-      entity: { type: 'string', enum: ['subject', 'character', 'person', 'episode', 'revision', 'user', 'index'] },
-      targetKind: { type: 'string', enum: ['subject', 'character', 'person', 'episode', 'revision', 'user', 'index'] }, username: { type: 'string' },
-    } } },
+    items: { type: 'array', maxItems: 200, items: { anyOf: [entityMemberSchema, aggregateMemberSchema] } },
     partIndex: { type: 'number' }, title: { type: 'string' }, layout: { type: 'string', enum: ['grid', 'list'] },
     fields: { type: 'array', items: { type: 'string' } },
     columns: { type: 'array', items: { type: 'object', required: ['key', 'label'], additionalProperties: false, properties: { key: { type: 'string' }, label: { type: 'string' }, align: { type: 'string', enum: ['left', 'right'] } } } },
@@ -71,6 +79,7 @@ export function resourceReferenceSchema(kind: ComponentKind): Schema {
   const schema = structuredClone(RESOURCE_REFERENCE_SCHEMA);
   schema.properties = Object.fromEntries(Object.entries(schema.properties!).filter(([key]) => allowed.has(key)));
   if (schema.properties.items && referenceLimits[kind] !== undefined) schema.properties.items.maxItems = referenceLimits[kind]!;
+  if (schema.properties.items && !aggregateComponents.has(kind)) schema.properties.items.items = structuredClone(entityMemberSchema);
   return schema;
 }
 export function isResourceReference(value: unknown): value is ResourceReferenceProps { return record(value) && Object.hasOwn(value, 'resourceRef'); }
@@ -87,14 +96,17 @@ export function normalizeResourceReference(value: unknown, partial = false, kind
   if (value.fields !== undefined && (!Array.isArray(value.fields) || value.fields.some(field => typeof field !== 'string' || !/^[A-Za-z][A-Za-z0-9]*$/.test(field)))) return fail('fields 必须是直接字段名数组。');
   if (value.columns !== undefined && (!Array.isArray(value.columns) || value.columns.some(column => !record(column) || typeof column.key !== 'string' || typeof column.label !== 'string' || Object.keys(column).some(key => !['key', 'label', 'align'].includes(key)) || column.align !== undefined && !['left', 'right'].includes(String(column.align))))) return fail('columns 格式无效。');
   if (value.items !== undefined && (!Array.isArray(value.items) || value.items.length > (schema.properties!.items?.maxItems ?? 200) || value.items.some(item => !record(item) || !Object.keys(item).length || Object.entries(item).some(([key, field]) => {
-    if (['entity', 'targetKind'].includes(key)) return typeof field !== 'string' || !['subject', 'character', 'person', 'episode', 'revision', 'user', 'index'].includes(field);
+    if (item.entity === 'aggregate') return kind !== undefined && !aggregateComponents.has(kind)
+      || Object.keys(item).length !== 2 || !Object.hasOwn(item, 'id')
+      || (key === 'entity' ? field !== 'aggregate' : key !== 'id' || typeof field !== 'number' || !Number.isSafeInteger(field) || field < 1);
+    if (['entity', 'targetKind'].includes(key)) return typeof field !== 'string' || !referenceEntities.includes(field);
     if (key === 'username') return typeof field !== 'string' || !field.trim();
     return !['id', 'subjectId', 'episodeId', 'characterId', 'personId', 'revisionId', 'targetId', 'relationId', 'ownerId'].includes(key) || typeof field !== 'number' || !Number.isSafeInteger(field) || field < 1;
   })))) return fail('items 只允许实体身份和复合主键。');
   return structuredClone(value) as unknown as ResourceReferenceProps;
 }
 export function resourcePlaceholder(kind: ComponentKind): MixedPart { return { type: kind, pending: true, props: kind === 'TagCloud' ? [] : {} } as MixedPart; }
-const scalar = (value: unknown): string => value == null ? '' : typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : Array.isArray(value) && value.every(item => typeof item === 'string') ? value.join('、') : fail('展示字段不是可验证的标量。');
+const scalar = (value: unknown): string => value == null ? '' : typeof value === 'string' || typeof value === 'number' && Number.isFinite(value) || typeof value === 'boolean' ? String(value) : Array.isArray(value) && value.every(item => typeof item === 'string' || typeof item === 'number' && Number.isFinite(item) || typeof item === 'boolean') ? value.map(String).join('、') : fail('展示字段不是可验证的标量。');
 const compact = (value: Row): Row => Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== null));
 function unwrap(row: Row, kind: ComponentKind): Row {
   const identities = Object.fromEntries(['subject', 'episode', 'person', 'character'].flatMap(entity => record(row[entity]) && row[entity].id !== undefined ? [[`${entity}Id`, row[entity].id]] : []));
@@ -166,8 +178,13 @@ export function resourceSelectionIdentities(value: Row, props: ResourceReference
   return selectRows(body, props, kind).map(row => {
     let entity = String(row.entity ?? body.entity ?? '');
     if (entity === 'subject_candidate') entity = 'subject';
+    if (entity === 'aggregate') {
+      if (!aggregateComponents.has(kind) || body.kind !== 'local_aggregate' || !Number.isSafeInteger(row.id) || Number(row.id) < 1)
+        return fail('统计成员只允许从本地聚合引用用于表格或信息栏。');
+      return JSON.stringify({ entity: 'aggregate', resourceRef: props.resourceRef, id: row.id });
+    }
     if (kind === 'SubjectCards') entity = 'subject';
-    if (!['subject', 'character', 'person', 'episode', 'revision', 'user', 'index'].includes(entity)) {
+    if (!referenceEntities.includes(entity)) {
       const candidates = ['character', 'person', 'episode', 'subject'].filter(name => row[`${name}Id`] === row.id && typeof row.id === 'number');
       entity = candidates.length === 1 ? candidates[0]! : '';
     }
@@ -231,6 +248,21 @@ export async function expandResourceContent(kind: ComponentKind, input: Resource
     }
     return validateMixedPart(structuredClone(selected)) as CompleteComponentPart;
   }
+  // 能力限制只适用于新 Archive 查询；历史已准备载荷始终先按原协议回放。
+  if (typeof value.kind === 'string' && value.kind.startsWith('local_') && COMPONENT_DATA_PROFILES[kind].sourceCapability === 'unavailable') {
+    const message = COMPONENT_DATA_PROFILES[kind].unavailableReason!;
+    const error = diagnosedError(new AppError('COMPONENT_SOURCE_UNAVAILABLE', message), createErrorDiagnostic({
+      code: 'COMPONENT_SOURCE_UNAVAILABLE', origin: 'content', stage: 'validate', reason: 'component_source_unavailable',
+      recovery: 'replan_read', operation: kind, evidence: { networkAttempted: false },
+      issues: [{ path: '/props/resourceRef', rule: 'component_source_unavailable', message }],
+    }));
+    Object.defineProperties(error, {
+      networkAttempted: { value: false },
+      diagnosis: { value: { category: 'capability', stage: 'execution', effect: 'read', blockedFields: kind === 'ProgressView' ? ['current', 'episodes.state'] : ['before', 'after'],
+        allowedValues: [], capabilitySuggestions: ['report_gap'], replanAllowed: true, retryable: false } },
+    });
+    throw error;
+  }
   if (props.partIndex !== undefined) return fail('普通资源不支持 partIndex。');
   if (Object.keys(props).some(key => key !== 'resourceRef' && !referenceControls[kind].includes(key))) return fail(`${kind} 不支持此引用展示参数。`);
   if (props.fields && props.columns) return fail('表格不能同时提供 fields 与 columns。', ['fields', 'columns'].map(field => ({ path: `/props/${field}`, rule: 'mutually_exclusive', message: 'fields与columns只能选择一种。' })));
@@ -243,7 +275,7 @@ export async function expandResourceContent(kind: ComponentKind, input: Resource
   const readField = (row: Row, key: string): unknown => field(row, key, policy);
   let output: unknown;
   if (kind === 'SubjectCards') {
-    output = { ...title, layout: props.layout ?? 'grid', items: rows.map(row => {
+    output = { ...title, layout: props.layout ?? 'grid', ...subjectCardRange(value, rows.length, props.items !== undefined), items: rows.map(row => {
       if (!['subject', 'subject_candidate'].includes(String(row.entity ?? value.entity))) return fail('SubjectCards 只接受作品资源。');
       const kinds: Record<number, string> = { 1: 'book', 2: 'anime', 3: 'music', 4: 'game', 6: 'real' };
       const name = typeof row.name === 'string' && row.name.trim() ? row.name : typeof row.nameCn === 'string' && row.nameCn.trim() ? row.nameCn : undefined;
@@ -271,8 +303,8 @@ export async function expandResourceContent(kind: ComponentKind, input: Resource
     const entries = rows.flatMap(row => Array.isArray(row.tagStats) ? row.tagStats : Array.isArray(row.tags) ? row.tags : []);
     output = entries.map(item => typeof item === 'string' ? { name: item } : record(item) ? compact({ name: item.name, count: item.count }) : fail('标签格式错误。'));
   } else if (kind === 'StatsCard') {
-    if (rows.length !== 1 || !record(rows[0]!.ratingDistribution)) return fail('StatsCard 需要已取得的单个作品评分分布。');
-    output = { ...title, mode: props.mode ?? 'histogram', entries: Object.entries(rows[0]!.ratingDistribution as Row).filter(([, count]) => count !== null).map(([label, count]) => ({ label, value: scalar(count) })) };
+    if (rows.length !== 1 || !['subject', 'subject_candidate'].includes(String(rows[0]!.entity ?? value.entity))) return fail('StatsCard 只接受单个作品的评分资料；跨作品统计请使用 DataTable。');
+    output = { ...title, ...ratingCardPresentation(rows[0]!, props.mode) };
   } else if (kind === 'ProgressView') {
     const episodes = rows.map(row => ({ id: row.id, label: scalar(row.sort ?? row.name), state: row.episodeStatus === 2 ? 'done' : [0, 1, 3].includes(Number(row.episodeStatus)) && typeof row.episodeStatus === 'number' ? 'todo' : fail('章节进度缺少个人状态。') }));
     output = { ...title, episodes };

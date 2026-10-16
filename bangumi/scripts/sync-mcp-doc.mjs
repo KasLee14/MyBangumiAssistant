@@ -68,9 +68,9 @@ export function inputRows(root) {
   return rows;
 }
 /** 输出嵌套结构按实际形状去重，每个公共结构只声明一次。 */
-export function renderMcpDocument(tools, batchInput, hostTools = []) {
+export function renderMcpDocument(tools, _batchInput, hostTools = []) {
   if (!tools.length || new Set(tools.map(tool => tool.name)).size !== tools.length) throw Error('工具目录必须非空且名称不能重复。');
-  const allNames = [...tools.map(tool => tool.name), 'execute_write_batch', ...hostTools.map(tool => tool.name)];
+  const allNames = [...tools.map(tool => tool.name), ...hostTools.map(tool => tool.name)];
   if (new Set(allNames).size !== allNames.length) throw Error('底层与宿主工具名称不能重复。');
   const models = [], modelKeys = new Map(), modelNames = new Set();
   function shape(raw, root, refs = new Set()) {
@@ -120,7 +120,6 @@ export function renderMcpDocument(tools, batchInput, hostTools = []) {
     const output = envelopes(tool.outputSchema, tool.outputSchema, tool.name);
     return `## \`${tool.name}\`\n\n输入字段\n\n${table(inputRows(tool.inputSchema))}\n\n成功输出字段\n\n${table(output)}`;
   });
-  sections.push(`## \`execute_write_batch\`\n\n输入字段\n\n${table(inputRows(batchInput))}\n\n成功输出字段\n\n${table(BATCH_OUTPUT_FIELDS)}`);
   for (const tool of hostTools) {
     const output = envelopes(tool.outputSchema, tool.outputSchema, tool.name);
     const fields = output.length ? output : outputRows(tool.outputSchema, tool.outputSchema, '', tool.name);
@@ -136,60 +135,9 @@ export function renderMcpDocument(tools, batchInput, hostTools = []) {
     if (models.length > 500) throw Error('公共输出结构展开过多，检查循环引用。');
   }
   return ['# Bangumi MCP 字段声明',
-    `${tools.length} 个底层工具及宿主工具 ${['execute_write_batch', ...hostTools.map(tool => tool.name)].join('、')}。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。`,
+    `${tools.length} 个底层工具及宿主工具 ${hostTools.map(tool => tool.name).join('、')}。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。`,
     ...sections, ...(commonInput.length ? ['## 公共输入结构', ...commonInput] : []), '## 公共输出结构', ...common].join('\n\n').trimEnd() + '\n';
 }
-const BATCH_OUTPUT_FIELDS = [
-  ['value.state', 'string', '是', '—', 'success / unchanged / partial / failed / unknown；进度更新 running', '整批状态'],
-  ['value.items[]', 'object', '是', '—', '保留原 step', '每个计划项的结果'],
-  ['value.items[].step', 'integer', '是', '—', '≥ 1', '原输入序号'],
-  ['value.items[].tool', 'string', '是', '—', '固定写工具名称', '对应 operations[].tool'],
-  ['value.items[].state', 'string', '是', '—', 'success / submitted / unchanged / skipped / failed / unknown / blocked / not_executed', '条目状态'],
-  ['value.items[].networkAttempted', 'boolean', '是', '—', '—', '写入尝试事实'],
-  ['value.items[].writeNetworkAttempted', 'boolean', '否', '—', '—', '排除明确未投递的写入尝试'],
-  ['value.items[].target', 'object', '否', '—', '按工具目标字段', '原对象范围'],
-  ['value.items[].reason', 'string', '否', '—', '—', '跳过或阻塞原因'],
-  ['value.items[].blockedBy[]', 'integer', '否', '—', '≥ 1', '依赖的原步骤编号'],
-  ['value.items[].stageResults[]', 'object', '否', '—', 'stage / state / target；可含提交、回读与错误', '复合操作子阶段结果'],
-  ['value.items[].preflightSkipped[]', 'object', '否', '—', 'episodeId / reason / error', '预检未通过的章节'],
-  ['value.items[].submission', 'object', '否', '—', '对应底层写工具输出', '提交回执'],
-  ['value.items[].submissionError', 'object', '否', '—', '公共安全错误字段', '提交阶段错误'],
-  ['value.items[].verificationError', 'object', '否', '—', '公共安全错误字段', '回读阶段错误'],
-  ['value.items[].verification', 'object', '否', '—', '对应宿主回读结果', '独立验证事实'],
-  ['value.items[].actual', 'object', '否', '—', '对应目标的状态字段', '回读实际状态'],
-  ['value.items[].error', 'object', '否', '—', '公共安全错误字段', '条目失败'],
-  ['value.items[].accountId', 'integer', '否', '—', '≥ 1', '提交账户'],
-  ['value.items[].before', 'object', '否', '—', '对应目标字段', '修改前基线'],
-  ['value.items[].after', 'object', '否', '—', '对应目标字段', '预期修改目标'],
-  ...['requestId', 'batchId', 'logicalOperationId'].map(field => [`value.items[].${field}`, 'string', '否', '—', '宿主生成', '执行身份']),
-  ['value.items[].createdId', 'integer', '否', '—', '≥ 1', '创建目录的实际ID'],
-  ['value.items[].partial', 'boolean', '否', '—', '—', '子阶段部分完成'],
-  ['value.items[].resolution', 'string', '否', '—', 'observed_partial等宿主事实', '结果依据'],
-  ...['readbackCompleted', 'requestedStateMatched', 'protectedFieldsMatched', 'superseded'].map(field => [`value.items[].verification.${field}`, 'boolean', '否', '—', '—', '回读及目标、保护范围核对']),
-  ['value.items[].verification.mismatchedFields[]', 'string', '否', '—', '目标字段名称', '未匹配字段'],
-  ['value.items[].verification.state', 'string', '否', '—', 'pending / success / unchanged / failed / unknown', '验证状态'],
-  ['value.items[].verification.scope', 'string', '否', '—', 'batch_final_state / recovery', '验证范围'],
-  ['value.items[].verification.parentProgress', 'object', '否', '—', 'subjectId / before / actual', '作品父进度核对'],
-  ['value.summary', 'object', '是', '—', '各状态计数为非负整数', 'success / submitted / unchanged / skipped / failed / unknown / blocked / not_executed'],
-  ...['success', 'submitted', 'unchanged', 'skipped', 'failed', 'unknown', 'blocked', 'not_executed'].map(field => [`value.summary.${field}`, 'integer', '是', '—', '≥ 0', '原计划项状态计数']),
-  ['value.partial', 'boolean', '是', '—', '—', '是否存在已核实部分与未完成范围'],
-  ['value.networkAttempted', 'boolean', '是', '—', '—', '汇总写入尝试'],
-  ['value.writeNetworkAttempted', 'boolean', '否', '—', '—', '汇总实际写入尝试'],
-  ['value.confirmation', 'object', '否', '—', 'required: boolean；reasons: array<string>', '完整计划确认政策'],
-  ['value.confirmation.required', 'boolean', '是', '—', '—', '是否要求确认'],
-  ['value.confirmation.reasons[]', 'string', '是', '—', '宿主政策原因', '确认原因'],
-  ['value.accessContext', 'AccessContext', '否', '—', '公共结构', '账户与权限事实'],
-  ['value.failures[]', 'object', '否', '—', 'phase / step / tool / target / sourceTool / error', '全部已定位错误'],
-  ['value.failure', 'object', '否', '—', '同 failures[]', '首项兼容字段'],
-  ['value.error', 'object', '否', '—', '公共安全错误字段', '整批异常'],
-  ['value.prior', 'object', '否', '—', '已记录执行事实', '已执行计划的历史事实'],
-  ['value.recovery', 'object', '否', '—', 'blockers / createdTargets / action', '未完成范围的恢复事实'],
-  ['value.recovery.blockers[]', 'object', '是', '—', '宿主恢复事实', '未核实冲突范围'],
-  ['value.recovery.createdTargets[]', 'object', '否', '—', 'tool / indexId / args / actual', '已核实新目录'],
-  ['value.recovery.action', 'string', '是', '—', 'replan_remaining / independent_readback', '当前剩余工作'],
-  ['value.completedSteps', 'integer', '否', '—', '≥ 0', '进度更新的已完成步骤数'],
-  ['value.totalSteps', 'integer', '否', '—', '≥ 0', '进度更新的计划项数'],
-];
 async function sourceFiles(directory) {
   const result = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -207,10 +155,9 @@ export async function syncMcpDocument(checking = false) {
     if (build.mtimeMs < (await stat(source)).mtimeMs) throw Error(`构建产物过期：${relative(appRoot, compiled)}；请先统一构建。`);
   }
   const { TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/mcp/catalog.js')).href);
-  const { BATCH_INPUT_SCHEMA } = await import(pathToFileURL(join(appRoot, 'dist/src/mcp/batch-write.js')).href);
   const { PRESENTATION_TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/output/presentation-contract.js')).href);
   const { COMPONENT_READ_TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/output/component-tools.js')).href);
-  const rendered = renderMcpDocument(TOOL_DEFINITIONS, BATCH_INPUT_SCHEMA, [...COMPONENT_READ_TOOL_DEFINITIONS, ...PRESENTATION_TOOL_DEFINITIONS]);
+  const rendered = renderMcpDocument(TOOL_DEFINITIONS, undefined, [...COMPONENT_READ_TOOL_DEFINITIONS, ...PRESENTATION_TOOL_DEFINITIONS]);
   const original = (await readFile(documentPath, 'utf8')).replace(/\r\n/g, '\n');
   if (checking && rendered !== original) throw Error('mcp.md与工具字段不一致；运行 node scripts/sync-mcp-doc.mjs 同步。');
   if (!checking && rendered !== original) await writeFile(documentPath, rendered, 'utf8');
@@ -220,5 +167,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (process.argv.slice(2).some(value => value !== '--check')) throw Error('只接受可选参数 --check。');
   await syncMcpDocument(process.argv.includes('--check'));
   const { TOOL_DEFINITIONS } = await import(pathToFileURL(join(appRoot, 'dist/src/mcp/catalog.js')).href);
-  console.log(`${process.argv.includes('--check') ? '字段一致性校验通过' : '字段文档同步完成'}：${TOOL_DEFINITIONS.length}底层工具及宿主写入、展示工具。`);
+  console.log(`${process.argv.includes('--check') ? '字段一致性校验通过' : '字段文档同步完成'}：${TOOL_DEFINITIONS.length}个只读业务工具及宿主展示工具。`);
 }

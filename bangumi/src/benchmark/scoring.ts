@@ -5,6 +5,14 @@ import { accountSubject } from './fixtures.js';
 function visibleValues(turn: TurnObservation | undefined): unknown[] {
   return (turn?.tools ?? []).filter(tool => !tool.error).map(tool => tool.value);
 }
+/** 断言由独立数据 oracle 生成；对象仅匹配要求字段，数组仍须逐项、等长且有序。 */
+function containsExpected(actual: unknown, expected: unknown): boolean {
+  if (typeof expected === 'number') return typeof actual === 'number' && Number.isFinite(actual) && Math.abs(actual - expected) <= 1e-12;
+  if (Array.isArray(expected)) return Array.isArray(actual) && actual.length === expected.length && expected.every((item, index) => containsExpected(actual[index], item));
+  if (expected !== null && typeof expected === 'object') return actual !== null && typeof actual === 'object' && !Array.isArray(actual)
+    && Object.entries(expected).every(([key, value]) => Object.hasOwn(actual, key) && containsExpected(record(actual)[key], value));
+  return actual === expected;
+}
 export function selectedSubjects(turn: TurnObservation | undefined, fixture: FixtureDefinition): number[] {
   const ids = new Set<number>(), known = new Set(fixture.subjects.map(subject => subject.id));
   walk(turn?.final, row => {
@@ -42,7 +50,13 @@ export function gradeCase(test: BenchmarkCase, turns: TurnObservation[], fixture
         detail = passed ? '文本断言通过' : '文本断言未通过'; break;
       case 'component':
         walk(turn?.final, row => { if (row.type === rule.type && row.pending === false) passed = true; });
-        detail = '完整组件：' + rule.type; break;
+        if (rule.absent) passed = !passed;
+        detail = (rule.absent ? '不应生成当前数据不支持的组件：' : '完整组件：') + rule.type; break;
+      case 'component_props':
+        walk(turn?.final, row => {
+          if (row.type === rule.type && row.pending === false && containsExpected(row.props, rule.expected)) passed = true;
+        });
+        detail = '完整组件字段与独立 oracle 对照：' + rule.type + ' ' + JSON.stringify(rule.expected); break;
       case 'component_text':
         walk(turn?.final, row => {
           if (row.type === rule.type && row.pending === false && new RegExp(rule.pattern, 'u').test(outputText(row))) passed = true;

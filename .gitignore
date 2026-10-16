@@ -14,8 +14,11 @@ bangumi/scripts/
 bangumi/benchmarks/
 !bangumi/benchmarks/
 bangumi/benchmarks/*
+bangumi/artifacts/
 !bangumi/benchmarks/component-tools-cases.json
 !bangumi/benchmarks/presentation-cases.json
+!bangumi/benchmarks/local-archive-cases.json
+!bangumi/benchmarks/local-component-page-cases.json
 bangumi/artifacts/benchmarks/component-tools-*
 bangumi/artifacts/benchmarks/presentation-*
 bangumi/artifacts/prepare-deepseek-responses.ps1
