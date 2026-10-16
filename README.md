@@ -8,6 +8,8 @@ MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然�
 - “把《某部动画》第 3 集标记为看过。”
 - “创建一个目录，把这些作品加入进去。”
 
+本分支为本地数据库版本，使用前需完成本地数据库配置。
+
 ## 1、部署与启动
 
 ### 准备环境与安装
@@ -20,16 +22,38 @@ MyBangumiAssistant 是一个在本地运行的 Bangumi AI 助手。通过自然�
 node bootstrap-pi.mjs
 ```
 
-### 启动 Web端
+运行命令配置数据库：
+
+```
+npm run data:init -- --proxy http://<你的代理地址>
+npm run data:status
+npm run data:verify
+```
+
+后续更新运行：
+
+```
+npm run data:update -- --proxy http://<你的代理地址>
+```
+
+### 初次启动 Web端
 
 在项目根目录执行：
 
 ```powershell
 cd bangumi
+npm run build
 npm start -- web
 ```
 
-程序会自动打开默认浏览器，默认端口为 **8787**。如果浏览器未打开，复制终端打印的完整访问地址。首次使用按下一节配置模型，再从“设置 → 登录状态”登录 Bangumi；人机验证在浏览器中完成。
+程序会自动打开默认浏览器，默认端口为 **8787**。
+
+后续运行只需：
+
+```
+cd bangumi
+npm start -- web
+```
 
 ## 2、配置 API Key
 
