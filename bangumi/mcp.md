@@ -11,8 +11,27 @@
 | entity | string | 是 | — | 允许 subject、person、character、episode |  |
 | keyword | string | 否 | — | 最长字符数 300 | 原文关键词。name检索名称与别名；fulltext检索名称、别名和简介，不解释为语义推荐。 |
 | nsfw | string | 否 | — | 允许 exclude、include | 仅为本地资料显示范围，不涉及账户权限。本轮首次省略为exclude，后续省略继承本轮范围；本轮内不能显式改变，换轮次重新查询。 |
+| data_scope | string | 否 | public | 允许 public、self | public只读Archive；self读取已同步的本人条目收藏快照，不触发联网同步。账号由宿主绑定。 |
 | match | string | 否 | name | 允许 name、fulltext |  |
 | filter | object | 否 | — | 拒绝额外字段 |  |
+| filter.collection | object | 否 | — | 拒绝额外字段 |  |
+| filter.collection.membership | string | 否 | any | 允许 any、collected、not_collected | 本地收藏快照中的成员关系；missing及可见范围之外为未知，不视作未收藏。 |
+| filter.collection.types | array<integer> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：≥ 1；≤ 5 | 已收藏条目状态：1想看/读/玩/听、2看/读/玩/听过、3在看/读/玩/听、4搁置、5抛弃。 |
+| filter.collection.types[] | integer | 是 | — | ≥ 1；≤ 5 |  |
+| filter.collection.exclude_types | array<integer> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：≥ 1；≤ 5 | 限定已收藏且状态不在所列集合；不包含未收藏及状态未知条目。 |
+| filter.collection.exclude_types[] | integer | 是 | — | ≥ 1；≤ 5 |  |
+| filter.collection.rating | object | 否 | — | 拒绝额外字段 | 个人评分闭区间；0表示未评分。 |
+| filter.collection.rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.collection.rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.collection.rated | boolean | 否 | — | — | true仅个人评分1至10，false仅未评分0；与rating范围不得矛盾。 |
+| filter.collection.tags_all | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_all[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_any | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_any[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection.private | boolean | 否 | — | — |  |
+| filter.collection.updated_at | object | 否 | — | 拒绝额外字段 | 上游收藏更新时间，Unix秒；不代表观看完成日期。 |
+| filter.collection.updated_at.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.collection.updated_at.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
 | filter.subject_type | integer | 否 | — | 允许 1、2、3、4、6 | 作品媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。 |
 | filter.year | object | 否 | — | 拒绝额外字段 | 作品发行/开播或章节放送年份；不代表人物生日。 |
 | filter.year.min | integer | 否 | — | ≥ 1；≤ 9999 |  |
@@ -36,11 +55,11 @@
 | filter.episode_type | integer | 否 | — | ≥ 0；≤ 6 |  |
 | filter.career | array<string> | 否 | — | 最少项 1；最多项 7；元素不重复；元素：允许 writer、producer、mangaka、artist、seiyu、illustrator、actor | 仅人物；职业符合所列任一项。 |
 | filter.career[] | string | 是 | — | 允许 writer、producer、mangaka、artist、seiyu、illustrator、actor |  |
-| sort | string | 否 | match | 允许 id、name、date_asc、date_desc、score、rank、rating_count、match |  |
+| sort | string | 否 | match | 允许 id、name、date_asc、date_desc、score、rank、rating_count、match、personal_rating_desc、personal_rating_asc、collection_updated_desc、collection_updated_asc |  |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | cursor | string | 否 | — | 最长字符数 2000 | 上一页nextCursor；绑定条件、数据版本和显示范围，不手工构造。 |
-| fields | array<string> | 否 | 空数组 | 最多项 42；元素不重复；元素：允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates | 省略只返回身份与引用；正文等长字段按需读取，宿主展示直接补全。 |
-| fields[] | string | 是 | — | 允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates |  |
+| fields | array<string> | 否 | 空数组 | 最多项 51；元素不重复；元素：允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、collectionState、collectionType、personalRating、personalTags、personalComment、collectionPrivate、epStatus、volStatus、collectionUpdatedAt | 省略只返回身份与引用；正文等长字段按需读取，宿主展示直接补全。 |
+| fields[] | string | 是 | — | 允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、collectionState、collectionType、personalRating、personalTags、personalComment、collectionPrivate、epStatus、volStatus、collectionUpdatedAt |  |
 
 成功输出字段
 
@@ -70,10 +89,11 @@
 | --- | --- | --- | --- | --- | --- |
 | entity | string | 是 | — | 允许 subject、person、character、episode |  |
 | nsfw | string | 否 | — | 允许 exclude、include | 仅为本地资料显示范围，不涉及账户权限。本轮首次省略为exclude，后续省略继承本轮范围；本轮内不能显式改变，换轮次重新查询。 |
+| data_scope | string | 否 | public | 允许 public、self | public只读Archive；self读取已同步的本人条目收藏快照，不触发联网同步。账号由宿主绑定。 |
 | ids | array<integer> | 是 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1；≤ 9007199254740991 |  |
 | ids[] | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
-| fields | array<string> | 否 | 空数组 | 最多项 42；元素不重复；元素：允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates | 省略只返回身份与引用；正文等长字段按需读取，宿主展示直接补全。 |
-| fields[] | string | 是 | — | 允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates |  |
+| fields | array<string> | 否 | 空数组 | 最多项 51；元素不重复；元素：允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、collectionState、collectionType、personalRating、personalTags、personalComment、collectionPrivate、epStatus、volStatus、collectionUpdatedAt | 省略只返回身份与引用；正文等长字段按需读取，宿主展示直接补全。 |
+| fields[] | string | 是 | — | 允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、collectionState、collectionType、personalRating、personalTags、personalComment、collectionPrivate、epStatus、volStatus、collectionUpdatedAt |  |
 
 成功输出字段
 
@@ -106,11 +126,30 @@
 | source.id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
 | target_entity | string | 否 | — | 允许 subject、person、character、episode |  |
 | nsfw | string | 否 | — | 允许 exclude、include | 仅为本地资料显示范围，不涉及账户权限。本轮首次省略为exclude，后续省略继承本轮范围；本轮内不能显式改变，换轮次重新查询。 |
+| data_scope | string | 否 | public | 允许 public、self | public只读Archive；self读取已同步的本人条目收藏快照，不触发联网同步。账号由宿主绑定。 |
 | direction | string | 否 | both | 允许 outgoing、incoming、both |  |
 | relation_types | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 0；≤ 9007199254740991 |  |
 | relation_types[] | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
 | appearance_role | integer | 否 | — | ≥ 1；≤ 3 |  |
 | filter | object | 否 | — | 拒绝额外字段 |  |
+| filter.collection | object | 否 | — | 拒绝额外字段 |  |
+| filter.collection.membership | string | 否 | any | 允许 any、collected、not_collected | 本地收藏快照中的成员关系；missing及可见范围之外为未知，不视作未收藏。 |
+| filter.collection.types | array<integer> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：≥ 1；≤ 5 | 已收藏条目状态：1想看/读/玩/听、2看/读/玩/听过、3在看/读/玩/听、4搁置、5抛弃。 |
+| filter.collection.types[] | integer | 是 | — | ≥ 1；≤ 5 |  |
+| filter.collection.exclude_types | array<integer> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：≥ 1；≤ 5 | 限定已收藏且状态不在所列集合；不包含未收藏及状态未知条目。 |
+| filter.collection.exclude_types[] | integer | 是 | — | ≥ 1；≤ 5 |  |
+| filter.collection.rating | object | 否 | — | 拒绝额外字段 | 个人评分闭区间；0表示未评分。 |
+| filter.collection.rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.collection.rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.collection.rated | boolean | 否 | — | — | true仅个人评分1至10，false仅未评分0；与rating范围不得矛盾。 |
+| filter.collection.tags_all | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_all[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_any | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_any[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection.private | boolean | 否 | — | — |  |
+| filter.collection.updated_at | object | 否 | — | 拒绝额外字段 | 上游收藏更新时间，Unix秒；不代表观看完成日期。 |
+| filter.collection.updated_at.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.collection.updated_at.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
 | filter.subject_type | integer | 否 | — | 允许 1、2、3、4、6 | 作品媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。 |
 | filter.year | object | 否 | — | 拒绝额外字段 | 作品发行/开播或章节放送年份；不代表人物生日。 |
 | filter.year.min | integer | 否 | — | ≥ 1；≤ 9999 |  |
@@ -136,8 +175,8 @@
 | filter.career[] | string | 是 | — | 允许 writer、producer、mangaka、artist、seiyu、illustrator、actor |  |
 | limit | integer | 否 | 30 | ≥ 1；≤ 100 |  |
 | cursor | string | 否 | — | 最长字符数 2000 | 上一页nextCursor；绑定条件、数据版本和显示范围，不手工构造。 |
-| fields | array<string> | 否 | 空数组 | 最多项 42；元素不重复；元素：允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates | 省略只返回身份与引用；正文等长字段按需读取，宿主展示直接补全。 |
-| fields[] | string | 是 | — | 允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates |  |
+| fields | array<string> | 否 | 空数组 | 最多项 51；元素不重复；元素：允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、collectionState、collectionType、personalRating、personalTags、personalComment、collectionPrivate、epStatus、volStatus、collectionUpdatedAt | 省略只返回身份与引用；正文等长字段按需读取，宿主展示直接补全。 |
+| fields[] | string | 是 | — | 允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、collectionState、collectionType、personalRating、personalTags、personalComment、collectionPrivate、epStatus、volStatus、collectionUpdatedAt |  |
 
 成功输出字段
 
@@ -168,8 +207,27 @@
 | entity | string | 是 | — | 允许 subject、person、character、episode |  |
 | keyword | string | 否 | — | 最长字符数 300 | 原文关键词。name检索名称与别名；fulltext检索名称、别名和简介，不解释为语义推荐。 |
 | nsfw | string | 否 | — | 允许 exclude、include | 仅为本地资料显示范围，不涉及账户权限。本轮首次省略为exclude，后续省略继承本轮范围；本轮内不能显式改变，换轮次重新查询。 |
+| data_scope | string | 否 | public | 允许 public、self | public只读Archive；self读取已同步的本人条目收藏快照，不触发联网同步。账号由宿主绑定。 |
 | match | string | 否 | name | 允许 name、fulltext |  |
 | filter | object | 否 | — | 拒绝额外字段 |  |
+| filter.collection | object | 否 | — | 拒绝额外字段 |  |
+| filter.collection.membership | string | 否 | any | 允许 any、collected、not_collected | 本地收藏快照中的成员关系；missing及可见范围之外为未知，不视作未收藏。 |
+| filter.collection.types | array<integer> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：≥ 1；≤ 5 | 已收藏条目状态：1想看/读/玩/听、2看/读/玩/听过、3在看/读/玩/听、4搁置、5抛弃。 |
+| filter.collection.types[] | integer | 是 | — | ≥ 1；≤ 5 |  |
+| filter.collection.exclude_types | array<integer> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：≥ 1；≤ 5 | 限定已收藏且状态不在所列集合；不包含未收藏及状态未知条目。 |
+| filter.collection.exclude_types[] | integer | 是 | — | ≥ 1；≤ 5 |  |
+| filter.collection.rating | object | 否 | — | 拒绝额外字段 | 个人评分闭区间；0表示未评分。 |
+| filter.collection.rating.min | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.collection.rating.max | integer | 否 | — | ≥ 0；≤ 10 |  |
+| filter.collection.rated | boolean | 否 | — | — | true仅个人评分1至10，false仅未评分0；与rating范围不得矛盾。 |
+| filter.collection.tags_all | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_all[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_any | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
+| filter.collection.tags_any[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
+| filter.collection.private | boolean | 否 | — | — |  |
+| filter.collection.updated_at | object | 否 | — | 拒绝额外字段 | 上游收藏更新时间，Unix秒；不代表观看完成日期。 |
+| filter.collection.updated_at.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.collection.updated_at.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
 | filter.subject_type | integer | 否 | — | 允许 1、2、3、4、6 | 作品媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。 |
 | filter.year | object | 否 | — | 拒绝额外字段 | 作品发行/开播或章节放送年份；不代表人物生日。 |
 | filter.year.min | integer | 否 | — | ≥ 1；≤ 9999 |  |
@@ -193,9 +251,9 @@
 | filter.episode_type | integer | 否 | — | ≥ 0；≤ 6 |  |
 | filter.career | array<string> | 否 | — | 最少项 1；最多项 7；元素不重复；元素：允许 writer、producer、mangaka、artist、seiyu、illustrator、actor | 仅人物；职业符合所列任一项。 |
 | filter.career[] | string | 是 | — | 允许 writer、producer、mangaka、artist、seiyu、illustrator、actor |  |
-| group_by | string | 否 | — | 允许 subjectType、year、platform、tag、score、nsfw |  |
-| metrics | array<string> | 否 | count | 最少项 1；最多项 3；元素不重复；元素：允许 count、averageScore、ratingCount |  |
-| metrics[] | string | 是 | — | 允许 count、averageScore、ratingCount |  |
+| group_by | string | 否 | — | 允许 subjectType、year、platform、tag、score、nsfw、collectionType、personalRating、personalTag |  |
+| metrics | array<string> | 否 | count | 最少项 1；最多项 5；元素不重复；元素：允许 count、averageScore、ratingCount、averagePersonalRating、ratedCount |  |
+| metrics[] | string | 是 | — | 允许 count、averageScore、ratingCount、averagePersonalRating、ratedCount |  |
 | limit | integer | 否 | 100 | ≥ 1；≤ 100 |  |
 | cursor | string | 否 | — | 最长字符数 2000 | 上一页nextCursor；绑定条件、数据版本和显示范围，不手工构造。 |
 
@@ -226,8 +284,8 @@
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | resource_ref | string | 是 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
-| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、group、count、averageScore |  |
-| fields[] | string | 是 | — | 允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、group、count、averageScore |  |
+| fields | array<string> | 否 | — | 最多项 80；元素不重复；元素：允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、collectionState、collectionType、personalRating、personalTags、personalComment、collectionPrivate、epStatus、volStatus、collectionUpdatedAt、group、count、averageScore、averagePersonalRating、ratedCount |  |
+| fields[] | string | 是 | — | 允许 name、nameCn、summary、date、year、platform、score、rank、ratingCount、nsfw、url、tags、metaTags、tagStats、infobox、infoboxRaw、aliases、ratingDistribution、totalEpisodes、totalVolumes、subjectType、personType、characterType、episodeType、subjectId、sort、disc、duration、airDate、career、comments、collects、collectionCounts、series、relation、relationType、relationTypes、relations、relationId、staff、appearanceRole、fieldStates、collectionState、collectionType、personalRating、personalTags、personalComment、collectionPrivate、epStatus、volStatus、collectionUpdatedAt、group、count、averageScore、averagePersonalRating、ratedCount |  |
 | keys | array<integer / object> | 否 | — | 最多项 100；元素不重复；元素：oneOf 2 个分支；integer：≥ 1 |  |
 | keys[] | integer | 是 | — | ≥ 1 | oneOf 1 |
 | keys[] | object | 是 | — | 最少字段 1；最多字段 3；拒绝额外字段 | oneOf 2 |
@@ -262,6 +320,7 @@
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
+| data_scope | string | 否 | public | 允许 public、self | public只读Archive；self读取已同步的本人条目收藏快照，不触发联网同步。账号由宿主绑定。 |
 
 成功输出字段
 
@@ -337,8 +396,8 @@
 | subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_SubjectCards_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_SubjectCards_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -365,8 +424,8 @@
 | members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 1 | 只选择当前resourceRef中已核实的实体身份，不提供或覆盖事实。 |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_StatsCard_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_StatsCard_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -392,8 +451,8 @@
 | members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 | 只选择当前resourceRef中已核实的实体身份，不提供或覆盖事实。 |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_ProgressView_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_ProgressView_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -420,8 +479,8 @@
 | members | array<Input_render_StatsCard_membersItem / Input_render_InfoBox_membersItem> | 否 | — | 最多项 1；元素：anyOf 2 个分支 | 明确选择当前resourceRef成员。统计行使用entity=aggregate和该引用内的id；不同统计引用的行ID互不通用，不能提供或覆盖事实。 |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_InfoBox_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_InfoBox_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -448,8 +507,8 @@
 | members | array<Input_render_StatsCard_membersItem / Input_render_InfoBox_membersItem> | 否 | — | 最多项 200；元素：anyOf 2 个分支 | 明确选择当前resourceRef成员。统计行使用entity=aggregate和该引用内的id；不同统计引用的行ID互不通用，不能提供或覆盖事实。 |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_DataTable_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_DataTable_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -475,8 +534,8 @@
 | members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 | 只选择当前resourceRef中已核实的实体身份，不提供或覆盖事实。 |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_ProgressView_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_ProgressView_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -501,8 +560,8 @@
 | members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 200 | 只选择当前resourceRef中已核实的实体身份，不提供或覆盖事实。 |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_TagCloud_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_TagCloud_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -528,8 +587,8 @@
 | members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 | 只选择当前resourceRef中已核实的实体身份，不提供或覆盖事实。 |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_Gallery_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_Gallery_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -554,8 +613,8 @@
 | fields | array<string> | 否 | — | — |  |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_CompareTable_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_CompareTable_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -578,8 +637,8 @@
 | title | string | 否 | — | — |  |
 | text | string | 是 | — | — |  |
 | mono | boolean | 是 | — | — |  |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 
 成功输出字段
@@ -600,8 +659,8 @@
 | tone | string | 是 | — | 允许 progress、success、warning、error |  |
 | text | string | 是 | — | — |  |
 | detail | string | 否 | — | — |  |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 
 成功输出字段
@@ -625,8 +684,8 @@
 | members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 | 只选择当前resourceRef中已核实的实体身份，不提供或覆盖事实。 |
 | blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
 | sources | array<Input_render_Gallery_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
-| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
-| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| before | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。 |
+| after | string | 否 | — | 最长字符数 65536 | 可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。 |
 | final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
 | resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
 | sources | array<Input_render_Gallery_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
@@ -1171,6 +1230,15 @@
 | ratingDistribution | query_entities_dataItem_ratingDistribution / null | 否 | — | anyOf 2 个分支 |  |
 | relationTypes | array<integer> / null | 否 | — | anyOf 2 个分支；array：元素不重复；元素：≥ 0；≤ 9007199254740991 |  |
 | relations | array<query_entities_dataItem_relationsItem> / null | 否 | — | anyOf 2 个分支 |  |
+| collectionState | string | 否 | — | 允许 collected、not_collected、unknown |  |
+| collectionType | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 1；≤ 5 |  |
+| personalRating | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 0；≤ 10 |  |
+| personalTags | array<string> / null | 否 | — | anyOf 2 个分支；array：最多项 1000；元素：最长字符数 1000 |  |
+| personalComment | string / null | 否 | — | anyOf 2 个分支；string：最长字符数 50000 |  |
+| collectionPrivate | boolean / null | 否 | — | anyOf 2 个分支 |  |
+| epStatus | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| volStatus | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+| collectionUpdatedAt | integer / null | 否 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
 | fieldStates | object | 否 | — | — |  |
 | fieldRanges | query_entities_dataItem_fieldRanges | 否 | — | 拒绝额外字段 |  |
 | included | array<string> | 否 | — | — |  |
@@ -1186,6 +1254,8 @@
 | count | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
 | averageScore | number / null | 否 | — | anyOf 2 个分支 |  |
 | ratingCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| averagePersonalRating | number / null | 否 | — | anyOf 2 个分支 |  |
+| ratedCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
 
 ### `query_entities_page`
 
@@ -1202,7 +1272,7 @@
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
-| scope | object（本工具输入字段） | 是 | — | 固定 archive_snapshot |  |
+| scope | object（本工具输入字段） | 是 | — | 允许 archive_snapshot、account_snapshot |  |
 | complete | boolean | 是 | — | — |  |
 | totalKind | string | 是 | — | 固定 exact |  |
 | unknownCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
@@ -1215,11 +1285,16 @@
 | mode | string | 是 | — | 允许 account、anonymous、unverified、local |  |
 | account | null / AccessContext_account | 是 | — | anyOf 2 个分支 |  |
 | nsfw | AccessContext_nsfw | 是 | — | 拒绝额外字段 |  |
-| source | string | 是 | — | 允许 p1、v0、web、archive |  |
+| source | string | 是 | — | 允许 p1、v0、web、archive、account_snapshot |  |
 | nsfwApplied | boolean | 是 | — | — |  |
 | checkedAt | string | 是 | — | 最长字符数 50 |  |
+| collectionSnapshotId | string | 否 | — | 最短字符数 1；最长字符数 160；正则 ^[-A-Za-z0-9_.]+$ |  |
+| accountFreshness | AccessContext_accountFreshness | 否 | — | 拒绝额外字段 |  |
 | snapshotId | string | 否 | — | 最短字符数 1；最长字符数 120；正则 ^[A-Za-z0-9][A-Za-z0-9._-]*$ |  |
 | queryCoverage | AccessContext_queryCoverage | 否 | — | 拒绝额外字段 |  |
+| mode | string | 否 | — | 固定 account | then: 提供 source；source=account_snapshot |
+| snapshotId | string | 是 | — | — | then: 提供 source；source=account_snapshot |
+| collectionSnapshotId | string | 是 | — | — | then: 提供 source；source=account_snapshot |
 | source | string | 否 | — | 固定 archive | then: 提供 mode；mode=local |
 | account | null | 否 | — | — | then: 提供 mode；mode=local |
 | snapshotId | string | 是 | — | 最短字符数 1 | then: 提供 mode；mode=local |
@@ -1380,6 +1455,7 @@
 | --- | --- | --- | --- | --- | --- |
 | summary | query_entities_dataItem_fieldRanges_summary | 否 | — | 拒绝额外字段 |  |
 | infoboxRaw | query_entities_dataItem_fieldRanges_summary | 否 | — | 拒绝额外字段 |  |
+| personalComment | query_entities_dataItem_fieldRanges_summary | 否 | — | 拒绝额外字段 |  |
 
 ### `AccessContext_account`
 
@@ -1395,6 +1471,14 @@
 | preference | boolean / null | 是 | — | — |  |
 | allowed | boolean / null | 是 | — | — |  |
 | state | string | 是 | — | 允许 enabled、disabled、unknown、not_checked |  |
+
+### `AccessContext_accountFreshness`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| lastFullSyncAt | string | 是 | — | — |  |
+| lastDeltaSyncAt | string / null | 是 | — | — |  |
+| incrementalOnly | boolean | 是 | — | — |  |
 
 ### `AccessContext_queryCoverage`
 

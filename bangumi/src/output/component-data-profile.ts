@@ -28,11 +28,11 @@ export const COMPONENT_DATA_PROFILES: Readonly<Record<ComponentKind, ComponentDa
     limitations: ['每次只接受一个作品，不把多作品评分分布相加。', '比例分母为完整分布的总票数；零票为零比例，未知分布不补零，原评分不由分布重算。'],
   },
   ProgressView: {
-    category: '进度', purpose: '保留历史观看进度回放；当前 Archive 公共查询不能生成个人进度',
-    data: '当前源没有个人观看状态；章节清单应使用 DataTable', sourceCapability: 'unavailable',
+    category: '进度', purpose: '保留历史逐集观看进度回放；当前个人库仅提供条目级进度计数',
+    data: '当前源没有逐集观看状态；条目级epStatus/volStatus与章节清单使用DataTable', sourceCapability: 'unavailable',
     requiredFacts: ['name', 'sort'], derivedFields: [],
-    limitations: ['公开 Archive 没有个人进度，不能由章节存在、放送日期或登录状态推断已看。', '更换参数不能补齐个人状态；用 DataTable 展示章节，用 Callout 说明限制。'],
-    unavailableReason: '当前 Archive 公共资料不含个人观看状态，不能生成 ProgressView。请用 DataTable 展示章节，并用 Callout 说明个人进度不可用；更换参数无法补齐此数据。',
+    limitations: ['条目级epStatus/volStatus不是逐集状态，不能由计数、章节存在或放送日期推断具体已看章节。', '用DataTable展示已同步的条目进度计数或公共章节清单。'],
+    unavailableReason: '当前数据不含逐集观看状态，不能生成ProgressView。可用DataTable展示本人条目级epStatus/volStatus或公共章节清单。',
   },
   InfoBox: {
     category: '事实', purpose: '展示单对象的 Wiki 属性或明确选择的基础字段', data: '单对象 infobox 或显式字段',
@@ -40,7 +40,7 @@ export const COMPONENT_DATA_PROFILES: Readonly<Record<ComponentKind, ComponentDa
     limitations: ['缺失或解析失败的 Wiki 属性保持未知；没有个人资料补取或网络回退。'],
   },
   DataTable: {
-    category: '事实', purpose: '按列展示公共事实、关系、章节和分组统计', data: '明确列定义与当前引用成员',
+    category: '事实', purpose: '按列展示公共事实、本人收藏字段、关系、章节和分组统计', data: '明确列定义与当前引用成员；个人字段仅从本人范围引用读取',
     sourceCapability: 'available', requiredFacts: ['name'], derivedFields: ['columns', 'rows'],
     limitations: ['缺失字段为空单元格；复杂对象需选择可用标量字段，不执行表达式或任意 SQL。'],
   },
@@ -106,15 +106,17 @@ export function ratingCardPresentation(row: Record<string, unknown>, mode?: 'lis
   const ratingCount = count(row.ratingCount);
   const score = typeof row.score === 'number' && Number.isFinite(row.score) && row.score >= 0 && row.score <= 10 ? row.score : undefined;
   const noVotes = ratingCount === 0 || denominator === 0;
-  const notes = [ratingCount === undefined ? '评分人数未知。' : `Archive 记录评分人数：${ratingCount}。`];
+  const notes: string[] = [];
+  if (ratingCount === undefined) notes.push('评分人数未知。');
+  else if (denominator === undefined || ratingCount !== denominator) notes.push(`评分人数：${ratingCount}。`);
   if (denominator !== undefined) {
-    notes.push(denominator === 0 ? '评分分布为零票，各档位比例为 0。' : `评分分布合计 ${denominator} 票；各档比例以该合计为分母。`);
-    if (ratingCount !== undefined && ratingCount !== denominator) notes.push('评分人数与分布合计不一致，保留原评分和人数，不混用统计口径。');
-  } else if (distribution) notes.push('评分分布不完整，未知档位不补零；未计算比例，改用列表。');
-  else notes.push('当前快照缺少评分分布，未生成柱形。');
-  if (score === undefined) notes.push(noVotes ? '当前快照暂无有效评分。' : '当前快照未提供有效评分，不能从分布推算替代。');
+    notes.push(denominator === 0 ? '分布共 0 票，各档比例为 0。' : `分布共 ${denominator} 票，比例按分布总票数计算。`);
+    if (ratingCount !== undefined && ratingCount !== denominator) notes.push('评分人数与分布总票数不一致。');
+  } else if (distribution) notes.push('评分分布不完整，未知档位不补零，改用列表。');
+  else notes.push('缺少评分分布。');
+  if (score === undefined) notes.push(noVotes ? '暂无有效评分。' : '评分未知。');
   return {
-    headline: { value: score === undefined ? noVotes ? '暂无评分' : '未知' : String(score), label: 'Archive 评分' },
+    headline: { value: score === undefined ? noVotes ? '暂无评分' : '未知' : String(score), label: '评分' },
     mode: denominator === undefined ? 'list' : mode ?? 'histogram',
     entries: distribution ? bins.map(bin => ({
       label: bin.label, value: bin.count === undefined ? '未知' : String(bin.count),
@@ -130,27 +132,33 @@ export function subjectCardRange(value: Record<string, unknown>, displayedCount:
   const total = count(page?.total), offset = count(page?.offset), windowCount = count(page?.returnedCount);
   const original = total === undefined ? '' : `原查询共 ${total} 条`;
   const window = windowCount === undefined ? '' : `当前页 ${windowCount} 条`;
+  if (value.kind === 'local_entities' && Array.isArray(value.requestedIds)) {
+    const requestedCount = value.requestedIds.length;
+    const missingCount = Array.isArray(value.missingIds) ? value.missingIds.length : undefined;
+    const returnedCount = missingCount === undefined ? undefined : requestedCount - missingCount;
+    return {
+      total: displayedCount,
+      hint: returnedCount === displayedCount && missingCount === 0 ? ''
+        : `请求 ${requestedCount} 条${returnedCount === undefined ? '' : `，返回 ${returnedCount} 条`}${missingCount ? `，${missingCount} 条未取得` : ''}${returnedCount === displayedCount ? '' : `，展示其中 ${displayedCount} 条`}。`,
+    };
+  }
   if (selected) return {
     total: displayedCount,
-    hint: `明确选中 ${displayedCount} 条${original || window ? `（${[original, window].filter(Boolean).join('，')}）` : ''}；仅表示所选成员，不代表完整匹配范围。`,
+    hint: `选出 ${displayedCount} 条${original || window ? `；${[window, original].filter(Boolean).join('，')}` : '；匹配总数未知'}。`,
   };
   if (page && total !== undefined && offset !== undefined && windowCount !== undefined && windowCount === displayedCount && total >= offset + displayedCount) return {
     total,
-    hint: total === 0 ? '原查询共 0 条。' : displayedCount === 0 ? `原查询共 ${total} 条，当前页未返回成员。`
-      : `原查询共 ${total} 条，本页展示第 ${offset + 1}–${offset + displayedCount} 条；总数仅针对本次快照及筛选范围。`,
-  };
-  if (value.kind === 'local_entities' && Array.isArray(value.requestedIds)) return {
-    total: displayedCount,
-    hint: `按明确 ID 读取 ${value.requestedIds.length} 条，本次快照和显示范围中返回 ${displayedCount} 条${Array.isArray(value.missingIds) && value.missingIds.length ? `，${value.missingIds.length} 条未取得` : ''}。`,
+    hint: total === 0 ? '共 0 条。' : displayedCount === 0 ? `共 ${total} 条，当前页未返回条目。`
+      : `共 ${total} 条，当前展示第 ${offset + 1}–${offset + displayedCount} 条。`,
   };
   // 不完整页元数据不能反推完整匹配数；已有准确总数只作范围说明。
-  return { total: displayedCount, hint: `当前引用展示 ${displayedCount} 条${original ? `，${original}` : ''}；没有可核实的完整分页范围。` };
+  return { total: displayedCount, hint: `展示 ${displayedCount} 条${original ? `，${original}；分页范围未知` : '；匹配总数未知'}。` };
 }
 
-export function combinedSubjectCardRange(displayedCount: number, sourceHints: readonly (string | undefined)[]): Pick<ComponentPropsMap['SubjectCards'], 'total' | 'hint'> {
+export function combinedSubjectCardRange(displayedCount: number, sources: readonly { displayedCount: number; hint?: string }[]): Pick<ComponentPropsMap['SubjectCards'], 'total' | 'hint'> {
   return {
     total: displayedCount,
-    hint: [`组合展示 ${displayedCount} 个已核实成员；各来源查询总数未相加，完整联合匹配数未经统计。`,
-      ...sourceHints.flatMap((hint, index) => hint ? [`来源 ${index + 1}：${hint}`] : [])].join(' '),
+    hint: [`组合展示 ${displayedCount} 条；联合匹配总数未知。`,
+      ...sources.map((source, index) => `来源 ${index + 1}：${source.hint || `展示 ${source.displayedCount} 条。`}`)].join(' '),
   };
 }

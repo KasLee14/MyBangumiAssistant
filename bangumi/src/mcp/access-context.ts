@@ -14,10 +14,12 @@ export interface AccessContext {
   mode: 'account' | 'anonymous' | 'unverified' | 'local';
   account: { id: number; username: string } | null;
   nsfw: { preference: boolean | null; allowed: boolean | null; state: 'enabled' | 'disabled' | 'unknown' | 'not_checked' };
-  source: 'p1' | 'v0' | 'web' | 'archive';
+  source: 'p1' | 'v0' | 'web' | 'archive' | 'account_snapshot';
   nsfwApplied: boolean;
   checkedAt: string;
   snapshotId?: string;
+  collectionSnapshotId?: string;
+  accountFreshness?: { lastFullSyncAt: string; lastDeltaSyncAt: string | null; incrementalOnly: boolean };
   queryCoverage?: QueryCoverage;
 }
 const nullableBoolean = { type: ['boolean', 'null'] };
@@ -31,7 +33,9 @@ export const accessContextSchema: JsonSchema = {
     nsfw: { type: 'object', additionalProperties: false, properties: {
       preference: nullableBoolean, allowed: nullableBoolean, state: { enum: ['enabled', 'disabled', 'unknown', 'not_checked'] },
     }, required: ['preference', 'allowed', 'state'] },
-    source: { enum: ['p1', 'v0', 'web', 'archive'] }, nsfwApplied: { type: 'boolean' }, checkedAt: { type: 'string', maxLength: 50 },
+    source: { enum: ['p1', 'v0', 'web', 'archive', 'account_snapshot'] }, nsfwApplied: { type: 'boolean' }, checkedAt: { type: 'string', maxLength: 50 },
+    collectionSnapshotId: { type: 'string', minLength: 1, maxLength: 160, pattern: '^[-A-Za-z0-9_.]+$' },
+    accountFreshness: { type:'object',additionalProperties:false,properties:{lastFullSyncAt:{type:'string'},lastDeltaSyncAt:{type:['string','null']},incrementalOnly:{type:'boolean'}},required:['lastFullSyncAt','lastDeltaSyncAt','incrementalOnly'] },
     snapshotId: { type: 'string', minLength: 1, maxLength: 120, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$' },
     queryCoverage: { type: 'object', additionalProperties: false, properties: {
       requested: { enum: ['account', 'exclude'] }, actual: { enum: ['account_visible', 'sfw_only', 'public_visible'] },
@@ -40,6 +44,7 @@ export const accessContextSchema: JsonSchema = {
     }, required: ['requested', 'actual', 'nsfw', 'totalKind', 'limitations'] },
   }, required: ['mode', 'account', 'nsfw', 'source', 'nsfwApplied', 'checkedAt'],
   allOf: [
+    { if:{properties:{source:{const:'account_snapshot'}},required:['source']},then:{properties:{mode:{const:'account'},snapshotId:{type:'string'},collectionSnapshotId:{type:'string'}},required:['snapshotId','collectionSnapshotId']} },
     { if: { properties: { mode: { const: 'local' } }, required: ['mode'] }, then: {
       properties: { source: { const: 'archive' }, account: { type: 'null' }, snapshotId: { type: 'string', minLength: 1 } }, required: ['snapshotId'],
     } },
@@ -82,10 +87,10 @@ export function checkAccessResponse(name: string, value: unknown, requireContext
   if (!compileSchema(accessContextSchema)(raw.accessContext)) invalid('MCP成功业务结果缺少有效权限上下文。');
   const context = raw.accessContext as AccessContext;
   if (context.mode === 'unverified') invalid('未核实的权限上下文不能作为成功结果。');
-  if (context.mode === 'local' && raw.snapshotId !== undefined && raw.snapshotId !== context.snapshotId)
+  if ((context.mode === 'local'||context.source==='account_snapshot') && raw.snapshotId !== undefined && raw.snapshotId !== context.snapshotId)
     invalid('本地结果与数据快照上下文不一致。');
   const nsfwScope = context.mode === 'local' && context.source === 'archive'
-    || context.mode === 'account' && context.source === 'p1';
+    || context.mode === 'account' && (context.source === 'p1'||context.source==='account_snapshot');
   if (!nsfwScope || !context.nsfwApplied
     || context.nsfw.allowed !== true || context.queryCoverage?.nsfw === 'excluded') {
     const visit = (item: unknown): void => {

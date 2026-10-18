@@ -48,8 +48,8 @@ export function componentToolSchema(component: ComponentKind, atomic = true): Js
     required.splice(required.indexOf('resourceRef'), 1);
   }
   if (atomic) Object.assign(properties, {
-    before: { type: 'string', maxLength: 65536, description: '紧邻组件前的用户说明，不另重复输出。' },
-    after: { type: 'string', maxLength: 65536, description: '紧邻组件后的说明或结论。' },
+    before: { type: 'string', maxLength: 65536, description: '可省略；仅填写组件前必要的引导或关键限制，不重复组件内容，不添加通用范围声明。' },
+    after: { type: 'string', maxLength: 65536, description: '可省略；仅填写组件未承载的请求事实、额外结论或关键限制，不重复组件内容，不添加通用范围声明。' },
     final: { type: 'boolean', description: '明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。' },
   });
   return { type: 'object', additionalProperties: false, required, properties,

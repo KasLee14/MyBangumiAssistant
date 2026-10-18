@@ -1,5 +1,41 @@
 # Bangumi benchmark
 
+## 按需测试与成本控制
+
+案例集中登记，能力、作品类型、实体、组件和数据条件通过元数据关联；不同入口共用执行器与评分器。案例库规模不等于每次执行规模。默认只运行公共冒烟、每例 1 次、1 种表达；全量必须显式选择。新增功能通常运行相关专项并合入公共冒烟，修复后需要观察波动时再提高重复次数。
+
+以下命令在 `bangumi` 目录执行。`--dry-run` 仅验证案例与参数、展示计划，不启动模型、MCP 或数据库，也无需模型凭据或真实知识库；可先预览再移除该选项执行。真实 Archive 运行仍需显式提供 `--knowledge-dir`。
+
+```powershell
+npm run bench:smoke -- --dry-run
+npm run bench:query -- --subject-type music --dry-run
+npm run bench:components -- --component StatsCard --repeats 3 --include-smoke --dry-run
+npm run bench:run -- --area relations --entity person --include-smoke --dry-run
+npm run bench:affected -- --base-ref HEAD --dry-run
+npm run bench:full -- --repeats 1 --dry-run
+```
+
+可用能力入口为 `smoke`、`query`、`relations`、`aggregate`、`components`、`resources`、`conversation`；`full` 显式选全部。`--area`、`--subject-type`、`--entity`、`--component`、`--case`、`--tag` 可组合，同一维度逗号分隔的多个值为 OR，不同维度为 AND。`--include-smoke` 在专项筛选完成后合入冒烟，以案例 ID 去重。组件入口验证生成、字段、降级与限制，ProgressView 和 CompareTable 的不可用能力不能当成渲染成功。
+
+`--repeats` 默认 1；`--prompt-variants` 默认 1，只采用案例中预先登记的等义表达，超出已登记数量会在执行前报错，不调用模型自动改写。`--seed` 固定场景调度顺序，便于复现；每次重复使用独立会话，同一多轮案例内部保留上下文。A/B 在同一实验区组内交错执行。表达变化与重复运行分开记录，报告按基础场景关联，不能把这些相关观测当作独立的新问题。
+
+仅因 `--include-smoke` 补入的案例固定采用基础表达、执行 1 次，专项案例遵循所选表达数和重复次数；已属于专项的冒烟案例按专项执行且不重复添加。例如 8 个专项各 3 次、另补 6 个不重叠冒烟，共 30 次。当前基础案例库为 36 例、公共冒烟为 6 例；登记更多场景不会自动扩大已有专项。
+
+`affected` 通过源码与能力映射推荐场景，支持 `--base-ref` 或显式 `--changed-files`。未知文件在计划的 `unmappedFiles` 中明确列出，并提示需要人工补充专项；推断结果只代表已映射影响范围，不能冒充全覆盖。共享模块应选择跨能力代表场景。新增案例、扩大覆盖面和执行全量模型实验是独立选择，不会因为登记更多案例就自动增加日常实验次数。
+
+```powershell
+npm run bench:components -- --component StatsCard --include-smoke --repeats 1 --model PROVIDER/MODEL --knowledge-dir KNOWLEDGE_ROOT --max-total-requests 60 --max-total-tokens 100000 --dry-run
+npm run bench:query -- --subject-type music --model PROVIDER/MODEL --knowledge-dir KNOWLEDGE_ROOT --history artifacts/benchmarks/previous/results.json --dry-run
+```
+
+计划展示去重后的案例、表达与重复数量、选择原因、预算和历史估计。`--history` 从符合模型、thinking 和模式条件的历史结果估计 token 和耗时；没有相符样本或 usage 缺失时保留不可用，不猜成零。历史估计不是报价，也不保证下一次消耗。
+
+`--max-total-requests` 和 `--max-total-tokens` 是启动下一个案例前检查的全局调度阈值，进行中的单例可能越过阈值，单案例仍受自身请求与超时预算约束。启用 token 预算后，如果 usage 缺失，已用 token 为 `null`，保守停止后续调度，不能用已知部分当作完整消耗。停止、中断和预算不足保留原始失败及未运行项，不能标记完整通过。
+
+`manifest.selection` 保存筛选条件；`manifest.preflight` 保存选中原因、未映射文件、案例数、完整计划数、种子、表达数、估计和预算；`manifest.execution` 保存停止原因与实际消耗。报告按能力、组件、作品类型和实体汇总，并列出已启动、未运行及每基础场景结果。通过结论仅针对本次所选范围，不表示案例库全量通过。
+
+通过率同时列出通过数/已启动数、描述性 Wilson 95% 区间，少于 30 次启动样本标记 `small-sample`。未运行项不进入该比率分母，但完整性判定必须计入计划缺口。不同场景的难度、表达和重复相关性不同；分组区间不证明 IID 总体可靠性，也不弥补未测场景。性能正式配对仍要求整份冻结计划完成，任意未运行或调度停止都不能用部分成功记录宣称优化有效。
+
 ## Archive 本地版
 
 本地版使用完整官方 Archive 导入的 SQLite；不使用 bangumi-data、向量模型或在线 Bangumi 接口。先完成 `data:init` 并构建宿主，再运行以下命令。`KNOWLEDGE_ROOT` 是含 `current.json`、`snapshots/` 的知识库根目录，必须显式指定，避免误用其他库。
@@ -14,7 +50,7 @@ node dist/src/benchmark/cli.js run --mode local-archive --knowledge-dir KNOWLEDG
 
 正确性与性能同一次执行：核对六个只读工具、默认身份投影、显式字段读取、宿主完整卡片、跨轮缓存拒绝、分页顺序、全文匹配总数、多职务关系证据及五类作品聚合计数。全文、聚合和多职务边的期望值由只读 SQLite 独立查询取得，失败运行保留，但不进入性能汇总。执行前后均验证实际数据库 SHA-256、清单和运行版本，数据或代码漂移标记 `incomplete_capture`。MCP 子进程中的全局 `fetch` 被阻断并记录任何尝试；包装器只装配生产 server/service，不模拟工具结果。
 
-第二条 `run --mode local-archive` 使用真实模型和 `benchmarks/local-archive-cases.json` 的九个代表任务，覆盖事实、表格、全文、关系、聚合、简介证据、评分卡、分页卡片和能力降级。生产验收显式指定 `--recovery enabled`，与应用的有界恢复一致；CLI 省略该参数仍为 `disabled`，适合单独观察首轮失败，不能将两种恢复协议混作同条件成功率比较。失败和中间恢复证据均保留，旧报告不能覆盖。模型请求会消耗额度；只读数据工具仍通过生产 stdio 和真实数据库运行。人工语义评审保持 `pending`，自动通过不证明推荐解释和叙述忠实于来源，也不替代浏览器验收。`fixture` 字段仅为沿用案例格式的评分元数据，该模式不向生产服务注入合成资料。
+第二条 `run --mode local-archive` 使用真实模型和 `benchmarks/local-archive-cases.json` 中选中的案例，覆盖范围以计划列出的能力与断言为准。生产验收显式指定 `--recovery enabled`，与应用的有界恢复一致；CLI 省略该参数仍为 `disabled`，适合单独观察首轮失败，不能将两种恢复协议混作同条件成功率比较。失败和中间恢复证据均保留，旧报告不能覆盖。模型请求会消耗额度；只读数据工具仍通过生产 stdio 和真实数据库运行。人工语义评审保持 `pending`，自动通过不证明推荐解释和叙述忠实于来源，也不替代浏览器验收。`fixture` 字段仅为沿用案例格式的评分元数据，该模式不向生产服务注入合成资料。
 
 不要将旧 HTTP 或合成 fixture 与本地 Archive 直接声称为同数据端到端加速。两者的数据版本、工具协议和能力范围不同；需要分别报告，或另外构造真正相同事实快照的可比方案。
 
@@ -30,7 +66,7 @@ node dist/src/benchmark/cli.js run --mode local-archive --knowledge-dir KNOWLEDG
 
 ## 范围与入口
 
-以下 `fixture` / `live-read` 说明保留给冻结的旧版 checkout 和历史报告。本地只读版本使用上一节的 `local` / `local-archive`，不能将旧账户、社区和写入用例作为当前功能验收；旧版对照必须通过 `--root` 指向独立冻结构建，并显式选择旧模式及案例。当前 `list` 和真实模型运行默认本地九案例，兼容 `fixture` 模式默认 `component-tools-cases.json`；原来的 `cases.json` / `live-cases.json` 不在此分支中。
+以下 `fixture` / `live-read` 说明保留给冻结的旧版 checkout 和历史报告。本地只读版本使用上一节的 `local` / `local-archive`，不能将旧账户、社区和写入用例作为当前功能验收；旧版对照必须通过 `--root` 指向独立冻结构建，并显式选择旧模式及案例。当前 `list` 默认列出本地案例库，真实模型运行默认选择本地冒烟，兼容 `fixture` 模式默认 `component-tools-cases.json`；原来的 `cases.json` / `live-cases.json` 不在此分支中。
 
 离线回归验证确定性业务逻辑；benchmark 使用真实模型和真实 Pi/MCP 工具循环，评估调度、结果、上下文与耗时。默认 `fixture` 模式：只把 Bangumi 上游换为请求驱动的固定数据，生产 MCP 校验、分页、筛选、缓存、引用和组件展开照常执行。模型请求仍会联网并消耗模型额度。
 

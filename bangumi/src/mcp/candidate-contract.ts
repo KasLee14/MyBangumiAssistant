@@ -33,7 +33,7 @@ export interface CandidateQueryArgs {
   [key: string]: unknown;
 }
 export interface CandidateSource {
-  tool: string; source: 'v0' | 'p1' | 'web' | 'archive'; scope: string; complete: boolean; scannedCount: number; total: number | null;
+  tool: string; source: 'v0' | 'p1' | 'web' | 'archive' | 'account_snapshot'; scope: string; complete: boolean; scannedCount: number; total: number | null;
   nextOffset: number | null; privateRecords: 'included' | 'public_only' | 'not_applicable';
   readState?: CandidateSourceReadState;
 }
@@ -180,11 +180,11 @@ export const candidateSourceReadStateSchema: JsonSchema = closed({
   filterCoverage: closed({ scope: { const: 'source_sequence' }, scannedCount: count(), matchedCount: count(), unknownDateCount: count(),
     unknownDateSubjectIds: { type: 'array', uniqueItems: true, items: count(1), description: '累计未核实日期作品ID，去重；不限于单页100项。' }, complete: { type: 'boolean' } }),
 }, ['revision', 'firstOffset', 'pagesRead', 'continuous', 'totalKind', 'excludedNsfwCount', 'unknownNsfwCount']);
-export const candidateSourceSchema: JsonSchema = closed({ tool: { ...text(100), minLength: 1 }, source: { enum: ['v0', 'p1', 'web', 'archive'] }, scope: text(4000),
+export const candidateSourceSchema: JsonSchema = closed({ tool: { ...text(100), minLength: 1 }, source: { enum: ['v0', 'p1', 'web', 'archive', 'account_snapshot'] }, scope: text(4000),
   complete: { type: 'boolean' }, scannedCount: count(), total: nullable(count()), nextOffset: nullable(count()), privateRecords: { enum: ['included', 'public_only', 'not_applicable'] },
   readState: candidateSourceReadStateSchema }, ['tool', 'source', 'scope', 'complete', 'scannedCount', 'total', 'nextOffset', 'privateRecords']);
 const stageSchema = closed({ inputCount: count(), processedCount: count(), matchedCount: count(), excludedCount: count(), pendingCount: count(), remainingCount: count() });
-const sourceChangeSchema = closed({ tool: { ...text(100), minLength: 1 }, source: { enum: ['v0', 'p1', 'web', 'archive'] },
+const sourceChangeSchema = closed({ tool: { ...text(100), minLength: 1 }, source: { enum: ['v0', 'p1', 'web', 'archive', 'account_snapshot'] },
   privateRecords: { enum: ['included', 'public_only', 'not_applicable'] }, sourceCount: count(), addedCount: count(), updatedCount: count(),
   completeSourceCount: count(), incompleteSourceCount: count(), unknownTotalSourceCount: count(), scannedCount: count() });
 export const candidateScopeCoverageSchema: JsonSchema = closed({ complete: { type: 'boolean' }, pendingCount: count(), remainingCount: count(), unknownCount: count(), failedCount: count() });

@@ -30,7 +30,7 @@ async function cancelable<T>(promise:Promise<T>,signal?:AbortSignal):Promise<T>{
   interrupted(signal);if(!signal)return promise;
   return new Promise((resolve,reject)=>{const abort=()=>reject(new AppError('CANCELLED','本地读取已取消。'));signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();promise.then(value=>signal.aborted?abort():resolve(value),reject).finally(()=>signal.removeEventListener('abort',abort));});
 }
-type LocalOptions={knowledgeDir?:string;authDir?:string;proxy?:ProxyOptions;timeoutMs:number;entry?:string;env?:NodeJS.ProcessEnv;onTrace?:(event:'initializing'|'initialized'|'dispatch')=>void};
+type LocalOptions={knowledgeDir?:string;accountDataDir?:string;authDir?:string;proxy?:ProxyOptions;timeoutMs:number;entry?:string;env?:NodeJS.ProcessEnv;onTrace?:(event:'initializing'|'initialized'|'dispatch')=>void};
 /** stdio子进程只打开本地SQLite；初始化始终完整核对六工具目录，无网络回退。 */
 export class LocalMcpClient implements McpCallClient {
   private readonly client=new Client({name:'MyBangumiAssistant',version:'0.2.0'},{capabilities:{}});
@@ -43,6 +43,8 @@ export class LocalMcpClient implements McpCallClient {
     const knowledgeDir=options.knowledgeDir??(options.authDir?join(dirname(options.authDir),'knowledge'):undefined);
     if(!knowledgeDir||!isAbsolute(entry)||!isAbsolute(knowledgeDir))throw new AppError('INVALID_INPUT','本地MCP服务与数据目录须为绝对路径。');
     const env=childEnvironment(options.env??process.env);env.BANGUMI_KNOWLEDGE_DIRECTORY=knowledgeDir;env.BANGUMI_REQUEST_TIMEOUT_MS=String(options.timeoutMs);
+    const accountDataDir=options.accountDataDir??(options.authDir?join(dirname(options.authDir),'account-data'):undefined);
+    if(accountDataDir){if(!isAbsolute(accountDataDir))throw new AppError('INVALID_INPUT','个人数据库目录须为绝对路径。');env.BANGUMI_ACCOUNT_DATA_DIRECTORY=accountDataDir;}
     // 保留benchmark配置定位目录；它不被生产server当作账户入口。
     if(options.authDir)env.BANGUMI_AUTH_DIRECTORY=options.authDir;
     this.transport=new StdioClientTransport({command:process.execPath,args:[entry],env,stderr:'pipe',maxBufferSize:2_000_000});

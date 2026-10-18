@@ -52,7 +52,7 @@ export function diagnoseReadError(name: string, args: Record<string, unknown>, e
     const filter = args.filter && typeof args.filter === 'object' ? args.filter as Record<string, unknown> : {};
     blockedFields.push(...['air_date', 'rating', 'rating_count', 'rank', 'nsfw'].filter(field => Object.hasOwn(filter, field)).map(field => `/filter/${field}`));
   } else if (category === 'capability' && name === 'browse_subjects') blockedFields.push('/nsfw');
-  const self = candidatePrivateRead(name, args) || definition(name)?.access === 'account' || args.username === '-' || args.own === true
+  const self = args.data_scope === 'self' || candidatePrivateRead(name, args) || definition(name)?.access === 'account' || args.username === '-' || args.own === true
     || Array.isArray(args.include) && args.include.includes('own_collection');
   if (self) suggestions = suggestions.filter(value => value !== 'use_public_sfw');
   const diagnosis: ReadDiagnosis = { category, stage, effect, blockedFields: [...new Set(blockedFields)].slice(0, 8),
@@ -96,7 +96,7 @@ function failures(turnId: string): TurnFailures {
 }
 function barrierKey(name: string, args: Record<string, unknown>, category?: ReadDiagnosis['category']): string {
   const substantive = Object.fromEntries(Object.entries(args).filter(([field]) => !['keyword', 'offset', 'limit', 'sort'].includes(field)));
-  const route = candidatePrivateRead(name, args) || definition(name)?.access === 'account' || args.username === '-' || args.own === true
+  const route = args.data_scope === 'self' || candidatePrivateRead(name, args) || definition(name)?.access === 'account' || args.username === '-' || args.own === true
     || Array.isArray(args.include) && args.include.includes('own_collection') ? 'self' :
     (args.nsfw === 'account' || (args.filter as Record<string, unknown> | undefined)?.nsfw === 'account') ? 'account_nsfw' : 'public_sfw';
   return fingerprint(category === 'authentication' ? { category, route } : { name, route, args: substantive });

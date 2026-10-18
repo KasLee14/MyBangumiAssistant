@@ -3,6 +3,9 @@ import type { HistoryTextOccurrence } from './history.js';
 export const BENCHMARK_SCHEMA = 1;
 export type Data = Record<string, unknown>;
 export type Rule =
+  | { kind: 'entities'; turn?: number; exact: Array<{ entity: string; id: number }>; ordered?: boolean }
+  | { kind: 'tool_result'; turn?: number; name: string; expected: Data }
+  | { kind: 'component_contains'; turn?: number; type: string; expected: Data[] }
   | { kind: 'subjects'; turn?: number; exact?: number[]; allowed?: number[]; required?: number[]; min?: number; max?: number }
   | { kind: 'text'; turn?: number; pattern: string; absent?: boolean }
   | { kind: 'component'; turn?: number; type: string; absent?: boolean }
@@ -28,6 +31,13 @@ export interface BenchmarkCase {
   confirmation: 'approve' | 'reject';
   offlineScript?: OfflineScript;
   expectedTerminal?: 'success' | 'error';
+  coverage?: { areas: string[]; subjectTypes?: string[]; entities?: string[]; components?: string[]; conditions?: string[] };
+  smoke?: boolean;
+  promptVariants?: string[][];
+  sampling?: { baseCaseId: string; promptVariant: number; block?: number };
+  /** 仅供评分器读取，不进入模型上下文。SQL 由 local.ts 固定模板构造。 */
+  oracle?: { kind: 'page' | 'aggregate' | 'component'; entity?: 'subject' | 'person' | 'character' | 'episode';
+    subjectType?: number; year?: number; minScore?: number; limit?: number; component?: string; subjectId?: number; turn?: number };
   budget: { timeoutMs: number; modelRequests: number; toolExecutions: number; mcpCalls: number };
 }
 export interface FixtureSubject {
@@ -104,6 +114,7 @@ export interface Grade {
 }
 export type Outcome = 'passed' | 'failed' | 'timeout' | 'budget_exceeded' | 'errored' | 'invalid_fixture' | 'incomplete_capture' | 'not_run';
 export interface RunObservation {
+  sampling?: { baseCaseId: string; promptVariant: number; block?: number };
   schemaVersion: 1; caseId: string; family: string; variant: string; repeat: number;
   protocolHash: string; versionHash: string; model: string; thinking: string; mode: 'fixture' | 'live-read' | 'local-archive';
   outcome: Outcome; error: string | null; turns: TurnObservation[]; metrics: RunMetrics;
@@ -114,6 +125,7 @@ export interface RunObservation {
       retainedSignedCallCount: number; summaryInjected: boolean; textSourceRefs: unknown[] }> }>;
 }
 export interface WorkerConfig {
+  sampling?: { baseCaseId: string; promptVariant: number; block?: number };
   runtimeRoot: string; outputDir: string; case: BenchmarkCase; fixture: FixtureDefinition;
   variant: string; repeat: number; protocolHash: string; versionHash: string;
   model: string; thinking: string; mode: 'fixture' | 'live-read' | 'local-archive'; agentDir: string;
@@ -135,6 +147,29 @@ export function validateCases(value: unknown): BenchmarkCase[] {
     const row = record(raw);
     if (typeof row.id !== 'string' || !/^[a-z][a-z0-9-]{0,79}$/.test(row.id) || ids.has(row.id)) throw new Error('案例ID无效或重复。');
     ids.add(row.id);
+    if (row.coverage !== undefined) {
+      const coverage = record(row.coverage);
+      if (!Array.isArray(coverage.areas) || !coverage.areas.length || Object.keys(coverage).some(key => !['areas', 'subjectTypes', 'entities', 'components', 'conditions'].includes(key))
+        || Object.values(coverage).some(values => !Array.isArray(values) || values.some(value => typeof value !== 'string' || !value.trim()))) throw new Error('覆盖标签无效：' + row.id);
+    }
+    if (row.smoke !== undefined && typeof row.smoke !== 'boolean') throw new Error('冒烟标签无效：' + row.id);
+    if (row.promptVariants !== undefined && (!Array.isArray(row.promptVariants) || row.promptVariants.some(turns => !Array.isArray(turns)
+      || turns.length !== (Array.isArray(row.turns) ? row.turns.length : -1) || turns.some(turn => typeof turn !== 'string' || !turn.trim())))) throw new Error('等义表达轮次必须与原案例一致：' + row.id);
+    if (row.oracle !== undefined) {
+      const oracle = record(row.oracle);
+      if (!['page', 'aggregate', 'component'].includes(String(oracle.kind))
+        || oracle.entity !== undefined && !['subject', 'person', 'character', 'episode'].includes(String(oracle.entity))
+        || Object.keys(oracle).some(key => !['kind', 'entity', 'subjectType', 'year', 'minScore', 'limit', 'component', 'subjectId', 'turn'].includes(key))) throw new Error('本地预期模板无效：' + row.id);
+      for (const key of ['subjectType', 'year', 'limit', 'subjectId', 'turn']) if (oracle[key] !== undefined && (!Number.isSafeInteger(oracle[key]) || Number(oracle[key]) < (key === 'turn' ? 0 : 1))) throw new Error('本地预期参数无效：' + row.id);
+      if (oracle.subjectType !== undefined && ![1, 2, 3, 4, 6].includes(Number(oracle.subjectType)) || oracle.limit !== undefined && Number(oracle.limit) > 100
+        || oracle.year !== undefined && Number(oracle.year) > 9999 || oracle.turn !== undefined && Number(oracle.turn) >= (Array.isArray(row.turns) ? row.turns.length : 0)
+        || oracle.minScore !== undefined && (typeof oracle.minScore !== 'number' || !Number.isFinite(oracle.minScore) || oracle.minScore < 0 || oracle.minScore > 10)
+        || oracle.component !== undefined && typeof oracle.component !== 'string') throw new Error('本地预期范围无效：' + row.id);
+      if (oracle.kind === 'component' && !['InfoBox', 'Timeline', 'TagCloud', 'QuoteBlock', 'DataTable'].includes(String(oracle.component))
+        || oracle.kind === 'page' && oracle.component !== undefined && !['LinkList', 'Gallery', 'DataTable'].includes(String(oracle.component))
+        || oracle.entity !== undefined && oracle.entity !== 'subject' && (oracle.subjectType !== undefined || oracle.minScore !== undefined)
+        || oracle.kind === 'aggregate' && oracle.entity !== undefined && oracle.entity !== 'subject') throw new Error('本地预期模板与实体或组件不匹配：' + row.id);
+    }
     if (row.offlineScript !== undefined && !['bare_component', 'blank_output', 'text_field', 'component_field', 'prefix_then_invalid', 'exhausted',
       'native_trailing_comma', 'native_duplicate_key', 'native_truncated_value', 'native_terminal_error', 'native_terminal_abort'].includes(String(row.offlineScript))) throw new Error('离线故障脚本必须是已登记枚举。');
     if (row.expectedTerminal !== undefined && !['success', 'error'].includes(String(row.expectedTerminal))) throw new Error('预期终态必须是success或error。');
@@ -151,6 +186,7 @@ export function validateCases(value: unknown): BenchmarkCase[] {
     for (const rawRule of row.rules) {
       const rule = record(rawRule), kind = rule.kind;
       const allowed: Record<string, string[]> = {
+        entities: ['kind', 'turn', 'exact', 'ordered'], tool_result: ['kind', 'turn', 'name', 'expected'], component_contains: ['kind', 'turn', 'type', 'expected'],
         subjects: ['kind', 'turn', 'exact', 'allowed', 'required', 'min', 'max'],
         text: ['kind', 'turn', 'pattern', 'absent'], component: ['kind', 'turn', 'type', 'absent'], component_props: ['kind', 'turn', 'type', 'expected'], component_text: ['kind', 'turn', 'type', 'pattern'], sequence: ['kind', 'turn', 'types'],
         delivered_fields: ['kind', 'turn', 'type', 'subjectIds', 'fields'],
@@ -163,7 +199,7 @@ export function validateCases(value: unknown): BenchmarkCase[] {
       };
       if (typeof kind !== 'string' || !allowed[kind] || Object.keys(rule).some(key => !allowed[kind]!.includes(key))) throw new Error('判分规则类型或字段无效：' + row.id);
       if (rule.turn !== undefined && (!Number.isSafeInteger(rule.turn) || Number(rule.turn) < 0 || Number(rule.turn) >= row.turns.length)) throw new Error('规则轮次越界。');
-      for (const key of ['exact', 'allowed', 'required', 'subjectIds']) if (rule[key] !== undefined
+      for (const key of ['exact', 'allowed', 'required', 'subjectIds']) if (kind !== 'entities' && rule[key] !== undefined
         && (!Array.isArray(rule[key]) || rule[key].some(id => !Number.isSafeInteger(id) || Number(id) < 1) || new Set(rule[key]).size !== rule[key].length)) throw new Error('规则ID集合无效。');
       for (const key of ['count', 'min', 'max']) if (rule[key] !== undefined && (!Number.isSafeInteger(rule[key]) || Number(rule[key]) < 0)) throw new Error('规则计数无效。');
       if (kind === 'text') { if (typeof rule.pattern !== 'string' || rule.pattern.length > 2000) throw new Error('文本规则无效。'); new RegExp(rule.pattern, 'u'); }
@@ -172,6 +208,10 @@ export function validateCases(value: unknown): BenchmarkCase[] {
         || typeof rule.expected !== 'object' || Array.isArray(rule.expected) || !Object.keys(rule.expected).length
         || JSON.stringify(rule.expected).length > 100_000)) throw new Error('组件字段规则必须包含非空 expected 对象且不超过 100000 字符。');
       if (kind === 'subjects' && !['exact', 'allowed', 'required', 'min', 'max'].some(key => rule[key] !== undefined)) throw new Error('作品规则缺少约束。');
+      if (kind === 'entities' && (!Array.isArray(rule.exact) || rule.exact.some(item => !['subject', 'person', 'character', 'episode'].includes(String(record(item).entity))
+        || !Number.isSafeInteger(record(item).id) || Number(record(item).id) < 1) || rule.ordered !== undefined && typeof rule.ordered !== 'boolean')) throw new Error('实体身份规则无效。');
+      if (kind === 'tool_result' && (typeof rule.name !== 'string' || !Object.keys(record(rule.expected)).length)) throw new Error('工具事实规则无效。');
+      if (kind === 'component_contains' && (typeof rule.type !== 'string' || !Array.isArray(rule.expected) || !rule.expected.length || rule.expected.some(value => !Object.keys(record(value)).length))) throw new Error('组件事实规则无效。');
       if (kind === 'evidence' && (!Array.isArray(rule.subjectIds) || !rule.subjectIds.length && rule.selected !== true || !Array.isArray(rule.fields) || !rule.fields.length || rule.fields.some(field => typeof field !== 'string'))) throw new Error('证据规则无效。');
       if (kind === 'called' && (!Array.isArray(rule.names) || !rule.names.length || rule.names.some(name => typeof name !== 'string'))) throw new Error('工具规则无效。');
       if (kind === 'sequence' && (!Array.isArray(rule.types) || rule.types.length < 2 || rule.types.some(type => typeof type !== 'string' || !type.length))) throw new Error('正文顺序规则无效。');

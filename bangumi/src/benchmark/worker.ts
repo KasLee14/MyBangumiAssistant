@@ -387,7 +387,8 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     variant: config.variant, repeat: config.repeat, protocolHash: config.protocolHash, versionHash: config.versionHash,
     model: config.model, thinking: config.thinking, mode: config.mode, outcome, error, turns,
     metrics: collector.finish(network, config.mode === 'fixture' || config.mode === 'local-archive' || existsSync(join(config.outputDir, 'network.jsonl'))),
-    grade, confirmations, network, traceDirectories, captureIssues, historyProofs };
+    grade, confirmations, network, traceDirectories, captureIssues, historyProofs,
+    ...(config.sampling ? { sampling: config.sampling } : {}) };
   if (result.outcome === 'passed' && !config.offline && result.metrics.providerHttpRequests !== result.metrics.modelRequests) {
     result.outcome = 'incomplete_capture'; result.captureIssues.push('provider_request_usage_incomplete');
   }

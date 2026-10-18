@@ -2,7 +2,7 @@
 
 ## 简介
 
-当前 `feature/local` 使用官方 `bangumi/Archive` 的本地 SQLite 快照。生产 MCP 目录恰好六个只读工具；没有向量检索、Bangumi 查询 API 回退、个人收藏查询或账户内容写入能力。宿主保留原有独立登录、登出、登录元数据和界面设置，公共查询不依赖登录。Web 与终端 Pi 共用运行时、扩展、登录存储及六工具能力。现有 `bangumi/`、`web/`、`pi/` 目录与 Web 内容协议保留。
+当前 `feature/local` 使用官方 `bangumi/Archive` 的公共 SQLite 快照，并按账户保存独立个人收藏 SQLite。生产 MCP 目录恰好六个只读工具，使用 `data_scope=self` 查询本人条目收藏；没有向量检索、查询时 API 回退或账户内容写入能力。个人数据仅在 Web 启动时检查同步，或由显式宿主同步入口更新；用户查询不会触发同步。宿主保留原有独立登录、登出、登录元数据和界面设置，公共查询不依赖登录。Web 与终端 Pi 共用运行时、扩展、登录存储及六工具能力。现有 `bangumi/`、`web/`、`pi/` 目录与 Web 内容协议保留。
 
 ## 使用说明
 
@@ -16,11 +16,11 @@
 
 ### 数据与执行边界
 
-1. 唯一业务数据源是官方 Archive。`knowledge/dictionaries.ts` 是固定上游版本和摘要的官方 common 常量，不是第二业务数据源。
+1. 公共资料来自官方 Archive；个人条目收藏由 `account-data/` 同步官方 p1 列表到独立数据库。公共资料查询不回退在线 API。`knowledge/dictionaries.ts` 是固定上游版本和摘要的官方 common 常量。
 2. SQLite 完整事实留在本地；默认模型结果只有实体身份、资源引用和必要状态，其他字段必须通过 `fields` 或 `read_cached_resource` 请求。不能把完整 DTO、Wiki、向量或数据库内容自动放进模型上下文。
 3. 查询值使用绑定参数；SQL 标识符与运算来自固定表。名称/别名和全文是文字检索，不声称向量语义召回。未知日期、零票评分、无排名、部分标签、坏边和解析失败必须如实表达。
 4. 查询、缓存与展示绑定当前真实用户轮次、快照和本地内容显示范围；NSFW 是本地显示范围，不伪报在线账户权限。引用不能跨任务、跨版本或扩展成员。
-5. 生产读取位于独立 MCP 进程，只读打开数据库；下载、解压、解析和建索引在独立更新进程执行，不能阻塞 Web/SSE。
+5. 生产读取位于独立 MCP 进程，只读打开数据库；Archive 更新在独立更新进程执行，个人同步在独立 worker 线程执行，不能阻塞 Web/SSE。账户凭据不传入模型或本地 MCP，只传宿主绑定的账户、会话指纹和个人版本。
 6. 更新只构建新快照，校验后原子切换 `current.json`。失败不改变当前指针；保留最近两代和具有活动 lease 的快照。回退前核对实际数据库摘要、数量与完整性。
 7. 默认周三 08:00 Asia/Hong_Kong 检查；应用关闭时由下次启动补检，首次建库由显式数据命令完成。更新管理命令不登记成模型工具。
 8. `pi/` 上游源码不在本次改造范围。Pi 模型网络与代理继续工作，不能把移除 Bangumi 数据 API 误做成禁用模型传输。
@@ -39,6 +39,15 @@
 
 六个业务工具直接声明；展示组件仍按需加载。两类工具分别计数，不把“六个数据工具”描述为模型全部工具只有六个。旧在线查询和账户业务适配源码可能为历史类型和既有 fixture 保留，但不得被生产 MCP 目录或恢复路径重新激活；宿主独立登录接口和三个登录命令继续保留。
 
+### 个人数据同步与查询
+
+- `createAccountDataCoordinator(...).sync({mode:'auto'|'full',signal?})` 是统一手动函数入口，后续 Web 按钮复用 launcher 的共享实例；`/bangumi-sync` 自动选择全量/增量，`/bangumi-sync full` 显式全量校准。它们不是 MCP 工具。
+- 只有 Web 启动自动调用一次：未登录跳过，无库全量，有库增量。运行中查询、分页、展示、登录后和定时器都不自动发起同步；查询最多等待已经存在的启动/手动同步任务。
+- 每个真实请求首次本人读取绑定本地账号/会话/个人版本，同轮固定，public 与 self 引用分开；缓存补读前后检查本地登录，换号/重新登录/登出使私人引用失效。
+- 增量使用已成功游标减120秒重叠，完整分页后原子发布，失败不推进游标。`since`不能覆盖所有评分、标签、短评修改和取消收藏；空增量不代表线上全账户未变。全量缺席标记missing，不能作为确定未收藏。
+- 默认仍只返回entity/id/resourceRef；个人字段通过fields和read_cached_resource按需读取。self仅关联本人数据，查询已收藏需filter.collection.membership=collected；个人平均分排除0分。关系过滤和去重在分页前完成。
+- 个人字段只适用于subject。条目级epStatus/volStatus不证明逐集状态，ProgressView仍不可生成；可用DataTable显示条目进度、个人评分、标签与短评。Archive未收录的收藏保留最小hint，公共筛选资料缺失保持未知。
+
 ### 宿主展示与上下文
 
 - `PresentationStore` 接收资源引用、成员、列和布局；经内部缓存 RPC 按组件所需字段批量补齐、复核并构建完整 Web props。模型回执只含发布状态，完整载荷不经模型复制。
@@ -49,6 +58,7 @@
 - `StatsCard` 只承接单作品评分分布，分组统计使用 `DataTable`。`ProgressView` 保留历史回放，当前公共查询不生成个人观看状态。缺图正常降级，不构造图床地址。
 - 新评分卡保留Archive原评分；完整分布按10→1生成，各档比例为人数除以分布总票数。零票比例为0，缺失或部分分布不补零并降级列表。主评分、票数与统计口径由宿主生成。
 - 卡片正常分页保留查询总数；明确选中成员时总数为选中数并说明原查询范围；多来源只统计实际展示成员，禁止相加各来源page.total。派生total/hint须随准备、组合、发布及历史完整保存。
+- `output/response-style.ts` 统一管理用户可见回复规则；来源、快照、默认NSFW与缺图不作通用尾注。before/after可省略，影响结论的缺失、时效和分页范围仍须说明；格式追问不重复已有理由。卡片范围与评分提示由宿主精简生成，查询coverage/accessContext保留完整。
 - 新local_*资源的ProgressView/CompareTable缺少所需来源时返回稳定业务不可用，不能反复换参补造个人状态或before/after；历史完整presentation优先按既有协议回放。
 - 流式和历史都使用现有 Web 内容协议；前端不直接连接 SQLite，也不复制一套宿主协议。
 - Web 提交按会话串行消费，等待当前 Pi 会话（含恢复、重试、压缩）静默后再触发下一条 input。轮次边界必须先于用户回显，且同一帧发布；agent_start 复用当前提交的回合，失败和无模型命令也需封口。排队阶段不写入当前回合，避免提前重置展示资源。
@@ -56,6 +66,7 @@
 
 ### 验证与文档
 
+- 按需 benchmark 入口为 `bench:smoke/query/relations/aggregate/components/resources/conversation/full/affected`；默认 6 例冒烟、每例 1 次。用 `--dry-run` 预览，支持作品类型、实体、组件交叉筛选；`--include-smoke` 仅补入的冒烟固定执行一次。全量和等义表达必须显式选择，未知影响路径不得静默忽略，token 预算缺失 usage 时停止后续调度；细则见 `BENCHMARK.md`。
 - 用户要求避免大量新增回归测试文件，优先复用既有检查与 benchmark；仅为有意义的边界做集中验证。
 - 离线固定样本、真实全量 Archive 无模型基准、真实模型加本地库、浏览器显示是不同证据层。
 - 组件验收须逐项覆盖12种组件的字段或明确降级；页面提示词集中在benchmarks/local-component-page-cases.json，实际页面结果与SQL oracle核对。当前10种组件可生成（部分缺图降级），ProgressView/CompareTable验收诚实不可用与替代，不能把替代组件记作原组件已渲染。
@@ -81,7 +92,9 @@
 | 模型投影与字段策略 | `src/mcp/model-projection.ts`、`src/mcp/resource-policy.ts` |
 | 组件加载、批量补齐、原子发布 | `src/output/component-catalog.ts`、`src/output/presentation-store.ts`、`src/output/presentation-tools.ts`、`src/output/resource-content.ts` |
 | 12组件统一数据依赖、派生与能力 | `src/output/component-data-profile.ts` |
+| 用户可见回复风格与按需范围说明 | `src/output/response-style.ts` |
 | Web 现有登录、设置和交互协议（保持原样） | `src/web/session.ts`、`src/web/tool-view.ts`、`src/web/server.ts` |
+| 个人数据全量/增量、版本与共享手动入口 | `src/account-data/sync.ts`、`store.ts`、`coordinator.ts`、`index.ts` |
 | 真实库无模型性能基准 | `src/benchmark/local.ts`，CLI `local` 子命令 |
 | 真实模型 + 本地数据基准 | `src/benchmark/cli.ts`、`worker.ts`、`fixture-server.ts`；`benchmarks/local-archive-cases.json` |
 | 基准口径和报告 | `BENCHMARK.md`、`src/benchmark/report.ts` |

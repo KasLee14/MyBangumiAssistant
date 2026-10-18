@@ -52,7 +52,9 @@ export function createBangumiMcpServer(service:BangumiMcpService):Server{
 async function main():Promise<void>{
   const knowledgeDir=process.env.BANGUMI_KNOWLEDGE_DIRECTORY;
   if(!knowledgeDir||!isAbsolute(knowledgeDir))throw new AppError('INVALID_INPUT','MCP必须指定本地知识库绝对路径。');
-  const service=new BangumiMcpService({knowledgeDir}),server=createBangumiMcpServer(service);let stopping=false;
+  const accountDataDir=process.env.BANGUMI_ACCOUNT_DATA_DIRECTORY;
+  if(accountDataDir&&!isAbsolute(accountDataDir))throw new AppError('INVALID_INPUT','个人数据库目录须为绝对路径。');
+  const service=new BangumiMcpService({knowledgeDir,...(accountDataDir?{accountDataDir}:{})}),server=createBangumiMcpServer(service);let stopping=false;
   const close=async()=>{if(stopping)return;stopping=true;try{await service.close();await server.close();}finally{process.exitCode=0;}};
   server.onclose=()=>{void close();};process.once('SIGTERM',()=>{void close();});process.once('SIGINT',()=>{void close();});
   await server.connect(new StdioServerTransport());process.stdin.once('end',()=>{void close();});

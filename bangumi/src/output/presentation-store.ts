@@ -144,7 +144,7 @@ export class PresentationStore {
     }
     first[field] = parts.flatMap(part => (part.props as Record<string, unknown>)[field] as unknown[]);
     if (component === 'SubjectCards') Object.assign(first, combinedSubjectCardRange((first[field] as unknown[]).length,
-      parts.map(part => (part.type === 'SubjectCards' ? part.props.hint : undefined))));
+      parts.map(part => ({ displayedCount: count(part), ...(part.type === 'SubjectCards' ? { hint: part.props.hint } : {}) }))));
     return validateMixedPart({ type: component, pending: false, props: first }) as CompleteComponentPart;
   }
   private freeze(prepared: Prepared, signal?: AbortSignal): PreparedPresentationSummary {

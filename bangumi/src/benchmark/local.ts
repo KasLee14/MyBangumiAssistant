@@ -3,12 +3,13 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, statSync } from 
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { cpus, totalmem } from 'node:os';
+import type { DatabaseSync } from 'node:sqlite';
 import { traceHash } from '../tracing/redact.js';
 import { blankMetrics } from './metrics.js';
 import { versionFingerprint } from './cli.js';
 import { atomicJson } from './worker.js';
 import { median, writeReport, type SuiteResult } from './report.js';
-import { record, type BenchmarkCase, type RunObservation, type WorkerConfig } from './schema.js';
+import { record, type BenchmarkCase, type Rule, type RunObservation, type WorkerConfig } from './schema.js';
 
 async function fileSha256(path: string): Promise<string> {
   const hash = createHash('sha256');
@@ -32,42 +33,111 @@ export async function datasetFingerprint(root: string) {
 
 /** 预期事实只写入评分配置，用户prompt和实际模型上下文始终不含答案。 */
 export async function localCaseExpectations(root: string, knowledgeDir: string, snapshotId: string, cases: BenchmarkCase[]): Promise<BenchmarkCase[]> {
-  const needsFacts = cases.some(test => test.id === 'local-facts'), needsRelations = cases.some(test => test.id === 'local-relations');
-  const needsAlignment = cases.some(test => ['local-score-card', 'local-page-cards', 'local-capability-limits'].includes(test.id));
-  if (!needsFacts && !needsRelations && !needsAlignment) return cases;
   const { openSnapshot } = await import(pathToFileURL(join(root, 'bangumi/dist/src/knowledge/store.js')).href);
   const snapshot = openSnapshot(knowledgeDir, snapshotId);
   try {
-    const subject = record(snapshot.db.prepare("SELECT name,name_cn,score,date FROM entities WHERE kind='subject' AND id=253").get());
-    if (!subject.name) throw new Error('本地事实案例缺少条目 253。');
+    const db = snapshot.db as DatabaseSync;
     const escape = (value: unknown) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const expectations = [String(subject.name), ...(subject.name_cn ? [String(subject.name_cn)] : [])].map(pattern => ({ kind: 'text' as const, pattern: escape(pattern) }));
-    if (typeof subject.score === 'number') expectations.push({ kind: 'text', pattern: escape(subject.score) + '(?:0)*(?![0-9])' });
-    if (typeof subject.date === 'string') {
-      const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(subject.date);
-      expectations.push({ kind: 'text', pattern: date ? date[1] + '[-年/]' + Number(date[2]).toString().replace(/^/, '0?')
-        + '[-月/]' + Number(date[3]).toString().replace(/^/, '0?') : escape(subject.date) });
-    }
-    const relationPeople = needsRelations ? snapshot.db.prepare("SELECT id FROM entities WHERE kind='person' AND nsfw=0 AND id IN (SELECT target_id FROM relations WHERE source_kind='subject' AND source_id=253 AND target_kind='person' UNION SELECT source_id FROM relations WHERE target_kind='subject' AND target_id=253 AND source_kind='person') ORDER BY id LIMIT 10").all() as Array<{ id: number }> : [];
-    if (needsRelations && relationPeople.length !== 10) throw new Error('制作人员案例缺少可验证的前 10 人窗口。');
-    // text 检查最终 canonical 的可见文字，包含表格单元与 LinkList URL；工具仅查到链接不能通过。
-    const relationLinks = relationPeople.map(row => ({ kind: 'text' as const,
-      pattern: escape(`https://bgm.tv/person/${row.id}`) + '/?(?=$|[\\s?#)\\]>，。；、！!;:,（])' }));
-    const scoreRows = needsAlignment ? snapshot.db.prepare('SELECT score,count FROM subject_scores WHERE subject_id=253 ORDER BY score DESC').all().map(record) : [];
-    const scoreTotal = scoreRows.reduce((total: number, row: Record<string, unknown>) => total + Number(row.count), 0);
-    if (cases.some(test => test.id === 'local-score-card') && (scoreRows.length !== 10 || scoreTotal <= 0 || typeof subject.score !== 'number'))
-      throw new Error('真实评分卡案例缺少完整有票分布或原评分，不能生成无效字段 oracle。');
-    const pageIds = needsAlignment ? snapshot.db.prepare("SELECT id FROM entities WHERE kind='subject' AND nsfw=0 AND subject_type=2 AND year=2024 ORDER BY id LIMIT 5").all().map((row: { id: number }) => row.id) : [];
-    const pageTotal = needsAlignment ? Number(snapshot.db.prepare("SELECT count(*) AS count FROM entities WHERE kind='subject' AND nsfw=0 AND subject_type=2 AND year=2024").get().count) : 0;
-    const alignmentRules = (test: BenchmarkCase): BenchmarkCase['rules'] => test.id === 'local-score-card'
-      ? [{ kind: 'component_props', type: 'StatsCard', expected: { headline: { value: String(subject.score) }, mode: 'histogram',
-        entries: scoreRows.map((row: Record<string, unknown>) => ({ label: String(row.score), value: String(row.count), ratio: Number(row.count) / scoreTotal })) } }]
-      : test.id === 'local-page-cards' ? [{ kind: 'subjects', exact: pageIds }, { kind: 'component_props', type: 'SubjectCards', expected: {
-        total: pageTotal, layout: 'list', items: pageIds.map((id: number) => ({ id })) } }]
-      : [];
-    return cases.map(test => test.id === 'local-facts' ? { ...test, rules: [...test.rules.filter(rule => rule.kind !== 'evidence'), ...expectations] }
-      : test.id === 'local-relations' ? { ...test, rules: [...test.rules, ...relationLinks] }
-      : needsAlignment && ['local-score-card', 'local-page-cards'].includes(test.id) ? { ...test, rules: [...test.rules, ...alignmentRules(test)] } : test);
+    const url = (entity: string, id: unknown) => `https://bgm.tv/${entity === 'episode' ? 'ep' : entity}/${id}`;
+    const componentRows = (type: string, expected: Record<string, unknown>[], turn?: number): Rule => ({ kind: 'component_contains', type, expected, ...(turn === undefined ? {} : { turn }) });
+    return cases.map(test => {
+      const id = test.sampling?.baseCaseId ?? test.id, rules: Rule[] = [...test.rules], spec = test.oracle;
+      const turn = spec?.turn;
+      const at = turn === undefined ? {} : { turn };
+      const subject253 = () => {
+        const subject = record(db.prepare("SELECT * FROM entities WHERE kind='subject' AND id=253 AND nsfw=0").get());
+        if (!subject.name) throw new Error('所选案例缺少条目 253：' + id);
+        return subject;
+      };
+      if (spec?.kind === 'page') {
+        const entity = spec.entity ?? 'subject', where = ['kind=?', 'nsfw=0'], bindings: Array<string | number> = [entity];
+        if (entity === 'episode') where.push("EXISTS(SELECT 1 FROM entities parent WHERE parent.kind='subject' AND parent.id=entities.subject_id AND parent.nsfw=0)");
+        if (spec.subjectType !== undefined) { where.push('subject_type=?'); bindings.push(spec.subjectType); }
+        if (spec.year !== undefined) { where.push('year=?'); bindings.push(spec.year); }
+        if (spec.minScore !== undefined) { where.push('score>=?'); bindings.push(spec.minScore); }
+        const predicate = where.join(' AND '), total = Number(db.prepare(`SELECT count(*) n FROM entities WHERE ${predicate}`).get(...bindings)?.n ?? 0);
+        const found = db.prepare(`SELECT id,name,name_cn,score,date FROM entities WHERE ${predicate} ORDER BY id LIMIT ?`).all(...bindings, spec.limit ?? 3).map(record);
+        if (!found.length) throw new Error('所选场景没有可验证成员：' + id);
+        if (id !== 'local-conversation-reformat') rules.push({ kind: 'tool_result', name: 'query_entities', expected: { data: found.map(row => ({ entity, id: row.id })), page: { total, offset: 0 } }, ...at });
+        rules.push({ kind: 'entities', exact: found.map(row => ({ entity, id: Number(row.id) })), ordered: true, ...at });
+        const component = spec.component ?? 'LinkList';
+        if (component === 'LinkList') rules.push({ kind: 'component_props', type: component, expected: { links: found.map(row => ({ label: row.name_cn || row.name, url: url(entity, row.id) })) }, ...at });
+        else if (component === 'Gallery') rules.push({ kind: 'component_props', type: component, expected: { items: found.map(row => ({ id: row.id, name: row.name, url: url(entity, row.id) })) }, ...at });
+        else rules.push(componentRows(component, found.map(row => ({ id: String(row.id), name: String(row.name), url: url(entity, row.id) })), turn));
+      } else if (spec?.kind === 'aggregate' || id === 'local-aggregate') {
+        const type = spec?.subjectType ?? 2, year = spec?.year ?? 2024;
+        const groups = db.prepare("SELECT platform AS groupValue,count(*) count,avg(CASE WHEN rating_total>0 THEN score END) averageScore FROM entities WHERE kind='subject' AND nsfw=0 AND subject_type=? AND year=? GROUP BY platform ORDER BY count DESC,platform").all(type, year).map(record);
+        if (!groups.length) throw new Error('所选聚合场景没有可验证分组：' + id);
+        const expected = groups.map((row, index) => ({ entity: 'aggregate', id: index + 1, group: row.groupValue ?? null, count: row.count, averageScore: row.averageScore ?? null }));
+        rules.push({ kind: 'tool_result', name: 'aggregate_entities', expected: { data: expected, page: { total: groups.length } }, ...at });
+        rules.push({ kind: 'component_props', type: 'DataTable', expected: { rows: groups.map(row => ({
+          group: String(row.groupValue ?? ''), count: String(row.count), averageScore: String(row.averageScore ?? ''),
+        })) }, ...at });
+      } else if (spec?.kind === 'component') {
+        const subjectId = spec.subjectId ?? 253;
+        const subject = record(db.prepare("SELECT * FROM entities WHERE kind='subject' AND nsfw=0 AND id=?").get(subjectId));
+        if (!subject.name) throw new Error('所选组件案例缺少作品：' + id);
+        switch (spec.component) {
+          case 'InfoBox': rules.push({ kind: 'component_props', type: 'InfoBox', expected: { rows: [{ label: 'name', value: String(subject.name) }, { label: 'score', value: subject.score == null ? '' : String(subject.score) }] } }); break;
+          case 'Timeline': rules.push({ kind: 'component_props', type: 'Timeline', expected: { entries: [{ time: subject.date, text: subject.name }] } }); break;
+          case 'TagCloud': {
+            const tags = db.prepare("SELECT name,count FROM tags WHERE kind='subject' AND entity_id=? AND source<>'meta' ORDER BY coalesce(count,0) DESC,name").all(subjectId).map(record);
+            if (!tags.length) throw new Error('标签案例缺少实际标签：' + id);
+            rules.push(componentRows('TagCloud', tags.map(tag => ({ name: tag.name, ...(tag.count == null ? {} : { count: tag.count }) })))); break;
+          }
+          case 'QuoteBlock': {
+            if (typeof subject.summary !== 'string' || subject.summary.length < 80) throw new Error('引用案例缺少足够原文：' + id);
+            rules.push({ kind: 'component_text', type: 'QuoteBlock', pattern: escape(subject.summary.slice(0, 80)) }); break;
+          }
+          case 'DataTable': rules.push(componentRows('DataTable', [{ id: String(subjectId), name: String(subject.name), score: String(subject.score ?? '') }])); break;
+        }
+      }
+      if (id === 'local-facts') {
+        const subject = subject253();
+        for (const value of [subject.name, subject.name_cn].filter(Boolean)) rules.push({ kind: 'text', pattern: escape(value) });
+        if (typeof subject.score === 'number') rules.push({ kind: 'text', pattern: escape(subject.score) + '(?:0)*(?![0-9])' });
+        if (typeof subject.date === 'string') {
+          const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(subject.date);
+          rules.push({ kind: 'text', pattern: date ? date[1] + '[-年/]' + Number(date[2]).toString().replace(/^/, '0?') + '[-月/]' + Number(date[3]).toString().replace(/^/, '0?') : escape(subject.date) });
+        }
+      }
+      if (id === 'local-cached-evidence') {
+        const subject = subject253();
+        rules.push({ kind: 'component_props', type: 'SubjectCards', expected: { items: [{ id: 253, name: subject.name, summary: subject.summary }] } });
+      }
+      if (id === 'local-dataset-status') rules.push({ kind: 'tool_result', name: 'get_dataset_status', expected: { snapshotId, dataset: { currentSnapshotId: snapshotId } } });
+      if (id === 'local-missing-entity' && db.prepare("SELECT 1 FROM entities WHERE kind='subject' AND nsfw=0 AND id=2147483647").get()) throw new Error('缺失案例ID现已存在，需更新案例。');
+      if (id === 'local-empty-query' && db.prepare("SELECT 1 FROM aliases WHERE kind='subject' AND normalized LIKE '%benchmark_no_such_title_769c6508%' LIMIT 1").get()) throw new Error('空结果案例关键词现已存在，需更新案例。');
+      if (id === 'local-host-table') {
+        const subjects = db.prepare("SELECT id,name,score,rating_total,date FROM entities WHERE kind='subject' AND nsfw=0 AND id IN (253,2782,160209)").all().map(record);
+        if (subjects.length !== 3) throw new Error('所选表格场景缺少作品。');
+        // 无需约束模型自选的列键；姓名和数值仍必须进入最终表格文本。
+        for (const subject of subjects) for (const value of [subject.name, subject.score, subject.rating_total, subject.date].filter(value => value !== null)) rules.push({ kind: 'component_text', type: 'DataTable', pattern: escape(value) });
+      }
+      if (id === 'local-relations') {
+        const people = db.prepare("SELECT id,name FROM entities WHERE kind='person' AND nsfw=0 AND id IN (SELECT target_id FROM relations WHERE source_kind='subject' AND source_id=253 AND target_kind='person' UNION SELECT source_id FROM relations WHERE target_kind='subject' AND target_id=253 AND source_kind='person') ORDER BY id LIMIT 10").all().map(record);
+        if (people.length !== 10) throw new Error('所选关系案例缺少前 10 人窗口。');
+        for (const person of people) rules.push({ kind: 'component_text', type: 'DataTable', pattern: escape(url('person', person.id)) + '/?(?=$|[\\s?#)\\]>，。；、！!;:,（])' });
+      }
+      if (id === 'local-fulltext') {
+        const found = db.prepare("SELECT e.id FROM entity_fts f JOIN entities e ON e.kind=f.kind AND e.id=f.entity_id WHERE entity_fts MATCH ? AND e.kind='subject' AND e.nsfw=0 AND e.subject_type=2 ORDER BY e.id LIMIT 5").all('"宇 宙"').map(record);
+        if (found.length !== 5) throw new Error('所选全文检索案例不足 5 条命中。');
+        rules.push({ kind: 'subjects', exact: found.map(row => Number(row.id)) });
+      }
+      if (id === 'local-score-card') {
+        const subject = subject253(), scores = db.prepare('SELECT score,count FROM subject_scores WHERE subject_id=253 ORDER BY score DESC').all().map(record);
+        const total = scores.reduce((sum, row) => sum + Number(row.count), 0);
+        if (scores.length !== 10 || total <= 0 || typeof subject.score !== 'number') throw new Error('所选评分卡场景缺少完整有票分布。');
+        rules.push({ kind: 'component_props', type: 'StatsCard', expected: { headline: { value: String(subject.score) }, mode: 'histogram', entries: scores.map(row => ({ label: String(row.score), value: String(row.count), ratio: Number(row.count) / total })) } });
+      }
+      if (id === 'local-page-cards') {
+        const found = db.prepare("SELECT id,name FROM entities WHERE kind='subject' AND nsfw=0 AND subject_type=2 AND year=2024 ORDER BY id LIMIT 5").all().map(record);
+        const total = Number(db.prepare("SELECT count(*) n FROM entities WHERE kind='subject' AND nsfw=0 AND subject_type=2 AND year=2024").get()?.n ?? 0);
+        if (found.length !== 5) throw new Error('所选分页场景不足 5 条记录。');
+        rules.push({ kind: 'subjects', exact: found.map(row => Number(row.id)) }, { kind: 'component_props', type: 'SubjectCards', expected: { total, layout: 'list', items: found.map(row => ({ id: row.id, name: row.name })) } });
+      }
+      return { ...test, rules };
+    });
   } finally { snapshot.close(); }
 }
 

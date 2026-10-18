@@ -1,4 +1,5 @@
 import { isAbsolute } from 'node:path';
+import { getAccountDatasetStatus, openAccountSnapshot } from '../account-data/store.js';
 import { AppError } from '../support/errors.js';
 import { getDatasetStatus, openSnapshot } from '../knowledge/store.js';
 import { LocalQueryEngine, type QueryResult } from '../knowledge/query.js';
@@ -6,18 +7,19 @@ import { ResourceStore } from './resource-store.js';
 import { cachedResourceSelection, type CachedResource, type CachedResourceSelection } from './resource-contract.js';
 import { projectModelResult } from './model-projection.js';
 import { assertResourceFields } from './resource-policy.js';
-import { ENTITY_FIELDS, LOCAL_FIELDS } from './local-contract.js';
+import { entityFields, LOCAL_FIELDS, PERSONAL_FIELDS } from './local-contract.js';
 import { validateToolArguments } from './catalog.js';
 import type { AccessContext } from './access-context.js';
-import { readContext, type McpReadContext } from './read-context.js';
+import { readContext, type McpReadContext, type AccountReadBinding } from './read-context.js';
 import type { McpTransport } from './transport.js';
 import type { McpBatchScope, BatchPreparation } from './batch-context.js';
 import type { PreparedBaseline } from './prepared.js';
 
 export interface McpWriteGuard { accountId:number;subjectId?:number;expectedStatus?:number;prepared?:PreparedBaseline;batchPreparation?:BatchPreparation }
 type Row=Record<string,unknown>;
-interface Turn {engine:LocalQueryEngine;context:AccessContext;nsfw:'exclude'|'include'}
-interface Ref {turnId:string;snapshotId:string;nsfw:'exclude'|'include';members:QueryResult['members']}
+interface View {engine:LocalQueryEngine;context:AccessContext;nsfw:'exclude'|'include'}
+interface Turn extends View {account?:View & {binding:AccountReadBinding;handle:ReturnType<typeof openAccountSnapshot>}}
+interface Ref {turnId:string;snapshotId:string;nsfw:'exclude'|'include';self:boolean;members:QueryResult['members']}
 const record=(value:unknown):Row=>value&&typeof value==='object'&&!Array.isArray(value)?value as Row:{};
 function interrupted(signal?:AbortSignal):void{if(signal?.aborted)throw new AppError('CANCELLED','本地读取已取消。');}
 function localContext(snapshotId:string,nsfw:'include'|'exclude'):AccessContext{
@@ -28,16 +30,20 @@ function localContext(snapshotId:string,nsfw:'include'|'exclude'):AccessContext{
 /** 只读业务服务不装配HTTP或账户传输；SQLite读取位于现有独立MCP子进程。 */
 export class BangumiMcpService {
   private readonly root:string;
+  private readonly accountRoot:string|undefined;
   private readonly turns=new Map<string,Turn>();
   private readonly resources=new ResourceStore();
   private readonly references=new Map<string,Ref>();
   private closed=false;
-  constructor(options:{knowledgeDir:string}|McpTransport){
+  constructor(options:{knowledgeDir:string;accountDataDir?:string}|McpTransport){
     const root=(options as {knowledgeDir?:unknown}).knowledgeDir;
     if(typeof root!=='string'||!isAbsolute(root))throw new AppError('INVALID_INPUT','本地MCP必须指定绝对knowledgeDir，在线传输已停用。');
     this.root=root;
+    const accountRoot=(options as {accountDataDir?:string}).accountDataDir;
+    if(accountRoot!==undefined&&!isAbsolute(accountRoot))throw new AppError('INVALID_INPUT','个人数据库必须指定绝对目录。');
+    this.accountRoot=accountRoot;
   }
-  private turn(context?:McpReadContext,requestedNsfw?:'exclude'|'include'):{turnId:string;turn:Turn}{
+  private turn(context?:McpReadContext,requestedNsfw?:'exclude'|'include',self=false):{turnId:string;turn:View}{
     if(this.closed)throw new AppError('MCP_CLOSED','本地查询服务已关闭。');
     const read=context?readContext(context):{turnId:'standalone'};
     let turn=this.turns.get(read.turnId);
@@ -50,17 +56,51 @@ export class BangumiMcpService {
       const snapshot=openSnapshot(this.root,read.snapshotId),snapshotId=snapshot.manifest.snapshotId;
       turn={engine:new LocalQueryEngine(snapshot,{snapshotId,nsfw}),context:localContext(snapshotId,nsfw),nsfw};this.turns.set(read.turnId,turn);
     }
-    return {turnId:read.turnId,turn};
+    if(!self)return {turnId:read.turnId,turn};
+    const binding=read.account;
+    if(!binding)throw new AppError('BGM_AUTH_REQUIRED','个人数据查询需要宿主绑定当前登录账户。');
+    if(!binding.collectionSnapshotId||!this.accountRoot)throw new AppError('ACCOUNT_DATA_NOT_INITIALIZED','本地个人数据尚未建立，请在Web启动时同步或运行 /bangumi-sync。');
+    if(turn.account){
+      const prior=turn.account.binding;
+      if(prior.accountId!==binding.accountId||prior.sessionKey!==binding.sessionKey||prior.collectionSnapshotId!==binding.collectionSnapshotId)
+        throw new AppError('RESOURCE_SCOPE_MISMATCH','个人引用的账户、登录会话或数据库版本发生变化。');
+    }else{
+      const handle=openAccountSnapshot(this.accountRoot,binding.accountId,binding.collectionSnapshotId);
+      let snapshot:ReturnType<typeof openSnapshot>|undefined;
+      try{
+        const latest=getAccountDatasetStatus(this.accountRoot,binding.accountId).manifest;
+        const metadata=latest?.snapshotId===handle.manifest.snapshotId?latest:handle.manifest;
+        snapshot=openSnapshot(this.root,turn.engine.scope.snapshotId);
+        const allowNsfw=handle.manifest.allowNsfw&&handle.manifest.showNsfwSubject;
+        const engine=new LocalQueryEngine(snapshot,{snapshotId:snapshot.manifest.snapshotId,nsfw,accountId:binding.accountId,accountSnapshotId:binding.collectionSnapshotId},
+          {path:handle.path,accountId:binding.accountId,snapshotId:binding.collectionSnapshotId,allowNsfw});
+        const include=nsfw==='include'&&allowNsfw;
+        turn.account={engine,nsfw,handle,binding:structuredClone(binding),context:{mode:'account',source:'account_snapshot',account:{id:binding.accountId,username:binding.username??String(binding.accountId)},
+          snapshotId:snapshot.manifest.snapshotId,collectionSnapshotId:binding.collectionSnapshotId,nsfw:{preference:nsfw==='include',allowed:include,state:include?'enabled':'disabled'},nsfwApplied:include,
+          checkedAt:metadata.lastDeltaSyncAt??metadata.lastFullSyncAt,accountFreshness:{lastFullSyncAt:metadata.lastFullSyncAt,lastDeltaSyncAt:metadata.lastDeltaSyncAt,incrementalOnly:true}}};
+      }catch(error){snapshot?.close();handle.release();throw error;}
+    }
+    return {turnId:read.turnId,turn:turn.account};
   }
   async call(name:string,input:unknown,signal?:AbortSignal,_guard?:McpWriteGuard,_batch?:McpBatchScope,context?:McpReadContext):Promise<unknown>{
     interrupted(signal);const args=validateToolArguments(name,input);
     if(name==='get_dataset_status'){
       const dataset=getDatasetStatus(this.root),manifest=record(dataset.manifest),snapshotId=String(manifest.snapshotId??'uninitialized');
       const active=context?this.turns.get(context.turnId):undefined;
+      if(args.data_scope==='self'){
+        const binding=context?readContext(context).account:undefined;
+        if(!binding)throw new AppError('BGM_AUTH_REQUIRED','查看个人库状态需要当前登录账户。');
+        const account=this.accountRoot?getAccountDatasetStatus(this.accountRoot,binding.accountId):{initialized:false,manifest:null,updating:false};
+        const current=record(account.manifest);
+        const access:AccessContext={mode:'account',source:'account_snapshot',account:{id:binding.accountId,username:binding.username??String(binding.accountId)},snapshotId,
+          collectionSnapshotId:String(current.snapshotId??'uninitialized'),nsfw:{preference:false,allowed:false,state:'disabled'},nsfwApplied:false,checkedAt:new Date().toISOString()};
+        return {schemaVersion:1,kind:'dataset_status',snapshotId,dataset:{...account,activeSnapshotId:active?.account?.binding.collectionSnapshotId??null,currentSnapshotId:current.snapshotId??null},accessContext:access};
+      }
       return {schemaVersion:1,kind:'dataset_status',snapshotId:active?.engine.scope.snapshotId??snapshotId,dataset:{...dataset,activeSnapshotId:active?.engine.scope.snapshotId??null,currentSnapshotId:snapshotId},accessContext:active?.context??localContext(snapshotId,context?.nsfw??'exclude')};
     }
     if(name==='read_cached_resource')return this.readForModel(args,context,signal);
-    const {turnId,turn}=this.turn(context,args.nsfw as 'exclude'|'include'|undefined);
+    const self=args.data_scope==='self';
+    const {turnId,turn}=this.turn(context,args.nsfw as 'exclude'|'include'|undefined,self);
     args.nsfw=turn.nsfw;
     let result:QueryResult;
     switch(name){
@@ -72,34 +112,37 @@ export class BangumiMcpService {
     }
     interrupted(signal);
     const value={...result.value,accessContext:structuredClone(turn.context)};
-    const resourceRef=this.resources.put(name,value,{},turnId,turn.context,`${turn.engine.scope.snapshotId}:${turn.nsfw}`);
-    this.references.set(resourceRef,{turnId,snapshotId:turn.engine.scope.snapshotId,nsfw:turn.nsfw,members:result.members});
+    const resourceRef=this.resources.put(name,value,{},turnId,turn.context,`${turn.engine.scope.snapshotId}:${turn.nsfw}:${turn.context.account?.id??''}:${turn.context.collectionSnapshotId??''}`);
+    this.references.set(resourceRef,{turnId,snapshotId:turn.engine.scope.snapshotId,nsfw:turn.nsfw,self,members:result.members});
     if(this.references.size>1000)this.references.delete(this.references.keys().next().value!);
     return projectModelResult({...value,resourceRef},name,args);
   }
-  private reference(ref:string,context?:McpReadContext):{cached:CachedResource;reference:Ref;turn:Turn}{
-    const {turnId,turn}=this.turn(context),cached=this.resources.get(ref,turnId),reference=this.references.get(ref);
+  private reference(ref:string,context?:McpReadContext):{cached:CachedResource;reference:Ref;turn:View}{
+    const reference=this.references.get(ref);
     if(!reference)throw new AppError('RESOURCE_EXPIRED','资源引用已过期。');
+    const {turnId,turn}=this.turn(context,undefined,reference.self),cached=this.resources.get(ref,turnId);
     if(reference.turnId!==turnId||reference.snapshotId!==turn.engine.scope.snapshotId||reference.nsfw!==turn.nsfw)throw new AppError('RESOURCE_SCOPE_MISMATCH','缓存引用的数据版本、任务或显示范围不一致。');
     return {cached,reference,turn};
   }
   async readCachedResource(ref:string,context?:McpReadContext,signal?:AbortSignal,selection?:CachedResourceSelection):Promise<CachedResource>{
     interrupted(signal);const selected=selection===undefined?undefined:cachedResourceSelection(selection),{cached,reference,turn}=this.reference(ref,context);
     let members=reference.members;
+    if(!reference.self&&selected?.fields?.some(field=>(PERSONAL_FIELDS as readonly string[]).includes(field)||['averagePersonalRating','ratedCount'].includes(field)))throw new AppError('ACCOUNT_SCOPE_REQUIRED','公共引用不能补读个人字段，请按主键建立本人范围引用。');
     if(selected?.subjectIds){
       const ids=new Set(selected.subjectIds);
       if(selected.subjectIds.some(id=>members.filter(member=>member.entity==='subject'&&member.id===id).length!==1))throw new AppError('RESOURCE_SCOPE_MISMATCH','展示成员不属于该引用的作品窗口。');
       members=members.filter(member=>member.entity==='subject'&&ids.has(member.id));
     }
     // 宿主RPC完整补齐同一页成员；它不进入模型content，也不会触发在线补取。
-    if(reference.members.length)cached.value={...cached.value,data:members.flatMap(member=>turn.engine.read([member],selected?.fields?selected.fields.filter(field=>ENTITY_FIELDS[member.entity].includes(field)):'all'))};
+    if(reference.members.length)cached.value={...cached.value,data:members.flatMap(member=>turn.engine.read([member],selected?.fields?selected.fields.filter(field=>entityFields(member.entity,reference.self).includes(field)):'all'))};
     interrupted(signal);return cached;
   }
   private readForModel(args:Row,context?:McpReadContext,signal?:AbortSignal):CachedResource&Row{
     interrupted(signal);const ref=String(args.resource_ref),{cached,reference,turn}=this.reference(ref,context);
     const fields=Array.isArray(args.fields)?args.fields.map(String):[];
     const aggregate=cached.value.kind==='local_aggregate';
-    if(fields.some(field=>!LOCAL_FIELDS.includes(field as typeof LOCAL_FIELDS[number])&&!(aggregate&&['group','count','averageScore'].includes(field))))throw new AppError('INVALID_INPUT','缓存读取字段未在公共资料白名单声明。');
+    if(!reference.self&&fields.some(field=>(PERSONAL_FIELDS as readonly string[]).includes(field)||['averagePersonalRating','ratedCount'].includes(field)))throw new AppError('ACCOUNT_SCOPE_REQUIRED','公共引用不能补读个人字段，请按主键建立本人范围引用。');
+    if(fields.some(field=>!LOCAL_FIELDS.includes(field as typeof LOCAL_FIELDS[number])&&!(aggregate&&['group','count','averageScore','ratingCount','averagePersonalRating','ratedCount'].includes(field))))throw new AppError('INVALID_INPUT','缓存读取字段未在资料白名单声明。');
     assertResourceFields(cached.sourceTool,fields);
     let members=reference.members;
     if(Array.isArray(args.keys)&&!aggregate){
@@ -119,7 +162,7 @@ export class BangumiMcpService {
     const range=record(args.range),offset=Number(range.offset??0),limit=Number(range.limit??500),windows:Row[]=[];
     for(const row of data)for(const field of fields){
       const original=row[field];
-      if(typeof original==='string'&&['summary','infoboxRaw'].includes(field)){
+      if(typeof original==='string'&&['summary','infoboxRaw','personalComment'].includes(field)){
         const characters=Array.from(original);if(offset>characters.length)throw new AppError('CONTENT_RANGE_INVALID','正文偏移超过该字段长度。');
         row[field]=characters.slice(offset,offset+limit).join('');windows.push({entity:row.entity,id:row.id,field,total:characters.length,offset,limit,nextOffset:offset+limit<characters.length?offset+limit:null,complete:offset+limit>=characters.length});
       }
@@ -132,7 +175,9 @@ export class BangumiMcpService {
   }
   endReadContext(turnId:string):void{
     this.resources.clear(turnId);for(const [ref,binding]of this.references)if(binding.turnId===turnId)this.references.delete(ref);
-    this.turns.get(turnId)?.engine.snapshot.close();this.turns.delete(turnId);
+    const turn=this.turns.get(turnId);
+    if(turn?.account){try{turn.account.engine.snapshot.close();}finally{turn.account.handle.release();}}
+    turn?.engine.snapshot.close();this.turns.delete(turnId);
   }
   async close():Promise<void>{if(this.closed)return;this.closed=true;for(const id of this.turns.keys())this.endReadContext(id);this.resources.clear();this.references.clear();}
 }

@@ -20,7 +20,7 @@ export interface CaseComparison {
 export const COMPARISON_METRICS: Array<keyof RunMetrics> = [
   'modelRequests', 'proposedToolCalls', 'toolExecutions', 'toolErrors',
   'mcpCalls', 'mcpMs', 'mcpInitializationMs', 'upstreamRequests', 'contextInputTokensMax', 'contextInputTokensSum', 'inputTokensSum', 'outputTokensSum',
-  'cacheReadTokensSum', 'modelToolResultBytes', 'totalMs', 'modelMs', 'estimatedCost',
+  'cacheReadTokensSum', 'totalTokensSum', 'modelToolResultBytes', 'totalMs', 'modelMs', 'estimatedCost',
   'outputErrors', 'blankOutputErrors', 'schemaOutputErrors', 'jsonOutputErrors', 'modelErrors', 'terminalModelErrors',
   'recoveryScheduled', 'recoveryRunning', 'recoveryRecovered', 'recoveryStopped', 'strictToolsSent',
   'initialToolCount', 'initialToolSchemaBytes', 'initialProviderPayloadBytes', 'validatedFinals', 'prefixDuplications',
@@ -93,7 +93,10 @@ export function summarize(rows: RunObservation[]) {
   const mean = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
   const totals = Object.fromEntries(COMPARISON_METRICS.map(key => {
     const values = rows.map(row => row.metrics[key]).filter(finite);
-    return [key, { availableRuns: values.length, total: values.length ? values.reduce((a, b) => a + b, 0) : null }];
+    const knownTotal = values.length ? values.reduce((a, b) => a + b, 0) : null;
+    const usageMetric = key.toLowerCase().includes('tokens') || key === 'estimatedCost';
+    const missingUsage = usageMetric && rows.some(row => row.outcome !== 'not_run' && !finite(row.metrics[key]));
+    return [key, { availableRuns: values.length, total: missingUsage ? null : knownTotal, knownTotal }];
   }));
   return { runs: rows.length, outcomes, passRate: mean(rows.map(row => row.outcome === 'passed' ? 1 : 0)),
     firstRoundFailureRuns: rows.filter(row => row.metrics.firstRoundFailed === true).length,
@@ -102,6 +105,75 @@ export function summarize(rows: RunObservation[]) {
     firstOutputAttemptFailureRate: mean(rows.filter(row => typeof row.metrics.firstOutputAttemptFailed === 'boolean').map(row => row.metrics.firstOutputAttemptFailed ? 1 : 0)),
     macroFamilyPassRate: mean([...families.values()].map(values => mean(values)!)),
     semanticPending: rows.filter(row => row.grade.semanticReview === 'pending').length, totals };
+}
+/** Wilson 区间只描述所选观测；混合场景及相关重复不构成 IID 可靠性证明。 */
+export function wilson95(passed: number, samples: number): { lower: number; upper: number } | null {
+  if (!Number.isSafeInteger(samples) || samples < 1 || !Number.isSafeInteger(passed) || passed < 0 || passed > samples) return null;
+  const z = 1.959963984540054, p = passed / samples, denominator = 1 + z * z / samples;
+  const center = (p + z * z / (2 * samples)) / denominator;
+  const radius = z * Math.sqrt(p * (1 - p) / samples + z * z / (4 * samples * samples)) / denominator;
+  return { lower: Math.max(0, center - radius), upper: Math.min(1, center + radius) };
+}
+const strings = (value: unknown): string[] => Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+function outcomeStatistics(rows: RunObservation[]) {
+  const attempted = rows.filter(row => row.outcome !== 'not_run'), passed = attempted.filter(row => row.outcome === 'passed').length;
+  return { observedRuns: rows.length, attemptedRuns: attempted.length, passedRuns: passed,
+    notRun: rows.length - attempted.length, passRate: attempted.length ? passed / attempted.length : null,
+    wilson95: wilson95(passed, attempted.length), smallSample: attempted.length < 30 };
+}
+/** 报告范围来自冻结清单，避免专项通过被解读为整个案例库通过。旧清单仍可读取。 */
+export function summarizeScope(suite: SuiteResult) {
+  const manifest = record(suite.manifest), protocol = record(manifest.protocol), preflight = record(manifest.preflight);
+  const execution = record(manifest.execution), selection = record(manifest.selection);
+  const cases = Array.isArray(protocol.effectiveCases) ? protocol.effectiveCases.map(record) : [];
+  const planned = Array.isArray(manifest.plannedRuns) ? manifest.plannedRuns.map(record) : [];
+  const baseCaseId = (caseId: string) => {
+    const definition = cases.find(item => item.id === caseId), sampling = record(definition?.sampling);
+    return typeof sampling.baseCaseId === 'string' ? sampling.baseCaseId : caseId;
+  };
+  const effectiveIds = [...new Set([...cases.map(item => String(item.id)), ...planned.map(item => String(item.caseId)), ...suite.observations.map(item => item.caseId)])];
+  const caseIds = [...new Set(effectiveIds.map(baseCaseId))];
+  const plannedRuns = planned.length || (finite(preflight.plannedRuns) ? preflight.plannedRuns : suite.observations.length);
+  const startedRuns = suite.observations.filter(row => row.outcome !== 'not_run').length;
+  const missingRuns = Math.max(0, plannedRuns - suite.observations.length);
+  const notRun = suite.observations.filter(row => row.outcome === 'not_run').length;
+  const stopReason = typeof execution.stopReason === 'string' ? execution.stopReason : null;
+  const complete = missingRuns === 0 && notRun === 0 && !stopReason && plannedRuns > 0;
+  const perCase = caseIds.map(caseId => {
+    const ids = effectiveIds.filter(id => baseCaseId(id) === caseId);
+    const definition = cases.find(item => ids.includes(String(item.id))), rows = suite.observations.filter(item => ids.includes(item.caseId));
+    const count = planned.filter(item => ids.includes(String(item.caseId))).length;
+    return { caseId, effectiveCaseIds: ids, family: definition?.family ?? rows[0]?.family ?? null, smoke: definition?.smoke === true,
+      coverage: record(definition?.coverage), plannedRuns: count || rows.length, ...outcomeStatistics(rows) };
+  });
+  const coverage: Record<string, Array<ReturnType<typeof outcomeStatistics> & {
+    value: string; caseIds: string[]; selectedCases: number; plannedRuns: number;
+  }>> = Object.fromEntries([['area', 'areas'], ['component', 'components'], ['subjectType', 'subjectTypes'], ['entity', 'entities']].map(([dimension, key]) => {
+    const values = [...new Set(perCase.flatMap(item => strings(item.coverage[key!])))].sort();
+    return [dimension, values.map(value => {
+      const ids = perCase.filter(item => strings(item.coverage[key!]).includes(value)).map(item => item.caseId);
+      const rows = suite.observations.filter(item => ids.includes(baseCaseId(item.caseId)));
+      const count = perCase.filter(item => ids.includes(item.caseId)).reduce((sum, item) => sum + item.plannedRuns, 0);
+      return { value, caseIds: ids, selectedCases: ids.length, plannedRuns: count, ...outcomeStatistics(rows) };
+    })];
+  }));
+  const attempted = suite.observations.filter(row => row.outcome !== 'not_run');
+  const usageUnavailableRuns = attempted.filter(row => row.metrics.modelRequests > 0
+    && (!finite(row.metrics.totalTokensSum) || row.metrics.usageUnavailableRequests > 0)).length;
+  const knownTokens = attempted.filter(row => finite(row.metrics.totalTokensSum)).reduce((sum, row) => sum + Number(row.metrics.totalTokensSum), 0);
+  const spentTokens = usageUnavailableRuns > 0 ? null : attempted.length ? knownTokens : 0;
+  const spentRequests = attempted.reduce((sum, row) => sum + row.metrics.modelRequests, 0);
+  return { selection: Object.keys(selection).length ? selection : null, preflight: Object.keys(preflight).length ? preflight : null,
+    execution: { stopReason, spentRequests: finite(execution.spentRequests) ? execution.spentRequests : spentRequests,
+      spentTokens: execution.spentTokens === null || usageUnavailableRuns > 0 || Number(execution.usageUnavailableRuns) > 0 ? null
+        : finite(execution.spentTokens) ? execution.spentTokens : spentTokens,
+      usageUnavailableRuns: Math.max(usageUnavailableRuns, finite(execution.usageUnavailableRuns) ? execution.usageUnavailableRuns : 0) },
+    selectedCases: caseIds.length, plannedRuns, startedRuns, recordedRuns: suite.observations.length,
+    notRun: notRun + missingRuns, missingRuns, complete,
+    conclusion: !complete ? '本次所选范围未完整执行，不能标记完整通过' : attempted.every(row => row.outcome === 'passed')
+      ? '本次所选范围自动硬判通过；不代表案例库全量通过或语义/浏览器验收通过' : '本次所选范围存在自动硬判失败',
+    statisticsNote: 'Wilson95 为所选运行的描述性区间。不同场景、等义表达和重复存在异质性或相关性，不能据此声称 IID 总体可靠性；small-sample 表示少于 30 次启动样本。',
+    cases: perCase, coverage };
 }
 export async function readSuite(path: string): Promise<SuiteResult> {
   const value = record(JSON.parse(await readFile(path, 'utf8')));
@@ -124,7 +196,8 @@ export function comparisonEvidence(suite: SuiteResult): RunObservation[] {
   const actualKeys = suite.observations.map(row => key(row as unknown as Record<string, unknown>));
   const complete = plannedKeys.length > 0 && new Set(plannedKeys).size === plannedKeys.length
     && new Set(actualKeys).size === actualKeys.length && actualKeys.length === plannedKeys.length
-    && actualKeys.every(id => plannedKeys.includes(id));
+    && actualKeys.every(id => plannedKeys.includes(id)) && !record(manifest.execution).stopReason
+    && !suite.observations.some(row => row.outcome === 'not_run');
   return suite.observations.map(row => {
     const issues: string[] = [];
     if (!complete) issues.push('incomplete_planned_runs');
@@ -157,9 +230,8 @@ export async function writeReport(directory: string, suite: SuiteResult, baselin
   const candidate = baseline ? select(comparable, selection.candidateVariant)
     : comparable.filter(run => run.variant === (variants.length === 2 ? 'candidate' : variants[0]));
   const comparison = control.length ? compareObservations(control, candidate) : null;
-  const planned = record(suite.manifest).plannedRuns;
-  const plannedRuns = Array.isArray(planned) ? planned.length : suite.observations.length;
-  const pendingRuns = Math.max(0, plannedRuns - suite.observations.length);
+  const scope = summarizeScope(suite), plannedRuns = scope.plannedRuns;
+  const pendingRuns = scope.notRun;
   const protocol = record(record(suite.manifest).protocol);
   const evidence = protocol.engine === 'direct-tools' ? '无模型：生产 stdio MCP＋真实 Archive SQLite＋宿主补全（不证明模型调度或浏览器显示）'
     : protocol.offline === true ? '脚本模型＋固定上游（离线 smoke）'
@@ -168,7 +240,7 @@ export async function writeReport(directory: string, suite: SuiteResult, baselin
   const data = { schemaVersion: 1, protocolHash: suite.protocolHash,
     evidenceNotes: ['runtime 输出及恢复计数不替代浏览器 SSE 验证；UI 证据须使用专属 Web 测试。',
       'strictToolsSent 只统计实际模型请求声明的 strict 标记，脚本模型不证明服务端遵守 Schema。'],
-    summary: { ...summarize(suite.observations), plannedRuns, pendingRuns }, comparison };
+    summary: { ...summarize(suite.observations), plannedRuns, pendingRuns }, scope, comparison };
   await writeFile(join(directory, 'comparison.json'), JSON.stringify(traceRedact(data), null, 2) + '\n');
   const cards = suite.observations.map((run, index) => {
     const root = suite.runPaths[index], links = root ? '<a href="' + escape(relative(directory, join(root, 'result.json')).replaceAll('\\', '/')) + '">原始结果</a>' : '';
@@ -190,18 +262,38 @@ export async function writeReport(directory: string, suite: SuiteResult, baselin
     + '</td><td>' + escape(item.metrics.contextInputTokensSum?.pairedDeltaMedian ?? '不可用') + '</td><td>'
     + escape(item.metrics.totalMs?.pairedDeltaMedian === null ? '不可用' : Math.round(item.metrics.totalMs?.pairedDeltaMedian ?? 0))
     + '</td><td>' + escape(item.flags.join(', ')) + '</td></tr>').join('') ?? '';
+  const interval = (value: ReturnType<typeof wilson95>) => value ? (value.lower * 100).toFixed(1) + '%–' + (value.upper * 100).toFixed(1) + '%' : '不可用';
+  const coverageRows = Object.entries(scope.coverage).flatMap(([dimension, groups]) => groups.map(group => '<tr><td>' + escape(dimension)
+    + '</td><td>' + escape(group.value) + '</td><td>' + group.selectedCases + '</td><td>' + group.attemptedRuns + '/' + group.plannedRuns
+    + '</td><td>' + group.passedRuns + '/' + group.attemptedRuns + '</td><td>' + interval(group.wilson95)
+    + '</td><td>' + (group.smallSample ? 'small-sample' : '') + '</td></tr>')).join('');
+  const caseStatistics = scope.cases.map(item => '<tr><td>' + escape(item.caseId) + '</td><td>' + item.effectiveCaseIds.length
+    + '</td><td>' + item.attemptedRuns + '/' + item.plannedRuns + '</td><td>' + item.passedRuns + '/' + item.attemptedRuns
+    + '</td><td>' + interval(item.wilson95) + '</td><td>' + (item.smallSample ? 'small-sample' : '') + '</td></tr>').join('');
   const html = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>Bangumi benchmark</title><style>body{max-width:1100px;margin:32px auto;padding:0 20px;font:15px/1.65 system-ui;color:#172033;background:#f8fafc}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #dbe2eb;text-align:left;overflow-wrap:anywhere}details.run{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:12px;margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:12px;border-radius:6px}input{width:100%;padding:10px;box-sizing:border-box}a{color:#2563eb}strong{color:#334155}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}.stats div{background:white;border:1px solid #dbe2eb;border-radius:8px;padding:14px}.stats b{display:block;font-size:26px}.meta{overflow-wrap:anywhere}</style>'
     + '<h1>Bangumi benchmark</h1><p>自动硬判通过不等于语义评审通过。失败、超时和资料缺失均保留；性能差值只比较双方通过且指标可用的配对。API未返回的思考与token保持不可用。</p>'
     + '<p class="meta">' + escape(record(suite.manifest).label ?? 'benchmark') + ' · ' + escape(suite.observations[0]?.model)
     + ' · thinking=' + escape(suite.observations[0]?.thinking) + ' · ' + escape(suite.startedAt) + '</p>'
     + '<p>' + escape(evidence) + (pendingRuns ? '；尚有' + pendingRuns + '项计划未完成，不能作为完整套件基线。' : '') + '</p>'
+    + '<h2>本次范围与执行计划</h2><p>' + escape(scope.conclusion) + '</p>'
+    + '<p>选中基础场景 ' + scope.selectedCases + '；已启动 / 计划 ' + scope.startedRuns + ' / ' + scope.plannedRuns + '；未运行 ' + scope.notRun
+    + '；停止原因：' + escape(scope.execution.stopReason ?? '无') + '；已用模型请求 ' + scope.execution.spentRequests
+    + '；已用 token：' + escape(scope.execution.spentTokens ?? '不可用（usage 缺失）') + '。</p>'
+    + '<details><summary>筛选条件、选中原因、预算与历史估计</summary><pre>'
+    + escape(JSON.stringify({ selection: scope.selection, preflight: scope.preflight }, null, 2)) + '</pre></details>'
+    + '<p>历史估计用于安排运行，不是报价。预算是调度阈值，进行中的单例可能越过阈值；usage 缺失保持 null，并按预算策略停止后续调度。</p>'
     + '<p>恢复模式：' + escape(protocol.retry ?? 'disabled') + '。中间错误单独计数，成功恢复不视为终态失败。runtime指标不替代浏览器SSE和前端展示验证；脚本模型不证明服务端执行strict约束。</p>'
     + '<div class="stats"><div>已记录 / 计划<b>' + data.summary.runs + ' / ' + plannedRuns + '</b></div><div>自动硬判通过率<b>'
     + (data.summary.passRate === null ? '不可用' : (data.summary.passRate * 100).toFixed(0) + '%')
     + '</b></div><div>按场景宏平均<b>' + (data.summary.macroFamilyPassRate === null ? '不可用' : (data.summary.macroFamilyPassRate * 100).toFixed(0) + '%')
     + '</b></div><div>待语义评审<b>' + data.summary.semanticPending + '</b></div></div>'
     + '<details><summary>完整资源消耗与结果状态</summary><pre>' + escape(JSON.stringify(data.summary, null, 2)) + '</pre></details>'
+    + '<h2>所选覆盖范围</h2><p>' + escape(scope.statisticsNote) + ' 以下分组可能重叠，数量不能相加作为独立样本。</p>'
+    + (coverageRows ? '<table><tr><th>维度</th><th>值</th><th>基础场景</th><th>启动/计划</th><th>通过/启动</th><th>描述性 Wilson95</th><th>提示</th></tr>'
+      + coverageRows + '</table>' : '<p>旧版清单未登记覆盖标签；仅展示已知案例，不能推断未登记能力已覆盖。</p>')
+    + '<h2>按基础场景统计</h2><p>同一场景的等义表达合并列出；未运行项不进入本表通过率分母，计划缺口单独展示。</p>'
+    + '<table><tr><th>基础场景</th><th>表达数</th><th>启动/计划</th><th>通过/启动</th><th>描述性 Wilson95</th><th>提示</th></tr>' + caseStatistics + '</table>'
     + (comparison ? '<h2>版本对照</h2><table><tr><th>案例</th><th>硬判通过率</th><th>性能配对</th><th>输入token差值中位数</th><th>耗时差值ms</th><th>复核项</th></tr>' + comparisonRows + '</table><pre>' + escape(JSON.stringify(comparison.blockedPairs, null, 2)) + '</pre>' : '')
     + '<h2>逐例证据</h2><input id="filter" placeholder="筛选案例、场景、版本或结果状态" aria-label="筛选运行记录">' + cards
     + '<script>document.getElementById("filter").addEventListener("input",function(){const q=this.value.toLowerCase();document.querySelectorAll(".run").forEach(function(el){el.hidden=!el.dataset.search.toLowerCase().includes(q)})});</script></html>';

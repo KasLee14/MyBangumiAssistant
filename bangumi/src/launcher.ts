@@ -20,6 +20,7 @@ import { WebSessionManager } from './web/session-manager.js';
 import { TaskQueue } from './support/task-queue.js';
 import { runTraceAnalyze } from './tracing/cli.js';
 import { startArchiveUpdateScheduler } from './knowledge/scheduler.js';
+import { createAccountDataCoordinator } from './account-data/coordinator.js';
 import type { TraceOptions } from './tracing/schema.js';
 
 export interface WebOptions { port: number; open: boolean }
@@ -114,7 +115,7 @@ const help = `MyBangumiAssistant · Pi ${VERSION}
   --timeout <毫秒>       本地 MCP 请求超时，默认 60000
 
 本地资料只读，不需要Bangumi登录。数据管理：npm run data:init / data:update / data:status / data:verify / data:rollback。
-交互命令：/bangumi-login、/bangumi-login-status、/bangumi-logout；登录状态不参与本地公共资料查询。
+交互命令：/bangumi-login、/bangumi-login-status、/bangumi-logout、/bangumi-sync [full]；公共资料查询不需要登录。
 模型、会话恢复、分支和压缩使用 Pi 原生 /model、/resume、/tree、/compact。
 模型配置保存在数据目录的 pi/models.json，密钥使用环境变量引用。
 `;
@@ -140,6 +141,7 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   const agentDir = join(options.dataDir, 'pi');
   const authDir = join(options.dataDir, 'auth');
   const knowledgeDir = resolve(process.env.BANGUMI_KNOWLEDGE_DIR ?? join(options.dataDir, 'knowledge'));
+  const accountDataDir = join(options.dataDir, 'account-data');
   mkdirSync(agentDir, { recursive: true });
   mkdirSync(authDir, { recursive: true });
   const cwd = process.cwd();
@@ -159,6 +161,7 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   const webChannel = options.web ? new WebInteractionChannel() : undefined;
   const channel: InteractionChannel = webChannel ?? createTerminalChannel();
   const store = new AccountSessionStore(authDir);
+  const accountDataCoordinator = createAccountDataCoordinator({ root: accountDataDir, authDir, proxy: () => proxy.current, timeoutMs: options.timeoutMs, store });
   const accountQueue = new TaskQueue();
   const stopUpdates = args.listModels ? () => {} : startArchiveUpdateScheduler(knowledgeDir, () => proxy.current,
     message => process.stderr.write(message + '\n'));
@@ -168,7 +171,7 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
   try {
     runtime = await createBangumiRuntime({
       cwd, agentDir, sessionManager, fetch: transport.fetch,
-      extension: createBangumiExtension({ authDir, knowledgeDir, timeoutMs: options.timeoutMs, proxy, channel, store, accountQueue,
+      extension: createBangumiExtension({ authDir, knowledgeDir, accountDataDir, accountDataCoordinator, timeoutMs: options.timeoutMs, proxy, channel, store, accountQueue,
         ...(trace ? { trace } : {}) }),
       ...(args.provider === undefined ? {} : { provider: args.provider }),
       ...(args.model === undefined ? {} : { model: args.model }),
@@ -184,12 +187,16 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
       return 0;
     }
     if (options.web && webChannel) {
+      // 仅Web启动触发一次；不阻塞页面，运行中查询不会发起新的同步。
+      void accountDataCoordinator.sync().then(result => {
+        if (!('skipped' in result)) process.stderr.write('账户本地数据启动同步已完成。\n');
+      }).catch(error => { process.stderr.write(`账户启动同步失败：${safeError(error).message}\n`); });
       const modelRuntime = runtime.services.modelRuntime;
       webSessions = new WebSessionManager({ initial: { runtime, channel: webChannel },
         store, cwd, sessionDir, proxy, timeoutMs: options.timeoutMs, accountQueue,
         createRuntime: (manager, sessionChannel) => createBangumiRuntime({
           cwd, agentDir, sessionManager: manager, modelRuntime, fetch: transport.fetch,
-          extension: createBangumiExtension({ authDir, knowledgeDir, timeoutMs: options.timeoutMs, proxy, channel: sessionChannel, store, accountQueue,
+          extension: createBangumiExtension({ authDir, knowledgeDir, accountDataDir, accountDataCoordinator, timeoutMs: options.timeoutMs, proxy, channel: sessionChannel, store, accountQueue,
             ...(trace ? { trace } : {}) }),
           ...(args.provider === undefined ? {} : { provider: args.provider }),
           ...(args.model === undefined ? {} : { model: args.model }),
@@ -221,6 +228,7 @@ export async function launcherMain(argv = process.argv.slice(2)): Promise<number
     });
   } finally {
     stopUpdates();
+    await accountDataCoordinator.close();
     // print 模式自行处置运行时；其余分支（含 Web 终端退出后）由这里统一释放。
     try {
       if (webSessions) await webSessions.dispose();

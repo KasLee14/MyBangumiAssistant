@@ -37,6 +37,29 @@ export function gradeCase(test: BenchmarkCase, turns: TurnObservation[], fixture
     const turn = turns[('turn' in rule ? rule.turn : undefined) ?? turns.length - 1], values = visibleValues(turn);
     let passed = false, detail = '';
     switch (rule.kind) {
+      case 'entities': {
+        const delivered: Array<{ entity: string; id: number }> = [], seen = new Set<string>();
+        const add = (entity: string, id: number) => { const key = entity + ':' + id; if (!seen.has(key)) { seen.add(key); delivered.push({ entity, id }); } };
+        // 链接带实体域，不用裸数字或同名文本推断人物/角色/章节身份。
+        for (const match of (turn?.text ?? '').matchAll(/https?:\/\/(?:bgm\.tv|bangumi\.tv|chii\.in)\/(subject|person|character|ep)\/(\d+)(?!\d)/g)) add(match[1] === 'ep' ? 'episode' : match[1]!, Number(match[2]));
+        walk(turn?.final, row => { if (['subject', 'person', 'character', 'episode'].includes(String(row.entity)) && Number.isSafeInteger(row.id)) add(String(row.entity), Number(row.id)); });
+        const keys = (members: typeof delivered) => members.map(member => member.entity + ':' + member.id);
+        const actual = keys(delivered), expected = keys(rule.exact);
+        passed = JSON.stringify(rule.ordered ? actual : actual.sort()) === JSON.stringify(rule.ordered ? expected : expected.sort());
+        detail = '最终交付实体身份：' + JSON.stringify(delivered); break;
+      }
+      case 'tool_result': {
+        for (const tool of turn?.tools ?? []) if (!tool.error && tool.name === rule.name) walk(tool.value, row => { if (containsExpected(row, rule.expected)) passed = true; });
+        detail = '工具返回事实与独立 oracle 对照：' + rule.name; break;
+      }
+      case 'component_contains': {
+        const complete: Data[] = [];
+        walk(turn?.final, row => { if (row.type === rule.type && row.pending === false) complete.push(row); });
+        passed = complete.some(component => rule.expected.every(expected => {
+          let matched = false; walk(component.props, row => { if (containsExpected(row, expected)) matched = true; }); return matched;
+        }));
+        detail = '完整组件事实项与独立 oracle 对照：' + rule.type; break;
+      }
       case 'subjects': {
         const ids = selectedSubjects(turn, fixture);
         passed = (rule.exact === undefined || JSON.stringify(ids) === JSON.stringify([...rule.exact].sort((a, b) => a - b)))

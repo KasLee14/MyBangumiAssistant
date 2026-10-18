@@ -20,7 +20,7 @@ export function cachedResourceSelection(value: unknown): CachedResourceSelection
   if (ids!==undefined&&(!Array.isArray(ids) || !ids.length || ids.length > CACHED_RESOURCE_SELECTION_LIMIT
     || ids.some(id => !Number.isSafeInteger(id) || id < 1) || new Set(ids).size !== ids.length)
     )throw new AppError('INVALID_INPUT', '缓存展示作品须为非空、不重复的正整数列表，最多200项。');
-  const allowed=new Set<string>([...LOCAL_FIELDS,'id','entity','group','count','averageScore']);
+  const allowed=new Set<string>([...LOCAL_FIELDS,'id','entity','group','count','averageScore','averagePersonalRating','ratedCount']);
   if(fields!==undefined&&(!Array.isArray(fields)||!fields.length||fields.length>80||new Set(fields).size!==fields.length||fields.some(field=>typeof field!=='string'||!allowed.has(field))))throw new AppError('INVALID_INPUT','宿主展示读取字段不在固定白名单。');
   return {...(ids===undefined?{}:{subjectIds:[...ids as number[]]}),...(fields===undefined?{}:{fields:[...fields as string[]]})};
 }
@@ -33,7 +33,7 @@ export const cachedResourceInputSchema = {
   type: 'object', additionalProperties: false,
   properties: {
     resource_ref: { type: 'string', pattern: RESOURCE_REF_PATTERN },
-    fields: { type: 'array', maxItems: 80, uniqueItems: true, items: { type: 'string', enum:[...LOCAL_FIELDS,'group','count','averageScore'] } },
+    fields: { type: 'array', maxItems: 80, uniqueItems: true, items: { type: 'string', enum:[...LOCAL_FIELDS,'group','count','averageScore','averagePersonalRating','ratedCount'] } },
     keys: {
       type: 'array', maxItems: 100, uniqueItems:true, items: {
         oneOf: [{ type: 'integer', minimum: 1 }, {

@@ -137,7 +137,7 @@ export function projectModelResult(value: Data, name?: string, args: Data = {}):
       const ranges:Data=record(item.fieldRanges)?structuredClone(item.fieldRanges):{};
       for(const field of fields)if(Object.hasOwn(item,field)){
         const data=item[field];
-        if(typeof data==='string'&&['summary','infoboxRaw'].includes(field)){
+        if(typeof data==='string'&&['summary','infoboxRaw','personalComment'].includes(field)){
           const characters=Array.from(data);projected[field]=characters.slice(0,500).join('');
           if(characters.length>500)ranges[field]={offset:0,limit:500,total:characters.length,nextOffset:500,complete:false};
         }else projected[field]=structuredClone(data);

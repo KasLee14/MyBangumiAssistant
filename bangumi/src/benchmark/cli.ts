@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { traceHash, traceRedact } from '../tracing/redact.js';
 import { atomicJson } from './worker.js';
@@ -11,11 +11,14 @@ import { blankMetrics } from './metrics.js';
 import { fixtureDefinition } from './fixtures.js';
 import { readSuite, writeReport, type SuiteResult } from './report.js';
 import { record, validateCases, type BenchmarkCase, type RunObservation, type WorkerConfig } from './schema.js';
+import { selectCases, createExecutionPlan, estimatePlan } from './planning.js';
 
 export const PROJECT_ROOT = resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 const flags = new Set(['model', 'thinking', 'suite', 'case', 'tag', 'repeats', 'label', 'out', 'root', 'control-root',
   'agent-dir', 'proxy', 'mode', 'cases', 'timeout-ms', 'max-model-requests', 'max-tools', 'max-total-requests', 'baseline', 'candidate',
-  'baseline-variant', 'candidate-variant', 'recovery', 'knowledge-dir']);
+  'baseline-variant', 'candidate-variant', 'recovery', 'knowledge-dir', 'area', 'subject-type', 'entity', 'component',
+  'seed', 'history', 'max-total-tokens', 'prompt-variants', 'changed-files', 'base-ref']);
+const switches = new Set(['dry-run', 'include-smoke']);
 export function parseArguments(args: string[]): { command: string; values: Record<string, string>; offline: boolean; help: boolean } {
   const command = args[0]?.startsWith('--') ? 'run' : args.shift() ?? 'run', values: Record<string, string> = {};
   let offline = false, help = false;
@@ -25,6 +28,10 @@ export function parseArguments(args: string[]): { command: string; values: Recor
     if (arg === '--offline') { offline = true; continue; }
     if (arg === '--help') { help = true; continue; }
     const name = arg.startsWith('--') ? arg.slice(2) : '';
+    if (switches.has(name)) {
+      if (values[name] !== undefined) throw new Error('重复的参数：' + arg);
+      values[name] = 'true'; continue;
+    }
     if (!flags.has(name) || values[name] !== undefined || !args[index + 1] || args[index + 1]!.startsWith('--')) throw new Error('未知、重复或缺值的参数：' + arg);
     values[name] = args[++index]!;
   }
@@ -80,12 +87,62 @@ export function createPlan(cases: BenchmarkCase[], repeats: number, paired: bool
   }
   return tasks;
 }
+/** 显式登记的等义表达才可扩展，不能花模型 token 临时生成测试问题。 */
+export function expandPromptVariants(cases: BenchmarkCase[], count: number): BenchmarkCase[] {
+  const expanded = cases.flatMap(test => {
+    if ((test.promptVariants?.length ?? 0) + 1 < count) throw new Error(test.id + ' 未登记足够的等义表达；请求 ' + count + ' 种。');
+    return Array.from({ length: count }, (_, index) => ({ ...test,
+      id: index === 0 ? test.id : test.id + '-v' + (index + 1),
+      turns: index === 0 ? test.turns : test.promptVariants![index - 1]!,
+      sampling: { baseCaseId: test.id, promptVariant: index + 1 },
+    }));
+  });
+  if (new Set(expanded.map(test => test.id)).size !== expanded.length) throw new Error('等义表达展开后的案例 ID 冲突，请调整基础案例 ID。');
+  if (expanded.some(test => test.id.length > 80)) throw new Error('等义表达展开后的案例 ID 超过 80 字符，请缩短基础案例 ID。');
+  return expanded;
+}
+export function changedBenchmarkFiles(root: string, baseRef?: string): string[] {
+  const git = (args: string[]) => execFileSync('git', args, { cwd: root, windowsHide: true,
+    encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 4_000_000 }).split('\0').filter(Boolean);
+  try {
+    return [...new Set([...git(['diff', '--name-only', '-z', '--relative', baseRef ?? 'HEAD', '--']),
+      ...git(['ls-files', '--others', '--exclude-standard', '-z'])])];
+  } catch { throw new Error('无法读取改动范围；请检查 --base-ref，或使用 --changed-files 显式指定路径。'); }
+}
+/** 总量含缓存输入与输出；缺失 usage 保持未知，不能作为零成本继续调度。 */
+export function observedBudgetTokens(run: RunObservation): number | null {
+  const metrics = run.metrics;
+  if (run.error === 'worker_failed_without_result' || run.error === 'worker_deadline_exceeded') return null;
+  if (metrics.usageUnavailableRequests > 0) return null;
+  const requests = metrics.requests;
+  if (requests.length < Math.max(metrics.modelRequests, metrics.providerHttpRequests ?? 0)) return null;
+  if (!requests.length) return 0;
+  let total = 0;
+  for (const request of requests) {
+    const supplied = request.totalTokens;
+    const context = request.contextInputTokens, output = request.outputTokens;
+    const derived = typeof context === 'number' && typeof output === 'number' ? context + output : null;
+    if (typeof supplied !== 'number' && derived === null) return null;
+    const tokens = Math.max(supplied ?? 0, derived ?? 0);
+    if (!Number.isFinite(tokens) || tokens < 0) return null;
+    total += tokens;
+  }
+  return total;
+}
+export function schedulingStop(execution: { spentRequests: number; spentTokens: number | null },
+  maxRequests: number, maxTokens: number | null): string | null {
+  if (execution.spentRequests >= maxRequests) return 'global_model_request_budget_exhausted';
+  if (maxTokens !== null && execution.spentTokens === null) return 'global_token_usage_unavailable';
+  if (maxTokens !== null && execution.spentTokens! >= maxTokens) return 'global_token_budget_exhausted';
+  return null;
+}
 function fallback(config: WorkerConfig, outcome: RunObservation['outcome'], error: string): RunObservation {
   return { schemaVersion: 1, caseId: config.case.id, family: config.case.family, variant: config.variant, repeat: config.repeat,
     protocolHash: config.protocolHash, versionHash: config.versionHash, model: config.model, thinking: config.thinking,
     mode: config.mode, outcome, error, turns: [], metrics: blankMetrics(),
     grade: { passed: false, checks: [], semanticReview: config.case.semanticRubric ? 'pending' : 'not_required', rubric: config.case.semanticRubric ?? null },
-    confirmations: [], network: [], traceDirectories: [], captureIssues: [error] };
+    confirmations: [], network: [], traceDirectories: [], captureIssues: [error],
+    ...(config.sampling ? { sampling: config.sampling } : {}) };
 }
 export async function stopWorkerTree(pid: number): Promise<void> {
   if (process.platform === 'win32') await new Promise<void>(done => {
@@ -121,50 +178,106 @@ export async function runWorker(config: WorkerConfig): Promise<RunObservation> {
   });
 }
 async function run(values: Record<string, string>, offline: boolean): Promise<void> {
+  const dryRun = values['dry-run'] === 'true';
   const mode = values.mode ?? (offline ? 'fixture' : 'local-archive');
   if (!['fixture', 'live-read', 'local-archive'].includes(mode) || offline && mode !== 'fixture') throw new Error('运行模式必须是 fixture、live-read 或 local-archive；offline只能使用fixture。');
   const root = resolve(values.root ?? PROJECT_ROOT), controlRoot = values['control-root'] ? resolve(values['control-root']) : null;
-  if (mode === 'local-archive' && !values['knowledge-dir']) throw new Error('local-archive 必须显式指定 --knowledge-dir，避免误用其他数据库。');
-  if (mode === 'local-archive' && controlRoot) throw new Error('local-archive 不能与旧 HTTP 版本配对；数据与工具协议不同，须分层报告。');
   const knowledgeDir = values['knowledge-dir'] ? resolve(values['knowledge-dir']) : undefined;
-  const dataFingerprint = mode === 'local-archive' ? await (await import('./local.js')).datasetFingerprint(knowledgeDir!) : null;
   const casesPath = resolve(values.cases ?? join(PROJECT_ROOT, 'bangumi/benchmarks', mode === 'local-archive' ? 'local-archive-cases.json' : mode === 'fixture' ? 'component-tools-cases.json' : 'live-cases.json'));
-  let catalog = validateCases(JSON.parse(await readFile(casesPath, 'utf8')));
-  if (mode === 'local-archive') catalog = await (await import('./local.js')).localCaseExpectations(root, knowledgeDir!, dataFingerprint!.snapshotId, catalog);
-  const suite = values.suite ?? (offline ? 'smoke' : 'core');
-  if (!['smoke', 'core', 'full'].includes(suite)) throw new Error('suite必须是 smoke、core 或 full。');
-  const ids = values.case?.split(','), tags = values.tag?.split(',');
-  if (ids?.some(id => !catalog.some(test => test.id === id))) throw new Error('case包含未登记案例。');
-  let cases = catalog.filter(test => ids ? ids.includes(test.id) : suite === 'smoke' ? test.id === (mode === 'local-archive' ? 'local-facts' : 'facts-basic') : suite === 'core' ? test.core : true);
-  if (tags) cases = cases.filter(test => tags.some(tag => test.tags.includes(tag)));
-  if (!cases.length) throw new Error('案例筛选结果为空。');
+  const catalog = validateCases(JSON.parse(await readFile(casesPath, 'utf8')));
+  const explicitSelection = ['suite', 'case', 'tag', 'area', 'subject-type', 'entity', 'component'].some(key => values[key] !== undefined);
+  const area = values.area ?? (explicitSelection ? undefined : 'smoke');
+  const affected = area?.split(',').some(value => value.trim() === 'affected') === true;
+  const changedFiles = values['changed-files'] !== undefined ? values['changed-files'].split(',').map(path => path.trim()).filter(Boolean)
+    : affected ? changedBenchmarkFiles(root, values['base-ref']) : [];
+  const selected = selectCases(catalog, {
+    ...(values.suite ? { suite: values.suite } : {}), ...(area ? { area } : {}),
+    ...(values.case !== undefined ? { case: values.case } : {}), ...(values.tag !== undefined ? { tag: values.tag } : {}),
+    ...(values['subject-type'] !== undefined ? { subjectType: values['subject-type'] } : {}),
+    ...(values.entity !== undefined ? { entity: values.entity } : {}), ...(values.component !== undefined ? { component: values.component } : {}),
+    includeSmoke: values['include-smoke'] === 'true', changedFiles,
+  });
+  let cases = selected.cases;
   if (offline && cases.some(test => test.id !== 'facts-basic' && !test.offlineScript)) throw new Error('offline只能执行facts-basic或已登记offlineScript，不替代真实模型benchmark。');
   if (!offline && cases.some(test => test.offlineScript)) throw new Error('offlineScript只能在--offline中执行，不混入真实模型结果。');
   const recovery = values.recovery ?? 'disabled';
   if (!['enabled', 'disabled'].includes(recovery)) throw new Error('recovery必须是enabled或disabled。');
   if (mode !== 'fixture' && cases.some(test => test.tags.includes('write') || test.confirmation === 'approve')) throw new Error('只读数据模式不接受写入场景。');
   const model = values.model ?? (offline ? 'faux/faux-1' : '');
-  if (!/^[^/\s]+\/\S+$/.test(model) || offline && model !== 'faux/faux-1') throw new Error('必须用 --model 显式指定 provider/model。');
+  if ((!dryRun || model) && !/^[^/\s]+\/\S+$/.test(model) || offline && model !== 'faux/faux-1') throw new Error('必须用 --model 显式指定 provider/model。');
   const thinking = values.thinking ?? 'off';
   if (!['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'].includes(thinking)) throw new Error('thinking级别无效。');
-  const repeats = positive(values.repeats, offline ? 1 : 3, 100), maxRequests = positive(values['max-total-requests'], 500, 100000);
+  const repeats = positive(values.repeats, 1, 100), maxRequests = positive(values['max-total-requests'], 500, 100000);
+  const maxTokens = values['max-total-tokens'] === undefined ? null : positive(values['max-total-tokens'], 1, Number.MAX_SAFE_INTEGER);
+  const promptVariants = positive(values['prompt-variants'], 1, 20), seed = values.seed ?? 'benchmark-v1';
   cases = cases.map(test => ({ ...test, budget: { ...test.budget,
     timeoutMs: positive(values['timeout-ms'], test.budget.timeoutMs, 3600000),
     modelRequests: positive(values['max-model-requests'], test.budget.modelRequests, 500),
     toolExecutions: positive(values['max-tools'], test.budget.toolExecutions, 1000) } }));
   const proxy = values.proxy === 'direct' ? null : values.proxy ?? 'http://127.0.0.1:7890';
   if (proxy !== null && proxy !== 'http://127.0.0.1:7890') throw new Error('本项目网络代理使用 http://127.0.0.1:7890；直连用 --proxy direct。');
+  const history = values.history ? (await readSuite(resolve(values.history))).observations.filter(row =>
+    row.model === model && row.thinking === thinking && row.mode === mode && row.outcome !== 'not_run' && row.outcome !== 'incomplete_capture') : [];
+  const smokeOnly = new Set(cases.filter(test => selected.reasons[test.id]?.every(reason => reason === 'include-smoke')).map(test => test.id));
+  const planCases = (definitions: BenchmarkCase[]) => {
+    const expanded = definitions.flatMap(test => expandPromptVariants([test], smokeOnly.has(test.id) ? 1 : promptVariants));
+    if (new Set(expanded.map(test => test.id)).size !== expanded.length) throw new Error('等义表达展开后的案例 ID 冲突，请调整基础案例 ID。');
+    return createExecutionPlan(expanded, repeats, controlRoot !== null, seed)
+      .filter(task => !smokeOnly.has(task.test.sampling!.baseCaseId) || task.repeat === 1);
+  };
+  const previewTasks = planCases(cases);
+  const preflight = { catalogCases: catalog.length, selectedCases: cases.length, plannedRuns: previewTasks.length,
+    repeats, promptVariants, smokeSupplementRepeats: 1, seed, scope: cases.length === catalog.length ? 'full' : 'selected',
+    estimate: estimatePlan(previewTasks, history), budgets: { maxTotalRequests: maxRequests, maxTotalTokens: maxTokens },
+    reasons: selected.reasons, unmappedFiles: selected.unmappedFiles,
+    budgetPolicy: '调度边界阈值；进行中单例可超出 token 阈值；usage 缺失且启用 token 预算时停止后续案例。' };
+  const preview = { dryRun, model: model || null, mode, thinking, selection: selected.selection, ...preflight,
+    datasetVerified: false, runs: previewTasks.map(task => ({ caseId: task.test.id, family: task.test.family,
+      variant: task.variant, repeat: task.repeat, sampling: task.test.sampling,
+      coverage: task.test.coverage ?? null, reason: selected.reasons[task.test.sampling?.baseCaseId ?? task.test.id] ?? [] })) };
+  if (dryRun) {
+    if (values.out) { const directory = resolve(values.out); mkdirSync(directory, { recursive: true });
+      if (['plan.json', 'manifest.json', 'results.json'].some(file => existsSync(join(directory, file)))) throw new Error('目录已有计划或评测，请选择新输出目录。');
+      atomicJson(join(directory, 'plan.json'), preview); }
+    process.stdout.write(JSON.stringify(preview, null, 2) + '\n'); return;
+  }
+  process.stdout.write('执行计划：' + cases.length + ' 个基础案例，' + previewTasks.length + ' 次运行；'
+    + 'token 估计=' + (preflight.estimate.estimatedTotalTokens ?? '缺少匹配历史') + '，预算=' + (maxTokens ?? '未设置') + '\n');
+  for (const test of cases) process.stdout.write('  ' + test.id + ' ×'
+    + previewTasks.filter(task => task.test.sampling?.baseCaseId === test.id).length
+    + ' [' + (selected.reasons[test.id] ?? []).join(', ') + ']\n');
+  if (maxTokens !== null) process.stdout.write(preflight.budgetPolicy + '\n');
+  if (selected.unmappedFiles.length) throw new Error('存在未映射改动：' + selected.unmappedFiles.join(', ')
+    + '。请先预览并通过 --area 或 --case 显式选择测试，不能把自动推荐当成完整覆盖。');
+  if (!cases.length) throw new Error('没有需要执行的案例；请使用 --dry-run 查看推荐，或显式选择能力入口。');
+  if (mode === 'local-archive' && !knowledgeDir) throw new Error('local-archive 必须显式指定 --knowledge-dir，避免误用其他数据库；--dry-run 无需数据库。');
+  const dataFingerprint = mode === 'local-archive' ? await (await import('./local.js')).datasetFingerprint(knowledgeDir!) : null;
+  if (mode === 'local-archive') cases = await (await import('./local.js')).localCaseExpectations(root, knowledgeDir!, dataFingerprint!.snapshotId, cases);
+  const tasks = planCases(cases);
+  const effectiveCases = [...new Map(tasks.map(task => [task.test.id, task.test])).values()];
   const agentDir = resolve(values['agent-dir'] ?? join(process.env.BANGUMI_PI_HOME ?? join(process.env.LOCALAPPDATA ?? join(homedir(), '.local/share'), 'MyBangumiAssistant-Pi'), 'pi'));
   const output = resolve(values.out ?? join(PROJECT_ROOT, 'bangumi/artifacts/benchmarks', new Date().toISOString().replaceAll(':', '-') + '-' + randomUUID().slice(0, 8)));
   if (existsSync(join(output, 'results.json')) || existsSync(join(output, 'manifest.json'))) throw new Error('输出目录已有评测，请选择新目录。');
   for (const runtimeRoot of [root, ...(controlRoot ? [controlRoot] : [])]) {
     if (!existsSync(join(runtimeRoot, 'bangumi/dist/src/pi-host.js')) || !existsSync(join(runtimeRoot, 'bangumi/dist/src/mcp/server.js'))) throw new Error('待测版本缺少构建产物，请先在其bangumi目录构建。');
   }
+  if (mode === 'local-archive' && controlRoot) {
+    const contracts = await Promise.all([root, controlRoot].map(async runtimeRoot => {
+      const { TOOL_DEFINITIONS } = await import(pathToFileURL(join(runtimeRoot, 'bangumi/dist/src/mcp/catalog.js')).href);
+      const definitions = TOOL_DEFINITIONS as Array<{ name: string; effect: string; inputSchema: unknown; outputSchema: unknown }>;
+      const required = ['aggregate_entities', 'get_dataset_status', 'get_entities', 'query_entities', 'query_relations', 'read_cached_resource'];
+      if (definitions.length !== 6 || definitions.some(tool => tool.effect !== 'read')
+        || JSON.stringify(definitions.map(tool => tool.name).sort()) !== JSON.stringify(required))
+        throw new Error('本地 A/B 两侧必须都是六工具只读 Archive 版本，不能与旧 HTTP 数据源配对。');
+      return traceHash(definitions.map(tool => ({ name: tool.name, inputSchema: tool.inputSchema, outputSchema: tool.outputSchema })).sort((a, b) => a.name.localeCompare(b.name)));
+    }));
+    if (contracts[0] !== contracts[1]) throw new Error('本地 A/B 两侧工具契约不同，不能作为同协议性能配对。');
+  }
   const versions = { candidate: versionFingerprint(root), ...(controlRoot ? { control: versionFingerprint(controlRoot) } : {}) };
   const fixtures = Object.fromEntries([...new Set(catalog.map(test => test.fixture))].map(id => [id, fixtureDefinition(id)]));
   const modelsPath = join(agentDir, 'models.json');
   const modelConfigHash = () => !offline && existsSync(modelsPath) ? traceHash(traceRedact(JSON.parse(readFileSync(modelsPath, 'utf8')))) : null;
-  const protocol = { schemaVersion: 1, cases: catalog, effectiveCases: cases, fixtures,
+  const protocol = { schemaVersion: 1, cases: catalog, effectiveCases, fixtures,
     harnessHash: traceHash(fileHashes(dirname(fileURLToPath(import.meta.url)))), model, thinking, mode, offline, dataFingerprint,
     modelConfigHash: modelConfigHash(),
     proxy, repeats, maxRequests, retry: recovery, sessions: 'fresh-per-case', cache: 'cold-application-cache', helperTitles: 'disabled',
@@ -173,15 +286,18 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
       modelRequests: values['max-model-requests'] ? Number(values['max-model-requests']) : null, tools: values['max-tools'] ? Number(values['max-tools']) : null } };
   // 筛选范围与重复次数不改变单案例协议；同套件可与此前全量基线按交集配对。
   const protocolHash = traceHash(Object.fromEntries(Object.entries(protocol).filter(([key]) => !['effectiveCases', 'repeats', 'maxRequests'].includes(key))));
-  const tasks = createPlan(cases, repeats, controlRoot !== null);
   mkdirSync(output, { recursive: true });
+  const execution = { stopReason: null as string | null, spentRequests: 0, spentTokens: 0 as number | null,
+    knownSpentTokens: 0, usageUnavailableRuns: 0 };
   const manifest = { schemaVersion: 1, label: values.label ?? 'benchmark', startedAt: new Date().toISOString(), node: process.version,
     platform: process.platform, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, root, controlRoot, versions, protocol, protocolHash,
-    plannedRuns: tasks.map(task => ({ caseId: task.test.id, family: task.test.family, repeat: task.repeat, variant: task.variant })) };
+    selection: selected.selection, preflight, execution,
+    plannedRuns: tasks.map(task => ({ caseId: task.test.id, family: task.test.family, repeat: task.repeat, variant: task.variant,
+      sampling: { ...task.test.sampling!, block: task.repeat } })) };
   atomicJson(join(output, 'manifest.json'), manifest);
   const observations: RunObservation[] = [], runPaths: string[] = [];
-  let spent = 0;
   const save = async () => {
+    atomicJson(join(output, 'manifest.json'), manifest);
     const result: SuiteResult = { schemaVersion: 1, startedAt: manifest.startedAt, protocolHash, manifest, observations, runPaths };
     atomicJson(join(output, 'results.json'), result); await writeReport(output, result);
   };
@@ -192,13 +308,18 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
     const config: WorkerConfig = { runtimeRoot, outputDir: join(output, 'runs', task.variant, task.test.id, String(task.repeat)),
       case: task.test, fixture: fixtures[task.test.fixture]!, variant: task.variant, repeat: task.repeat,
       protocolHash, versionHash, model, thinking, mode: mode as WorkerConfig['mode'], agentDir, proxy, offline,
-      recovery: recovery as 'enabled' | 'disabled', ...(knowledgeDir ? { knowledgeDir } : {}) };
+      recovery: recovery as 'enabled' | 'disabled', sampling: { ...task.test.sampling!, block: task.repeat },
+      ...(knowledgeDir ? { knowledgeDir } : {}) };
     let result: RunObservation;
-    if (spent >= maxRequests) { result = fallback(config, 'not_run', 'global_model_request_budget_exhausted');
+    execution.stopReason ??= schedulingStop(execution, maxRequests, maxTokens);
+    if (execution.stopReason) { result = fallback(config, 'not_run', execution.stopReason);
       mkdirSync(config.outputDir, { recursive: true }); atomicJson(join(config.outputDir, 'result.json'), result); }
     else {
-      config.case = { ...task.test, budget: { ...task.test.budget, modelRequests: Math.min(task.test.budget.modelRequests, maxRequests - spent) } };
-      result = await runWorker(config); spent += Math.max(result.metrics.modelRequests, result.metrics.providerHttpRequests ?? 0);
+      config.case = { ...task.test, budget: { ...task.test.budget, modelRequests: Math.min(task.test.budget.modelRequests, maxRequests - execution.spentRequests) } };
+      result = await runWorker(config); execution.spentRequests += Math.max(result.metrics.modelRequests, result.metrics.providerHttpRequests ?? 0);
+      const tokens = observedBudgetTokens(result);
+      if (tokens === null) { execution.spentTokens = null; execution.usageUnavailableRuns++; }
+      else { execution.knownSpentTokens += tokens; if (execution.spentTokens !== null) execution.spentTokens += tokens; }
       if (config.case.budget.modelRequests < task.test.budget.modelRequests && result.outcome === 'budget_exceeded')
         result.error = 'global_model_request_budget_exhausted';
     }
@@ -231,7 +352,17 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const { command, values, offline, help } = parseArguments([...args]);
   if (help) {
-    process.stdout.write('benchmark run --model provider/model [--thinking off] [--suite core|full] [--case id,id] [--tag tag] [--repeats 3] [--control-root PATH] [--out PATH] [--agent-dir PATH] [--mode fixture|live-read|local-archive] [--knowledge-dir PATH] [--proxy direct] [--recovery disabled|enabled] [--max-total-requests 500]\nbenchmark local --knowledge-dir PATH [--repeats 10] [--out PATH]\nbenchmark run --offline [--cases benchmarks/component-tools-cases.json --suite full --tag offline-script --recovery enabled]\nbenchmark compare --baseline RESULTS_JSON --candidate RESULTS_JSON --out PATH\nbenchmark list [--cases PATH]\n'); return;
+    process.stdout.write('benchmark run [--area smoke|query|relations|aggregate|components|resources|conversation|full|affected]\n'
+      + '  [--subject-type book|anime|music|game|real] [--entity subject|person|character|episode] [--component StatsCard,DataTable]\n'
+      + '  [--case id,id] [--tag tag] [--suite smoke|core|full] [--include-smoke] [--repeats 1] [--prompt-variants 1] [--seed benchmark-v1]\n'
+      + '  [--dry-run] [--history RESULTS_JSON] [--changed-files path,path] [--base-ref REF]\n'
+      + '  [--model provider/model] [--thinking off] [--mode local-archive|fixture|live-read] [--knowledge-dir PATH]\n'
+      + '  [--max-total-requests 500] [--max-total-tokens N] [--control-root PATH] [--out PATH] [--recovery disabled|enabled]\n'
+      + '默认冒烟、每例一次；预览不启动模型或读取数据库；token预算在单例完成后检查，进行中单例可能超出。\n'
+      + 'benchmark local --knowledge-dir PATH [--repeats 10] [--out PATH]\n'
+      + 'benchmark run --offline --cases benchmarks/presentation-cases.json --tag offline-script --suite full\n'
+      + 'benchmark compare --baseline RESULTS_JSON --candidate RESULTS_JSON --out PATH\n'
+      + 'benchmark list [--area AREA] [--subject-type TYPE] [--component NAME] [--cases PATH]\n'); return;
   }
   if (command === 'local') {
     if (offline || !values['knowledge-dir']) throw new Error('local 使用生产 stdio MCP 和真实本地数据库，必须指定 --knowledge-dir；不接收 --offline。');
@@ -241,7 +372,17 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   }
   if (command === 'list') {
     const cases = validateCases(JSON.parse(await readFile(resolve(values.cases ?? join(PROJECT_ROOT, 'bangumi/benchmarks/local-archive-cases.json')), 'utf8')));
-    for (const test of cases) process.stdout.write(test.id + '\t' + test.family + '\t' + (test.core ? 'core' : 'extended') + '\t' + test.tags.join(',') + '\n');
+    const { caseCoverage } = await import('./planning.js');
+    const root = resolve(values.root ?? PROJECT_ROOT);
+    const chosen = selectCases(cases, { suite: values.suite ?? 'full',
+      ...(values.area ? { area: values.area } : {}), ...(values.case ? { case: values.case } : {}),
+      ...(values.tag ? { tag: values.tag } : {}), ...(values['subject-type'] ? { subjectType: values['subject-type'] } : {}),
+      ...(values.entity ? { entity: values.entity } : {}), ...(values.component ? { component: values.component } : {}),
+      includeSmoke: values['include-smoke'] === 'true',
+      changedFiles: values['changed-files']?.split(',') ?? (values.area?.includes('affected') ? changedBenchmarkFiles(root, values['base-ref']) : []),
+    });
+    for (const test of chosen.cases) process.stdout.write(test.id + '\t' + test.family + '\t' + JSON.stringify(caseCoverage(test)) + '\n');
+    if (chosen.unmappedFiles.length) process.stdout.write('未映射改动：' + chosen.unmappedFiles.join(', ') + '\n');
     return;
   }
   if (command === 'compare') {

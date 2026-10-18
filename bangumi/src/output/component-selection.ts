@@ -7,9 +7,9 @@ export type ComponentType = ComponentKind;
 export const COMPONENT_SELECTION_INSTRUCTION = `展示类型按内容选择：
 作品搜索和推荐结果默认用 SubjectCards 承载作品主体；用户明确要求表格时使用DataTable。跨书籍、动画、音乐、游戏、三次元使用条目真实 kind。
 已明确组件名时通过read_component_spec直接加载；其他事实列表、统计、进度、人物图片、事件、标签、引用及链接按索引用途发现。只按下一请求实际声明的render参数调用，DataTable用columns声明所需列。
-纯解释、澄清及资料不足用原生文字；组件旁的正式说明放render的before/after。多份已有缓存用sources表达顺序，全部任务完成才在最后render提交final；用户明确要求纯文本、代码或原始数据时尊重要求。
+纯解释、澄清及资料不足用原生文字；组件可直接发布，需要附加文字时使用可选的before/after。多份已有缓存用sources表达顺序，全部任务完成才在最后render提交final；用户明确要求纯文本、代码或原始数据时尊重要求。
 同一份数据仅在一个组件内展示，不再重复为 Markdown 列表或表格。没有相应事实时不为了凑组件补造 ID、图片、评分或其他字段。
-列表筛选条件、排序依据、Archive快照时间和数据覆盖缺口如实说明。模型只提供资源引用、成员和展示意图，宿主从同一快照补齐事实；没有图片时正常无图展示，不要求账户或补采。`;
+影响理解或结论的条件与缺口按统一回复规则说明。模型只提供资源引用、成员和展示意图，宿主从同一快照补齐事实；没有图片时正常无图展示，不要求账户或补采。`;
 
 const componentTypes: ReadonlySet<string> = new Set(COMPONENT_KINDS);
 
