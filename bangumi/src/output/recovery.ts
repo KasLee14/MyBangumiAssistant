@@ -77,6 +77,28 @@ function referenceFailureInstruction(reason: string, diagnostic?: ErrorDiagnosti
   return '缓存引用读取发生内部或传输故障，停止工具操作。用text依据error中的真实错误码和诊断说明展示失败及缺口，保留已完成部分；没有账户或权限错误证据时不得归因为账户或权限变化。';
 }
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const accessRecoveries = new Set(['relogin', 'inspect_permissions', 'verify_write']);
+const correctableRecoveries = new Set(['correct_parameters', 'replan_read']);
+const correctableReadCodes = new Set(['CURSOR_PLAN_CHANGED', 'RESOURCE_EXPIRED']);
+const readOnlyToolNames = TOOL_DEFINITIONS.filter(tool => tool.effect === 'read').map(tool => tool.name);
+export interface FailureFacts { code: string; recovery: string; effect: string; replanAllowed?: boolean | undefined }
+/** 只读业务失败是否降级为可纠正；访问类、写工具与显式禁止重规划一律不可纠正。 */
+export function isCorrectableReadFailure(facts: FailureFacts): boolean {
+  if (facts.replanAllowed === false) return false;
+  if (facts.effect !== 'read') return false;
+  if (accessRecoveries.has(facts.recovery)) return false;
+  return correctableReadCodes.has(facts.code) || correctableRecoveries.has(facts.recovery);
+}
+export interface RestrictionFacts { fatal: boolean; readOnly: boolean; accessRelated: boolean }
+/** fatal报告仍可保留的只读业务工具与组件契约工具；访问类或写工具失败返回空集（撤下全部业务工具）。 */
+export function retainedReadOnlyTools(facts: RestrictionFacts): string[] {
+  if (!facts.fatal || !facts.readOnly || facts.accessRelated) return [];
+  return [...readOnlyToolNames, ...contractTools];
+}
+/** 同一错误签名按码、原因、操作与issues的path+rule判定；不含字段值，避免换参数值重试绕过"每轮一次纠正"。 */
+export function signatureOf(code: string, reason: string, operation: string | undefined, issues: readonly { path: string; rule: string }[]): string {
+  return hash({ code, reason, operation, issues: issues.map(issue => [issue.path, issue.rule]) });
+}
 const mixed = (message: AssistantMessage): MixedPart[] => message.content.filter(part => part.type !== 'thinking' && part.type !== 'toolCall').map(part =>
   part.type === 'text' ? validateMixedPart({ type: 'text', nextType: part.nextType, text: part.text }) : part);
 const connect = (content: AssistantMessage['content']): AssistantMessage['content'] => {
@@ -313,8 +335,11 @@ export class RecoveryController {
       delayMs: mode === 'retry_request' ? retryDelayMs(policy, this.attempts) : 0 };
     this.pending = true;
     const availableContracts = this.session!.getAllTools().map(tool => tool.name).filter(name => contractTools.has(name));
+    // schedule()只处理assistant输出失败，拿不到工具调用来源，按票面约定sourceIsRead取false。
+    const sourceIsRead = false;
+    const accessRelated = accessRecoveries.has(diagnostic.recovery);
     if (referenceRefresh && mode === 'replan_read') this.loadout!.restrict(() => [referenceRefresh!.source.tool, ...availableContracts], isPresentationSource(message));
-    else if (mode !== 'retry_request') this.loadout!.restrict(() => mode === 'report_failure' ? [] : availableContracts, isPresentationSource(message));
+    else if (mode !== 'retry_request') this.loadout!.restrict(() => mode === 'report_failure' ? retainedReadOnlyTools({ fatal: true, readOnly: sourceIsRead, accessRelated }) : availableContracts, isPresentationSource(message));
     return [{ type: 'context_edit', targetId, replacement: null }, this.record('scheduled', diagnostic), {
       type: 'custom_message', customType: 'bangumi/recovery-feedback', content: this.plan.feedback, display: false, details: { chainId: this.chainId, attempt: this.attempts },
     }];
@@ -398,11 +423,12 @@ export class RecoveryController {
           }
           const diagnostic = safe?.diagnostic;
           if (!diagnostic) continue;
-          const request = event.message.content.find(part => part.type === 'toolCall' && part.id === result.toolCallId);
-          const key = hash({ operation: result.toolName, arguments: request?.type === 'toolCall' ? request.arguments : null, code: diagnostic.code, reason: diagnostic.reason, issues: diagnostic.issues });
-          const read = TOOL_DEFINITIONS.find(tool => tool.name === result.toolName)?.effect === 'read' || result.toolName === 'read';
-          const fatal = !read || ['relogin', 'inspect_permissions', 'verify_write'].includes(diagnostic.recovery) || safe?.diagnosis?.replanAllowed === false
-            || diagnostic.recovery === 'none' && safe?.diagnosis?.replanAllowed !== true;
+          const effect = TOOL_DEFINITIONS.find(tool => tool.name === result.toolName)?.effect ?? (result.toolName === 'read' ? 'read' : 'unknown');
+          const readOnly = effect === 'read';
+          const accessRelated = accessRecoveries.has(diagnostic.recovery);
+          const fatal = !isCorrectableReadFailure({ code: diagnostic.code, recovery: diagnostic.recovery, effect,
+            ...(safe?.diagnosis?.replanAllowed === undefined ? {} : { replanAllowed: safe.diagnosis.replanAllowed }) });
+          const key = signatureOf(diagnostic.code, diagnostic.reason, result.toolName, diagnostic.issues);
           if (this.toolFailures.has(key) || this.attempts >= this.policy().maxRetries) {
             this.stopped = true;
             this.loadout!.restrict(() => [], isPresentationSource(event.message));
@@ -415,7 +441,8 @@ export class RecoveryController {
           this.toolFailures.add(key); this.attempts++;
           const mode: Mode = fatal ? 'report_failure' : 'replan_read';
           const native = isPresentationSource(event.message);
-          this.loadout!.restrict(execution => fatal ? [] : execution.filter(name => name === 'read' || TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'read'), native);
+          this.loadout!.restrict(execution => fatal ? retainedReadOnlyTools({ fatal: true, readOnly, accessRelated })
+            : execution.filter(name => name === 'read' || TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'read'), native);
           const feedback = JSON.stringify({ schemaVersion: 1, kind: 'host_recovery_feedback', chainId: this.chainId, attempt: this.attempts, maxAttempts: this.policy().maxRetries,
             error: sanitizeErrorDiagnostic(diagnostic), scope: this.scope, goal: { strategy: mode, instruction: fatal
               ? native ? '停止所有业务执行，根据已有错误和事实说明缺口；宿主目录与展示工具仅可使用当前已核实缓存或文字，不重发写入、不绕过权限。' : '停止工具操作，根据已有错误和事实说明缺口，不重发写入、不绕过权限。'

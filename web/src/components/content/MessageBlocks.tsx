@@ -4,6 +4,7 @@ import { DURATION, SHIFT } from '../motion/motionTokens';
 import { AnimatedContent } from '../motion/vendor/AnimatedContent';
 import { ContentBlock } from './index';
 import { Markdown } from './markdown';
+import { validateMessageBlock, type ItemValidation } from './validate';
 
 /**
  * 助手消息正文的**唯一渲染入口**。
@@ -23,6 +24,8 @@ import { Markdown } from './markdown';
  */
 interface BlockSlotProps {
   block: MessageBlock;
+  /** 已完成块的校验结果（`pending` 块跳过校验，因此没有）。 */
+  validation?: ItemValidation | undefined;
   /** 挂滚动入场动画（只在历史条目里；流式期元素每帧可能变，挂着会让入场反复触发）。 */
   animate: boolean;
 }
@@ -30,7 +33,7 @@ interface BlockSlotProps {
 function sameSlot(prev: BlockSlotProps, next: BlockSlotProps): boolean {
   const before = prev.block;
   const after = next.block;
-  if (before === after) return prev.animate === next.animate;
+  if (before === after) return prev.animate === next.animate && prev.validation === next.validation;
   if (before.type === 'text' || after.type === 'text') return false;
   return before.type === after.type
     && before.pending === true
@@ -38,9 +41,9 @@ function sameSlot(prev: BlockSlotProps, next: BlockSlotProps): boolean {
     && prev.animate === next.animate;
 }
 
-const BlockSlot = memo(function BlockSlot({ block, animate }: BlockSlotProps): ReactNode {
+const BlockSlot = memo(function BlockSlot({ block, validation, animate }: BlockSlotProps): ReactNode {
   if (block.type === 'text') return <Markdown text={block.text} />;
-  const rendered = <ContentBlock block={block} />;
+  const rendered = <ContentBlock block={block} validation={validation} />;
   if (!animate) return rendered;
   return (
     <AnimatedContent
@@ -74,17 +77,61 @@ export interface MessageBlocksProps {
 }
 
 /**
+ * 已完成块的校验结果缓存，按**块对象引用**索引。
+ *
+ * 放在模块级而不是组件内 `useRef`：同一个块可能先由流式区渲染、再交给历史条目
+ * （组件实例会换），模块级缓存让「同一块只校验一次」跨实例也成立。WeakMap 不持有
+ * 载荷，块被回收后条目自动释放。`pending` 块不写入缓存（按约定跳过校验）。
+ */
+const validationCache = new WeakMap<MessageBlock, ItemValidation>();
+
+/**
  * 块索引即 key：块只追加或原地替换（同一个 `contentIndex` 的快照覆盖同一项），索引稳定，
  * 比用载荷内容做 key 更可靠——载荷在 `pending` 期每帧都在变。
+ *
+ * 校验在这里**上提**：整条消息的块只在这里校验一次（按块引用缓存），结果作为可选 prop
+ * 穿过 `BlockSlot` 交给 `ContentBlock`，后者不再重复校验。`pending` 块按既有约定跳过校验
+ * （载荷还没到，校验必然报 degraded），继续渲染骨架。未知 `type` 的块仍在 `ContentBlock`
+ * 里丢弃并告警；本条消息的丢弃块数与类型名在这里汇总成一条轻提示，不再逐块静默消失。
  */
 export const MessageBlocks = memo(function MessageBlocks({
   blocks, streaming = false, animate = true,
 }: MessageBlocksProps): ReactNode {
+  const slots: { block: MessageBlock; validation: ItemValidation | undefined }[] = [];
+  const droppedKinds: string[] = [];
+  let droppedCount = 0;
+  for (const block of blocks) {
+    if (block.type !== 'text' && block.pending === true) {
+      slots.push({ block, validation: undefined });
+      continue;
+    }
+    let outcome = validationCache.get(block);
+    if (outcome === undefined) {
+      outcome = validateMessageBlock(block);
+      validationCache.set(block, outcome);
+    }
+    if (outcome.status === 'dropped') {
+      droppedCount += 1;
+      // 提示里列类型名，但计数按块数（同类型两块记 2）。
+      if (!droppedKinds.includes(outcome.kind)) droppedKinds.push(outcome.kind);
+    }
+    slots.push({ block, validation: outcome });
+  }
   return (
     <>
-      {blocks.map((block, index) => (
-        <BlockSlot key={index} block={block} animate={animate && !streaming} />
+      {slots.map((slot, index) => (
+        <BlockSlot
+          key={index}
+          block={slot.block}
+          validation={slot.validation}
+          animate={animate && !streaming}
+        />
       ))}
+      {droppedCount > 0 ? (
+        <p className="appMicroLabel contentDroppedNote" role="status">
+          {`有 ${droppedCount} 块内容未能渲染${droppedKinds.length > 0 ? `（未知类型：${droppedKinds.join('、')}）` : ''}`}
+        </p>
+      ) : null}
     </>
   );
 });

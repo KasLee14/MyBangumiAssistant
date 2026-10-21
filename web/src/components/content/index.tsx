@@ -3,7 +3,7 @@ import { warnUnknownBlockType } from '../../../../bangumi/src/web/message-blocks
 import { ContentFallback } from './ContentFallback';
 import { ContentSkeleton } from './ContentSkeleton';
 import { contentRenderer, type ContentBlockView } from './registry';
-import { validateMessageBlock } from './validate';
+import { validateMessageBlock, type ItemValidation } from './validate';
 
 /**
  * 内容块联合类型。
@@ -25,12 +25,20 @@ export type { ContentBlockView } from './registry';
  *
  * 失败不回退成「什么都不显示」——那会让上游以为渲染成功——而是换成可读提示加折叠的原始数据；
  * 只有 `type` 未登记才整块丢弃（未知类型没有可依据的载荷语义）。
+ *
+ * `validation` 是**可选的**外部校验结果：`MessageBlocks` 把整条消息的校验上提后按块引用
+ * 缓存一次，再从这里传进来，此时本组件不再自行校验（同一块只校验一次）。其它调用点
+ * （组件库预览、调试页）不传它，仍走原有自校验，行为不变。
  */
-export const ContentBlock = memo(function ContentBlock({ block }: { block: ContentBlockView }): ReactNode {
+export const ContentBlock = memo(function ContentBlock({ block, validation }: {
+  block: ContentBlockView;
+  validation?: ItemValidation | undefined;
+}): ReactNode {
   // `pending`：载荷还在传，此时**不校验**——载荷本来就不全，校验必然报 degraded，
   // 那会把"还没到"显示成"数据有问题"。骨架与降级卡的边界就划在这里。
   if (block.pending === true) return <ContentSkeleton />;
-  const outcome = validateMessageBlock(block);
+  // 外部已校验过就复用结果；未传时才在这里补一次（兼容其它调用点）。
+  const outcome = validation ?? validateMessageBlock(block);
   if (outcome.status === 'dropped') {
     // 开发期告警：上游下发了本组件库未覆盖的块。丢弃是刻意的（未知类型没有可依据的
     // 载荷语义），但静默丢弃会让上游的映射错误一直没人发现。

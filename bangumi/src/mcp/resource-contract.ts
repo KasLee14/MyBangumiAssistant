@@ -8,9 +8,13 @@ export type ResourceData = Record<string, unknown>;
 export interface CachedResource { schemaVersion: 1; kind: 'cached_resource'; resourceRef: string; sourceTool: string; value: ResourceData; accessContext: AccessContext }
 /** 宿主展示读取的明确成员范围；不登记到模型 MCP 工具目录。 */
 export interface CachedResourceSelection { subjectIds?: number[]; fields?: string[] }
+/** 发布前复核只确认存在与归属；不返回资源内容。 */
+export interface CachedResourceStat { resourceRef: string; sourceTool: string; turnId: string }
 export type CachedResourceRpcResult = { resource: CachedResource } | { error: SafeError };
+export type CachedResourceStatRpcResult = { resource: CachedResourceStat } | { error: SafeError };
 export const CACHED_RESOURCE_SELECTION_LIMIT = 200;
 export const CACHED_RESOURCE_RPC_OPERATION = 'bangumi.readCachedResource';
+export const CACHED_RESOURCE_STAT_RPC_OPERATION = 'bangumi.statCachedResource';
 export interface CachedRange { offset?: number; limit?: number }
 export const RESOURCE_REF_PATTERN = '^rr_[a-f0-9]{32}$';
 export function cachedResourceSelection(value: unknown): CachedResourceSelection {
@@ -73,25 +77,43 @@ const cachedResourceErrorSchema = withAccessContext({
     } },
   },
 });
-/** 成功与错误互斥，不能靠 SDK 丢弃未知字段来掩盖错误信封。 */
-export function checkCachedResourceRpcResult(value: unknown): asserts value is CachedResourceRpcResult {
-  const invalid = (): never => { throw new AppError('MCP_INVALID_RESULT', '缓存 RPC 返回不符合固定成功或错误契约。'); };
-  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== 1) invalid();
-  const row = value as ResourceData;
-  if (Object.hasOwn(row, 'resource')) {
-    checkCachedResource(row.resource);
-    const resource = row.resource;
-    if (Object.keys(resource).length !== 6 || !/^[a-z][a-z_0-9]{0,99}$/.test(resource.sourceTool)
-      || !compileSchema(accessContextSchema)(resource.accessContext)
-      || !isDeepStrictEqual(resource.accessContext, resource.value.accessContext)) invalid();
-    return;
-  }
-  if (!compileSchema(cachedResourceErrorSchema)(row)) invalid();
+const invalidCachedRpc = (): never => { throw new AppError('MCP_INVALID_RESULT', '缓存 RPC 返回不符合固定成功或错误契约。'); };
+/** 两个缓存 RPC 共用同一套 `{error}` 信封规则。 */
+function checkCachedResourceRpcError(row: ResourceData): void {
+  if (!compileSchema(cachedResourceErrorSchema)(row)) invalidCachedRpc();
   const error = row.error as SafeError;
   if (error.diagnostic !== undefined && (!isErrorDiagnostic(error.diagnostic) || error.diagnostic.code !== error.code
     || error.sourceTool !== undefined && error.diagnostic.operation !== undefined && error.diagnostic.operation !== error.sourceTool)
     || error.sourceTool !== undefined && !/^[a-z][a-z_0-9]{0,99}$/.test(error.sourceTool)
     || error.recovery !== undefined && error.code !== 'MCP_INVALID_RESULT'
     || error.rejection !== undefined || error.submission !== undefined
-    || error.contractIssue !== undefined && (error.code !== 'MCP_INVALID_RESULT' || error.sourceTool !== 'browse_subjects' || !isContractIssue(error.contractIssue))) invalid();
+    || error.contractIssue !== undefined && (error.code !== 'MCP_INVALID_RESULT' || error.sourceTool !== 'browse_subjects' || !isContractIssue(error.contractIssue))) invalidCachedRpc();
+}
+/** 成功与错误互斥，不能靠 SDK 丢弃未知字段来掩盖错误信封。 */
+export function checkCachedResourceRpcResult(value: unknown): asserts value is CachedResourceRpcResult {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== 1) invalidCachedRpc();
+  const row = value as ResourceData;
+  if (Object.hasOwn(row, 'resource')) {
+    checkCachedResource(row.resource);
+    const resource = row.resource;
+    if (Object.keys(resource).length !== 6 || !/^[a-z][a-z_0-9]{0,99}$/.test(resource.sourceTool)
+      || !compileSchema(accessContextSchema)(resource.accessContext)
+      || !isDeepStrictEqual(resource.accessContext, resource.value.accessContext)) invalidCachedRpc();
+    return;
+  }
+  checkCachedResourceRpcError(row);
+}
+/** 存在性结果固定三字段且不含值；不能复用完整 CachedResource 校验器。 */
+export function checkCachedResourceStat(value: unknown): asserts value is CachedResourceStat {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) invalidCachedRpc();
+  const row = value as ResourceData;
+  if (Object.keys(row).length !== 3 || typeof row.resourceRef !== 'string' || !new RegExp(RESOURCE_REF_PATTERN).test(row.resourceRef)
+    || typeof row.sourceTool !== 'string' || !/^[a-z][a-z_0-9]{0,99}$/.test(row.sourceTool)
+    || typeof row.turnId !== 'string' || !/^[^\u0000-\u001f\u007f]{1,200}$/.test(row.turnId)) invalidCachedRpc();
+}
+export function checkCachedResourceStatRpcResult(value: unknown): asserts value is CachedResourceStatRpcResult {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== 1) invalidCachedRpc();
+  const row = value as ResourceData;
+  if (Object.hasOwn(row, 'resource')) { checkCachedResourceStat(row.resource); return; }
+  checkCachedResourceRpcError(row);
 }

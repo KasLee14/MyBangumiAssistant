@@ -49,6 +49,8 @@
 | filter.rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
 | filter.rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
 | filter.platform | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.platforms | array<integer> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：≥ 0；≤ 9007199254740991 | 作品平台集合，与platform并存并展开为IN；平台码按媒体类型分域复用，因此出现platforms时必须同时给subject_type。 |
+| filter.platforms[] | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
 | filter.tags | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | filter.tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
 | filter.subject_id | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
@@ -121,9 +123,38 @@
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
-| source | object | 是 | — | 拒绝额外字段 |  |
-| source.entity | string | 是 | — | 允许 subject、person、character、episode |  |
-| source.id | integer | 是 | — | ≥ 1；≤ 9007199254740991 |  |
+| source | array<object> | 是 | — | 最少项 1；最多项 800；元素：oneOf 2 个分支 | 一批源作品，元素二选一：{entity,id}或{entity,filter}。多个元素时entity必须全部为subject；单元素保持person/character等旧单源能力。 |
+| source[] | object | 是 | — | 拒绝额外字段 | oneOf 1 |
+| source[].entity | string | 是 | — | 允许 subject、person、character、episode | oneOf 1 |
+| source[].id | integer | 是 | — | ≥ 1；≤ 9007199254740991 | oneOf 1 |
+| source[] | object | 是 | — | 拒绝额外字段 | oneOf 2 |
+| source[].entity | string | 是 | — | 允许 subject、person、character、episode | oneOf 2 |
+| source[].filter | object | 是 | — | 拒绝额外字段 | oneOf 2 |
+| source[].filter.collection | object | 否 | — | 拒绝额外字段 | oneOf 2 |
+| source[].filter.collection.membership | string | 否 | any | 允许 any、collected、not_collected | 本地收藏快照中的成员关系；missing及可见范围之外为未知，不视作未收藏。；oneOf 2 |
+| source[].filter.collection.types | array<integer> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：≥ 1；≤ 5 | 已收藏条目状态：1想看/读/玩/听、2看/读/玩/听过、3在看/读/玩/听、4搁置、5抛弃。；oneOf 2 |
+| source[].filter.collection.types[] | integer | 是 | — | ≥ 1；≤ 5 | oneOf 2 |
+| source[].filter.collection.exclude_types | array<integer> | 否 | — | 最少项 1；最多项 5；元素不重复；元素：≥ 1；≤ 5 | 限定已收藏且状态不在所列集合；不包含未收藏及状态未知条目。；oneOf 2 |
+| source[].filter.collection.exclude_types[] | integer | 是 | — | ≥ 1；≤ 5 | oneOf 2 |
+| source[].filter.collection.rating | object | 否 | — | 拒绝额外字段 | 个人评分闭区间；0表示未评分。；oneOf 2 |
+| source[].filter.collection.rating.min | integer | 否 | — | ≥ 0；≤ 10 | oneOf 2 |
+| source[].filter.collection.rating.max | integer | 否 | — | ≥ 0；≤ 10 | oneOf 2 |
+| source[].filter.collection.rated | boolean | 否 | — | — | true仅个人评分1至10，false仅未评分0；与rating范围不得矛盾。；oneOf 2 |
+| source[].filter.collection.tags_all | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 | oneOf 2 |
+| source[].filter.collection.tags_all[] | string | 是 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
+| source[].filter.collection.tags_any | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 | oneOf 2 |
+| source[].filter.collection.tags_any[] | string | 是 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
+| source[].filter.collection.private | boolean | 否 | — | — | oneOf 2 |
+| source[].filter.collection.updated_at | object | 否 | — | 拒绝额外字段 | 上游收藏更新时间，Unix秒；不代表观看完成日期。；oneOf 2 |
+| source[].filter.collection.updated_at.min | integer | 否 | — | ≥ 0；≤ 9007199254740991 | oneOf 2 |
+| source[].filter.collection.updated_at.max | integer | 否 | — | ≥ 0；≤ 9007199254740991 | oneOf 2 |
+| source[].filter.subject_type | integer | 否 | — | 允许 1、2、3、4、6 | 作品媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。；oneOf 2 |
+| source[].filter.platform | integer | 否 | — | ≥ 0；≤ 9007199254740991 | oneOf 2 |
+| source[].filter.year | object | 否 | — | 拒绝额外字段 | 作品发行/开播或章节放送年份；不代表人物生日。；oneOf 2 |
+| source[].filter.year.min | integer | 否 | — | ≥ 1；≤ 9999 | oneOf 2 |
+| source[].filter.year.max | integer | 否 | — | ≥ 1；≤ 9999 | oneOf 2 |
+| source[].filter.tags | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 | oneOf 2 |
+| source[].filter.tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 | oneOf 2 |
 | target_entity | string | 否 | — | 允许 subject、person、character、episode |  |
 | nsfw | string | 否 | — | 允许 exclude、include | 仅为本地资料显示范围，不涉及账户权限。本轮首次省略为exclude，后续省略继承本轮范围；本轮内不能显式改变，换轮次重新查询。 |
 | data_scope | string | 否 | public | 允许 public、self | public只读Archive；self读取已同步的本人条目收藏快照，不触发联网同步。账号由宿主绑定。 |
@@ -167,6 +198,8 @@
 | filter.rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
 | filter.rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
 | filter.platform | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.platforms | array<integer> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：≥ 0；≤ 9007199254740991 | 作品平台集合，与platform并存并展开为IN；平台码按媒体类型分域复用，因此出现platforms时必须同时给subject_type。 |
+| filter.platforms[] | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
 | filter.tags | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | filter.tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
 | filter.subject_id | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
@@ -245,6 +278,8 @@
 | filter.rank.min | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
 | filter.rank.max | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
 | filter.platform | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| filter.platforms | array<integer> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：≥ 0；≤ 9007199254740991 | 作品平台集合，与platform并存并展开为IN；平台码按媒体类型分域复用，因此出现platforms时必须同时给subject_type。 |
+| filter.platforms[] | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
 | filter.tags | array<string> | 否 | — | 最少项 1；最多项 20；元素不重复；元素：最短字符数 1；最长字符数 100 |  |
 | filter.tags[] | string | 是 | — | 最短字符数 1；最长字符数 100 |  |
 | filter.subject_id | integer | 否 | — | ≥ 1；≤ 9007199254740991 |  |
@@ -1277,6 +1312,9 @@
 | totalKind | string | 是 | — | 固定 exact |  |
 | unknownCount | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
 | limitations | array<string> | 是 | — | — |  |
+| sourcesRequested | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| sourcesResolved | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
+| edgesScanned | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
 
 ### `AccessContext`
 

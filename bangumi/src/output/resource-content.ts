@@ -4,7 +4,7 @@ import { AppError, diagnosedError, safeError } from '../support/errors.js';
 import { createErrorDiagnostic } from '../support/error-diagnostic.js';
 import { isDeepStrictEqual } from 'node:util';
 import { resourceFields } from '../mcp/resource-policy.js';
-import type { CachedResourceSelection } from '../mcp/resource-contract.js';
+import type { CachedResourceSelection, CachedResourceStat } from '../mcp/resource-contract.js';
 import { COMPONENT_DATA_PROFILES, ratingCardPresentation, subjectCardRange } from './component-data-profile.js';
 
 type Row = Record<string, unknown>;
@@ -21,7 +21,11 @@ export interface ResourceReferenceProps {
 }
 export type ResourceContentResolver = ((ref: string, signal?: AbortSignal, selection?: CachedResourceSelection) => Promise<{
   resourceRef: string; sourceTool: string; value: unknown; accessContext?: unknown;
-}>) & { isCurrent?: (ref: string) => boolean };
+}>) & {
+  isCurrent?: (ref: string) => boolean;
+  /** 可选：发布前只确认存在与归属；缺失或协议不支持时调用方回退整份读取。 */
+  stat?: (ref: string, signal?: AbortSignal) => Promise<CachedResourceStat>;
+};
 const contexts = new WeakMap<object, ResourceContentResolver>();
 export function bindResourceResolver(context: TranscriptContext, resolver: ResourceContentResolver): void {
   contexts.set(context, resolver); contexts.set(context.messages, resolver);

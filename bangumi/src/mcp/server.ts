@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { resolve,isAbsolute } from 'node:path';
 import { AppError,safeError } from '../support/errors.js';
 import { compileSchema } from '../support/tool-schema.js';
-import { TOOL_DEFINITIONS,validateToolArguments } from './catalog.js';
+import { TOOL_DEFINITIONS } from './catalog.js';
 import { BangumiMcpService } from './service.js';
 import { checkAccessResponse } from './access-context.js';
 import { readContext } from './read-context.js';
-import { RESOURCE_REF_PATTERN,cachedResourceSelection,checkCachedResourceRpcResult } from './resource-contract.js';
+import { RESOURCE_REF_PATTERN,cachedResourceSelection,checkCachedResourceRpcResult,checkCachedResourceStatRpcResult } from './resource-contract.js';
 
 /** stdout仅有JSON-RPC。唯一宿主RPC只读缓存；没有账户、写入或联网适配器。 */
 export function createBangumiMcpServer(service:BangumiMcpService):Server{
@@ -26,6 +26,17 @@ export function createBangumiMcpServer(service:BangumiMcpService):Server{
       return result;
     }catch(error){return {error:safeError(error)};}
   });
+  // 发布前复核：只返回归属元数据，不返回值；入参同样只允许引用与读取上下文。
+  server.setRequestHandler(RequestSchema.extend({method:z.literal('bangumi/statCachedResource'),params:z.looseObject({resourceRef:z.unknown(),readContext:z.unknown().optional()})}),async(request,extra)=>{
+    try{
+      const p=request.params;
+      if(Object.keys(p).some(key=>!['resourceRef','readContext'].includes(key))||typeof p.resourceRef!=='string'||!new RegExp(RESOURCE_REF_PATTERN).test(p.resourceRef))throw new AppError('INVALID_INPUT','缓存存在性检查引用或参数无效。');
+      const result={resource:await service.statCachedResource(p.resourceRef,p.readContext===undefined?undefined:readContext(p.readContext),extra.signal)};
+      checkCachedResourceStatRpcResult(result);
+      if(Buffer.byteLength(JSON.stringify(result))>1_900_000)throw new AppError('MCP_OUTPUT_LIMIT','缓存存在性检查结果过大，请缩小读取范围。');
+      return result;
+    }catch(error){return {error:safeError(error)};}
+  });
   server.setRequestHandler(ListToolsRequestSchema,async request=>{
     if(request.params?.cursor!==undefined)throw new AppError('INVALID_INPUT','六工具目录不使用分页游标。');
     return {tools:TOOL_DEFINITIONS.map(tool=>({name:tool.name,description:tool.description,inputSchema:structuredClone(tool.inputSchema),outputSchema:structuredClone(tool.outputSchema!),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}))};
@@ -33,10 +44,11 @@ export function createBangumiMcpServer(service:BangumiMcpService):Server{
   server.setRequestHandler(CallToolRequestSchema,async(request,extra)=>{
     const definition=TOOL_DEFINITIONS.find(tool=>tool.name===request.params.name);
     try{
-      const args=validateToolArguments(request.params.name,request.params.arguments??{}),meta=request.params._meta;
+      // 入参校验只在同进程的 service.call 做一次；这里保留出参 schema 与访问校验。
+      const meta=request.params._meta;
       if(meta?.['bangumi/guard']!==undefined||meta?.['bangumi/batch']!==undefined)throw new AppError('INVALID_INPUT','本地只读查询不接受账户授权元数据。');
       const reading=meta?.['bangumi/readContext'];
-      const value=await service.call(request.params.name,args,extra.signal,undefined,undefined,reading===undefined?undefined:readContext(reading));
+      const value=await service.call(request.params.name,request.params.arguments??{},extra.signal,undefined,undefined,reading===undefined?undefined:readContext(reading));
       const structuredContent={value};
       if(Buffer.byteLength(JSON.stringify(structuredContent))>1_900_000)throw new AppError('MCP_OUTPUT_LIMIT','本次字段结果过大，请分页或通过缓存分段读取。');
       if(!compileSchema(definition!.outputSchema!)(structuredContent))throw new AppError('MCP_INVALID_RESULT','本地工具结果不符合固定契约。');

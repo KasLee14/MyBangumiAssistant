@@ -32,6 +32,8 @@ Pi助手错误使用原生`diagnostics`中的`bangumi_error`条目，MCP安全�
 
 候选校验区分请求投影、页计数、处理阶段、游标完成、覆盖计数与集合计数。HTTP连接、响应流、UTF-8、JSON及响应容量拥有独立stage/reason。MCP初始化、协议拒绝、连接失败与总期限耗尽保留底层原因；未知写入的恢复建议只能核实结果，不建议重发。
 
+本地分页与源集合错误按可纠正与不可纠正分工：续页条件与游标不一致（filter、limit等参与游标的条件被改动）抛`CURSOR_PLAN_CHANGED`，登记为origin=domain/stage=input/recovery=correct_parameters，应原样重发首次查询的完整条件（含limit）；源集合解析超过800个源、或目标筛选后参与聚合的边超过20000条时抛`RESULT_TOO_LARGE`，源在当前快照和显示范围内解析为空时抛`EMPTY_SOURCE_SET`，两者同为domain/input/correct_parameters，需缩小source的filter条件、relation_types或分批查询。只有数据快照、显示范围、账户版本变化才抛`RESOURCE_SCOPE_MISMATCH`（recovery=none），不能靠改参数恢复，也不能把可纠正的翻页/源集合错误判成整轮致命。
+
 `error.diagnostic`事件关联同一errorId与trace/span/session，脱敏的原始失败输出或堆栈单独保存为debug_ref。debug缓冲最多32条、1MiB，单份响应文本最多128Ki字符并标明裁剪。队列关闭或日志失败不能改变业务结果。
 
 原始输出、任意服务正文和堆栈不进入诊断DTO、模型工具错误反馈或Web SSE。宿主错误接口及SSE条目返回脱敏的结构化diagnostic和简短中文原因。本次不修改前端组件、样式或交互；旧会话没有诊断时继续返回原有错误文字。

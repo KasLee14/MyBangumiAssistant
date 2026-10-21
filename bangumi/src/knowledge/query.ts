@@ -65,6 +65,7 @@ function conditions(args:Row,scope:QueryScope,kind?:LocalEntityKind):{sql:string
     if(scope.accountSchema&&keyword){const start=keywordStart;if(start<clauses.length){const keywordSql=clauses.splice(start);clauses.push(`((${keywordSql.join(' AND ')}) OR (e.ac_archive_missing=1 AND (lower(e.name) LIKE ? ESCAPE '\\' OR lower(e.name_cn) LIKE ? ESCAPE '\\')))`);const pattern=`%${escapeLike(normalizeSearch(keyword))}%`;params.push(pattern,pattern);}}
   }
   for(const [key,column] of Object.entries({subject_type:'subject_type',platform:'platform',subject_id:'subject_id',episode_type:'entity_type'}))if(filter[key]!==undefined){clauses.push(`e.${column}=?`);params.push(filter[key] as number);}
+  if(Array.isArray(filter.platforms)){clauses.push(`e.platform IN (${placeholders(filter.platforms.length)})`);params.push(...filter.platforms.map(Number));}
   if(Array.isArray(filter.tags))for(const tag of filter.tags){clauses.push('EXISTS(SELECT 1 FROM tags t WHERE t.kind=e.kind AND t.entity_id=e.id AND t.name=?)');params.push(String(tag));}
   if(Array.isArray(filter.career)){clauses.push(`EXISTS(SELECT 1 FROM json_each(e.raw_json,'$.career') career WHERE career.value IN (${placeholders(filter.career.length)}))`);params.push(...filter.career.map(String));}
   const baseSql=clauses.join(' AND ')||'1',baseParams=[...params];
@@ -81,8 +82,11 @@ function cursorOffset(args:Row,scope:QueryScope):number{
   if(args.cursor===undefined)return 0;
   let cursor:Row;try{cursor=record(JSON.parse(Buffer.from(String(args.cursor),'base64url').toString('utf8')));}catch{throw new AppError('INVALID_INPUT','分页游标无效。');}
   const {cursor:_cursor,fields:_fields,...plan}=args;
-  if(cursor.snapshotId!==scope.snapshotId||cursor.scope!==scope.nsfw||cursor.accountId!==scope.accountId||cursor.accountSnapshotId!==scope.accountSnapshotId||cursor.plan!==digest(plan)||!Number.isSafeInteger(cursor.offset)||Number(cursor.offset)<1)
-    throw new AppError('RESOURCE_SCOPE_MISMATCH','分页条件、数据快照或显示范围发生变化。');
+  if(cursor.snapshotId!==scope.snapshotId||cursor.scope!==scope.nsfw||cursor.accountId!==scope.accountId||cursor.accountSnapshotId!==scope.accountSnapshotId)
+    throw new AppError('RESOURCE_SCOPE_MISMATCH','数据快照或显示范围发生变化，请重新开始查询。');
+  if(cursor.plan!==digest(plan))
+    throw new AppError('CURSOR_PLAN_CHANGED','续页条件与游标不一致，请原样重发首次查询的完整条件（含 limit）。');
+  if(!Number.isSafeInteger(cursor.offset)||Number(cursor.offset)<1)throw new AppError('INVALID_INPUT','分页游标无效。');
   return Number(cursor.offset);
 }
 function page(args:Row,scope:QueryScope,total:number,offset:number,returnedCount:number):Row{
@@ -123,7 +127,8 @@ export class LocalQueryEngine {
   private check(args:Row):void{
     if((args.data_scope==='self')!==Boolean(this.accountSource))throw new AppError('RESOURCE_SCOPE_MISMATCH','个人数据范围与固定查询快照不一致。');
     if(this.accountSource&&(args.entity??args.target_entity)!=='subject')throw new AppError('INVALID_INPUT','本人收藏只支持subject条目。');
-    if(!this.accountSource&&(record(args.filter).collection!==undefined||(Array.isArray(args.fields)&&args.fields.some(field=>(PERSONAL_FIELDS as readonly string[]).includes(String(field))))||String(args.sort??'').startsWith('personal_')||String(args.sort??'').startsWith('collection_')||['collectionType','personalRating','personalTag'].includes(String(args.group_by))||(Array.isArray(args.metrics)&&args.metrics.some(metric=>['averagePersonalRating','ratedCount'].includes(String(metric))))))throw new AppError('INVALID_INPUT','个人数据需要data_scope=self。');
+    const sourcePersonal=Array.isArray(args.source)&&(args.source as Row[]).some(item=>record(item.filter).collection!==undefined);
+    if(!this.accountSource&&(record(args.filter).collection!==undefined||sourcePersonal||(Array.isArray(args.fields)&&args.fields.some(field=>(PERSONAL_FIELDS as readonly string[]).includes(String(field))))||String(args.sort??'').startsWith('personal_')||String(args.sort??'').startsWith('collection_')||['collectionType','personalRating','personalTag'].includes(String(args.group_by))||(Array.isArray(args.metrics)&&args.metrics.some(metric=>['averagePersonalRating','ratedCount'].includes(String(metric))))))throw new AppError('INVALID_INPUT','个人数据需要data_scope=self。');
   }
   query(args:Row):QueryResult{
     this.check(args);
@@ -155,43 +160,70 @@ export class LocalQueryEngine {
   }
   relations(args:Row):QueryResult{
     this.check(args);
-    const db=this.snapshot.db,source=record(args.source),direction=String(args.direction??'both'),target=args.target_entity as LocalEntityKind|undefined;
-    if(args.appearance_role!==undefined&&(source.entity!=='person'||target!=='subject'||direction==='incoming'||args.relation_types!==undefined))throw new AppError('INVALID_INPUT','appearance_role仅用于人物配音到作品的角色职能筛选，不与反向或其他关系域的类型筛选混用。');
-    const sourceRow=db.prepare(`SELECT subject_type FROM ${this.entities} e WHERE kind=? AND id=?${this.scope.nsfw==='exclude'?` AND (${sfwForKind(source.entity as LocalEntityKind)})`:''}`).get(String(source.entity),Number(source.id));
-    if(!sourceRow)throw new AppError('LOCAL_ENTITY_NOT_FOUND','当前本地快照和显示范围中没有关系起点。');
-    const routes:string[]=[],params:Binding=[];
+    const db=this.snapshot.db,requests=Array.isArray(args.source)?args.source as Row[]:[],direction=String(args.direction??'both'),target=args.target_entity as LocalEntityKind|undefined;
+    // 源集合解析：id元素逐个计数，filter元素按实际命中计数；两者都套当前快照与显示范围。
+    let sourcesRequested=0;
+    const resolved:{entity:LocalEntityKind;id:number;subjectType:number|null}[]=[];
+    for(const item of requests){
+      if(item.filter!==undefined){
+        const where=conditions({filter:record(item.filter)},this.scope,'subject');
+        const rows=db.prepare(`SELECT e.kind,e.id,e.subject_type FROM ${this.entities} e WHERE ${where.sql}`).all(...where.params);
+        sourcesRequested+=rows.length;
+        for(const row of rows)resolved.push({entity:row.kind as LocalEntityKind,id:Number(row.id),subjectType:number(row.subject_type)});
+      }else{
+        const entity=String(item.entity) as LocalEntityKind;
+        sourcesRequested+=1;
+        const row=db.prepare(`SELECT e.kind,e.id,e.subject_type FROM ${this.entities} e WHERE kind=? AND id=?${this.scope.nsfw==='exclude'?` AND (${sfwForKind(entity)})`:''}`).get(entity,Number(item.id));
+        if(row)resolved.push({entity:entity,id:Number(row.id),subjectType:number(row.subject_type)});
+      }
+    }
+    if(sourcesRequested>800)throw new AppError('RESULT_TOO_LARGE',`源集合解析出 ${sourcesRequested} 个源，超过单次上限 800；请缩小 source 的 filter 条件或分批查询。`);
+    const sources=[...new Map(resolved.map(item=>[`${item.entity}:${item.id}`,item])).values()];
+    if(!sources.length)throw new AppError('EMPTY_SOURCE_SET','源集合在当前快照和显示范围内没有解析到任何实体；请检查 source 的 id 或 filter 条件。');
+    const byKind=new Map<LocalEntityKind,number[]>();
+    for(const item of sources)byKind.set(item.entity,[...(byKind.get(item.entity)??[]),item.id]);
     const types=Array.isArray(args.relation_types)?args.relation_types as number[]:[];
     const typeSql=types.length?` AND r.relation_type IN (${placeholders(types.length)})`:'';
     const sourceVisibility=this.scope.nsfw==='exclude'?" AND (r.subject_id IS NULL OR EXISTS(SELECT 1 FROM entities owner WHERE owner.kind='subject' AND owner.id=r.subject_id AND owner.nsfw=0))":'';
     const edgeColumns='r.source_kind edge_source_kind,r.source_id edge_source_id,r.target_kind edge_target_kind,r.target_id edge_target_id,NULL via_character_id,NULL appearance_role,NULL appearance_relation_id';
-    if(direction!=='incoming'){
-      routes.push(`SELECT r.target_kind kind,r.target_id id,r.id relation_id,r.relation_type,r.subject_id,${edgeColumns} FROM relations r WHERE r.source_kind=? AND r.source_id=?${typeSql}${sourceVisibility}`);
-      params.push(String(source.entity),Number(source.id),...types);
-    }
-    if(direction!=='outgoing'){
-      routes.push(`SELECT r.source_kind kind,r.source_id id,r.id relation_id,r.relation_type,r.subject_id,${edgeColumns} FROM relations r WHERE r.target_kind=? AND r.target_id=?${typeSql}${sourceVisibility}`);
-      params.push(String(source.entity),Number(source.id),...types);
+    const genericRoutes:string[]=[],genericParams:Binding=[];
+    for(const [entity,ids] of byKind){
+      if(direction!=='incoming'){genericRoutes.push(`SELECT r.target_kind kind,r.target_id id,r.id relation_id,r.relation_type,r.subject_id,${edgeColumns} FROM relations r WHERE r.source_kind=? AND r.source_id IN (${placeholders(ids.length)})${typeSql}${sourceVisibility}`);genericParams.push(entity,...ids,...types);}
+      if(direction!=='outgoing'){genericRoutes.push(`SELECT r.source_kind kind,r.source_id id,r.id relation_id,r.relation_type,r.subject_id,${edgeColumns} FROM relations r WHERE r.target_kind=? AND r.target_id IN (${placeholders(ids.length)})${typeSql}${sourceVisibility}`);genericParams.push(entity,...ids,...types);}
     }
     // 配音归属必须同时匹配作品和角色，防止同名角色或跨作品出演混入。
-    if(source.entity==='person'&&target==='subject'&&direction!=='incoming'&&!types.length){
-      const roleSql=(args.appearance_role===undefined?'':' AND sc.relation_type=?')+(this.scope.nsfw==='exclude'?" AND EXISTS(SELECT 1 FROM entities owner WHERE owner.kind='subject' AND owner.id=pc.subject_id AND owner.nsfw=0)":'');
-      routes.push(`SELECT 'subject' kind,pc.subject_id id,pc.id relation_id,pc.relation_type,pc.subject_id,pc.source_kind edge_source_kind,pc.source_id edge_source_id,pc.target_kind edge_target_kind,pc.target_id edge_target_id,pc.target_id via_character_id,sc.relation_type appearance_role,sc.id appearance_relation_id FROM relations pc JOIN relations sc ON sc.source_kind='subject' AND sc.source_id=pc.subject_id AND sc.target_kind='character' AND sc.target_id=pc.target_id WHERE pc.source_kind='person' AND pc.source_id=? AND pc.target_kind='character' AND pc.subject_id IS NOT NULL${roleSql}`);
-      params.push(Number(source.id));if(args.appearance_role!==undefined)params.push(Number(args.appearance_role));
-      if(args.appearance_role!==undefined){routes.splice(0,routes.length-1);params.splice(0,params.length-(args.appearance_role===undefined?1:2));}
+    const personIds=byKind.get('person')??[];
+    const voiceSupported=personIds.length>0&&target==='subject'&&direction!=='incoming'&&!types.length;
+    const voiceRoute=(role:boolean):string=>voiceSupported?`SELECT 'subject' kind,pc.subject_id id,pc.id relation_id,pc.relation_type,pc.subject_id,pc.source_kind edge_source_kind,pc.source_id edge_source_id,pc.target_kind edge_target_kind,pc.target_id edge_target_id,pc.target_id via_character_id,sc.relation_type appearance_role,sc.id appearance_relation_id FROM relations pc JOIN relations sc ON sc.source_kind='subject' AND sc.source_id=pc.subject_id AND sc.target_kind='character' AND sc.target_id=pc.target_id WHERE pc.source_kind='person' AND pc.source_id IN (${placeholders(personIds.length)}) AND pc.target_kind='character' AND pc.subject_id IS NOT NULL${role?' AND sc.relation_type=?':''}${this.scope.nsfw==='exclude'?" AND EXISTS(SELECT 1 FROM entities owner WHERE owner.kind='subject' AND owner.id=pc.subject_id AND owner.nsfw=0)":''}`:'';
+    let routes=genericRoutes,params=genericParams;
+    if(args.appearance_role!==undefined){
+      if(!(sources.length===1&&sources[0]!.entity==='person'&&target==='subject'&&direction!=='incoming'&&!types.length))throw new AppError('INVALID_INPUT','appearance_role仅用于单个person源到subject的角色职能筛选，不与批量源、反向或其他关系域的类型筛选混用。');
+      routes=[voiceRoute(true)];params=[...personIds,Number(args.appearance_role)];
+    }else if(voiceSupported){
+      routes=[...genericRoutes,voiceRoute(false)];params=[...genericParams,...personIds];
     }
-    const where=conditions({filter:args.filter??{},...(target?{entity:target}:{})},this.scope,target),cte=`WITH edges AS (${routes.join(' UNION ALL ')}), members AS (SELECT kind,id,json_group_array(DISTINCT json_object('relationId',relation_id,'relationType',relation_type,'sourceEntity',edge_source_kind,'sourceId',edge_source_id,'targetEntity',edge_target_kind,'targetId',edge_target_id,'subjectId',subject_id,'viaCharacterId',via_character_id,'appearanceRole',appearance_role,'appearanceRelationId',appearance_relation_id)) relations_json FROM edges GROUP BY kind,id)`;
+    const edgesCte=`WITH edges AS (${routes.join(' UNION ALL ')})`;
+    // 上限按目标侧过滤后仍可进入结果集的边计数；源集合与目标筛选已把范围收窄，未截断任何边。
+    const where=conditions({filter:args.filter??{},...(target?{entity:target}:{})},this.scope,target);
+    const edgesScanned=Number(db.prepare(`${edgesCte} SELECT count(*) n FROM edges d JOIN ${this.entities} e ON e.kind=d.kind AND e.id=d.id WHERE ${where.sql}`).get(...params,...where.params)?.n??0);
+    if(edgesScanned>20000)throw new AppError('RESULT_TOO_LARGE',`本次源集合在目标筛选后仍遍历到 ${edgesScanned} 条关系边，超过单次上限 20000；请缩小 source 的 filter 或 relation_types。`);
+    const cte=`${edgesCte}, members AS (SELECT kind,id,json_group_array(DISTINCT json_object('relationId',relation_id,'relationType',relation_type,'sourceEntity',edge_source_kind,'sourceId',edge_source_id,'targetEntity',edge_target_kind,'targetId',edge_target_id,'subjectId',subject_id,'viaCharacterId',via_character_id,'appearanceRole',appearance_role,'appearanceRelationId',appearance_relation_id)) relations_json FROM edges GROUP BY kind,id)`;
     let constraint=where.sql;const bound=[...params,...where.params];
     if(target)constraint+=' AND m.kind=?',bound.push(target);
     const join=` FROM members m JOIN ${this.entities} e ON e.kind=m.kind AND e.id=m.id WHERE ${constraint}`;
     const total=Number(db.prepare(`${cte} SELECT count(*) n${join}`).get(...bound)?.n??0),offset=cursorOffset(args,this.scope),limit=Number(args.limit??30);
     const records=db.prepare(`${cte} SELECT e.kind,e.id,e.subject_type,m.relations_json${join} ORDER BY e.id,e.kind LIMIT ? OFFSET ?`).all(...bound,limit,offset);
+    const subjectTypes=[...new Set(sources.filter(item=>item.entity==='subject'&&item.subjectType!==null).map(item=>item.subjectType as number))];
+    const sourceSubjectType=sources.length===1?sources[0]!.subjectType:subjectTypes.length===1?subjectTypes[0]!:null;
     const members=records.map(row=>{
       const relations=json(row.relations_json) as Row[],relationTypes=[...new Set(relations.map(edge=>Number(edge.relationType)))].sort((a,b)=>a-b),roles=[...new Set(relations.flatMap(edge=>edge.appearanceRole==null?[]:[Number(edge.appearanceRole)]))];
-      const subjectType=number(sourceRow.subject_type)??number(row.subject_type),labels=[...new Set(relations.map(edge=>relationLabel(edge.sourceEntity as LocalEntityKind,edge.targetEntity as LocalEntityKind,Number(edge.relationType),subjectType)))].join(' / ');
+      const subjectType=number(sourceSubjectType)??number(row.subject_type),labels=[...new Set(relations.map(edge=>relationLabel(edge.sourceEntity as LocalEntityKind,edge.targetEntity as LocalEntityKind,Number(edge.relationType),subjectType)))].join(' / ');
       return {entity:row.kind as LocalEntityKind,id:Number(row.id),extra:{relations,relationTypes,relationId:relations.length===1?relations[0]!.relationId:null,relationType:relationTypes.length===1?relationTypes[0]:null,relation:labels,staff:labels,appearanceRole:roles.length===1?roles[0]:null}};
     });
     const resultCoverage=coverage(db,{...where,missing:[]},this.entities,Boolean(this.accountSource));
     (resultCoverage.limitations as string[]).push('page.total及分页计数的单位是去重后的目标实体；原始关系边完整保留在每行relations字段，人数与边数不能互换。');
+    (resultCoverage.limitations as string[]).push('批量源按source参数中的id逐个计数、filter按解析命中计数；sourcesResolved是去重后实际遍历的源数，edgesScanned不等于目标行数。');
+    resultCoverage.sourcesRequested=sourcesRequested;resultCoverage.sourcesResolved=sources.length;resultCoverage.edgesScanned=edgesScanned;
     if(where.missing.length){
       const unknown=Number(db.prepare(`${cte} SELECT count(*) n FROM members m JOIN ${this.entities} e ON e.kind=m.kind AND e.id=m.id WHERE ${where.baseSql} AND (${where.missing.join(' OR ')})`).get(...params,...where.baseParams)?.n??0);
       resultCoverage.unknownCount=unknown;resultCoverage.complete=unknown===0;

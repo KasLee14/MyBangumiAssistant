@@ -130,7 +130,9 @@ export function projectModelResult(value: Data, name?: string, args: Data = {}):
   if(name&&['query_entities','get_entities','query_relations'].includes(name)){
     const fields=Array.isArray(args.fields)?args.fields.filter((field):field is string=>typeof field==='string'):[];
     assertResourceFields(name,fields);
-    const output=structuredClone(value);output.fields=fields;
+    const output=structuredClone(value);
+    // 字段清单已一次性放进系统提示 bangumi_fields，逐条结果不再回显 fields/availableFields。
+    delete output.fields;delete output.availableFields;
     if(Array.isArray(output.data))output.data=output.data.map(item=>{
       if(!record(item))throw new AppError('MCP_INVALID_RESULT','本地查询成员缺少实体身份。');
       const projected:Data={entity:item.entity,id:item.id};

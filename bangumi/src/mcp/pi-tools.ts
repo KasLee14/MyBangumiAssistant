@@ -1,7 +1,7 @@
 import type { AgentToolResult } from '@earendil-works/pi-agent-core';
 import type { ExtensionToolContext,ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { AppError,safeError } from '../support/errors.js';
-import { compileSchema,schemaArguments } from '../support/tool-schema.js';
+import { compileSchema } from '../support/tool-schema.js';
 import { TOOL_DEFINITIONS,validateToolArguments } from './catalog.js';
 import type { McpCallClient } from './client.js';
 import { checkAccessResponse } from './access-context.js';
@@ -16,7 +16,8 @@ export type McpWriteHandler=(name:string,args:Record<string,unknown>,signal:Abor
 export function prepareModelToolArguments(name:string,raw:unknown,model?:ToolProviderModel):Record<string,unknown>{
   const definition=TOOL_DEFINITIONS.find(tool=>tool.name===name);if(!definition)throw new AppError('UNKNOWN_TOOL','未登记的本地只读工具。');
   const schema=definition.modelInputSchema??definition.inputSchema,normalized=normalizeStrictOptionalNulls(schema,raw,toolConstraintState(schema,model).provider==='enabled');
-  const args=schemaArguments(schema,normalized);validateToolArguments(name,args);return args;
+  // 宿主入参只校验这一次；validateToolArguments 内部已含 schemaArguments 的 schema 校验和默认值。
+  return validateToolArguments(name,normalized);
 }
 export function createMcpTools(client:McpCallClient,_writeHandler?:McpWriteHandler,_context?:ReadToolInputContext,options:McpToolOptions={}):ToolDefinition[]{
   return TOOL_DEFINITIONS.map(definition=>({
@@ -27,7 +28,8 @@ export function createMcpTools(client:McpCallClient,_writeHandler?:McpWriteHandl
     prepareArguments:(raw:unknown)=>{try{return prepareModelToolArguments(definition.name,raw,options.model?.());}catch(error){throw new AppError('INVALID_INPUT',JSON.stringify({error:safeError(error)}));}},
     async execute(_id,raw,signal){
       try{
-        const args=validateToolArguments(definition.name,raw),value=await client.call(definition.name,args,signal);
+        // pi 已把 prepareArguments 的返回值写回 toolCall.arguments 并做参数 schema 校验，这里不再重复全量校验。
+        const args=raw as Record<string,unknown>,value=await client.call(definition.name,args,signal);
         const structuredContent={value};if(!compileSchema(definition.outputSchema!)(structuredContent))throw new AppError('MCP_INVALID_RESULT','本地查询结果与公开契约不一致。');
         checkAccessResponse(definition.name,value);
         const content={value:projectModelResult(value as Record<string,unknown>,definition.name,args)},serialized=JSON.stringify(content);

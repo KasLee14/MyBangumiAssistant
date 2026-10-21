@@ -58,6 +58,7 @@ export const localFilterSchema = closed({
   subject_type: { type:'integer',enum:[1,2,3,4,6],description:'作品媒体类型：1书籍、2动画、3音乐、4游戏、6三次元。' }, year: {...numericRange(false,1,9999),description:'作品发行/开播或章节放送年份；不代表人物生日。'},
   date: {...closed({min:{type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'},max:{type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'}}),description:'作品或章节完整日期，含边界；日期不完整记录列入未知。'},
   score: numericRange(true,0,10), rating_count: numericRange(), rank: numericRange(false,1), platform: integer(),
+  platforms: {type:'array',minItems:1,maxItems:20,uniqueItems:true,items:integer(),description:'作品平台集合，与platform并存并展开为IN；平台码按媒体类型分域复用，因此出现platforms时必须同时给subject_type。'},
   tags: {type:'array',minItems:1,maxItems:20,uniqueItems:true,items:{type:'string',minLength:1,maxLength:100}},
   subject_id: integer(1), episode_type: integer(0,6),
   career:{type:'array',minItems:1,maxItems:7,uniqueItems:true,items:{type:'string',enum:['writer','producer','mangaka','artist','seiyu','illustrator','actor']},description:'仅人物；职业符合所列任一项。'},

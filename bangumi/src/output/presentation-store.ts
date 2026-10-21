@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { CachedResourceSelection } from '../mcp/resource-contract.js';
+import type { CachedResourceSelection, CachedResourceStat } from '../mcp/resource-contract.js';
 import { isDeepStrictEqual } from 'node:util';
 import { AppError, SchemaInputError } from '../support/errors.js';
 import { schemaArguments } from '../support/tool-schema.js';
@@ -11,6 +11,8 @@ import { combinedSubjectCardRange, componentDataFields } from './component-data-
 const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
 interface Dependency { ref: string; value: unknown; sourceTool: string; accessContext?: unknown; selection?: CachedResourceSelection }
 interface Prepared { generation: number; parts: CompleteComponentPart[]; dependencies: Dependency[]; identities?: string[] }
+/** stat 不可用（旧子进程、旧解析器或协议不支持）才回退整份读取；业务错误照常抛出。 */
+const statUnavailable = (error: unknown): boolean => !(error instanceof AppError) || error.code === 'MCP_PROTOCOL_ERROR';
 function count(part: CompleteComponentPart): number {
   const props = part.props;
   if (Array.isArray(props)) return props.length;
@@ -157,6 +159,18 @@ export class PresentationStore {
     this.check(signal);
     if (prepared.generation !== this.generation) throw new AppError('RESOURCE_SCOPE_MISMATCH', '准备快照已经失效。');
     for (const dependency of prepared.dependencies) {
+      // 优先只确认存在与归属；stat 不可用时保持旧行为（整份读取 + 深比较）。
+      const stat = this.resolver.stat;
+      if (stat) {
+        let ownership: CachedResourceStat | undefined;
+        try { ownership = await stat.call(this.resolver, dependency.ref, signal); }
+        catch (error) { if (!statUnavailable(error)) throw error; }
+        if (ownership) {
+          if (ownership.resourceRef !== dependency.ref || ownership.sourceTool !== dependency.sourceTool)
+            throw new AppError('RESOURCE_VERSION_CHANGED', '准备依赖的来源或引用归属已变化，请重新核实全部来源。');
+          continue;
+        }
+      }
       const current = await this.resolver(dependency.ref, signal, dependency.selection);
       if (current.resourceRef !== dependency.ref || current.sourceTool !== dependency.sourceTool || !isDeepStrictEqual(current.value, dependency.value) || !isDeepStrictEqual(current.accessContext, dependency.accessContext))
         throw new AppError('RESOURCE_VERSION_CHANGED', '准备依赖的事实或访问范围已变化，请重新核实全部来源。');

@@ -4,7 +4,7 @@ import { AppError } from '../support/errors.js';
 import { getDatasetStatus, openSnapshot } from '../knowledge/store.js';
 import { LocalQueryEngine, type QueryResult } from '../knowledge/query.js';
 import { ResourceStore } from './resource-store.js';
-import { cachedResourceSelection, type CachedResource, type CachedResourceSelection } from './resource-contract.js';
+import { cachedResourceSelection, type CachedResource, type CachedResourceSelection, type CachedResourceStat } from './resource-contract.js';
 import { projectModelResult } from './model-projection.js';
 import { assertResourceFields } from './resource-policy.js';
 import { entityFields, LOCAL_FIELDS, PERSONAL_FIELDS } from './local-contract.js';
@@ -136,6 +136,17 @@ export class BangumiMcpService {
     // 宿主RPC完整补齐同一页成员；它不进入模型content，也不会触发在线补取。
     if(reference.members.length)cached.value={...cached.value,data:members.flatMap(member=>turn.engine.read([member],selected?.fields?selected.fields.filter(field=>entityFields(member.entity,reference.self).includes(field)):'all'))};
     interrupted(signal);return cached;
+  }
+  /** 发布前复核：沿用引用归属检查，但不读取或复制资源内容。 */
+  async statCachedResource(ref:string,context?:McpReadContext,signal?:AbortSignal):Promise<CachedResourceStat>{
+    interrupted(signal);
+    const reference=this.references.get(ref);
+    if(!reference)throw new AppError('RESOURCE_EXPIRED','资源引用已过期。');
+    const {turnId,turn}=this.turn(context,undefined,reference.self);
+    if(reference.turnId!==turnId||reference.snapshotId!==turn.engine.scope.snapshotId||reference.nsfw!==turn.nsfw)
+      throw new AppError('RESOURCE_SCOPE_MISMATCH','缓存引用的数据版本、任务或显示范围不一致。');
+    const stat=this.resources.stat(ref,turnId);
+    interrupted(signal);return stat;
   }
   private readForModel(args:Row,context?:McpReadContext,signal?:AbortSignal):CachedResource&Row{
     interrupted(signal);const ref=String(args.resource_ref),{cached,reference,turn}=this.reference(ref,context);

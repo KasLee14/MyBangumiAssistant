@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { AppError } from '../support/errors.js';
 import type { AccessContext } from './access-context.js';
-import type { CachedResource, ResourceData } from './resource-contract.js';
+import type { CachedResource, CachedResourceStat, ResourceData } from './resource-contract.js';
 interface Entry { bindingKey?: string; turnId: string; bytes: number; resource: CachedResource; raw: unknown }
 /** 原始响应只在服务内存；引用固定版本，读取返回副本。 */
 export class ResourceStore {
@@ -27,6 +27,13 @@ export class ResourceStore {
     if (!entry) throw new AppError('RESOURCE_EXPIRED', '资源引用已过期，请重新读取原来源。');
     if (entry.turnId !== turnId) throw new AppError('RESOURCE_SCOPE_MISMATCH', '资源引用不属于当前读取轮次。');
     return structuredClone(entry.resource);
+  }
+  /** 发布前复核：只确认存在与归属，不复制值，避免整份资源跨进程重读。 */
+  stat(ref: string, turnId: string): CachedResourceStat {
+    const entry = this.entries.get(ref);
+    if (!entry) throw new AppError('RESOURCE_EXPIRED', '资源引用已过期，请重新读取原来源。');
+    if (entry.turnId !== turnId) throw new AppError('RESOURCE_SCOPE_MISMATCH', '资源引用不属于当前读取轮次。');
+    return { resourceRef: entry.resource.resourceRef, sourceTool: entry.resource.sourceTool, turnId: entry.turnId };
   }
   putRaw(key: string, raw: ResourceData, context: AccessContext, turnId: string): void {
     const previous = this.rawEntries.get(key);

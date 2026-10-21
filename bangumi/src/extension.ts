@@ -9,6 +9,7 @@ import { AccountSessionStore, login } from './login/index.js';
 import { createTerminalChannel, type InteractionChannel } from './interaction.js';
 import { LocalMcpClient, type McpCallClient } from './mcp/client.js';
 import { createReadTools } from './mcp/pi-tools.js';
+import { ENTITY_FIELD_GUIDE } from './mcp/field-guide.js';
 import type { WriteRateLimiter } from './mcp/write-rate-limit.js';
 import type { WriteJournal } from './mcp/write-journal.js';
 import { AppError, credentialValues, redact, safeError } from './support/errors.js';
@@ -142,6 +143,18 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     let presentationStatus: 'completed' | 'error' | 'aborted' = 'completed';
     let presentationSourceSeen = false;
     resolver.isCurrent = ref => activeResourceRefs.has(ref) || presentationStore.isCurrent(ref);
+    // 发布前复核：存在性与归属检查沿用同一轮次、引用与账户守卫；协议不支持时不挂载，展示层回退整份读取。
+    if (client.statCachedResource) resolver.stat = async (ref, signal) => {
+      if (!activeReadTurnId || !activeResourceRefs.has(ref)) throw new AppError('RESOURCE_SCOPE_MISMATCH', '资源引用不属于当前读取轮次。');
+      const statCachedResource = client.statCachedResource;
+      if (!statCachedResource) throw new AppError('MCP_PROTOCOL_ERROR', '当前 MCP 客户端没有缓存存在性检查接口。');
+      const scope = resourceContexts.get(ref) ?? { turnId: activeReadTurnId };
+      await verifyAccount(scope);
+      const stat = await statCachedResource.call(client, ref, signal, scope);
+      await verifyAccount(scope);
+      if (activeReadTurnId !== scope.turnId) throw new AppError('RESOURCE_REF_EXPIRED', '读取轮次已结束。');
+      return stat;
+    };
     componentCatalog.setReferenceValidator(ref => activeResourceRefs.has(ref));
     extensionResolvers.set(pi, resolver);
     const clearReadTurn = () => {
@@ -240,6 +253,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       event.systemPromptOptions.sections.bangumi = instructions;
       event.systemPromptOptions.sections.bangumi_content_output = `${CONTENT_OUTPUT_INSTRUCTION}\n${COMPONENT_SELECTION_INSTRUCTION}`;
       event.systemPromptOptions.sections.bangumi_response_style = RESPONSE_STYLE_INSTRUCTION;
+      event.systemPromptOptions.sections.bangumi_fields = ENTITY_FIELD_GUIDE;
       delete event.systemPromptOptions.sections.bangumi_tool_discovery;
     });
     pi.on('message_end', event => {

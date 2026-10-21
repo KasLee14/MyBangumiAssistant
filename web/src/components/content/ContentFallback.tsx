@@ -35,6 +35,9 @@ export function ContentFallback({ kind, issues, raw }: {
         <span className="contentFallbackText">
           {`内容条目「${kind}」无法展示：${first === undefined ? '数据不完整' : first.reason}`}
         </span>
+        {/* 「已降级」标记：复用共享胶囊类，只由组合类补语义色（不新造一套视觉）。
+            原问题清单与折叠的原始数据保持不变，它们才是排障依据。 */}
+        <span className="appPill contentFallbackBadge">已降级</span>
       </p>
       {extra.length > 0 ? (
         <ul className="contentFallbackIssues">

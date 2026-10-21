@@ -35,6 +35,10 @@ export function createErrorDiagnostic(input: Pick<ErrorDiagnostic, 'code' | 'ori
 const fallbackDiagnostics = new WeakMap<object, ErrorDiagnostic>();
 const defaults: Record<string, Pick<ErrorDiagnostic, 'origin' | 'stage' | 'recovery'>> = {
   INVALID_INPUT: { origin: 'domain', stage: 'input', recovery: 'correct_parameters' },
+  RESULT_TOO_LARGE: { origin: 'domain', stage: 'input', recovery: 'correct_parameters' },
+  EMPTY_SOURCE_SET: { origin: 'domain', stage: 'input', recovery: 'correct_parameters' },
+  CURSOR_PLAN_CHANGED: { origin: 'domain', stage: 'input', recovery: 'correct_parameters' },
+  RESOURCE_EXPIRED: { origin: 'mcp', stage: 'execution', recovery: 'replan_read' },
   MCP_INVALID_RESULT: { origin: 'mcp', stage: 'validate', recovery: 'none' },
   INVALID_RESPONSE: { origin: 'http', stage: 'decode', recovery: 'replan_read' },
   BGM_NETWORK: { origin: 'http', stage: 'fetch', recovery: 'retry_request' },

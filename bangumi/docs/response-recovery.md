@@ -8,6 +8,8 @@
 
 策略同时在共用tool_call与顶层beforeToolCall验证，覆盖真实SDK nested executeTool；只读重规划限原许可读集，发现工具不能扩大读写集合，fatal/unknown业务空集。引用恢复许可按同callID、同原工具/参数最多一次重入，双hook不会多消费一次许可。宿主缓存RPC以及批次内部带guard的独立提交/回读仍使用原边界，不经过模型业务执行放行。
 
+只读业务失败按可纠正处理：翻页与引用类错误（`CURSOR_PLAN_CHANGED`、`RESOURCE_EXPIRED`）及`correct_parameters`、`replan_read`走`replan_read`，不判死；确实进入`report_failure`时仍保留六个只读业务工具与`read_component_index`、`read_component_spec`契约工具，只有访问类失败或写工具失败才清空业务集合。同签名错误（按码、原因、工具与issues的path/rule判定，不含参数值）每轮最多纠正一次，第二次直接进入既有`tool_recovery_stopped`终态。
+
 普通工具回合不结束展示。最后一个 render 明确 final=true 时，Pi finishTurn 在整批调用均有成功结果、所属回合有效且无取消、待输入或未知写入后提交并结束；任一失败废弃本批完成意图，继续必要纠正。不能在 tool.execute 内提前结束，也不能因为已展示内容看起来完整而省略终态。普通原生最终文字仍只有正常 stop 才作为正文，agent_settled 保存其最终状态。length、deferred、取消及错误不提交草稿；操作失败保留完成前缀，重试幂等。新输入和账户/NSFW/事实版本变化使旧准备不可发布。实时、终态及历史共用唯一完整记录。
 
 以下 JSON 断点和恢复后缀规则仅用于旧输出标记兼容路径。

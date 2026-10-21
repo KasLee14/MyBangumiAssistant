@@ -5,20 +5,20 @@ import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { dirname, isAbsolute, join } from 'node:path';
 import { AppError } from '../support/errors.js';
-import { compileSchema } from '../support/tool-schema.js';
 import type { ProxyOptions } from '../support/proxy.js';
-import { TOOL_DEFINITIONS, validateToolArguments } from './catalog.js';
+import { TOOL_DEFINITIONS } from './catalog.js';
 import type { PreparedBaseline } from './prepared.js';
 import type { BatchPreparation, McpBatchScope } from './batch-context.js';
 import { checkAccessResponse } from './access-context.js';
 import { readContext, type McpReadContext } from './read-context.js';
-import { checkCachedResourceRpcResult, cachedResourceSelection, RESOURCE_REF_PATTERN, type CachedResource, type CachedResourceSelection } from './resource-contract.js';
+import { checkCachedResourceRpcResult, checkCachedResourceStatRpcResult, cachedResourceSelection, RESOURCE_REF_PATTERN, type CachedResource, type CachedResourceSelection, type CachedResourceStat } from './resource-contract.js';
 
 // 旧未装配模块仍引用这些类型；业务目录中没有写入入口。
 export interface McpWriteGuard { accountId:number;subjectId?:number;expectedStatus?:number;prepared?:PreparedBaseline;batchPreparation?:BatchPreparation }
 export interface McpCallClient {
   call(name:string,args:Record<string,unknown>,signal?:AbortSignal,guard?:McpWriteGuard,batch?:McpBatchScope,read?:McpReadContext):Promise<unknown>;
   readCachedResource?(ref:string,signal?:AbortSignal,read?:McpReadContext,selection?:CachedResourceSelection):Promise<CachedResource>;
+  statCachedResource?(ref:string,signal?:AbortSignal,read?:McpReadContext):Promise<CachedResourceStat>;
   endReadContext?(turnId:string):Promise<void>;close():Promise<void>;
 }
 const SAFE_ENVIRONMENT=['APPDATA','HOMEDRIVE','HOMEPATH','LOCALAPPDATA','PATH','PROCESSOR_ARCHITECTURE','SYSTEMDRIVE','SYSTEMROOT','TEMP','TMP','USERNAME','USERPROFILE','PROGRAMFILES','HOME','LANG','LC_ALL'];
@@ -70,17 +70,17 @@ export class LocalMcpClient implements McpCallClient {
   }
   async listTools(signal?:AbortSignal){await cancelable(this.ready(),signal);interrupted(signal);return TOOL_DEFINITIONS.map(tool=>structuredClone(tool));}
   async call(name:string,args:Record<string,unknown>,signal?:AbortSignal,guard?:McpWriteGuard,batch?:McpBatchScope,read?:McpReadContext):Promise<unknown>{
-    const parameters=validateToolArguments(name,args),definition=TOOL_DEFINITIONS.find(tool=>tool.name===name)!;
+    // 只做传输：入参校验在宿主 prepare 与服务子进程各一次，出参与访问校验在 pi-tools 与 server 各一次。
     if(guard||batch)throw new AppError('INVALID_INPUT','本地公共查询不接受账户写入或批量授权元数据。');
     const context=read===undefined?undefined:readContext(read);await cancelable(this.ready(),signal);interrupted(signal);this.usable();
     this.trace('dispatch');let raw:unknown;
-    try{raw=await this.client.callTool({name,arguments:parameters,...(context?{_meta:{'bangumi/readContext':context}}:{})},undefined,{timeout:this.options.timeoutMs,...(signal?{signal}:{})});}
+    try{raw=await this.client.callTool({name,arguments:args,...(context?{_meta:{'bangumi/readContext':context}}:{})},undefined,{timeout:this.options.timeoutMs,...(signal?{signal}:{})});}
     catch(error){interrupted(signal);throw error instanceof AppError?error:new AppError('MCP_PROTOCOL_ERROR','本地MCP读取未完成；没有自动重连或重发。');}
     const response=raw as {structuredContent?:Record<string,unknown>;isError?:boolean},structured=response.structuredContent;
-    if(!structured||Buffer.byteLength(JSON.stringify(structured))>2_000_000||!compileSchema(definition.outputSchema!)(structured))throw new AppError('MCP_INVALID_RESULT','本地MCP结果不符合固定输出契约。');
+    if(!structured||Buffer.byteLength(JSON.stringify(structured))>2_000_000)throw new AppError('MCP_INVALID_RESULT','本地MCP结果超过传输上限。');
     if(Boolean(response.isError)!==Object.hasOwn(structured,'error'))throw new AppError('MCP_INVALID_RESULT','本地MCP成功标记与内容不一致。');
     if(response.isError){const remote=structured.error as {code:string;message:string};throw new AppError(remote.code,remote.message);}
-    checkAccessResponse(name,structured.value);return structured.value;
+    return structured.value;
   }
   async readCachedResource(ref:string,signal?:AbortSignal,read?:McpReadContext,selection?:CachedResourceSelection):Promise<CachedResource>{
     if(!new RegExp(RESOURCE_REF_PATTERN).test(ref))throw new AppError('INVALID_INPUT','缓存引用格式无效。');
@@ -90,6 +90,18 @@ export class LocalMcpClient implements McpCallClient {
     checkCachedResourceRpcResult(result);if('error'in result)throw new AppError(result.error.code,result.error.message);
     if(result.resource.resourceRef!==ref||!TOOL_DEFINITIONS.some(tool=>tool.name===result.resource.sourceTool))throw new AppError('MCP_INVALID_RESULT','缓存来源或引用不一致。');
     checkAccessResponse(result.resource.sourceTool,result.resource.value);return result.resource;
+  }
+  /** 存在性检查不经过缓存也不改写返回；协议不支持时由调用方回退整份读取。 */
+  async statCachedResource(ref:string,signal?:AbortSignal,read?:McpReadContext):Promise<CachedResourceStat>{
+    if(!new RegExp(RESOURCE_REF_PATTERN).test(ref))throw new AppError('INVALID_INPUT','缓存引用格式无效。');
+    const context=read===undefined?undefined:readContext(read);
+    await cancelable(this.ready(),signal);interrupted(signal);this.usable();this.trace('dispatch');
+    let result:unknown;
+    try{result=await this.client.request({method:'bangumi/statCachedResource',params:{resourceRef:ref,...(context?{readContext:context}:{})}},z.unknown(),{timeout:this.options.timeoutMs,...(signal?{signal}:{})});}
+    catch(error){if(signal?.aborted)throw new AppError('CANCELLED','本地读取已取消。');throw error instanceof AppError?error:new AppError('MCP_PROTOCOL_ERROR','本地MCP服务不支持缓存存在性检查。');}
+    checkCachedResourceStatRpcResult(result);if('error'in result)throw new AppError(result.error.code,result.error.message);
+    if(result.resource.resourceRef!==ref||!TOOL_DEFINITIONS.some(tool=>tool.name===result.resource.sourceTool))throw new AppError('MCP_INVALID_RESULT','缓存来源或引用不一致。');
+    return result.resource;
   }
   async endReadContext(turnId:string):Promise<void>{
     readContext({turnId});if(!this.initialization||this.closed||this.broken)return;

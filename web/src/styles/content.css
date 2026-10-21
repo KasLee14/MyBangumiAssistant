@@ -1450,6 +1450,14 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   color: var(--bgm-danger);
 }
 .contentFallbackText { min-width: 0; overflow-wrap: anywhere; }
+/* 「已降级」标记：组合类只补语义色，形态沿用共享胶囊 `.appPill`。 */
+.contentFallbackBadge {
+  flex: none;
+  margin-left: auto;
+  color: var(--bgm-danger);
+  border-color: var(--bgm-danger-border);
+  background: var(--bgm-danger-soft);
+}
 .contentFallbackIssues {
   margin: 4px 0 0;
   padding-left: 18px;
@@ -1474,6 +1482,13 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   line-height: 1.5;
   color: var(--bgm-text-muted);
   font-family: var(--bgm-mono);
+}
+
+/* 未知 type 的块在前端丢弃；同一条消息合并成这一条轻提示，不逐块刷屏。
+   字号与弱色沿用共享微标签 `.appMicroLabel`，这里只补与块序列的间距。 */
+.contentDroppedNote {
+  margin: var(--app-space-6) 0 0;
+  overflow-wrap: anywhere;
 }
 
 /* ---------------------------------------------------------------- 外观层补充

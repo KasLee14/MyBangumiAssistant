@@ -334,14 +334,14 @@ export async function runLocalBenchmark(options: { root: string; knowledgeDir: s
       measurements.timingsMs.cardsMetadataPresentation = performance.now() - cardStart;
       measurements.bytes.cardsMetadataPresentation = byteLength(pageCards) + byteLength(selectedCards) + byteLength(combinedCards);
       await nextTurn();
-      const relations = await call('relations', 'query_relations', { source: { entity: 'subject', id: 253 }, target_entity: 'person', limit: 100, fields: ['name', 'relations', 'relationTypes'] });
+      const relations = await call('relations', 'query_relations', { source: [{ entity: 'subject', id: 253 }], target_entity: 'person', limit: 100, fields: ['name', 'relations', 'relationTypes'] });
       check('relationResult', rows(relations).length > 0 && record(relations).snapshotId === data.snapshotId, { count: rows(relations).length, page: record(relations).page });
       const staff = rows(relations).find(row => Number(row.id) === multipleRoleId) ?? {};
       const edges = Array.isArray(staff.relations) ? staff.relations.map(record) : [];
       check('multipleStaffRoles', expectedRoles.every(expected => edges.some(actual => Number(actual.relationId) === Number(expected.id)
         && Number(actual.relationType) === Number(expected.relation_type))) && new Set(staff.relationTypes as number[] ?? []).size > 1,
       { personId: multipleRoleId, expected: expectedRoles, actual: staff });
-      const arrayRelations = await call('relationArrayQuery', 'query_relations', { source: { entity: 'subject', id: 253 },
+      const arrayRelations = await call('relationArrayQuery', 'query_relations', { source: [{ entity: 'subject', id: 253 }],
         target_entity: 'person', direction: 'outgoing', limit: 10, fields: ['name', 'relationTypes', 'relations'] });
       const arrayStore = new PresentationStore(async (reference: string, signal?: AbortSignal, selection?: unknown) => {
         metrics.cacheRpcCalls++; return client.readCachedResource(reference, signal, read, selection);
@@ -425,7 +425,7 @@ export async function runLocalBenchmark(options: { root: string; knowledgeDir: s
       const timeline = record((await componentStore.materialize('Timeline', { resourceRef: episodeRef })).props);
       const timelineOracle = expectedEpisodes.map((row: Record<string, unknown>) => ({ time: String(row.date), text: String(row.name) }));
       check('timelinePublicDates', JSON.stringify(timeline.entries) === JSON.stringify(timelineOracle), { actual: timeline.entries, expected: timelineOracle });
-      const characters = await call('galleryRelations', 'query_relations', { source: { entity: 'subject', id: 253 }, target_entity: 'character', direction: 'outgoing', limit: 5 });
+      const characters = await call('galleryRelations', 'query_relations', { source: [{ entity: 'subject', id: 253 }], target_entity: 'character', direction: 'outgoing', limit: 5 });
       const gallery = record((await componentStore.materialize('Gallery', { resourceRef: String(record(characters).resourceRef) })).props);
       const galleryItems = Array.isArray(gallery.items) ? gallery.items.map(record) : [];
       check('galleryNoFabricatedImage', galleryItems.length === expectedCharacters.length && expectedCharacters.every((row: Record<string, unknown>, index: number) => {
