@@ -8,6 +8,8 @@
 
 ## 索引
 
+本目录只有模拟器的一张常量表（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `simulator.ts` | `KEEP`（`SimStep.play` 的哨兵）、`DEBUG_INSTANCE_ID`（调试专用 store 的实例标识）、`SUPPORTED_EVENTS`（供调试页给出可读的错误提示） | `web/src/page/debug/constants/simulator.ts` | 改实例标识、哨兵或支持的事件表 |

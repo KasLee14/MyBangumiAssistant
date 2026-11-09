@@ -10,23 +10,49 @@
 
 ## 索引
 
-### 顶层
+按功能模块分组。只被一个页面消费的组件不在这里，见该页的 `components.md`。
+
+### 顶栏骨架
 
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `AppTopBar.tsx` | 顶栏骨架：调试页与文档页共用（主界面已删顶栏，功能迁进侧栏）；样式在 `web/src/styles/common.css` 的 `.appTopBar*` | `web/src/components/AppTopBar.tsx` | 改顶栏骨架 |
 
-### content/ —— 正文与内容块
+### content/ —— 内容块与正文
+
+按下面几组分：**分发与注册**（加一种内容块从这里入手）、**校验**（载荷合法性）、**正文入口**（助手正文的唯一渲染路径）、**内容块渲染器**（各管一种载荷形态）。
+
+#### 分发与注册
 
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `index.tsx` | 内容块分发器：校验 → 骨架 / 降级 / 渲染器；并转出 `ContentBlockView` | `web/src/components/content/index.tsx` | 改内容块的分发与容错 |
 | `registry.tsx` | 「type → 渲染器」注册表；`satisfies { [K in ContentKind]: … }` 要求 12 键齐全，末尾 `ContentRegistryCoverage` 断言兜住协议里的未登记 type | `web/src/components/content/registry.tsx` | 加 / 改 12 种内容块之一；查某个 type 由哪个组件渲染 |
+
+#### 载荷校验
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `validate.ts` | 零依赖手写运行时校验：只管载荷形状，不校验信封字段、不做换算/文案/排序 | `web/src/components/content/validate.ts` | 加 / 改内容块时对齐校验规则；排查「为什么这块显示降级卡」 |
-| `markdown.tsx` | 手写 Markdown 子集渲染：粗体、行内码、链接、表格、分隔线 | `web/src/components/content/markdown.tsx` | 改助手正文里的 Markdown 渲染 |
+
+#### 正文入口与 Markdown
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `MessageBlocks.tsx` | **助手正文唯一渲染入口**（文本 + 内容块），带块级 `memo` 比较以压住流式期的重渲染 | `web/src/components/content/MessageBlocks.tsx` | 改助手正文（文本 + 内容块）的排布与重渲染规则 |
+| `markdown.tsx` | 手写 Markdown 子集渲染：粗体、行内码、链接、表格、分隔线 | `web/src/components/content/markdown.tsx` | 改助手正文里的 Markdown 渲染 |
+
+#### 加载骨架与降级卡
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `ContentSkeleton.tsx` | `pending` 骨架：与 kind 无关；扫光由 `aria-busy` 开关，不要求与真实块等高 | `web/src/components/content/ContentSkeleton.tsx` | 改「加载中」骨架 |
 | `ContentFallback.tsx` | 降级块：「数据到了但不合法」，附问题清单（最多 4 条）与原始数据折叠区 | `web/src/components/content/ContentFallback.tsx` | 改「数据非法」降级卡 |
+
+#### 内容块渲染器
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `SubjectCards.tsx` | 内容块 `SubjectCards`：条目卡与收藏卡 | `web/src/components/content/SubjectCards.tsx` | 改 `SubjectCards` 内容块 |
 | `StatsCard.tsx` | 内容块 `StatsCard`：统计条/柱 + 数字滚动；`ratio` 越界由组件夹取 | `web/src/components/content/StatsCard.tsx` | 改 `StatsCard` 内容块 |
 | `ProgressView.tsx` | 内容块 `ProgressView`：章节进度（数值条 + 章节格 + 状态文字） | `web/src/components/content/ProgressView.tsx` | 改 `ProgressView` 内容块 |
@@ -42,17 +68,31 @@
 
 ### conversation/ —— 会话、轮次与过程区
 
+分三组：**会话容器**（滚动与轮次导航）、**轮次与流式**（一个轮次怎么拼、流式期画什么）、**过程区**（思考与工具行）。
+
+#### 会话容器
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `Stage.tsx` | 会话容器：滚动、贴底跟随（`ResizeObserver` 观察 flow 尺寸）、轮次高亮与导航；完整祖先链 `.appStageScroll > .appStageFlow > .appStageColumn > .appTurn` 是屏外优化的前提 | `web/src/components/conversation/Stage.tsx` | 改会话滚动、贴底跟随、轮次高亮与导航 |
+
+#### 轮次与流式
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `Turn.tsx` | 一个轮次：用户气泡 → 过程区 → 主体（正文/通知/错误/确认卡）→ 轮尾操作 | `web/src/components/conversation/Turn.tsx` | 改一个轮次的结构（气泡 / 过程 / 主体 / 轮尾） |
 | `Streaming.tsx` | 流式区：正文、思考块、运行状态行、流式光标（光标单独一行，挂在块序列末尾） | `web/src/components/conversation/Streaming.tsx` | 改流式区（正文、思考块、状态行、光标） |
-| `ProcessGroup.tsx` | 过程区：轮首控制行（状态 / 耗时 / 步骤计数）+ 过程行列表；一级折叠，`hidden="until-found"` | `web/src/components/conversation/ProcessGroup.tsx` | 改过程区控制行、折叠、耗时与步骤计数 |
-| `ProcessRows.tsx` | 过程区原子行：思考行与工具行；含 `useUntilFound`（维护 `hidden="until-found"`） | `web/src/components/conversation/ProcessRows.tsx` | 改工具行 / 思考行的行内形态与展开体 |
-| `ProcessIcons.tsx` | 过程区图标：14px 自绘 SVG，按工具族区分（与侧栏图标不是一套） | `web/src/components/conversation/ProcessIcons.tsx` | 改过程区图标 |
 | `MessageParts.tsx` | 原子行：`UserBubble` / `NoticeRow` / `ErrorRow` / `SessionBanner`，全部 props 驱动 + `memo` | `web/src/components/conversation/MessageParts.tsx` | 改用户气泡、提示行、错误行、会话头 |
 | `ConfirmationCard.tsx` | 写入确认卡：待授权 / 已授权 / 已取消；`answering` 只用于防重复提交，不是宿主 `busy` | `web/src/components/conversation/ConfirmationCard.tsx` | 改写入确认卡 |
 | `TurnActions.tsx` | 轮尾操作行：复制本轮回答正文 + 每轮用量 | `web/src/components/conversation/TurnActions.tsx` | 改轮尾「复制回答」与每轮用量 |
+
+#### 过程区
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
+| `ProcessGroup.tsx` | 过程区：轮首控制行（状态 / 耗时 / 步骤计数）+ 过程行列表；一级折叠，`hidden="until-found"` | `web/src/components/conversation/ProcessGroup.tsx` | 改过程区控制行、折叠、耗时与步骤计数 |
+| `ProcessRows.tsx` | 过程区原子行：思考行与工具行；含 `useUntilFound`（维护 `hidden="until-found"`） | `web/src/components/conversation/ProcessRows.tsx` | 改工具行 / 思考行的行内形态与展开体 |
+| `ProcessIcons.tsx` | 过程区图标：14px 自绘 SVG，按工具族区分（与侧栏图标不是一套） | `web/src/components/conversation/ProcessIcons.tsx` | 改过程区图标 |
 
 ### motion/ —— 动效封装
 

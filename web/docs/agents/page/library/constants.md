@@ -10,6 +10,8 @@
 
 ## 索引
 
+本目录只有示例数据表一处（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `sections.ts` | 12 种 kind 的示例数据与参数表：`LIBRARY_SECTIONS`（分区清单）与 `LIBRARY_GROUPS`（导航分组）；参数表写的是协议契约 | `web/src/page/library/constants/sections.ts` | 加 / 改示例数据、参数表或导航分组 |

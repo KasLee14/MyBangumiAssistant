@@ -10,6 +10,8 @@
 
 ## 索引
 
+改时间分档或文案读第一行，改凭据来源措辞读第二行（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `relativeTime.ts` | `relativeTimeLabel(modified, now)` 与 `sessionDayGroup(modified, now)`：会话的相对时间文案与日历日分档（<1 分钟「刚刚」、<1 小时「N分钟」、<1 天「N小时」、<30 天「N天」、<365 天「N个月」，更久「N年」） | `web/src/page/mainPage/utils/relativeTime.ts` | 改时间分档或文案 |

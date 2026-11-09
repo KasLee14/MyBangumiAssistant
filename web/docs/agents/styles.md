@@ -13,6 +13,8 @@
 
 ## 索引
 
+按功能模块分组：**令牌层**按族拆文件（改配色、字体、间距先来这里），**共享形态**是跨入口的表面原语与内容块样式，**引入链**在 `web/src/main.tsx`。
+
 ### base/ —— 令牌层（按族分）
 
 | 文件 | 含义 | 路径 | 场景 |
@@ -27,12 +29,17 @@
 | `shape/shape.css` | 圆角 `--bgm-r-*` 与四档语义 `--app-radius-*`（元素越小圆角越小）、`--dsw-corner-shape` 的超椭圆曲率 | `web/src/styles/base/shape/shape.css` | 改圆角半径或超椭圆曲率 |
 | `interaction/interaction.css` | 焦点环（`:focus-visible` 与指针模态下的抑制）与滚动条皮肤（`--app-scrollbar-*`） | `web/src/styles/base/interaction/interaction.css` | 改焦点环或滚动条皮肤 |
 
-### 共享形态样式与相关文件
+### 共享形态样式
 
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `common.css` | 跨入口共用的表面原语：`.appTopBar*`、品牌组合、玻璃浮起层、可选中行、空态、微标签与胶囊、会话头、逐项错峰入场；**不新增色值** | `web/src/styles/common.css` | 改顶栏骨架、空态、微标签等共享原语 |
 | `content.css` | 内容组件库样式：`.content*` 前缀，与 `web/src/components/content/` 的组件一一对应；只用 `--bgm-*` 令牌，语义色就地 `color-mix()` 派生 | `web/src/styles/content.css` | 改 12 种内容块（条目卡、统计、进度、表格、时间线…）的样式 |
+
+### 样式引入链与页面皮肤
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `main.tsx`（在 `web/src/`） | 样式引入链的**唯一**定义处 | `web/src/main.tsx` | 改样式引入顺序（顺序是契约） |
 | `page/<页面>/styles/` | 页面专有皮肤（`lib*` / `debug*` 前缀，只新增自己的类） | `web/src/page/<页面>/styles/` | 改某个页面的皮肤 |
 

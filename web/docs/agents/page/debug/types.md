@@ -8,6 +8,8 @@
 
 ## 索引
 
+本目录只有模拟帧与 event 载荷一处（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `simulator.ts` | `SimFrame`（`Extract<ServerEvent, { type: 'state' }>`，与宿主 `bangumi/src/web/server.ts` 发出的帧、`web/src/store/reducers/stream.ts` 的 `StreamFrame` 同形）与 event 载荷类型（按 `handleEvent` 用到的字段声明，不引入 Pi 的完整类型） | `web/src/page/debug/types/simulator.ts` | 改模拟帧或 event 载荷的形状 |

@@ -10,6 +10,8 @@
 
 ## 索引
 
+本目录只有页面公开契约的形状一处（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `sections.ts` | `LibrarySection`（一个 kind 的完整描述：`kind` / `title` / `summary` / `payload` / `variants?` / `empty` / `params` / `reference`）、`LibraryVariant`（主载荷之外的另一种形态）、`ParamRow`（参数表一行）、`Reference`（参考的 ReactBits 组件）、`LibraryOutletContext`（骨架经 `<Outlet context>` 下发给子路由的数据） | `web/src/page/library/types/sections.ts` | 改 section、variant 或参数行的形状 |

@@ -10,15 +10,34 @@
 
 ## 索引
 
+按功能模块分组。
+
+### 宿主通信
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `api.ts` | 宿主命令接口：`clientId` / `selectedSessionId` 两个请求头、`post` 帮助函数、`fetchCatalog`、`openStream`（`EventSource`，自带重连） | `web/src/utils/api.ts` | 加 / 改宿主命令接口（提交、取消、确认、登录、模型、思考、凭据、代理、目录）；改事件流（SSE）订阅 |
+
+### 命令候选
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `commands.ts` | 命令候选：`LOCAL_COMMANDS`（只有前端能做的几条）+ `mergeCommands`（把 `CatalogView.commands` 合进来，同名以本地为准）+ `helpText` | `web/src/utils/commands.ts` | 改命令候选表、本地命令，或与宿主命令的合并规则 |
-| `paths.ts` | 路径**拼装**函数：`componentPath(kind)`；与 `web/src/constants/paths.ts` 的分工见该文件注释 | `web/src/utils/paths.ts` | 拼文档页详情地址或其它路径 |
-| `pinnedStorage.ts` | 置顶会话的 `localStorage` 读写（`STORAGE_KEY = 'bgm-assistant.pinned-sessions'`），每层容错、失败按「没有置顶」处理 | `web/src/utils/pinnedStorage.ts` | 改置顶会话的本地读写 |
+
+### 过程与轮次派生
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
+| `turns.ts` | `projectTurns`：把宿主下发的平铺条目投影成轮次；轮次边界来自宿主的 `kind === 'turn'` 条目，`user` 开新轮只是回退规则 | `web/src/utils/turns.ts` | 改「平铺条目 → 轮次」的投影 |
 | `process.ts` | 过程组汇总与文案：`processKind` / `isProcessRunning` / `summarizeProcess` / `liveProcessTitle` / `settledProcessTitle` / `formatDuration` / `processRowKey` / `firstLine` / `turnProcessKey` | `web/src/utils/process.ts` | 改过程区的汇总、活动词、耗时文案 |
 | `toolViews.ts` | 工具行视觉判定：`toolBodyKind`（`blocks` > `text` > `empty` 的信息量优先级）、`toolExpandable` | `web/src/utils/toolViews.ts` | 改工具行是否可展开、展开体算什么类型 |
-| `turns.ts` | `projectTurns`：把宿主下发的平铺条目投影成轮次；轮次边界来自宿主的 `kind === 'turn'` 条目，`user` 开新轮只是回退规则 | `web/src/utils/turns.ts` | 改「平铺条目 → 轮次」的投影 |
+
+### 路径与本地持久化
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
+| `paths.ts` | 路径**拼装**函数：`componentPath(kind)`；与 `web/src/constants/paths.ts` 的分工见该文件注释 | `web/src/utils/paths.ts` | 拼文档页详情地址或其它路径 |
+| `pinnedStorage.ts` | 置顶会话的 `localStorage` 读写（`STORAGE_KEY = 'bgm-assistant.pinned-sessions'`），每层容错、失败按「没有置顶」处理 | `web/src/utils/pinnedStorage.ts` | 改置顶会话的本地读写 |
 
 ## 规则
 

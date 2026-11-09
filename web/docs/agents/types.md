@@ -13,15 +13,29 @@
 
 ## 索引
 
+按功能模块分组：**跨端协议**只有一个转发入口，其余文件是前端内部的跨模块形状。
+
+### 跨端协议中转
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `protocol.ts` | 跨端协议的**唯一入口**：`export type * from '../../../bangumi/src/web/protocol'`，转发 `TranscriptItemView`（9 种 kind）、`MessageBlock`、`ChatScalarsView` / `ChatStateView`、`ServerEvent` 与全部客户端命令载荷；本文件不产生第二份定义 | `web/src/types/protocol.ts` | 查跨端协议（帧、条目、内容块载荷、命令载荷） |
+
+### 轮次与内容块形状
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `turns.ts` | `ProcessItem`（思考行 `ReasoningItemView` \| 工具行 `ToolItemView`）、`TurnGroup`（`meta` + `user` + `process` + `body`）；内部的 `TextItem` 只含 `user` / `notice` / `error`，**助手条目不在其中**（它的正文是内容块数组 `content: MessageBlock[]`） | `web/src/types/turns.ts` | 改「平铺条目 → 轮次」的产物形状 |
 | `content.ts` | `ContentKind`：12 个成员，取值就是**组件名**（与 `web/src/components/content/` 的文件名一致），因此不需要「语义名 → 组件」的对照表 | `web/src/types/content.ts` | 加 / 改一种内容块（同时要改 `web/src/components/content/registry.tsx` 的渲染表） |
 | `process.ts` | `ProcessKind`（`ToolFamily \| 'reasoning'`）、`ProcessSummary`（`total` / `counts` 按数量降序 / `active` 为进行中的项或 `null`） | `web/src/types/process.ts` | 改过程区汇总（计数、活跃项） |
+| `tools.ts` | `ToolBodyKind`：工具行展开体渲染什么——`'blocks' \| 'text' \| 'empty'` | `web/src/types/tools.ts` | 改工具行展开体的三种类型 |
+
+### 命令与事件流
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `commands.ts` | `CommandHint`（`value` / `label` / `hint` / `action?`）；`action` 是浏览器侧要处理的动作，后端命令没有它 | `web/src/types/commands.ts` | 改命令候选条目的形状 |
 | `api.ts` | `StreamHandlers`（`onFrame` / `onStatus`）：事件流的两个回调，`onStatus` 只在连接开合时触发 | `web/src/types/api.ts` | 改事件流的回调签名 |
-| `tools.ts` | `ToolBodyKind`：工具行展开体渲染什么——`'blocks' \| 'text' \| 'empty'` | `web/src/types/tools.ts` | 改工具行展开体的三种类型 |
 
 ## 规则
 

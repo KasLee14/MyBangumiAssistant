@@ -10,15 +10,34 @@
 
 ## 索引
 
+按功能模块分组：**装配与类型**是入口，**动作**是写入侧，**读取与订阅**是读取侧，**reducers/** 是三个切片的真相源。
+
+### 装配与类型
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `index.ts` | store 装配：`createStore(rootReducer, …)`；首屏定死侧栏形态与读入置顶；**唯一的置顶落盘订阅**；导出 `AppStore` / `AppDispatch` 与几个类型 | `web/src/store/index.ts` | 改首屏初值、置顶落盘订阅或 store 导出类型 |
+
+### 动作（同步与异步）
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `actions.ts` | action creator 的集中出口，按会话流 / 目录 / 界面三组排列；`AppAction` 从 `reducers` 转出 | `web/src/store/actions.ts` | 加一个同步动作 |
 | `operations.ts` | 异步动作：`createActions(store)` 返回一束闭包 `dispatch` 的普通函数（提交、取消、确认、登录、模型、思考、凭据、代理、会话切换、目录加载等） | `web/src/store/operations.ts` | 加一个打宿主接口的异步动作 |
-| `hooks.ts` | 类型化 hooks（`useAppDispatch` / `useAppSelector` / `useActions`）与三个生命周期订阅：`useCatalogSync` / `useResponsiveCollapse` / `useEscapeShortcut` | `web/src/store/hooks.ts` | 在组件里读状态或派发；改目录同步、侧栏响应式收放、Esc 行为 |
+
+### 读取与订阅
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `selectors.ts` | 状态读取入口，按会话流 / 目录 / 界面分组；含 `selectDisplayedContent`（读显示投影）与 `selectPacedTail`（收尾播放） | `web/src/store/selectors.ts` | 查某个字段该从哪个 selector 取 |
+| `hooks.ts` | 类型化 hooks（`useAppDispatch` / `useAppSelector` / `useActions`）与三个生命周期订阅：`useCatalogSync` / `useResponsiveCollapse` / `useEscapeShortcut` | `web/src/store/hooks.ts` | 在组件里读状态或派发；改目录同步、侧栏响应式收放、Esc 行为 |
 | `stream.ts` | `useStreamSubscription`：订阅宿主事件流，按帧类型分派（`fatal` / `sessions` / `stream` 增量 / 其余全量），不在这里做合并语义 | `web/src/store/stream.ts` | 改宿主事件流的订阅与分派 |
 | `pacing.ts` | `usePacing`：把突发到达的正文按**时间**摊平（约 60 字/秒），流式结束后把剩余字播完；含积压追赶与单帧上限 | `web/src/store/pacing.ts` | 改逐字显示速度、积压追赶或播放节奏 |
+
+### reducers/ —— 三个切片
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `reducers/index.ts` | `rootReducer`（手写，不用 `combineReducers`）+ `RootState` + `AppAction` + `INITIAL_ROOT_STATE` | `web/src/store/reducers/index.ts` | 改根状态形状或 action 联合 |
 | `reducers/stream.ts` | 会话流切片：标量覆盖、条目合并/整体替换、乐观回显、确认应答在途标记、连接状态；`INITIAL_SCALARS` 是首帧到达前的占位 | `web/src/store/reducers/stream.ts` | 加 / 改会话流字段；改帧的处理语义 |
 | `reducers/catalog.ts` | 目录切片：模型、历史会话、提供方、能否保存凭据、**已与本地合并**的命令表 | `web/src/store/reducers/catalog.ts` | 改目录字段（模型、会话列表、命令表） |

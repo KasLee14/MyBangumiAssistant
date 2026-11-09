@@ -8,6 +8,8 @@
 
 ## 索引
 
+按场景找：示例生成看 `items.ts`，搜索口径看 `search.ts`，入场观察看 `revealOnScroll.ts`，显示名看 `title.ts`（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `items.ts` | 示例载荷 → 块 / event / frame 的转换：页面上的 UI 预览与两份 JSON 都由**同一份载荷**现场生成 | `web/src/page/library/utils/items.ts` | 改预览或代码块的生成方式 |

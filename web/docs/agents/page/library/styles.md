@@ -8,6 +8,8 @@
 
 ## 索引
 
+本目录只有文档页皮肤一处（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `library.css` | 文档页皮肤：`.lib*` 前缀的骨架、卡片、参数表补充规则与导航补充规则 | `web/src/page/library/styles/library.css` | 改文档页布局或卡片形态 |

@@ -10,11 +10,25 @@
 
 ## 索引
 
+按功能模块分组。
+
+### 地址常量
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `paths.ts` | `PATH`（`home` / `debug` / `library`）与 `LIBRARY_COMPONENT_PATTERN`（给 `useMatch` 用的带 `:kind` 模式）；**零 import 的叶子模块**——它被 router / page / components 三层消费，所以从 `web/src/router/` 提到 `web/src/constants/`，依赖环随之消失；路径**拼接函数**在 `web/src/utils/paths.ts` | `web/src/constants/paths.ts` | 加 / 改页面地址，或文档页详情的匹配模式 |
+
+### 工具行视觉表
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
 | `tools.ts` | `TOOL_STATE`：六种工具状态的记号与标签（`running ·` / `waiting …` / `ok ✓` / `partial !` / `unknown ?` / `error ×`），类型是 `Readonly<Record<ToolState, …>>`，穷尽性由类型保证 | `web/src/constants/tools.ts` | 改工具行的状态记号与文案；查「某个工具状态该显示什么」 |
-| `motion.ts` | JS 侧动效令牌：`EASE_OUT` / `EASE_IN_OUT` / `EASE_SPRING` / `EASE_SPRING_SOFT`、`DURATION`（`instant` / `fast` / `base` / `slow` / `reveal` / `slower`）、`SHIFT`（`row` / `panel` / `reveal`）、`STAGGER`；与 `web/src/styles/base/motion/motion.css` 一一对应 | `web/src/constants/motion.ts` | 改 JS 侧动效时长、缓动、入场位移、错峰间隔（必须与 CSS 侧同步） |
+
+### JS 侧动效令牌
+
+| 文件 | 含义 | 路径 | 场景 |
+|---|---|---|---|
+| `motion.ts` | `EASE_OUT` / `EASE_IN_OUT` / `EASE_SPRING` / `EASE_SPRING_SOFT`、`DURATION`（`instant` / `fast` / `base` / `slow` / `reveal` / `slower`）、`SHIFT`（`row` / `panel` / `reveal`）、`STAGGER`；与 `web/src/styles/base/motion/motion.css` 一一对应 | `web/src/constants/motion.ts` | 改 JS 侧动效时长、缓动、入场位移、错峰间隔（必须与 CSS 侧同步） |
 
 ## 规则
 

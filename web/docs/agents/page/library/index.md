@@ -10,28 +10,29 @@
 
 三处刻意的形态决定：页内目录自绘（见规则 1）、左导航从数据表派生（见规则 2）、搜索框放在顶栏**动作区**而不是居中（不为让它居中而给本页开一个顶栏特例，顶栏形态由 `AppTopBar` 一处定义）。
 
+**读法**：先按「要改什么」定位到下面的功能模块与对应分层文档，只打开那一篇。
+
 ## 索引
 
-### 页面入口
+### 按场景分流
 
-| 文件 | 含义 | 路径 | 场景 |
-|---|---|---|---|
-| `index.tsx` | 骨架装配：顶栏 + 左导航 + 内容出口 + 页内目录；过滤与派生（`sections` / `groups` / `selectedKey` / `outletContext`）都在这里 | `web/src/page/library/index.tsx` | 改文档页骨架或过滤下发 |
-
-### 功能模块
-
-| 模块 | 含义 | 路径 | 场景 |
-|---|---|---|---|
-| 详情与总览 | 单个 kind 的四块详情、总览卡片网格、胶囊 | `web/src/page/library/components/` | 见 [components.md](components.md) |
-| 左导航 | 总览入口 + 分组列表 | `web/src/page/library/components/nav/` | 见 [components.md](components.md) |
-| 页内目录 | 右侧自绘目录，滚动同步高亮 | `web/src/page/library/components/toc/` | 见 [components.md](components.md) |
-| 顶栏 | 品牌 + 栏目 + 动作区（搜索框、入口链接、版本胶囊） | `web/src/page/library/components/topbar/` | 见 [components.md](components.md) |
+| 要改什么 | 在哪 | 先读哪篇 |
+|---|---|---|
+| 页面骨架装配、搜索过滤下发 | `web/src/page/library/index.tsx` | 本页「规则」 |
+| 单个 kind 的详情四块、总览卡片、胶囊 | `web/src/page/library/components/` | [components.md](components.md) |
+| 左导航（总览入口 + 分组列表） | `web/src/page/library/components/nav/` | [components.md](components.md) |
+| 页内目录与滚动高亮 | `web/src/page/library/components/toc/` | [components.md](components.md) |
+| 顶栏栏目、搜索框位置、入口链接 | `web/src/page/library/components/topbar/` | [components.md](components.md) |
+| 示例数据转换、搜索口径、入场观察、显示名 | `web/src/page/library/utils/` | [utils.md](utils.md) |
+| section / variant / 参数行的形状 | `web/src/page/library/types/` | [types.md](types.md) |
+| 12 种 kind 的示例数据与参数表、导航分组 | `web/src/page/library/constants/` | [constants.md](constants.md) |
+| 文档页皮肤（骨架、卡片、参数表补充） | `web/src/page/library/styles/` | [styles.md](styles.md) |
 
 ### 分层文档
 
 | 文档 | 含义 | 路径 | 场景 |
 |---|---|---|---|
-| [components.md](components.md) | 本页 6 个可视组件 | `web/docs/agents/page/library/components.md` | 改文档页界面 |
+| [components.md](components.md) | 本页可视组件：详情、总览、导航、目录、顶栏 | `web/docs/agents/page/library/components.md` | 改文档页界面 |
 | [utils.md](utils.md) | 示例数据转换、搜索过滤、入场观察、显示名 | `web/docs/agents/page/library/utils.md` | 改搜索口径或示例生成 |
 | [types.md](types.md) | 本页形状类型（页面模块的公开契约） | `web/docs/agents/page/library/types.md` | 改 section 或 variant 形状 |
 | [constants.md](constants.md) | 12 种 kind 的示例数据 | `web/docs/agents/page/library/constants.md` | 加 / 改示例数据或参数表 |

@@ -8,6 +8,8 @@
 
 ## 索引
 
+本目录只有会话分组顺序一张表；时间分档在 [utils.md](utils.md)（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `sessionGroups.ts` | `SESSION_GROUP_ORDER`：会话分组的固定顺序（「置顶」永远在最前，其余按时间由近到远）；零依赖纯数据，与 `utils/relativeTime.ts` 的 `sessionDayGroup` 分档一一对应 | `web/src/page/mainPage/constants/sessionGroups.ts` | 改分组顺序或增删分组 |

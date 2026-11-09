@@ -8,6 +8,8 @@
 
 ## 索引
 
+按场景找：模拟语义看 `simulator.ts`，逐字节奏与输入解析看 `playback.ts`，调试 store 看 `store.ts`（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `simulator.ts` | 宿主模拟器：把一条 `AgentSessionEvent` 映射成一帧 `StateFrame`；是 `bangumi/src/web/session.ts` 的 `handleEvent` 在浏览器侧的复刻，只保留条目生成、标量改写、工具条目原地更新、轮次边界与用量累计。**不含**宿主的派生计算（token 用量、上下文占用、登录与代理探测），那些字段按固定模拟值处理并在界面上标注 | `web/src/page/debug/utils/simulator.ts` | 改模拟语义；宿主映射逻辑变更后同步 |

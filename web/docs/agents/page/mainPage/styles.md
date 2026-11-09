@@ -10,6 +10,8 @@
 
 ## 索引
 
+按场景找：骨架与会话流看 `frame.css`，输入区看 `composer.css`，确认卡看 `cards.css`，弹窗看 `modal.css`（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `frame.css` | 页面框架与会话区：`.appFrame` 网格与两列骨架、侧栏各行、会话头与滚动体、轮次与气泡、过程折叠块、turn 导轨、空会话首屏；末尾含 `prefers-reduced-motion` 降级段 | `web/src/page/mainPage/styles/frame.css` | 改两列骨架、侧栏、会话流或首屏形态 |

@@ -14,27 +14,28 @@
 
 本页只做装配：store 在 [utils.md](utils.md) 的 `store.ts` 创建，输入解析与播放参数在 `playback.ts`，宿主模拟在 `simulator.ts`，三行渲染与播放状态机在 [components.md](components.md) 的 `DebugShell.tsx`。
 
+**读法**：先按「要改什么」定位到下面的功能模块与对应分层文档，只打开那一篇。
+
 ## 索引
 
-### 页面入口
+### 按场景分流
 
-| 文件 | 含义 | 路径 | 场景 |
-|---|---|---|---|
-| `index.tsx` | 装配层：把输入、播放与预览接起来；三条设计约束的落点 | `web/src/page/debug/index.tsx` | 改整页装配或预览数据流 |
-
-### 功能模块
-
-| 模块 | 含义 | 路径 | 场景 |
-|---|---|---|---|
-| 外壳 | 顶栏 / 输入列 / 预览区三行装配 + 全部播放状态 | `web/src/page/debug/components/shell/` | 见 [components.md](components.md) |
-| 输入区 | 左侧 event 与 frame 两个输入框 | `web/src/page/debug/components/input/` | 见 [components.md](components.md) |
-| 预览区 | 右侧：复用 `<Stage>` 的受控预览 | `web/src/page/debug/components/preview/` | 见 [components.md](components.md) |
+| 要改什么 | 在哪 | 先读哪篇 |
+|---|---|---|
+| 整页装配、预览数据流 | `web/src/page/debug/index.tsx` | 本页「规则」 |
+| 三行布局、播放状态机 | `web/src/page/debug/components/shell/` | [components.md](components.md) |
+| 左侧两个输入框的形态与交互 | `web/src/page/debug/components/input/` | [components.md](components.md) |
+| 右侧预览区、当前依据提示条 | `web/src/page/debug/components/preview/` | [components.md](components.md) |
+| 模拟语义（event → 帧）、逐字播放节奏 | `web/src/page/debug/utils/` | [utils.md](utils.md) |
+| 模拟帧与 event 载荷的形状 | `web/src/page/debug/types/` | [types.md](types.md) |
+| 实例标识、哨兵、支持的事件表 | `web/src/page/debug/constants/` | [constants.md](constants.md) |
+| 调试页皮肤与布局 | `web/src/page/debug/styles/` | [styles.md](styles.md) |
 
 ### 分层文档
 
 | 文档 | 含义 | 路径 | 场景 |
 |---|---|---|---|
-| [components.md](components.md) | 本页 3 个可视组件 | `web/docs/agents/page/debug/components.md` | 改调试页界面或播放状态机 |
+| [components.md](components.md) | 本页可视组件：三行装配、输入区、预览区 | `web/docs/agents/page/debug/components.md` | 改调试页界面或播放状态机 |
 | [utils.md](utils.md) | 宿主模拟器、输入解析、调试 store | `web/docs/agents/page/debug/utils.md` | 改模拟语义或播放节奏 |
 | [types.md](types.md) | 本页模拟帧与 event 载荷类型 | `web/docs/agents/page/debug/types.md` | 改模拟帧形状 |
 | [constants.md](constants.md) | 模拟器常量表 | `web/docs/agents/page/debug/constants.md` | 改实例标识或支持的事件表 |

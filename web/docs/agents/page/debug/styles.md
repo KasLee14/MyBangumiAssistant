@@ -8,6 +8,8 @@
 
 ## 索引
 
+本目录只有调试页皮肤一处（见 [index.md](index.md) 的「按场景分流」）。
+
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `debug.css` | 调试页皮肤：三行骨架与左侧输入区的形态；作用域挂在 `.appFrame[data-mode='debug']` 上 | `web/src/page/debug/styles/debug.css` | 改调试页布局或输入区形态 |
