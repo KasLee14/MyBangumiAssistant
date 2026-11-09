@@ -17,11 +17,17 @@ import { withContentConstraint } from './output/provider-options.js';
 import { decodeProviderOutput } from './output/provider-output.js';
 import { assistantErrorDiagnostic, classifyProviderFailure, rememberErrorDebug, withAssistantDiagnostic } from './support/error-diagnostic.js';
 import { RecoveryController } from './output/recovery.js';
-import { extensionResourceResolver, extensionComponentCatalog } from './extension.js';
+import { extensionResourceResolver, extensionComponentCatalog, extensionReplyAssembler, extensionRequestModelSetter } from './extension.js';
 import { bindResourceResolver, resourceResolverFor } from './output/resource-content.js';
-import { projectTranscriptForModel } from './output/model-context.js';
+import { projectTranscriptForModel, bindPresentationHistory } from './output/model-context.js';
 import { bindComponentCatalog } from './output/component-catalog.js';
 import { effectiveToolConstraintModel } from './support/provider-tool-arguments.js';
+import { bindReplyAssembler, PRESENTATION_ENTRY_TYPE } from './output/reply-assembler.js';
+import { PRESENTATION_MODEL_TOOL_ROLES } from './output/presentation-contract.js';
+const requestModelTargets = new WeakMap<object, (model: Model<Api>) => void>();
+function useActualRequestModel(context: TranscriptContext, model: Model<Api>): void {
+  (requestModelTargets.get(context) ?? requestModelTargets.get(context.messages))?.(model);
+}
 
 export interface BangumiRuntimeOptions {
   cwd: string;
@@ -61,6 +67,7 @@ export function withProviderFetch(provider: Provider, fetch?: FetchFunction): Pr
     ...provider,
     stream: <T extends Api>(model: Model<T>, context: TranscriptContext, options?: ApiStreamOptions<T>) => {
       model = effectiveToolConstraintModel(model);
+      useActualRequestModel(context, model);
       const resolver = resourceResolverFor(context), projected = projectTranscriptForModel(context, resolver);
       return protectProviderErrors(model, () => decodeProviderOutput(model, context, options, observePayload => provider.stream(model, projected,
         withContentConstraint(model, context, { ...options, ...(fetch ? { fetch } : {}), maxRetries: 0,
@@ -69,6 +76,7 @@ export function withProviderFetch(provider: Provider, fetch?: FetchFunction): Pr
     },
     streamSimple: (model, context, options) => {
       model = effectiveToolConstraintModel(model);
+      useActualRequestModel(context, model);
       const resolver = resourceResolverFor(context), projected = projectTranscriptForModel(context, resolver);
       return protectProviderErrors(model,
       () => decodeProviderOutput(model, context, options, observePayload => provider.streamSimple(model, projected,
@@ -142,12 +150,59 @@ export async function createBangumiRuntime(options: BangumiRuntimeOptions): Prom
     created.session.setActiveToolsByName(initialTools);
     created.session.agent.toolExecution = 'sequential';
     recovery.bind(created.session);
+    const presentationAssembler = sessionExtension && extensionReplyAssembler(sessionExtension);
+    if (presentationAssembler) presentationAssembler.setRecoveryBudget(() => recovery.remainingRecoveryAttempts);
+    const finishTurn = created.session.agent.finishTurn;
+    created.session.agent.finishTurn = async (turn, signal) => {
+      const previous = await finishTurn?.(turn, signal);
+      const assembler = sessionExtension && extensionReplyAssembler(sessionExtension);
+      const sameOwner = turn.message.diagnostics?.findLast(item => item.type === 'bangumi_presentation_source')?.details?.turnId === assembler?.snapshot()?.turnId;
+      // 取消可以晚于成功工具结果；不能靠下一模型错误消息才修正正文终态。
+      if (signal?.aborted && assembler && sameOwner) { assembler.discardCompletion(); assembler.finish('aborted'); return { action: 'end' }; }
+      if (assembler?.recoveryExhausted) { assembler.discardCompletion(); return { action: 'end' }; }
+      const finalOperation = assembler?.completionOperation();
+      if (finalOperation && assembler) {
+        const calls = turn.message.content.filter(part => part.type === 'toolCall');
+        const unknownBusiness = turn.toolResults.some(result => {
+          if (result.toolName !== 'execute_write_batch') return false;
+          const details = result.details as { value?: { state?: string; summary?: { unknown?: number; failed?: number; blocked?: number } } } | undefined;
+          return ['unknown', 'partial', 'cancelled', 'failed'].includes(details?.value?.state ?? '') || Number(details?.value?.summary?.unknown ?? 0) > 0;
+        });
+        const own = sameOwner;
+        const complete = own && turn.message.stopReason === 'toolUse' && calls.at(-1)?.id === finalOperation
+          && calls.length === turn.toolResults.length && calls.every((call, index) => turn.toolResults[index]?.toolCallId === call.id
+            && turn.toolResults[index]?.toolName === call.name && !turn.toolResults[index]?.isError)
+          && !unknownBusiness && !signal?.aborted && !created.session.agent.hasQueuedMessages() && previous?.action !== 'continue';
+        assembler.discardCompletion();
+        if (complete) {
+          assembler.finish('completed');
+          const snapshot = assembler.snapshot()!;
+          sessionExtension?.appendEntry('bangumi/presentation_commit', { version: 1, replyId: snapshot.replyId, turnId: snapshot.turnId,
+            operationId: finalOperation, batch: calls.map(call => ({ id: call.id, name: call.name })), evidence: 'all_tools_succeeded' });
+          return { action: 'end' };
+        }
+      }
+      return previous || undefined;
+    };
     const stream = created.session.agent.streamFunction;
     created.session.agent.streamFunction = (model, context, streamOptions) => {
+      const setModel = sessionExtension && extensionRequestModelSetter(sessionExtension);
+      if (setModel) { requestModelTargets.set(context, setModel); requestModelTargets.set(context.messages, setModel); }
       const resolver = sessionExtension && extensionResourceResolver(sessionExtension);
       if (resolver) bindResourceResolver(context, resolver);
       const catalog = sessionExtension && extensionComponentCatalog(sessionExtension);
       if (catalog) bindComponentCatalog(context, catalog);
+      const assembler = sessionExtension && extensionReplyAssembler(sessionExtension);
+      if (assembler) bindReplyAssembler(context, assembler);
+      bindPresentationHistory(context, created.session.sessionManager.buildContextEntries()
+        .flatMap(entry => entry.type === 'custom' && entry.customType === PRESENTATION_ENTRY_TYPE ? [entry.data] : []), {
+          sourceMessages: created.session.sessionManager.getBranch().flatMap(entry => entry.type === 'message' && entry.message.role === 'assistant'
+            && entry.message.diagnostics?.some(item => item.type === 'bangumi_presentation_source') ? [entry.message] : []),
+          sourceTranscript: created.session.sessionManager.getBranch().flatMap(entry => entry.type === 'message'
+            && (entry.message.role === 'system' || entry.message.role === 'user' || entry.message.role === 'assistant' || entry.message.role === 'toolResult') ? [entry.message] : []),
+          toolRoles: PRESENTATION_MODEL_TOOL_ROLES,
+          model,
+        });
       return stream(model, context, streamOptions);
     };
     return { ...created, services, diagnostics: services.diagnostics };

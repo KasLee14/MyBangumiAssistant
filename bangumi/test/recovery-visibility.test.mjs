@@ -3,11 +3,11 @@ import test from 'node:test';
 import { getCurrentSystemMessage } from '@earendil-works/pi-ai';
 import { fauxProvider, fauxAssistantMessage, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 import { withProviderFetch } from '../dist/src/pi-host.js';
-import { CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
+import { LEGACY_CONTENT_OUTPUT_INSTRUCTION as CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
 import { ContentDecoder } from '../dist/src/output/content-decoder.js';
 import { outputCheckpoint } from '../dist/src/output/recovery-checkpoint.js';
 import { ComponentCatalogState, bindComponentCatalog } from '../dist/src/output/component-catalog.js';
-import { createComponentReadTools } from '../dist/src/output/component-tools.js';
+import { createLegacyComponentReadTools as createComponentReadTools } from './legacy-provider-fixture.mjs';
 import { fixture, eventually } from './web-fixture.mjs';
 
 const card = id => ({ type: 'SubjectCards', pending: false, props: { layout: 'list', items: [{ id, name: `作品${id}`, kind: 'anime' }] } });

@@ -158,9 +158,10 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
   const versions = { candidate: versionFingerprint(root), ...(controlRoot ? { control: versionFingerprint(controlRoot) } : {}) };
   const fixtures = Object.fromEntries([...new Set(catalog.map(test => test.fixture))].map(id => [id, fixtureDefinition(id)]));
   const modelsPath = join(agentDir, 'models.json');
+  const modelConfigHash = () => !offline && existsSync(modelsPath) ? traceHash(traceRedact(JSON.parse(readFileSync(modelsPath, 'utf8')))) : null;
   const protocol = { schemaVersion: 1, cases: catalog, effectiveCases: cases, fixtures,
     harnessHash: traceHash(fileHashes(dirname(fileURLToPath(import.meta.url)))), model, thinking, mode, offline,
-    modelConfigHash: !offline && existsSync(modelsPath) ? traceHash(traceRedact(JSON.parse(readFileSync(modelsPath, 'utf8')))) : null,
+    modelConfigHash: modelConfigHash(),
     proxy, repeats, maxRequests, retry: recovery, sessions: 'fresh-per-case', cache: 'cold-application-cache', helperTitles: 'disabled',
     runtimeEnvironment: { node: process.version, platform: process.platform, arch: process.arch, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
     budgetOverrides: { timeoutMs: values['timeout-ms'] ? Number(values['timeout-ms']) : null,
@@ -207,6 +208,10 @@ async function run(values: Record<string, string>, offline: boolean): Promise<vo
       observation.outcome = 'incomplete_capture'; observation.captureIssues.push('runtime_version_changed');
       atomicJson(join(runPaths[observations.indexOf(observation)]!, 'result.json'), observation);
     }
+  }
+  if (modelConfigHash() !== protocol.modelConfigHash) for (const observation of observations) {
+    observation.outcome = 'incomplete_capture'; observation.captureIssues.push('model_config_changed');
+    atomicJson(join(runPaths[observations.indexOf(observation)]!, 'result.json'), observation);
   }
   await save();
   process.stdout.write('报告：' + join(output, 'report.html') + '\n');

@@ -39,6 +39,7 @@ import type {
 	RefreshModelsContext,
 	SimpleStreamOptions,
 	TextContent,
+	ToolArgumentContext,
 	ToolResultMessage,
 	TranscriptContext,
 	Usage,
@@ -581,7 +582,7 @@ export interface ToolDefinition<TParams extends TSchema = TSchema, TDetails = un
 	renderShell?: "default" | "self";
 
 	/** Optional compatibility shim to prepare raw tool call arguments before schema validation. Must return an object conforming to TParams. */
-	prepareArguments?: (args: unknown) => Static<TParams>;
+	prepareArguments?: (args: unknown, context?: ToolArgumentContext) => Static<TParams>;
 
 	/**
 	 * JSON Schema of `structuredContent` in successful results. Tools that declare it should always

@@ -8,7 +8,7 @@ import { lazyStream, getCurrentSystemMessage, getSystemMessageText, getCurrentTo
 import { fauxProvider, fauxAssistantMessage, fauxText, fauxThinking, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 import { ModelRuntime, SessionManager } from '@earendil-works/pi-coding-agent';
 import { createBangumiRuntime, withProviderFetch } from '../dist/src/pi-host.js';
-import { createBangumiExtension } from '../dist/src/extension.js';
+import { createLegacyBangumiExtension as createBangumiExtension } from './legacy-provider-fixture.mjs';
 import { parseLauncherArgs } from '../dist/src/launcher.js';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { AppError } from '../dist/src/support/errors.js';
@@ -350,9 +350,16 @@ test('real Pi loop uses JSON object contract, performs exactly two model request
 
 test('subjects content is native and its facts survive the next real Pi request and saved history', async t => {
   const answer = { content: [textPart('相关条目：', 'SubjectCards'), { type: 'SubjectCards', pending: false, props: {
-    title: '相关条目', layout: 'grid', items: [{ id: 123, name: '事实条目', kind: 'anime', score: 8.2 }],
+    title: '相关条目', layout: 'grid', items: [{ id: 123, name: '事实条目', kind: 'anime', score: 8.2, scoreCount: 345, rank: 12,
+      date: '2026-10-09', tags: ['日常'], summary: '长简介只保留在canonical会话', image: 'https://example.invalid/history-cover.jpg', url: 'https://bgm.tv/subject/123' }],
   } }, textPart('理由说明。')] };
-  const f = await fixture(t, [nativeMessage(wireFor(answer)), nativeMessage(wireFor({ content: [textPart('刚才条目评分为 8.2。')] }))]);
+  const f = await fixture(t, [nativeMessage(wireFor(answer)), transcript => {
+    const part = transcript.messages.flatMap(message => message.role === 'assistant' ? message.content : [])
+      .find(part => part.type === 'text' && part.text.startsWith('历史展示摘要：') && part.text.includes('"type":"SubjectCards"'));
+    const history = JSON.parse(part.text.slice('历史展示摘要：'.length));
+    assert.equal(history.props.items[0].score, 8.2);
+    return nativeMessage(wireFor({ content: [textPart(`刚才条目评分为 ${history.props.items[0].score}。`)] }));
+  }]);
   await f.runtime.session.prompt('列出相关作品');
   await f.runtime.session.waitForIdle();
   assert.deepEqual(f.runtime.session.messages.findLast(message => message.role === 'assistant').content, answer.content);
@@ -362,13 +369,18 @@ test('subjects content is native and its facts survive the next real Pi request 
   const prior = f.captures[1].context.messages.find(message => message.role === 'assistant' && message.content.some(part => part.type === 'text' && part.text.includes('事实条目')));
   const replayed = prior.content.filter(part => part.type === 'text').map(part => part.text).join('\n');
   assert.ok(replayed.includes('事实条目'));
-  assert.equal(replayed.includes('8.2'), false);
+  assert.ok(replayed.includes('8.2'));
+  const card = JSON.parse(prior.content.find(part => part.type === 'text' && part.text.startsWith('历史展示摘要：')).text.slice('历史展示摘要：'.length));
+  assert.deepEqual(card.props.items[0], { id: 123, name: '事实条目', kind: 'anime', score: 8.2, scoreCount: 345, rank: 12, date: '2026-10-09', tags: ['日常'] });
+  assert.equal(replayed.includes('长简介只保留在canonical会话'), false); assert.equal(replayed.includes('history-cover.jpg'), false);
+  assert.equal(replayed.includes('https://bgm.tv/subject/123'), false);
   assert.ok(replayed.includes('"props"'));
   assert.ok(replayed.includes('"type":"SubjectCards"'));
   const persisted = f.manager.getBranch().find(entry => entry.type === 'message'
     && entry.message.role === 'assistant' && entry.message.content.some(part => part.type === 'SubjectCards'));
   assert.ok(persisted);
   assert.deepEqual(persisted.message.content, answer.content);
+  assert.equal(rawLastAssistant(f).content[0].text, '刚才条目评分为 8.2。');
   assertNoSidecar(f.events);
 });
 
@@ -412,8 +424,10 @@ test('DataTable历史进入模型时仅保留展示摘要，新生成和持久�
     assert.equal(summary.type, 'DataTable');
     assert.equal(summary.props.rows.length, 7);
     assert.ok(summary.props.rows.every(row => row && typeof row === 'object' && !Array.isArray(row)));
-    assert.equal(replayed.text.includes('2026-10-01'), false);
-    assert.equal(replayed.text.includes('https://bgm.tv/subject'), false);
+    assert.deepEqual(summary.props.columns, table.props.columns);
+    assert.deepEqual(summary.props.rows, table.props.rows);
+    assert.equal(replayed.text.includes('2026-10-01'), true);
+    assert.equal(replayed.text.includes('https://bgm.tv/subject'), true);
     return nativeMessage(wireFor({ content: [edited] }));
   }], { api: 'openai-completions', provider: 'deepseek' });
   await f.runtime.session.prompt('整理周一到周日每天更新的动画');
@@ -423,6 +437,9 @@ test('DataTable历史进入模型时仅保留展示摘要，新生成和持久�
   assert.equal(f.scriptedCalls, 2);
   assert.deepEqual(f.calls, []);
   assert.deepEqual(f.runtime.session.messages.findLast(message => message.role === 'assistant').content, [edited]);
+  const original = f.manager.getBranch().find(entry => entry.type === 'message' && entry.message.role === 'assistant'
+    && entry.message.content.some(part => part.type === 'DataTable' && part.props.columns.length === 5));
+  assert.ok(original); assert.deepEqual(original.message.content, [table]);
   assert.equal(f.events.some(event => event.type === 'message_update'
     && event.message.content.some(part => part.type === 'DataTable' && part.pending === true)), false);
 });

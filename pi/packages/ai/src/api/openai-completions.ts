@@ -45,6 +45,7 @@ import { getProviderEnvValue } from "../utils/provider-env.ts";
 import { retryProviderRequest } from "../utils/provider-retry.ts";
 import { sanitizeSurrogates } from "../utils/sanitize-unicode.ts";
 import { getSystemMessageText, renderSystemMessageUpdate } from "../utils/text.ts";
+import { getToolCallArgumentSource, setToolCallArgumentSource } from "../utils/tool-call-arguments.ts";
 import {
 	getDeclaredTools,
 	resolveTranscript,
@@ -456,6 +457,11 @@ export const stream: StreamFunction<"openai-completions", OpenAICompletionsOptio
 							});
 						}
 					} else {
+						setToolCallArgumentSource(block, {
+							raw: block.partialArgs ?? "",
+							state: "interrupted",
+							source: getToolCallArgumentSource(block)?.source ?? "delta",
+						});
 						block.arguments = parseStreamingJson(block.partialArgs);
 					}
 					// Finalize in-place and strip the scratch buffers so replay only
@@ -582,6 +588,19 @@ export const stream: StreamFunction<"openai-completions", OpenAICompletionsOptio
 					}
 					hasFinishReason = true;
 				}
+				// Some compatible endpoints send one terminal message instead of argument deltas.
+				const terminalMessage = (choice as { message?: { tool_calls?: StreamingToolCallDelta[] } }).message;
+				for (const toolCall of terminalMessage?.tool_calls ?? []) {
+					if (typeof toolCall.function?.arguments !== "string") continue;
+					const block = ensureToolCallBlock(toolCall);
+					block.partialArgs = toolCall.function.arguments;
+					block.arguments = parseStreamingJson(block.partialArgs);
+					setToolCallArgumentSource(block, {
+						raw: block.partialArgs,
+						state: "interrupted",
+						source: "terminal_response",
+					});
+				}
 
 				if (choice.delta) {
 					if (
@@ -632,7 +651,7 @@ export const stream: StreamFunction<"openai-completions", OpenAICompletionsOptio
 						}
 					}
 
-					if (choice?.delta?.tool_calls) {
+					if (choice?.delta?.tool_calls && !terminalMessage?.tool_calls) {
 						for (const toolCall of choice.delta.tool_calls as StreamingToolCallDelta[]) {
 							const block = ensureToolCallBlock(toolCall);
 							if (!block.id && toolCall.id) {
@@ -649,6 +668,11 @@ export const stream: StreamFunction<"openai-completions", OpenAICompletionsOptio
 								delta = toolCall.function.arguments;
 								block.partialArgs = (block.partialArgs ?? "") + toolCall.function.arguments;
 								block.arguments = parseStreamingJson(block.partialArgs);
+								setToolCallArgumentSource(block, {
+									raw: block.partialArgs,
+									state: "interrupted",
+									source: "delta",
+								});
 							} else if (toolCall.custom?.input) {
 								const nextInput = getCustomToolCallInput(block) + toolCall.custom.input;
 								delta = appendCustomToolCallInput(block, nextInput, false) ?? "";
@@ -697,10 +721,19 @@ export const stream: StreamFunction<"openai-completions", OpenAICompletionsOptio
 				throw new Error("Stream ended without finish_reason");
 			}
 
+			for (const block of output.content) {
+				if (block.type !== "toolCall") continue;
+				const source = getToolCallArgumentSource(block);
+				if (source) setToolCallArgumentSource(block, { ...source, state: "complete" });
+			}
 			stream.push({ type: "done", reason: output.stopReason, message: output });
 			stream.end();
 		} catch (error) {
 			for (const block of output.content) {
+				if (block.type === "toolCall") {
+					const source = getToolCallArgumentSource(block);
+					if (source) setToolCallArgumentSource(block, { ...source, state: "interrupted" });
+				}
 				if (block.type === "thinking") {
 					applyStreamedReasoningDetails(block);
 				}

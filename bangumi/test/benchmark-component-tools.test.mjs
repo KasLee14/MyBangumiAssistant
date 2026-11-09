@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parseArguments, PROJECT_ROOT, runWorker } from '../dist/src/benchmark/cli.js';
@@ -79,6 +79,10 @@ test('输出分类优先固定诊断code，资源引用Schema错误计数，空�
   assert.equal(legacy.blankOutputErrors, 1); assert.equal(legacy.jsonOutputErrors, 0);
 });
 for (const sample of suite.filter(item => item.offlineScript)) test('真实Pi恢复script benchmark：' + sample.id, { timeout: 80000 }, async t => {
+  if (existsSync(new URL('../dist/src/output/presentation-store.js', import.meta.url))) {
+    t.skip('旧mixed JSON故障脚本仅验收旧runtime；当前原生参数链路由benchmark-presentation.test.mjs验收。');
+    return;
+  }
   const outputDir = mkdtempSync(join(tmpdir(), 'bangumi-component-tools-bench-'));
   t.after(() => { assert.ok(resolve(outputDir).startsWith(resolve(tmpdir()) + sep)); rmSync(outputDir, { recursive: true, force: true }); });
   const result = await runWorker({ runtimeRoot: PROJECT_ROOT, outputDir, case: sample, fixture: fixtureDefinition(sample.fixture),

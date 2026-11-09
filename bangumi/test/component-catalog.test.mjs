@@ -59,24 +59,28 @@ test('字段和引用契约直接来自实际Schema，返回值不共享源对�
   assert.equal(COMPONENT_PAYLOAD_SCHEMAS.SubjectCards.required.includes('wrong'), false);
 });
 
-test('系统规则不携带全量字段且明确禁止裸组件根及空白正文', () => {
+test('系统规则只给用途/加载入口与原子render，不携带全量字段或正文JSON', () => {
   assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('read_component_index'));
   assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('read_component_spec'));
   assert.equal(CONTENT_OUTPUT_INSTRUCTION.includes(JSON.stringify(COMPONENT_PAYLOAD_SCHEMAS.SubjectCards)), false);
-  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('不要用裸组件对象'));
-  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('全空白'));
+  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('不生成content JSON'));
+  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('render_'));
   assert.ok(CONTENT_OUTPUT_INSTRUCTION.length < 3000);
 });
 
-test('工具读取按顺序登记状态，失败返回内部错误而不填正文组件', async () => {
-  const state = createComponentCatalogState(); const [index, spec] = createComponentReadTools(state);
-  const failed = await spec.execute('1', { names: ['SubjectCards'] });
+test('固定合法名称可直达loader，未知名称不激活且旧读取仍需索引', async () => {
+  const state = createComponentCatalogState(); const activated = []; const [index, spec] = createComponentReadTools(state, names => activated.push(...names));
+  assert.throws(() => state.readSpecs(['SubjectCards']), error => error.code === 'COMPONENT_INDEX_REQUIRED');
+  const failed = await spec.execute('1', { names: ['UnknownComponent'] });
   assert.equal(failed.isError, true);
-  assert.equal(failed.details.error.code, 'COMPONENT_INDEX_REQUIRED');
-  const page = await index.execute('2', { query: '作品' });
-  assert.equal(page.details.entries[0].name, 'SubjectCards');
+  assert.equal(failed.details.error.code, 'INVALID_INPUT'); assert.deepEqual(activated, []);
   const fields = await spec.execute('3', { names: ['SubjectCards'] });
-  assert.deepEqual(fields.details.audit.loaded, ['SubjectCards']);
+  assert.deepEqual(fields.details.tools, ['render_SubjectCards']); assert.equal(fields.details.status, 'activated');
+  assert.deepEqual(activated, ['render_SubjectCards']); assert.equal(JSON.stringify(fields.details).includes('properties'), false);
+  assert.equal(state.currentAudit().indexReads, 0);
+  assert.throws(() => state.loadSpecs(['SubjectCards', 'UnknownComponent'], 'render', names => activated.push(...names)));
+  assert.deepEqual(activated, ['render_SubjectCards']);
+  const page = await index.execute('2', { query: '作品' }); assert.equal(page.details.entries[0].name, 'SubjectCards');
   assert.throws(() => index.prepareArguments({ unknown: 1 }));
 });
 
@@ -216,7 +220,7 @@ test('引用表格可转严格生成Schema，inline动态对象行仍保守回�
   const spec = state.readSpecs(['SubjectCards'], 'reference').specs[0];
   assert.ok(spec.requestedFacts.includes('总集数'));
   assert.ok(spec.requestedFacts.includes('text'));
-  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('保留尚未交付的用户事实要求'));
+  assert.ok(CONTENT_OUTPUT_INSTRUCTION.includes('组件合法不等于任务完整'));
   assert.equal(spec.props.properties.total, undefined);
   assert.equal(spec.props.properties.hint, undefined);
   assert.throws(() => state.readSpecs(['SubjectCards'], 'unknown'), error => error.code === 'INVALID_INPUT');

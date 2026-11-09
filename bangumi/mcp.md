@@ -1,6 +1,6 @@
 # Bangumi MCP 字段声明
 
-71 个底层工具及宿主工具 execute_write_batch。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。
+71 个底层工具及宿主工具 execute_write_batch、read_component_index、read_component_spec、render_SubjectCards、render_StatsCard、render_ProgressView、render_InfoBox、render_DataTable、render_Timeline、render_TagCloud、render_Gallery、render_CompareTable、render_QuoteBlock、render_Callout、render_LinkList、prepare_SubjectCards、prepare_StatsCard、prepare_ProgressView、prepare_InfoBox、prepare_DataTable、prepare_Timeline、prepare_TagCloud、prepare_Gallery、prepare_CompareTable、prepare_QuoteBlock、prepare_Callout、prepare_LinkList、prepare_component、present_component、present_text。输入字段递归声明；输出嵌套对象引用末尾的公共结构，scope 对应本工具输入。底层结果封装为 value 或 error，错误字段见公共安全错误结构。
 
 ## `get_daily_broadcast`
 
@@ -870,11 +870,11 @@
 | value.kind | string | 是 | — | 固定 page |  |
 | value.entity | string | 是 | — | 固定 personCharacter |  |
 | value.data | array<PersonCharacterRow> | 是 | — | 最多项 100 |  |
-| value.page | AppearancePageMeta | 是 | — | 拒绝额外字段 |  |
+| value.page | get_person_characters_page | 是 | — | 拒绝额外字段 |  |
 | value.scope | object（本工具输入字段） | 是 | — | 拒绝额外字段 |  |
 | value.visibility | string | 是 | — | 允许 public、self |  |
 | value.readAt | string | 是 | — | 最短字符数 0；最长字符数 100 |  |
-| value.coverage | AppearanceCoverage | 否 | — | 拒绝额外字段 |  |
+| value.coverage | get_person_characters_coverage | 否 | — | 拒绝额外字段 |  |
 | value.account | search_subjects_account | 否 | — | 拒绝额外字段 |  |
 | value.accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | value.resourceRef | string | 否 | — | 正则 ^rr_[a-f0-9]{32}$ |  |
@@ -3140,6 +3140,818 @@
 | value.completedSteps | integer | 否 | — | ≥ 0 | 进度更新的已完成步骤数 |
 | value.totalSteps | integer | 否 | — | ≥ 0 | 进度更新的计划项数 |
 
+## `read_component_index`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| query | string | 否 | — | 最长字符数 100 |  |
+| category | string | 否 | — | 最长字符数 30 |  |
+| offset | integer | 否 | 0 | ≥ 0 |  |
+| limit | integer | 否 | 6 | ≥ 1；≤ 12 |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| version | string | 是 | — | — | anyOf 1 |
+| entries | array<read_component_index_entriesItem> | 是 | — | — | anyOf 1 |
+| total | integer | 是 | — | — | anyOf 1 |
+| offset | integer | 是 | — | — | anyOf 1 |
+| nextOffset | integer / null | 是 | — | anyOf 2 个分支 | anyOf 1 |
+| categories | array<string> | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `read_component_spec`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| names | array<string> | 是 | — | 最少项 1；最多项 12；元素不重复；元素：允许 SubjectCards、StatsCard、ProgressView、InfoBox、DataTable、Timeline、TagCloud、Gallery、CompareTable、QuoteBlock、Callout、LinkList |  |
+| mode | string | 否 | render | 允许 render、prepare |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| version | string | 是 | — | — | anyOf 1 |
+| status | string | 是 | — | 允许 activated | anyOf 1 |
+| tools | array<string> | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_SubjectCards`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| layout | string | 否 | — | 允许 grid、list |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_SubjectCards_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_SubjectCards_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_StatsCard`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| mode | string | 否 | — | 允许 list、bars、histogram |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 1；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 1 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_StatsCard_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_StatsCard_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_ProgressView`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_ProgressView_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_ProgressView_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_InfoBox`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| fields | array<string> | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 1；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 1 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_StatsCard_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_StatsCard_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_DataTable`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| columns | array<Input_render_DataTable_columnsItem> | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 200；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 200 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_DataTable_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_DataTable_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_Timeline`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_ProgressView_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_ProgressView_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_TagCloud`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 200；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 200 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_DataTable_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_DataTable_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_Gallery`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_Gallery_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_Gallery_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_CompareTable`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| fields | array<string> | 否 | — | — |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_CompareTable_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_CompareTable_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_QuoteBlock`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| title | string | 否 | — | — |  |
+| text | string | 是 | — | — |  |
+| mono | boolean | 是 | — | — |  |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_Callout`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| tone | string | 是 | — | 允许 progress、success、warning、error |  |
+| text | string | 是 | — | — |  |
+| detail | string | 否 | — | — |  |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `render_LinkList`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_Gallery_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| before | string | 否 | — | 最长字符数 65536 | 紧邻组件前的用户说明，不另重复输出。 |
+| after | string | 否 | — | 最长字符数 65536 | 紧邻组件后的说明或结论。 |
+| final | boolean | 否 | — | — | 明确本次回答已完整交付；必须放在本批最后一个工具，整批成功后宿主结束用户回合。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_Gallery_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_SubjectCards`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| layout | string | 否 | — | 允许 grid、list |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_SubjectCards_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_SubjectCards_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_StatsCard`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| mode | string | 否 | — | 允许 list、bars、histogram |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 1；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 1 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_StatsCard_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_StatsCard_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_ProgressView`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_ProgressView_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_ProgressView_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_InfoBox`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| fields | array<string> | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 1；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 1 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_StatsCard_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_StatsCard_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_DataTable`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| fields | array<string> | 否 | — | — |  |
+| columns | array<Input_render_DataTable_columnsItem> | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 200；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 200 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_DataTable_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_DataTable_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_Timeline`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_ProgressView_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_ProgressView_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_TagCloud`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 200；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 200 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_DataTable_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_DataTable_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_Gallery`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_Gallery_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_Gallery_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_CompareTable`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| fields | array<string> | 否 | — | — |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_CompareTable_sourcesItem> | 否 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_CompareTable_sourcesItem> | 是 | — | 最少项 1；最多项 1 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_QuoteBlock`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| title | string | 否 | — | — |  |
+| text | string | 是 | — | — |  |
+| mono | boolean | 是 | — | — |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_Callout`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| tone | string | 是 | — | 允许 progress、success、warning、error |  |
+| text | string | 是 | — | — |  |
+| detail | string | 否 | — | — |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_LinkList`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 否 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。 |
+| title | string | 否 | — | — |  |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 |  |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| sources | array<Input_render_Gallery_sourcesItem> | 否 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 单来源快捷形式；与sources二选一，成员必须属于本引用。；oneOf 1 |
+| sources | array<Input_render_Gallery_sourcesItem> | 是 | — | 最少项 1；最多项 50 | 有序组合当前回合已取得的缓存引用，各来源各自选择其成员；不混入顶层resourceRef/成员。；oneOf 2 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `prepare_component`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| component | string | 是 | — | 允许 SubjectCards | anyOf 1 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| title | string | 否 | — | — | anyOf 1 |
+| layout | string | 否 | — | 允许 grid、list | anyOf 1 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 | anyOf 1 |
+| component | string | 是 | — | 允许 StatsCard | anyOf 2 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 2 |
+| title | string | 否 | — | — | anyOf 2 |
+| mode | string | 否 | — | 允许 list、bars、histogram | anyOf 2 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 1；元素不重复；元素：≥ 1 | anyOf 2 |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 1 | anyOf 2 |
+| component | string | 是 | — | 允许 ProgressView | anyOf 3 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 3 |
+| title | string | 否 | — | — | anyOf 3 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1 | anyOf 3 |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 | anyOf 3 |
+| component | string | 是 | — | 允许 InfoBox | anyOf 4 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 4 |
+| title | string | 否 | — | — | anyOf 4 |
+| fields | array<string> | 否 | — | — | anyOf 4 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 1；元素不重复；元素：≥ 1 | anyOf 4 |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 1 | anyOf 4 |
+| component | string | 是 | — | 允许 DataTable | anyOf 5 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 5 |
+| title | string | 否 | — | — | anyOf 5 |
+| fields | array<string> | 否 | — | — | anyOf 5 |
+| columns | array<Input_render_DataTable_columnsItem> | 否 | — | — | anyOf 5 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 200；元素不重复；元素：≥ 1 | anyOf 5 |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 200 | anyOf 5 |
+| component | string | 是 | — | 允许 Timeline | anyOf 6 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 6 |
+| title | string | 否 | — | — | anyOf 6 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1 | anyOf 6 |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 | anyOf 6 |
+| component | string | 是 | — | 允许 TagCloud | anyOf 7 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 7 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 200；元素不重复；元素：≥ 1 | anyOf 7 |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 200 | anyOf 7 |
+| component | string | 是 | — | 允许 Gallery | anyOf 8 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 8 |
+| title | string | 否 | — | — | anyOf 8 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 | anyOf 8 |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 | anyOf 8 |
+| component | string | 是 | — | 允许 CompareTable | anyOf 9 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 9 |
+| title | string | 否 | — | — | anyOf 9 |
+| fields | array<string> | 否 | — | — | anyOf 9 |
+| component | string | 是 | — | 允许 QuoteBlock | anyOf 10 |
+| title | string | 否 | — | — | anyOf 10 |
+| text | string | 是 | — | — | anyOf 10 |
+| mono | boolean | 是 | — | — | anyOf 10 |
+| component | string | 是 | — | 允许 Callout | anyOf 11 |
+| tone | string | 是 | — | 允许 progress、success、warning、error | anyOf 11 |
+| text | string | 是 | — | — | anyOf 11 |
+| detail | string | 否 | — | — | anyOf 11 |
+| component | string | 是 | — | 允许 LinkList | anyOf 12 |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 12 |
+| title | string | 否 | — | — | anyOf 12 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 | anyOf 12 |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 | anyOf 12 |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | anyOf 1 |
+| blocks | array<prepare_SubjectCards_blocksItem> | 是 | — | 最少项 1 | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `present_component`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ |  |
+| blockIndex | integer | 是 | — | ≥ 0 |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## `present_text`
+
+输入字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| text | string | 是 | — | 最短字符数 1；最长字符数 65536 |  |
+
+成功输出字段
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| replyId | string | 是 | — | — | anyOf 1 |
+| blockIndex | integer | 是 | — | ≥ 0 | anyOf 1 |
+| reused | boolean | 是 | — | — | anyOf 1 |
+| error | SafeError_19 | 是 | — | 拒绝额外字段 | anyOf 2 |
+
+## 公共输入结构
+
+### `Input_render_SubjectCards_sourcesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 本来源的当前缓存引用。 |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
+
+### `Input_render_StatsCard_membersItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| id | number | 否 | — | — |  |
+| subjectId | number | 否 | — | — |  |
+| episodeId | number | 否 | — | — |  |
+| characterId | number | 否 | — | — |  |
+| personId | number | 否 | — | — |  |
+| revisionId | number | 否 | — | — |  |
+| targetId | number | 否 | — | — |  |
+| relationId | number | 否 | — | — |  |
+| ownerId | number | 否 | — | — |  |
+| entity | string | 否 | — | 允许 subject、character、person、episode、revision、user、index |  |
+| targetKind | string | 否 | — | 允许 subject、character、person、episode、revision、user、index |  |
+| username | string | 否 | — | — |  |
+
+### `Input_render_StatsCard_sourcesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 本来源的当前缓存引用。 |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 1；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 1 |  |
+
+### `Input_render_ProgressView_sourcesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 本来源的当前缓存引用。 |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 100；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 100 |  |
+
+### `Input_render_DataTable_columnsItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| key | string | 是 | — | — |  |
+| label | string | 是 | — | — |  |
+| align | string | 否 | — | 允许 left、right |  |
+
+### `Input_render_DataTable_sourcesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 本来源的当前缓存引用。 |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 200；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 200 |  |
+
+### `Input_render_Gallery_sourcesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 本来源的当前缓存引用。 |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+| subjectIds | array<integer> | 否 | — | 最少项 1；最多项 50；元素不重复；元素：≥ 1 |  |
+| members | array<Input_render_StatsCard_membersItem> | 否 | — | 最多项 50 |  |
+
+### `Input_render_CompareTable_sourcesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| resourceRef | string | 是 | — | 正则 ^rr_[A-Za-z0-9_-]+$ | 本来源的当前缓存引用。 |
+| blockIndex | integer | 否 | — | ≥ 0 | 已准备快照的绝对组件下标；不能同时覆盖成员或布局。 |
+
 ## 公共输出结构
 
 ### `get_daily_broadcast_dataItem`
@@ -3621,10 +4433,10 @@
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | person | PersonSummary | 是 | — | 拒绝额外字段 |  |
-| subject | SubjectRef | 是 | — | 拒绝额外字段 |  |
+| subject | CharacterPersonRow_subject | 是 | — | 拒绝额外字段 |  |
 | staff | string / null | 是 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 300 |  |
 | sourceTypeCode | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 | 原始接口的type码；不同源语义不同，不能据此判断主角。出演关系只看appearanceRole。 |
-| appearanceRole | AppearanceRole | 是 | — | 拒绝额外字段 |  |
+| appearanceRole | CharacterPersonRow_appearanceRole | 是 | — | 拒绝额外字段 |  |
 
 ### `collect_character_itemsItem`
 
@@ -3653,7 +4465,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_collect_character | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_2_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -3672,7 +4484,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_uncollect_character | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_3_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -3703,14 +4515,14 @@
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | character | CharacterSummary | 是 | — | 拒绝额外字段 |  |
-| subject | SubjectRef | 是 | — | 拒绝额外字段 |  |
+| subject | CharacterPersonRow_subject | 是 | — | 拒绝额外字段 |  |
 | staff | string / null | 是 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 300 |  |
 | sourceTypeCode | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 | 原始接口的type码；不同源语义不同，不能据此判断主角。出演关系只看appearanceRole。 |
-| appearanceRole | AppearanceRole | 是 | — | 拒绝额外字段 |  |
-| subjectFacts | AppearanceSubjectFacts | 否 | — | 拒绝额外字段 |  |
-| ownCollection | AppearanceOwnCollection | 否 | — | 拒绝额外字段 |  |
+| appearanceRole | CharacterPersonRow_appearanceRole | 是 | — | 拒绝额外字段 |  |
+| subjectFacts | PersonCharacterRow_subjectFacts | 否 | — | 拒绝额外字段 |  |
+| ownCollection | PersonCharacterRow_ownCollection | 否 | — | 拒绝额外字段 |  |
 
-### `AppearancePageMeta`
+### `get_person_characters_page`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -3727,7 +4539,7 @@
 | unknownNsfwCount | integer | 否 | — | ≥ 0；≤ 9007199254740991 |  |
 | snapshotRef | string | 否 | — | 最短字符数 32；最长字符数 32；正则 ^[a-f0-9]{32}$ |  |
 
-### `AppearanceCoverage`
+### `get_person_characters_coverage`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -3791,7 +4603,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_collect_person | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_4_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -3810,7 +4622,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_uncollect_person | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_5_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -3950,7 +4762,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_update_subject_collection | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_7_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -3997,7 +4809,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_update_episode_collection | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_8_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4024,7 +4836,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_update_single_episode_collection | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_9_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4172,7 +4984,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_create_index | 否 | — | 拒绝额外字段；条件：提供 submissionState；submissionState=acknowledged |  |
+| submission | SafeError_10_submission | 否 | — | 拒绝额外字段；条件：提供 submissionState；submissionState=acknowledged |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4210,7 +5022,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_update_index | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_11_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4275,7 +5087,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_add_subject_to_index | 否 | — | 拒绝额外字段；条件：提供 submissionState；submissionState=acknowledged |  |
+| submission | SafeError_12_submission | 否 | — | 拒绝额外字段；条件：提供 submissionState；submissionState=acknowledged |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4313,7 +5125,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_update_index_subject | 否 | — | 拒绝额外字段；条件：提供 submissionState；submissionState=acknowledged |  |
+| submission | SafeError_13_submission | 否 | — | 拒绝额外字段；条件：提供 submissionState；submissionState=acknowledged |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4351,7 +5163,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_remove_subject_from_index | 否 | — | 拒绝额外字段；条件：提供 submissionState；submissionState=acknowledged |  |
+| submission | SafeError_14_submission | 否 | — | 拒绝额外字段；条件：提供 submissionState；submissionState=acknowledged |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4389,7 +5201,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_collect_index | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_15_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4408,7 +5220,7 @@
 | message | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 | networkAttempted | boolean | 否 | — | 固定 false |  |
 | issues | array<ReadError_issuesItem> | 否 | — | 最多项 200 |  |
-| submission | Receipt_uncollect_index | 否 | — | 拒绝额外字段 |  |
+| submission | SafeError_16_submission | 否 | — | 拒绝额外字段 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 | rejection | SafeError_rejection | 否 | — | 拒绝额外字段 |  |
 | sourceTool | string | 否 | — | 最短字符数 1；最长字符数 100 |  |
@@ -4834,6 +5646,40 @@
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 
+### `SafeError_19`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| code | string | 是 | — | — |  |
+| message | string | 是 | — | — |  |
+| sourceTool | string | 否 | — | — |  |
+| networkAttempted | boolean | 否 | — | 允许 false |  |
+| issues | array<SafeError_19_issuesItem> | 否 | — | — |  |
+| diagnostic | object | 否 | — | — |  |
+| rejection | object | 否 | — | — |  |
+| submission | object | 否 | — | — |  |
+| accessContext | object | 否 | — | 见公共结构 |  |
+| recovery | object | 否 | — | — |  |
+| diagnosis | object | 否 | — | — |  |
+| contractIssue | object | 否 | — | — |  |
+
+### `read_component_index_entriesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| name | string | 是 | — | — |  |
+| category | string | 是 | — | — |  |
+| purpose | string | 是 | — | — |  |
+| data | string | 是 | — | — |  |
+
+### `prepare_SubjectCards_blocksItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| blockIndex | integer | 是 | — | ≥ 0 |  |
+| type | string | 是 | — | 允许 SubjectCards、StatsCard、ProgressView、InfoBox、DataTable、Timeline、TagCloud、Gallery、CompareTable、QuoteBlock、Callout、LinkList |  |
+| itemCount | integer | 是 | — | ≥ 0 |  |
+
 ### `get_daily_broadcast_dataItem_weekday`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
@@ -5154,7 +6000,7 @@
 | k | string | 否 | — | 最短字符数 0；最长字符数 1000 |  |
 | v | string | 是 | — | 最短字符数 0；最长字符数 20000 |  |
 
-### `SubjectRef`
+### `CharacterPersonRow_subject`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5166,7 +6012,7 @@
 | url | string / null | 是 | — | anyOf 2 个分支；string：最短字符数 0；最长字符数 2048；正则 ^https://[^\s]+$ |  |
 | nsfw | boolean / null | 是 | — | anyOf 2 个分支 |  |
 
-### `AppearanceRole`
+### `CharacterPersonRow_appearanceRole`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5174,7 +6020,7 @@
 | meaning | string | 是 | — | 允许 main、supporting、guest、unknown |  |
 | label | string / null | 是 | — | anyOf 2 个分支；string：最长字符数 300 |  |
 
-### `Receipt_collect_character`
+### `SafeError_2_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5193,7 +6039,7 @@
 | requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
-### `Receipt_uncollect_character`
+### `SafeError_3_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5212,7 +6058,7 @@
 | requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
-### `AppearanceSubjectFacts`
+### `PersonCharacterRow_subjectFacts`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5222,7 +6068,7 @@
 | score | number / null | 是 | — | anyOf 2 个分支；number：≥ 0；≤ 10 |  |
 | ratingCount | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
 
-### `AppearanceOwnCollection`
+### `PersonCharacterRow_ownCollection`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5231,7 +6077,7 @@
 | chapters | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
 | volumes | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
 
-### `Receipt_collect_person`
+### `SafeError_4_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5250,7 +6096,7 @@
 | requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
-### `Receipt_uncollect_person`
+### `SafeError_5_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5269,7 +6115,7 @@
 | requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
-### `Receipt_update_subject_collection`
+### `SafeError_7_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5288,7 +6134,7 @@
 | requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
-### `Receipt_update_episode_collection`
+### `SafeError_8_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5307,7 +6153,7 @@
 | requestedEpisodeStatus | number | 是 | — | 允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
-### `Receipt_update_single_episode_collection`
+### `SafeError_9_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5376,7 +6222,7 @@
 | disc | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
 | subjectId | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 1；≤ 9007199254740991 |  |
 
-### `Receipt_create_index`
+### `SafeError_10_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5397,7 +6243,7 @@
 | createdId | integer | 否 | — | ≥ 1；≤ 9007199254740991 | then: 提供 submissionState；submissionState=acknowledged |
 | target | create_index_target | 否 | — | 拒绝额外字段 | then: 提供 submissionState；submissionState=acknowledged |
 
-### `Receipt_update_index`
+### `SafeError_11_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5416,7 +6262,7 @@
 | requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
-### `Receipt_add_subject_to_index`
+### `SafeError_12_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5437,7 +6283,7 @@
 | relatedId | integer | 否 | — | ≥ 1；≤ 9007199254740991 | then: 提供 submissionState；submissionState=acknowledged |
 | target | add_subject_to_index_target_2 | 否 | — | 拒绝额外字段 | then: 提供 submissionState；submissionState=acknowledged |
 
-### `Receipt_update_index_subject`
+### `SafeError_13_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5458,7 +6304,7 @@
 | relatedId | integer | 否 | — | ≥ 1；≤ 9007199254740991 | then: 提供 submissionState；submissionState=acknowledged |
 | target | add_subject_to_index_target_2 | 否 | — | 拒绝额外字段 | then: 提供 submissionState；submissionState=acknowledged |
 
-### `Receipt_remove_subject_from_index`
+### `SafeError_14_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5479,7 +6325,7 @@
 | relatedId | integer | 否 | — | ≥ 1；≤ 9007199254740991 | then: 提供 submissionState；submissionState=acknowledged |
 | target | add_subject_to_index_target_2 | 否 | — | 拒绝额外字段 | then: 提供 submissionState；submissionState=acknowledged |
 
-### `Receipt_collect_index`
+### `SafeError_15_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5498,7 +6344,7 @@
 | requestedEpisodeStatus | number / null | 是 | — | anyOf 2 个分支；number：允许 0、1、2、3 |  |
 | accessContext | AccessContext | 否 | — | 见公共结构 |  |
 
-### `Receipt_uncollect_index`
+### `SafeError_16_submission`
 
 | 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -5631,6 +6477,15 @@
 | returnedChars | integer | 是 | — | ≥ 0；≤ 5000 |  |
 | totalChars | integer | 是 | — | ≥ 0；≤ 9007199254740991 |  |
 | nextOffset | integer / null | 是 | — | anyOf 2 个分支；integer：≥ 0；≤ 9007199254740991 |  |
+
+### `SafeError_19_issuesItem`
+
+| 字段 | 类型 | 必填 | 默认 | 允许值与约束 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| path | string | 是 | — | — |  |
+| rule | string | 是 | — | — |  |
+| hint | string | 是 | — | — |  |
+| allowed | array<组合字段> | 否 | — | — |  |
 
 ### `SafeError_diagnosis_allowedValuesItem`
 

@@ -1,5 +1,17 @@
 # 宿主定向恢复契约
 
+新展示使用原生文字及按需固定 `render_<组件名>`，一次原子提交前文、完整组件和后文。延期准备才加载 `prepare_<组件名>` / `present_component` / `present_text`。`ReplyAssembler` 维护已发布完成前缀及完整 `bangumi/presentation` 记录，新生成不执行旧正文 JSON 续写。提供方重试、业务只读重规划和未知写入保护继续运行；展示参数错误消费 `RecoveryController.remainingRecoveryAttempts` 的同一 Pi 重试预算，不追加另一套次数。
+
+组件索引/加载与展示工具的可纠正参数、漏读索引或契约等本地错误，保持原生工具可用，让模型补齐 index→加载→render，不送入旧通用恢复的“停止所有工具”报告路径。定义工具错误同样在真实 tool_execution_end 计入共享预算，准备校验失败与执行失败只计一次，耗尽保留前缀并结束。MCP业务工具错误、缓存权限/业务cause、权限报告计划及未知写入保护继续走原处理。
+
+业务恢复的工具集合由 recovery-loadout.ts 分域管理：执行域快照只包含业务工具，宿主index/spec/展示角色从真实注册表与当前active集合核实，不使用名称前缀或另一份组件状态。限制和恢复都合并最新宿主集合，既有组件不会因业务纠参被撤掉，恢复期新加载的组件也不会被旧快照覆盖。原生report/fatal/unknown停止业务执行，仍可用已有当前缓存和宿主文字报告；引用、账户、NSFW与事实版本继续经过原验证，不能把元数据加载当作新业务授权。旧JSON报告路径仍只允许原文字交付。
+
+策略同时在共用tool_call与顶层beforeToolCall验证，覆盖真实SDK nested executeTool；只读重规划限原许可读集，发现工具不能扩大读写集合，fatal/unknown业务空集。引用恢复许可按同callID、同原工具/参数最多一次重入，双hook不会多消费一次许可。宿主缓存RPC以及批次内部带guard的独立提交/回读仍使用原边界，不经过模型业务执行放行。
+
+普通工具回合不结束展示。最后一个 render 明确 final=true 时，Pi finishTurn 在整批调用均有成功结果、所属回合有效且无取消、待输入或未知写入后提交并结束；任一失败废弃本批完成意图，继续必要纠正。不能在 tool.execute 内提前结束，也不能因为已展示内容看起来完整而省略终态。普通原生最终文字仍只有正常 stop 才作为正文，agent_settled 保存其最终状态。length、deferred、取消及错误不提交草稿；操作失败保留完成前缀，重试幂等。新输入和账户/NSFW/事实版本变化使旧准备不可发布。实时、终态及历史共用唯一完整记录。
+
+以下 JSON 断点和恢复后缀规则仅用于旧输出标记兼容路径。
+
 会话恢复使用Pi已有`turn_end`、`agent_before_settle`边界及原生context_edit/custom_message，不新增前端行为。实现位于`output/recovery.ts`，每个会话独立持有状态；新真实用户输入取消旧等待并建立新的chainId。
 
 ## 错误反馈与断点

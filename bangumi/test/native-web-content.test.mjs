@@ -3,7 +3,7 @@ import test from 'node:test';
 import { lazyStream, getCurrentSystemMessage } from '@earendil-works/pi-ai';
 import { fauxProvider, fauxAssistantMessage } from '@earendil-works/pi-ai/providers/faux';
 import { withProviderFetch } from '../dist/src/pi-host.js';
-import { CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
+import { LEGACY_CONTENT_OUTPUT_INSTRUCTION as CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
 import { fixture, eventually } from './web-fixture.mjs';
 import { sectionsModule, providerPart, validateMessageBlock } from './frontend-content-fixture.mjs';
 

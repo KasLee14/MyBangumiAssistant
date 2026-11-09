@@ -1,9 +1,16 @@
+import type { HistoryTextOccurrence } from './history.js';
+
 export const BENCHMARK_SCHEMA = 1;
 export type Data = Record<string, unknown>;
 export type Rule =
   | { kind: 'subjects'; turn?: number; exact?: number[]; allowed?: number[]; required?: number[]; min?: number; max?: number }
   | { kind: 'text'; turn?: number; pattern: string; absent?: boolean }
   | { kind: 'component'; turn?: number; type: string }
+  | { kind: 'component_text'; turn?: number; type: string; pattern: string }
+  | { kind: 'sequence'; turn?: number; types: string[] }
+  | { kind: 'delivered_fields'; turn?: number; type: string; subjectIds: number[]; fields: string[] }
+  | { kind: 'argument_recovery'; localRepairs: number; rejections: number; modelCorrections: number }
+  | { kind: 'presentation_terminal'; status: 'error' | 'aborted'; prefix: string }
   | { kind: 'evidence'; turn?: number; subjectIds: number[]; fields: string[]; selected?: boolean }
   | { kind: 'called'; turn?: number; names: string[]; successful?: boolean }
   | { kind: 'visible_text'; turn?: number; text: string }
@@ -12,7 +19,8 @@ export type Rule =
   | { kind: 'writes'; subjectIds: number[]; count: number; collectionType?: number; comment?: string; verify?: boolean; preserveOtherFields?: boolean }
   | { kind: 'no_write_retry' }
   | { kind: 'recovery'; expectedTerminal: 'success' | 'error'; prefix?: string };
-export type OfflineScript = 'bare_component' | 'blank_output' | 'text_field' | 'component_field' | 'prefix_then_invalid' | 'exhausted';
+export type OfflineScript = 'bare_component' | 'blank_output' | 'text_field' | 'component_field' | 'prefix_then_invalid' | 'exhausted'
+  | 'native_trailing_comma' | 'native_duplicate_key' | 'native_truncated_value' | 'native_terminal_error' | 'native_terminal_abort';
 export interface BenchmarkCase {
   id: string; version: number; family: string; tags: string[]; core: boolean;
   fixture: string; turns: string[]; rules: Rule[]; semanticRubric?: string;
@@ -42,8 +50,15 @@ export interface TurnObservation {
   prompt: string; final: unknown; text: string;
   tools: Array<{ name: string; arguments: unknown; value: unknown; error: boolean }>;
   durationMs: number;
+  presentationStatus?: 'open' | 'completed' | 'error' | 'aborted';
+  completionProof?: { source: 'native_stop' | 'tool_finish_turn'; finalToolCallId: string | null;
+    batchCallCount: number; batchResultCount: number; allBatchResultsSuccessful: boolean;
+    httpAtCommit: number; httpAtSettled: number | null; modelAtCommit: number; modelAtSettled: number | null };
 }
 export interface RequestMetric {
+  userTurn: number; toolCount: number | null; toolSchemaBytes: number | null;
+  displayToolNames: string[]; displaySchemaBytes: number | null;
+  contextMessageBytes: number | null; repeatedMessageBytes: number | null;
   inputTokens: number | null; contextInputTokens: number | null; reasoningTokens: number | null;
   outputTokens: number | null; cacheReadTokens: number | null;
   cacheWriteTokens: number | null; totalTokens: number | null; estimatedCost: number | null;
@@ -63,6 +78,7 @@ export interface RunMetrics {
   cacheWriteTokensSum: number | null; totalTokensSum: number | null; estimatedCost: number | null;
   usageUnavailableRequests: number; modelToolResultBytes: number;
   firstTextMs: number | null; firstCompleteResultMs: number | null; confirmationsMs: number;
+  providerFirstTextMs: number | null; firstPublishedBlockMs: number | null;
   duplicateReads: number; requests: RequestMetric[];
   outputErrors: number; blankOutputErrors: number; schemaOutputErrors: number; jsonOutputErrors: number;
   modelErrors: number; terminalModelErrors: number;
@@ -70,6 +86,15 @@ export interface RunMetrics {
   strictToolsSent: number; toolDeclarationsSent: number; initialToolCount: number | null;
   initialToolSchemaBytes: number | null; initialProviderPayloadBytes: number | null;
   validatedFinals: number; prefixMonotonic: boolean; prefixDuplications: number;
+  firstRoundFailed: boolean; firstOutputAttemptFailed: boolean | null;
+  localArgumentRepairs: number; argumentRejections: number; schemaArgumentRejections: number;
+  modelArgumentCorrections: number; preparedComponents: number; publishedComponents: number;
+  renderedComponents: number; displaySchemaBytesSum: number; displaySchemaBytesMax: number | null;
+  toolSchemaBytesSum: number; toolSchemaBytesMax: number | null;
+  contextMessageBytesSum: number; contextMessageBytesMax: number | null; repeatedMessageBytesSum: number;
+  userTurnInitialDisplaySchemas: Array<{ userTurn: number; names: string[]; bytes: number }>;
+  activatedDisplaySets: Array<{ userTurn: number; names: string[]; responseBytes: number; containsSchema: boolean }>;
+  displayLoadoutMismatches: number; requestsAfterTerminalCommit: number;
 }
 export interface CheckResult { rule: Rule; passed: boolean; detail: string }
 export interface Grade {
@@ -83,6 +108,9 @@ export interface RunObservation {
   outcome: Outcome; error: string | null; turns: TurnObservation[]; metrics: RunMetrics;
   grade: Grade; confirmations: Array<{ preview: string; accepted: boolean; timestampMs: number }>;
   network: NetworkEvent[]; traceDirectories: string[]; captureIssues: string[];
+  historyProofs?: Array<{ userTurn: number; requestIndex: number; texts: HistoryTextOccurrence[];
+    projectionAudits: Array<{ replyId: string; turnId: string; sourceComplete: boolean; foldedCallCount: number;
+      retainedSignedCallCount: number; summaryInjected: boolean; textSourceRefs: unknown[] }> }>;
 }
 export interface WorkerConfig {
   runtimeRoot: string; outputDir: string; case: BenchmarkCase; fixture: FixtureDefinition;
@@ -105,7 +133,8 @@ export function validateCases(value: unknown): BenchmarkCase[] {
     const row = record(raw);
     if (typeof row.id !== 'string' || !/^[a-z][a-z0-9-]{0,79}$/.test(row.id) || ids.has(row.id)) throw new Error('案例ID无效或重复。');
     ids.add(row.id);
-    if (row.offlineScript !== undefined && !['bare_component', 'blank_output', 'text_field', 'component_field', 'prefix_then_invalid', 'exhausted'].includes(String(row.offlineScript))) throw new Error('离线故障脚本必须是已登记枚举。');
+    if (row.offlineScript !== undefined && !['bare_component', 'blank_output', 'text_field', 'component_field', 'prefix_then_invalid', 'exhausted',
+      'native_trailing_comma', 'native_duplicate_key', 'native_truncated_value', 'native_terminal_error', 'native_terminal_abort'].includes(String(row.offlineScript))) throw new Error('离线故障脚本必须是已登记枚举。');
     if (row.expectedTerminal !== undefined && !['success', 'error'].includes(String(row.expectedTerminal))) throw new Error('预期终态必须是success或error。');
     if (!Number.isSafeInteger(row.version) || Number(row.version) < 1 || typeof row.family !== 'string' || !row.family
       || typeof row.fixture !== 'string' || !/^[a-z][a-z0-9-]{0,79}$/.test(row.fixture)
@@ -121,7 +150,10 @@ export function validateCases(value: unknown): BenchmarkCase[] {
       const rule = record(rawRule), kind = rule.kind;
       const allowed: Record<string, string[]> = {
         subjects: ['kind', 'turn', 'exact', 'allowed', 'required', 'min', 'max'],
-        text: ['kind', 'turn', 'pattern', 'absent'], component: ['kind', 'turn', 'type'],
+        text: ['kind', 'turn', 'pattern', 'absent'], component: ['kind', 'turn', 'type'], component_text: ['kind', 'turn', 'type', 'pattern'], sequence: ['kind', 'turn', 'types'],
+        delivered_fields: ['kind', 'turn', 'type', 'subjectIds', 'fields'],
+        argument_recovery: ['kind', 'localRepairs', 'rejections', 'modelCorrections'],
+        presentation_terminal: ['kind', 'status', 'prefix'],
         evidence: ['kind', 'turn', 'subjectIds', 'fields', 'selected'], called: ['kind', 'turn', 'names', 'successful'], visible_text: ['kind', 'turn', 'text'],
         coverage: ['kind', 'turn', 'tool', 'scope'], confirmations: ['kind', 'count', 'accepted'],
         writes: ['kind', 'subjectIds', 'count', 'collectionType', 'comment', 'verify', 'preserveOtherFields'], no_write_retry: ['kind'],
@@ -133,9 +165,15 @@ export function validateCases(value: unknown): BenchmarkCase[] {
         && (!Array.isArray(rule[key]) || rule[key].some(id => !Number.isSafeInteger(id) || Number(id) < 1) || new Set(rule[key]).size !== rule[key].length)) throw new Error('规则ID集合无效。');
       for (const key of ['count', 'min', 'max']) if (rule[key] !== undefined && (!Number.isSafeInteger(rule[key]) || Number(rule[key]) < 0)) throw new Error('规则计数无效。');
       if (kind === 'text') { if (typeof rule.pattern !== 'string' || rule.pattern.length > 2000) throw new Error('文本规则无效。'); new RegExp(rule.pattern, 'u'); }
+      if (kind === 'component_text') { if (typeof rule.type !== 'string' || typeof rule.pattern !== 'string' || rule.pattern.length > 2000) throw new Error('组件文本规则无效。'); new RegExp(rule.pattern, 'u'); }
       if (kind === 'subjects' && !['exact', 'allowed', 'required', 'min', 'max'].some(key => rule[key] !== undefined)) throw new Error('作品规则缺少约束。');
       if (kind === 'evidence' && (!Array.isArray(rule.subjectIds) || !rule.subjectIds.length && rule.selected !== true || !Array.isArray(rule.fields) || !rule.fields.length || rule.fields.some(field => typeof field !== 'string'))) throw new Error('证据规则无效。');
       if (kind === 'called' && (!Array.isArray(rule.names) || !rule.names.length || rule.names.some(name => typeof name !== 'string'))) throw new Error('工具规则无效。');
+      if (kind === 'sequence' && (!Array.isArray(rule.types) || rule.types.length < 2 || rule.types.some(type => typeof type !== 'string' || !type.length))) throw new Error('正文顺序规则无效。');
+      if (kind === 'delivered_fields' && (typeof rule.type !== 'string' || !Array.isArray(rule.subjectIds) || !rule.subjectIds.length
+        || !Array.isArray(rule.fields) || !rule.fields.length || rule.fields.some(field => typeof field !== 'string' || !field.length))) throw new Error('交付字段规则无效。');
+      if (kind === 'argument_recovery' && ['localRepairs', 'rejections', 'modelCorrections'].some(key => !Number.isSafeInteger(rule[key]) || Number(rule[key]) < 0)) throw new Error('参数恢复规则无效。');
+      if (kind === 'presentation_terminal' && (!['error', 'aborted'].includes(String(rule.status)) || typeof rule.prefix !== 'string' || !rule.prefix.length)) throw new Error('正文终止规则无效。');
       if (kind === 'coverage' && rule.scope !== undefined && !['source', 'result'].includes(String(rule.scope))) throw new Error('覆盖规则范围无效。');
       if (['component', 'coverage', 'visible_text'].includes(kind) && typeof rule[kind === 'component' ? 'type' : kind === 'coverage' ? 'tool' : 'text'] !== 'string') throw new Error('规则缺少文本参数。');
       if (kind === 'confirmations' && (rule.count === undefined || typeof rule.accepted !== 'boolean')) throw new Error('确认规则无效。');

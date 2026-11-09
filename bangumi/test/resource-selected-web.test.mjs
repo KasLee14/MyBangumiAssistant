@@ -7,9 +7,9 @@ import { withProviderFetch } from '../dist/src/pi-host.js';
 import { BangumiMcpService } from '../dist/src/mcp/service.js';
 import { anonymousContext } from '../dist/src/mcp/access-context.js';
 import { bindResourceResolver } from '../dist/src/output/resource-content.js';
-import { CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
+import { LEGACY_CONTENT_OUTPUT_INSTRUCTION as CONTENT_OUTPUT_INSTRUCTION } from '../dist/src/output/provider-content.js';
 import { ComponentCatalogState, bindComponentCatalog } from '../dist/src/output/component-catalog.js';
-import { createComponentReadTools } from '../dist/src/output/component-tools.js';
+import { createLegacyComponentReadTools as createComponentReadTools } from './legacy-provider-fixture.mjs';
 
 test('部分候选页的已选封面经真实目录读取后Web SSE只发布合法完成块并保持历史一致', async t => {
   const catalog = new ComponentCatalogState(); catalog.reset();

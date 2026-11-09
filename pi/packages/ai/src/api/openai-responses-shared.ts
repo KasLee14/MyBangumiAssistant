@@ -35,6 +35,7 @@ import { shortHash } from "../utils/hash.ts";
 import { parseStreamingJson } from "../utils/json-parse.ts";
 import { sanitizeSurrogates } from "../utils/sanitize-unicode.ts";
 import { getSystemMessageText, renderSystemMessageUpdate } from "../utils/text.ts";
+import { setToolCallArgumentSource } from "../utils/tool-call-arguments.ts";
 import { resolveTranscript, resolveTranscriptTools } from "../utils/transcript.ts";
 import {
 	appendGrammarToolInputJsonDelta,
@@ -439,6 +440,7 @@ export async function processResponsesStream<TApi extends Api>(
 ): Promise<void> {
 	let sawTerminalResponseEvent = false;
 	const outputSlots = new Map<number, ResponsesOutputSlot>();
+	const functionCallsById = new Map<string, ToolCallOutputSlot>();
 	const reasoningBlocksById = new Map<string, ThinkingContent>();
 	const applyMessagePhaseStopReason = (item: ResponseOutputItem): void => {
 		if (item.type === "message" && item.phase === "final_answer") {
@@ -500,6 +502,8 @@ export async function processResponsesStream<TApi extends Api>(
 			} satisfies ResponsesOutputSlot;
 			outputSlots.set(outputIndex, slot);
 			stream.push({ type: "toolcall_start", contentIndex: slot.contentIndex, partial: output });
+			functionCallsById.set(item.id ?? item.call_id, slot);
+			setToolCallArgumentSource(block, { raw: item.arguments ?? "", state: "interrupted", source: "delta" });
 			return slot;
 		}
 		if (item.type === "custom_tool_call") {
@@ -554,6 +558,29 @@ export async function processResponsesStream<TApi extends Api>(
 	): void => {
 		sawTerminalResponseEvent = true;
 		backfillReasoningSignatures(response.output ?? []);
+		// Terminal output is authoritative, including when no argument delta was emitted.
+		for (const [outputIndex, item] of (response.output ?? []).entries()) {
+			if (item.type !== "function_call" || typeof item.arguments !== "string") continue;
+			const slot = functionCallsById.get(item.id ?? item.call_id) ?? createSlot(outputIndex, item);
+			if (slot?.type !== "toolCall") continue;
+			const unfinished = slot.block.partialJson !== undefined;
+			slot.block.arguments = parseStreamingJson(item.arguments);
+			setToolCallArgumentSource(slot.block, {
+				raw: item.arguments,
+				state: response.status === "completed" ? "complete" : "interrupted",
+				source: "terminal_response",
+			});
+			delete slot.block.partialJson;
+			outputSlots.delete(outputIndex);
+			if (unfinished) {
+				stream.push({
+					type: "toolcall_end",
+					contentIndex: slot.contentIndex,
+					toolCall: slot.block,
+					partial: output,
+				});
+			}
+		}
 		if (response?.id) {
 			output.responseId = response.id;
 		}
@@ -657,6 +684,7 @@ export async function processResponsesStream<TApi extends Api>(
 			if (!slot || slot.block.partialJson === undefined) continue;
 			slot.block.partialJson += event.delta;
 			slot.block.arguments = parseStreamingJson(slot.block.partialJson);
+			setToolCallArgumentSource(slot.block, { raw: slot.block.partialJson, state: "interrupted", source: "delta" });
 			pushToolCallDelta(slot, event.delta);
 		} else if (event.type === "response.function_call_arguments.done") {
 			const slot = getSlot(event.output_index, "toolCall");
@@ -664,6 +692,7 @@ export async function processResponsesStream<TApi extends Api>(
 			const previousPartialJson = slot.block.partialJson;
 			slot.block.partialJson = event.arguments;
 			slot.block.arguments = parseStreamingJson(slot.block.partialJson);
+			setToolCallArgumentSource(slot.block, { raw: event.arguments, state: "complete", source: "arguments_done" });
 
 			if (event.arguments.startsWith(previousPartialJson)) {
 				const delta = event.arguments.slice(previousPartialJson.length);
@@ -713,7 +742,9 @@ export async function processResponsesStream<TApi extends Api>(
 				slot?.type === "toolCall" &&
 				slot.block.partialJson !== undefined
 			) {
+				const raw = typeof item.arguments === "string" ? item.arguments : slot.block.partialJson;
 				slot.block.arguments = parseStreamingJson(item.arguments || slot.block.partialJson || "{}");
+				setToolCallArgumentSource(slot.block, { raw, state: "complete", source: "output_item_done" });
 				if (item.namespace !== undefined) slot.block.namespace = item.namespace;
 				// Finalize in-place and strip the scratch buffer so replay only
 				// carries parsed arguments.

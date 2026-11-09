@@ -1,5 +1,5 @@
 import type { ExtensionAPI, ExtensionFactory } from '@earendil-works/pi-coding-agent';
-import type { Api, Model } from '@earendil-works/pi-ai';
+import { getToolCallArgumentSource, type Api, type Model } from '@earendil-works/pi-ai';
 import { randomUUID } from 'node:crypto';
 import { AccountSessionStore, login } from './login/index.js';
 import { createTerminalChannel, type InteractionChannel } from './interaction.js';
@@ -26,12 +26,20 @@ import { CONTENT_OUTPUT_INSTRUCTION } from './output/provider-content.js';
 import { COMPONENT_SELECTION_INSTRUCTION } from './output/component-selection.js';
 import type { ResourceContentResolver } from './output/resource-content.js';
 import { createComponentCatalogState, type ComponentCatalogState } from './output/component-catalog.js';
-import { createComponentReadTools } from './output/component-tools.js';
+import { createComponentReadTools, COMPONENT_READ_TOOL_NAMES } from './output/component-tools.js';
+import { PRESENTATION_TOOL_NAMES } from './output/presentation-contract.js';
+import { PresentationStore } from './output/presentation-store.js';
+import { ReplyAssembler, PRESENTATION_ENTRY_TYPE, isPresentationSource } from './output/reply-assembler.js';
+import { createPresentationTools } from './output/presentation-tools.js';
 
 const extensionResolvers = new WeakMap<ExtensionAPI, ResourceContentResolver>();
 export function extensionResourceResolver(pi: ExtensionAPI): ResourceContentResolver | undefined { return extensionResolvers.get(pi); }
 const extensionCatalogs = new WeakMap<ExtensionAPI, ComponentCatalogState>();
 export function extensionComponentCatalog(pi: ExtensionAPI): ComponentCatalogState | undefined { return extensionCatalogs.get(pi); }
+const extensionAssemblers = new WeakMap<ExtensionAPI, ReplyAssembler>();
+export function extensionReplyAssembler(pi: ExtensionAPI): ReplyAssembler | undefined { return extensionAssemblers.get(pi); }
+const extensionModelSetters = new WeakMap<ExtensionAPI, (model: Model<Api>) => void>();
+export function extensionRequestModelSetter(pi: ExtensionAPI): ((model: Model<Api>) => void) | undefined { return extensionModelSetters.get(pi); }
 
 export interface BangumiExtensionConfig {
   authDir: string;
@@ -69,6 +77,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     const componentCatalog = createComponentCatalogState();
     extensionCatalogs.set(pi, componentCatalog);
     let currentModel: Model<Api> | undefined;
+    extensionModelSetters.set(pi, model => { currentModel = model; });
     registerSessionTitles(pi, config.generateSessionTitle, (ctx, message, type) => channel.notify(ctx, message, type), trace);
     const createClient = () => new LocalMcpClient({ authDir: config.authDir, timeoutMs: config.timeoutMs, proxy: proxy.current,
       onTrace: event => trace.mcpDiagnostic(event) });
@@ -80,11 +89,20 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       if (!client.readCachedResource) throw new AppError('MCP_PROTOCOL_ERROR', '当前 MCP 客户端没有缓存读取接口。');
       return client.readCachedResource(ref, signal, { turnId: activeReadTurnId }, selection);
     };
-    resolver.isCurrent = ref => activeResourceRefs.has(ref);
+    const presentationStore = new PresentationStore(resolver);
+    const replyAssembler = new ReplyAssembler(snapshot => {
+      pi.appendEntry(PRESENTATION_ENTRY_TYPE, snapshot);
+      trace.record('presentation.snapshot', snapshot);
+    });
+    extensionAssemblers.set(pi, replyAssembler);
+    let presentationStatus: 'completed' | 'error' | 'aborted' = 'completed';
+    let presentationSourceSeen = false;
+    resolver.isCurrent = ref => activeResourceRefs.has(ref) || presentationStore.isCurrent(ref);
     componentCatalog.setReferenceValidator(ref => activeResourceRefs.has(ref));
     extensionResolvers.set(pi, resolver);
     const collectionQueries = new CollectionQueryInputState();
     const clearReadTurn = () => {
+      presentationStore.invalidate();
       activeResourceRefs.clear();
       collectionQueries.clear();
       const ending = activeReadTurnId; activeReadTurnId = undefined;
@@ -100,7 +118,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
         return client.readCachedResource(ref, signal, { turnId: activeReadTurnId });
       } } : {}),
       call: (name, args, signal, guard, batch, read) => {
-        if (TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'write') { collectionQueries.clear(); activeResourceRefs.clear(); }
+        if (TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'write') { collectionQueries.clear(); activeResourceRefs.clear(); presentationStore.invalidate(); presentationStore.begin(); }
         const scope = TOOL_DEFINITIONS.find(tool => tool.name === name)?.effect === 'read'
           ? read ?? (activeReadTurnId ? { turnId: activeReadTurnId } : undefined) : undefined;
         const expectedReadTurnId = activeReadTurnId;
@@ -115,6 +133,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       close: async () => { await client.close?.(); },
     };
     const unsubscribeProxy = config.client ? undefined : proxy.onChange(async () => {
+      presentationStore.invalidate();
       activeResourceRefs.clear();
       collectionQueries.clear();
       const previous = client;
@@ -123,6 +142,7 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     });
     const store = config.store ?? new AccountSessionStore(config.authDir);
     const resetClient = config.client ? undefined : async () => {
+      presentationStore.invalidate();
       activeResourceRefs.clear();
       collectionQueries.clear();
       const previous = client;
@@ -141,10 +161,30 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
     // 固定MCP写映射只在宿主计划内执行，模型不能拆成逐项写调用绕过整批政策。
     for (const tool of createReadTools(facade, { collectionQueries, owner: () => activeReadTurnId }, { model: () => currentModel })) pi.registerTool(trace.wrapTool(tool));
     pi.registerTool(trace.wrapTool(createBangumiToolDiscovery(pi, () => currentModel)));
-    for (const tool of createComponentReadTools(componentCatalog)) pi.registerTool(trace.wrapTool(tool));
+    for (const tool of createComponentReadTools(componentCatalog, names => pi.setActiveTools([...new Set([...pi.getActiveTools(), ...names])]))) pi.registerTool(trace.wrapTool(tool));
+    for (const tool of createPresentationTools(presentationStore, replyAssembler, componentCatalog, (audit, context) => {
+      const value = { ...audit, ...(context?.toolCall?.id ? { toolCallId: context.toolCall.id } : {}) };
+      pi.appendEntry('bangumi/presentation_arguments', value);
+      trace.record('presentation.arguments', value);
+      if (audit.status === 'repaired' || audit.status === 'rejected') {
+        const source = context && getToolCallArgumentSource(context.toolCall);
+        if (source) trace.presentationArgumentsDebug(value, source.raw);
+      }
+    }, () => currentModel)) pi.registerTool(trace.wrapTool(tool));
     pi.on('tool_result', event => {
       if (!event.isError && activeReadTurnId && TOOL_DEFINITIONS.some(tool => tool.name === event.toolName && tool.effect === 'read'))
         componentCatalog.observeResource(event.structuredContent ?? event.details, event.toolName);
+    });
+    const presentationOperationOwners = new Map<string, string>();
+    const presentationRecoveryTools = new Set<string>([...COMPONENT_READ_TOOL_NAMES, ...PRESENTATION_TOOL_NAMES]);
+    pi.on('tool_execution_start', event => {
+      if (presentationSourceSeen && presentationRecoveryTools.has(event.toolName))
+        presentationOperationOwners.set(event.toolCallId, replyAssembler.snapshot()?.turnId ?? '');
+    });
+    pi.on('tool_execution_end', (event, ctx) => {
+      const owner = presentationOperationOwners.get(event.toolCallId); presentationOperationOwners.delete(event.toolCallId);
+      // prepare失败不会触发tool_result；此事件统一覆盖准备和执行失败，且只计一次。
+      if (event.isError && owner && owner === replyAssembler.snapshot()?.turnId && !ctx.signal?.aborted) replyAssembler.fail(event.toolName);
     });
     const batchTool = createBatchWriteTool(boundary, record => {
       config.writeJournal?.append({ kind: 'bangumi-batch', ...record });
@@ -175,10 +215,13 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       if (event.source !== 'extension') {
         clearReadTurn();
         componentCatalog.reset();
+        // 定义缓存与本请求active声明分离：普通新用户文字不携带上一轮展示schema。
+        pi.setActiveTools(pi.getActiveTools().filter(name => !(PRESENTATION_TOOL_NAMES as readonly string[]).includes(name)));
         resetBangumiToolLoadout(pi, ['get_subject_details']);
       }
       input = { text: event.source === 'extension' ? '' : redact(event.text, credentialValues()), generation: input.generation + 1, requestId: randomUUID() };
       if (event.source !== 'extension') activeReadTurnId = input.requestId;
+      if (event.source !== 'extension') { presentationStore.begin(); replyAssembler.begin(input.requestId); presentationStatus = 'completed'; presentationSourceSeen = false; }
     });
     pi.on('before_agent_start', (event, ctx) => {
       currentModel = ctx.model;
@@ -187,8 +230,21 @@ export function createBangumiExtension(config: BangumiExtensionConfig): Extensio
       event.systemPromptOptions.sections.bangumi_content_output = `${CONTENT_OUTPUT_INSTRUCTION}\n${COMPONENT_SELECTION_INSTRUCTION}`;
       event.systemPromptOptions.sections.bangumi_tool_discovery = TOOL_DISCOVERY_INSTRUCTION;
     });
-    pi.on('agent_settled', () => { clearReadTurn(); });
-    pi.on('session_start', (_event, ctx) => { clearReadTurn(); componentCatalog.reset(); currentModel = ctx.model; resetBangumiToolLoadout(pi, ['get_subject_details']); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; });
+    pi.on('message_end', event => {
+      if (event.message.role === 'assistant' && isPresentationSource(event.message)
+        && event.message.diagnostics?.findLast(value => value.type === 'bangumi_presentation_source')?.details?.turnId === input.requestId) {
+        presentationSourceSeen = true;
+        if (['error', 'length', 'deferred'].includes(event.message.stopReason)) presentationStatus = 'error';
+        else if (event.message.stopReason === 'aborted') presentationStatus = 'aborted';
+        else if (event.message.stopReason === 'stop') presentationStatus = 'completed';
+      }
+    });
+    pi.on('agent_settled', () => {
+      const snapshot = replyAssembler.snapshot();
+      replyAssembler.finish(presentationStatus === 'aborted' ? 'aborted' : replyAssembler.recoveryExhausted || !snapshot?.content.length ? 'error' : presentationStatus);
+      clearReadTurn();
+    });
+    pi.on('session_start', (_event, ctx) => { clearReadTurn(); componentCatalog.reset(); currentModel = ctx.model; pi.setActiveTools(pi.getActiveTools().filter(name => !(PRESENTATION_TOOL_NAMES as readonly string[]).includes(name))); resetBangumiToolLoadout(pi, ['get_subject_details']); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; });
     pi.on('session_shutdown', async () => { clearReadTurn(); input = { text: '', generation: input.generation + 1, requestId: randomUUID() }; unsubscribeProxy?.(); await client.close?.(); });
     if (config.trace) registerTraceHooks(pi, trace);
 

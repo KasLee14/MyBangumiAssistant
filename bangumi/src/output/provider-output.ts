@@ -12,6 +12,7 @@ import { createErrorDiagnostic, errorCauses, rememberErrorDebug, withAssistantDi
 import { sanitizeErrorDiagnostic } from '../support/errors.js';
 import { expandResourceContent, type ResourceContentResolver } from './resource-content.js';
 import { componentCatalogFor, validateLoadedComponents } from './component-catalog.js';
+import { assemblePresentationOutput, shouldUsePresentation } from './presentation-output.js';
 
 type TextSlot = {
   kind: 'mixed'; sourceIndex: number; decoder: ContentDecoder; final?: MixedContent;
@@ -37,6 +38,7 @@ export function decodeProviderOutput(
       const limit = record.max_tokens ?? record.max_completion_tokens ?? record.max_output_tokens;
       if (typeof limit === 'number' && Number.isSafeInteger(limit) && limit > 0) requestMaxTokens = limit;
     });
+    if (shouldUsePresentation(context)) return assemblePresentationOutput(model, context, options, source);
     if (!enabled) return source;
     return {
       async *[Symbol.asyncIterator](): AsyncGenerator<AssistantMessageEvent> {

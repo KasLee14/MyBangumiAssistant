@@ -426,6 +426,13 @@ export interface ToolCall {
 	namespace?: string;
 }
 
+/** Internal preparation context, available before tool schema validation. */
+export interface ToolArgumentContext {
+	toolCall: ToolCall;
+	assistantMessage: AssistantMessage;
+	signal?: AbortSignal;
+}
+
 /**
  * Application-owned assistant content, registered through declaration merging.
  * Keys are distinct content type names; values contain that block's fields except `type`.

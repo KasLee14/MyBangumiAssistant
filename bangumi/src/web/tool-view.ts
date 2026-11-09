@@ -63,6 +63,11 @@ const EXACT: Readonly<Record<string, ToolViewSpec>> = {
   get_candidate_lineage: spec('candidate', '读取候选来源', 'read', ['collection_ref', 'subject_ids']),
   continue_subject_query: spec('candidate', '继续候选查询', 'read', ['reference', 'collection_ref']),
   prepare_candidate_output: spec('candidate', '准备结果展示', 'read', ['title', 'kind']),
+  prepare_component: spec('tools', '准备展示组件', 'read', ['component', 'title']),
+  present_component: spec('tools', '发布展示组件', 'read', ['blockIndex']),
+  present_text: spec('tools', '发布说明文字', 'read', ['text']),
+  read_component_index: spec('tools', '查找展示组件', 'read', ['query', 'category']),
+  read_component_spec: spec('tools', '加载展示组件', 'read', ['mode']),
   read_cached_resource: spec('detail', '读取缓存字段', 'read', ['fields', 'keys', 'range']),
   get_subject_details: spec('detail', '读取作品资料', 'read', ['subject_id', 'fields', 'include']),
   get_subject_image: spec('image', '获取作品图片', 'read', ['subject_id', 'image_type']),
@@ -93,6 +98,8 @@ const EXACT: Readonly<Record<string, ToolViewSpec>> = {
 
 /** 规则表：处理 `catalog.ts` 里用模板动态生成的名字；按顺序取第一个命中。 */
 const RULES: readonly (readonly [RegExp, ToolViewSpec])[] = [
+  [/^render_[A-Za-z]+$/, spec('tools', '发布展示组件', 'read', ['title', 'before'])],
+  [/^prepare_[A-Za-z]+$/, spec('tools', '准备展示组件', 'read', ['title'])],
   [/^get_user_character_/, spec('list', '读取角色收藏', 'read', ['username', 'collection_type'])],
   [/^get_user_person_/, spec('list', '读取人物收藏', 'read', ['username', 'collection_type'])],
   [/^get_character_/, spec('detail', '读取角色资料', 'read', ['character_id', 'include'])],

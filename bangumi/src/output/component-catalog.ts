@@ -5,6 +5,8 @@ import { COMPONENT_PAYLOAD_SCHEMAS, ContentOutputError, MAX_CONTENT_PARTS, type 
 import { resourceReferenceSchema } from './resource-content.js';
 import { AppError } from '../support/errors.js';
 import { compileSchema, outputIssues } from '../support/tool-schema.js';
+import { presentationPrepareSchema, RENDER_TOOL_DEFINITIONS, PREPARE_TOOL_DEFINITIONS } from './presentation-contract.js';
+import { getCurrentTools } from '@earendil-works/pi-ai';
 
 /** 这里只维护选择信息。字段、必填性和引用限制始终由实际校验 Schema 派生。 */
 const purposes: Record<ComponentKind, { category: string; purpose: string; data: string }> = {
@@ -52,7 +54,8 @@ function applicableReferenceKinds(value: Record<string, unknown>, source: string
   return [];
 }
 export const COMPONENT_CATALOG_VERSION = createHash('sha256').update(JSON.stringify({ representationProtocol: 3, purposes,
-  payloads: COMPONENT_PAYLOAD_SCHEMAS, references: COMPONENT_KINDS.map(name => resourceReferenceSchema(name)) })).digest('hex').slice(0, 16);
+  payloads: COMPONENT_PAYLOAD_SCHEMAS, prepareProtocol: 5, render: RENDER_TOOL_DEFINITIONS, selectedPrepare: PREPARE_TOOL_DEFINITIONS,
+  prepare: COMPONENT_KINDS.map(presentationPrepareSchema), references: COMPONENT_KINDS.map(name => resourceReferenceSchema(name)) })).digest('hex').slice(0, 16);
 export interface ComponentCatalogAudit {
   version: string; turn: number; indexReads: number; specReads: number; discovered: ComponentKind[]; loaded: ComponentKind[];
   representations: Partial<Record<ComponentKind, ComponentRepresentation>>;
@@ -95,6 +98,7 @@ export class ComponentCatalogState {
   private referenceKinds = new Set<ComponentKind>();
   private observedReferences = new Map<string, ComponentKind[]>();
   private referenceIsCurrent: ((ref: string) => boolean) | undefined;
+  private requestComponents: Set<ComponentKind> | undefined;
   /** 新用户轮只使事实引用失效。纯契约能否复用由下一次请求的真实可见性决定。 */
   reset(): void { this.turn++; this.indexReads = 0; this.specReads = 0; this.referenceKinds.clear(); this.observedReferences.clear(); }
   currentAudit(): ComponentCatalogAudit {
@@ -107,6 +111,7 @@ export class ComponentCatalogState {
   }
   setReferenceValidator(isCurrent: (ref: string) => boolean): void { this.referenceIsCurrent = isCurrent; }
   isCurrentReference(ref: string): boolean | undefined { return this.referenceIsCurrent?.(ref); }
+  isLoadedForRequest(name: ComponentKind): boolean { return this.requestComponents ? this.requestComponents.has(name) : this.loaded.has(name); }
   /** 成功工具结果可在同批后续工具执行前告知已取得引用；不保存任何缓存事实。 */
   observeResource(value: unknown, sourceTool: string): void {
     if (!record(value)) return;
@@ -159,6 +164,35 @@ export class ComponentCatalogState {
     specs.forEach(spec => { this.loaded.add(spec.name); this.successfulLoaded.add(spec.name); this.representations.set(spec.name, spec.representation); this.latestSelections.set(spec.name, { representation: spec.representation, selectionId: spec.selectionId, sourceTurn: spec.sourceTurn }); });
     return { version: COMPONENT_CATALOG_VERSION, turn: this.turn, specs, audit: this.currentAudit() };
   }
+  readPrepareSpecs(names: readonly string[]) {
+    const read = this.readSpecs(names);
+    return { ...read, specs: read.specs.map(spec => ({ name: spec.name, ...purposes[spec.name],
+      selectionId: spec.selectionId, sourceTurn: spec.sourceTurn,
+      tool: 'prepare_component', prepare: presentationPrepareSchema(spec.name),
+      constraints: [...(['QuoteBlock', 'Callout'].includes(spec.name) ? [] : ['明确成员必须来自此resourceRef的当前成员；单对象详情不能选择其他对象。保持用户完整范围，多个已有详情引用可分别准备和发布，不跨引用合并ID。']),
+        ...(spec.name === 'DataTable' ? ['fields与columns只能选择一种；fields是直接字段名，columns是带标签的列定义，保留所需事实列。'] : [])],
+      publication: 'prepare成功后使用present_component({resourceRef,blockIndex})发布；blockIndex为整个快照绝对下标。候选准备快照可直接发布。普通说明为原生文字；精确交错可用present_text。',
+    })) };
+  }
+  loadSpecs(names: readonly string[], mode: 'render' | 'prepare', activate: (tools: string[]) => void) {
+    // 明确名称由固定注册目录核验；用途索引用于发现，不承担授权或激活门禁。
+    if (!names.length || names.length > 12 || new Set(names).size !== names.length
+      || names.some(name => !COMPONENT_KINDS.includes(name as ComponentKind)))
+      throw new AppError('INVALID_INPUT', 'names必须包含1至12个不重复的固定组件名称。');
+    if (mode !== 'render' && mode !== 'prepare') throw new AppError('INVALID_INPUT', 'mode只允许render或prepare。');
+    const tools = names.map(name => `${mode}_${name}`);
+    if (mode === 'prepare') tools.push('present_component', 'present_text');
+    activate(tools);
+    this.specReads++; this.selectionSequence++;
+    for (const name of names) {
+      const kind = name as ComponentKind;
+      const representation = ['Callout', 'QuoteBlock'].includes(kind) ? 'inline' : 'reference';
+      this.loaded.add(kind); this.successfulLoaded.add(kind); this.representations.set(kind, representation);
+      this.latestSelections.set(kind, { representation, selectionId: this.selectionSequence, sourceTurn: this.turn });
+    }
+    // 完整Schema只在下一request固定工具声明中出现，回执不重复整份契约。
+    return { version: COMPONENT_CATALOG_VERSION, status: 'activated' as const, tools };
+  }
   /** 纯定义可跨轮复用；压缩/重建后仅承认真实可读的当前版本最新完整说明。 */
   reconcile(context: { messages: object }): void {
     const discovered = new Set<ComponentKind>(), loaded = new Set<ComponentKind>(), representations = new Map<ComponentKind, ComponentRepresentation>();
@@ -182,6 +216,19 @@ export class ComponentCatalogState {
         if (messageIndex > realUserIndex && record(value) && !['read_component_index', 'read_component_spec'].includes(String(message.toolName))) {
           this.observeResource(value, String(message.toolName));
         }
+        if (record(value) && value.version === COMPONENT_CATALOG_VERSION && message.toolName === 'read_component_spec'
+          && value.status === 'activated' && Array.isArray(value.tools)) {
+          for (const tool of value.tools) {
+            const definition = [...RENDER_TOOL_DEFINITIONS, ...PREPARE_TOOL_DEFINITIONS].find(item => item.name === tool);
+            if (!definition) continue;
+            const name = definition.component;
+            discovered.add(name); loaded.add(name); representations.set(name, this.latestSelections.get(name)?.representation ?? 'reference');
+            if (!this.latestSelections.has(name)) this.latestSelections.set(name, { representation: 'reference', selectionId: ++this.selectionSequence, sourceTurn: this.turn });
+          }
+        }
+        if (record(value) && value.version === COMPONENT_CATALOG_VERSION && !value.audit && message.toolName === 'read_component_index' && Array.isArray(value.entries)) {
+          for (const entry of value.entries) if (record(entry) && COMPONENT_KINDS.includes(entry.name as ComponentKind)) discovered.add(entry.name as ComponentKind);
+        }
         if (!record(value) || value.version !== COMPONENT_CATALOG_VERSION || !record(value.audit)
           || value.audit.version !== COMPONENT_CATALOG_VERSION) continue;
         if (message.toolName === 'read_component_index' && Array.isArray(value.entries)) for (const entry of value.entries) {
@@ -191,14 +238,22 @@ export class ComponentCatalogState {
           if (!record(spec) || !this.successfulLoaded.has(spec.name as ComponentKind)) continue;
           const name = spec.name as ComponentKind;
           const latest = this.latestSelections.get(name);
-          if (!latest || spec.representation !== latest.representation || spec.selectionId !== latest.selectionId || spec.sourceTurn !== latest.sourceTurn
-            || !isDeepStrictEqual(spec.props, componentPropsSchema(name, latest.representation))) continue;
+          if (!latest || spec.selectionId !== latest.selectionId || spec.sourceTurn !== latest.sourceTurn
+            || !(spec.tool === 'prepare_component' && isDeepStrictEqual(spec.prepare, presentationPrepareSchema(name))
+              || spec.representation === latest.representation && isDeepStrictEqual(spec.props, componentPropsSchema(name, latest.representation)))) continue;
           // 完整字段说明含用途信息；复用保留原sourceTurn，不伪装成本轮新读取。
           discovered.add(name); loaded.add(name); representations.set(name, latest.representation);
         }
       }
     }
     this.discovered = discovered; this.loaded = loaded; this.representations = representations;
+    const active = getCurrentTools(messages.filter(record).map(message => message as { role: string }));
+    const declarations = [...RENDER_TOOL_DEFINITIONS, ...PREPARE_TOOL_DEFINITIONS];
+    // 兼容旧正文仅用原字段门禁；新固定工具必须在本请求真实完整声明中存在。
+    this.requestComponents = new Set(active.flatMap(tool => {
+        const definition = declarations.find(item => item.name === tool.name);
+        return definition && isDeepStrictEqual(tool.parameters, definition.inputSchema) ? [definition.component] : [];
+      }));
   }
 }
 export const createComponentCatalogState = (): ComponentCatalogState => new ComponentCatalogState();

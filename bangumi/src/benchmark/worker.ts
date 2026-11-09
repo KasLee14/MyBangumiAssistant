@@ -12,6 +12,7 @@ import { MetricsCollector } from './metrics.js';
 import { canonicalBenchmarkContent, gradeCase, outputText } from './scoring.js';
 import type { WorkerConfig, RunObservation, TurnObservation, NetworkEvent, Outcome } from './schema.js';
 import { record } from './schema.js';
+import { inspectHistoryOccurrences, type CanonicalTextSource } from './history.js';
 
 export function atomicJson(path: string, value: unknown): void {
   writeFileSync(path + '.tmp', JSON.stringify(traceRedact(value), null, 2) + '\n'); renameSync(path + '.tmp', path);
@@ -27,8 +28,26 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
   let deadline: ReturnType<typeof setTimeout> | undefined, reason: 'timeout' | 'budget_exceeded' | undefined;
   let error: string | null = null, outcome: Outcome = 'errored', rpcDispatches = 0, invalidOutput = false;
   let modelErrors = 0, finalMessages = 0, visiblePrefix = '';
+  let presentationSeen = false;
+  const canonicalTexts = new Map<string, CanonicalTextSource>();
+  const historyProofs: NonNullable<RunObservation['historyProofs']> = [];
+  let pendingHistoryAudits: NonNullable<RunObservation['historyProofs']>[number]['projectionAudits'] = [];
+  let lastAssistant: Record<string, unknown> | undefined;
+  const batchResults = new Map<string, boolean>();
+  let completedReplyId: string | undefined;
+  const nativePresentation = existsSync(join(config.runtimeRoot, 'bangumi/dist/src/output/presentation-store.js'));
+  let renderPresentation = false;
+  let presentationToolNames = new Set(['prepare_component', 'present_component', 'present_text']);
   const recoveryEnabled = config.recovery === 'enabled';
   let initializationStart: number | undefined;
+  const capturePayload = (payload: unknown) => {
+    collector.payloadTools(payload);
+    historyProofs.push({ userTurn: turns.length,
+      requestIndex: config.offline ? collector.value.modelRequests : collector.value.providerHttpRequests ?? 0,
+      texts: inspectHistoryOccurrences(payload, [...canonicalTexts.values()], new Map(pendingHistoryAudits
+        .filter(audit => audit.sourceComplete).map(audit => [audit.replyId, audit.retainedSignedCallCount > 0]))),
+      projectionAudits: pendingHistoryAudits });
+  };
   const checkpoint = () => atomicJson(join(config.outputDir, 'progress.json'), { metrics: collector.value });
   const networkTransport = createPiTransport(config.offline ? null : config.proxy);
   const stop = (cause: 'timeout' | 'budget_exceeded') => { reason ??= cause; void runtime?.session.abort(); };
@@ -42,6 +61,11 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
       sourceModule('pi-host'), sourceModule('extension'), sourceModule('mcp/client'),
       sourceModule('mcp/catalog'), sourceModule('output/content-schema'), dependency('@earendil-works/pi-coding-agent'),
     ]);
+    if (nativePresentation) {
+      const contract = await sourceModule('output/presentation-contract');
+      renderPresentation = Array.isArray(contract.RENDER_TOOL_NAMES);
+      if (Array.isArray(contract.PRESENTATION_TOOL_NAMES)) presentationToolNames = new Set(contract.PRESENTATION_TOOL_NAMES);
+    }
     const modelRuntime = await pi.ModelRuntime.create({
       authPath: config.offline ? join(isolated, 'model-auth.json') : join(config.agentDir, 'auth.json'),
       modelsPath: config.offline ? null : join(config.agentDir, 'models.json'), allowModelNetwork: false,
@@ -50,7 +74,11 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
       if (config.case.id !== 'facts-basic' && !config.case.offlineScript) throw new Error('离线仅支持facts-basic和登记的故障脚本；不计为真实模型评测。');
       const fauxApi = await dependency('@earendil-works/pi-ai/providers/faux'), ai = await dependency('@earendil-works/pi-ai');
       const faux = fauxApi.fauxProvider({ api: 'openai-responses' });
-      const finalWire = JSON.stringify({ content: [{ type: 'text', text: '验收完成。' }] });
+      const nativeScript = config.case.offlineScript?.startsWith('native_') === true;
+      if (nativeScript && !nativePresentation) throw new Error('原生参数脚本要求原生展示runtime。');
+      if (config.case.offlineScript && !nativeScript && nativePresentation) throw new Error('旧mixed JSON脚本只验证旧runtime，请使用原生参数脚本验证当前runtime。');
+      const rawOverrides = new Map<string, string>();
+      const finalWire = nativePresentation ? '验收完成。' : JSON.stringify({ content: [{ type: 'text', text: '验收完成。' }] });
       const failures: Record<string, string> = {
         bare_component: '{"type":"Callout","props":{"tone":"info","text":"正文草稿"}}\n后接普通文字',
         blank_output: ' '.repeat(382),
@@ -67,16 +95,69 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
         fauxApi.fauxAssistantMessage([fauxApi.fauxToolCall('get_subject_details', {
           subject_id: 1001, fields: ['nameCn', 'score', 'date', 'totalEpisodes'],
         })], { stopReason: 'toolUse' }),
-        fauxApi.fauxAssistantMessage(JSON.stringify({ content: [{ type: 'text', nextType: null,
-          text: '星港追踪，评分8.4，首播2024-01-08，共12集。https://bgm.tv/subject/1001' }] })),
+        fauxApi.fauxAssistantMessage(nativePresentation ? '星港追踪，评分8.4，首播2024-01-08，共12集。https://bgm.tv/subject/1001'
+          : JSON.stringify({ content: [{ type: 'text', nextType: null,
+            text: '星港追踪，评分8.4，首播2024-01-08，共12集。https://bgm.tv/subject/1001' }] })),
       ]);
+      if (nativeScript) {
+        const terminalScript = config.case.offlineScript?.startsWith('native_terminal_') === true;
+        const scripts: Record<string, string> = {
+          native_trailing_comma: '{"text":"本地修复完成。",}',
+          native_duplicate_key: '{"text":"错误草稿","text":"错误重复值"}',
+          native_truncated_value: '{"text":"未闭合的值',
+        };
+        const first = fauxApi.fauxToolCall('present_text', { text: '错误草稿' }, { id: 'native-first' });
+        if (!terminalScript) rawOverrides.set('native-first', scripts[config.case.offlineScript!]!);
+        const correction = fauxApi.fauxToolCall('present_text', { text: '模型纠参完成。' }, { id: 'native-corrected' });
+        faux.setResponses([fauxApi.fauxAssistantMessage([first], { stopReason: 'toolUse' }),
+          ...(config.case.offlineScript === 'native_trailing_comma' ? [] : [fauxApi.fauxAssistantMessage([correction], { stopReason: 'toolUse' })]),
+          fauxApi.fauxAssistantMessage('验收完成。')]);
+        if (terminalScript) faux.setResponses([
+          fauxApi.fauxAssistantMessage([fauxApi.fauxToolCall('present_text', { text: '保留前缀。' }, { id: 'native-prefix' })], { stopReason: 'toolUse' }),
+          fauxApi.fauxAssistantMessage([], { stopReason: config.case.offlineScript === 'native_terminal_abort' ? 'aborted' : 'error',
+            errorMessage: 'BENCHMARK_EXPECTED_TERMINAL_FAILURE' }),
+        ]);
+        if (renderPresentation) {
+          const load = fauxApi.fauxAssistantMessage([
+            fauxApi.fauxToolCall('read_component_index', { query: 'Callout' }),
+            fauxApi.fauxToolCall('read_component_spec', { names: ['Callout'] }),
+          ], { stopReason: 'toolUse' });
+          const rawScripts: Record<string, string> = {
+            native_trailing_comma: '{"tone":"success","text":"本地修复完成。","final":true,}',
+            native_duplicate_key: '{"tone":"success","text":"错误草稿","text":"错误重复值","final":true}',
+            native_truncated_value: '{"tone":"success","text":"未闭合的值',
+          };
+          const firstRender = fauxApi.fauxToolCall('render_Callout', { tone: 'success', text: '错误草稿', final: true }, { id: 'native-first' });
+          if (!terminalScript) rawOverrides.set('native-first', rawScripts[config.case.offlineScript!]!);
+          faux.setResponses([load, fauxApi.fauxAssistantMessage([firstRender], { stopReason: 'toolUse' }),
+            ...(config.case.offlineScript === 'native_trailing_comma' ? [] : [fauxApi.fauxAssistantMessage([
+              fauxApi.fauxToolCall('render_Callout', { tone: 'success', text: '模型纠参完成。', final: true }, { id: 'native-corrected' }),
+            ], { stopReason: 'toolUse' })])]);
+          if (terminalScript) faux.setResponses([load,
+            fauxApi.fauxAssistantMessage([fauxApi.fauxToolCall('render_Callout', { tone: 'progress', text: '验收进度', before: '保留前缀。' },
+              { id: 'native-prefix' })], { stopReason: 'toolUse' }),
+            fauxApi.fauxAssistantMessage([], { stopReason: config.case.offlineScript === 'native_terminal_abort' ? 'aborted' : 'error',
+              errorMessage: 'BENCHMARK_EXPECTED_TERMINAL_FAILURE' }),
+          ]);
+        }
+      }
       modelRuntime.registerNativeProvider({ ...faux.provider, streamSimple: (model: unknown, context: unknown, options: Record<string, unknown>) =>
         ai.lazyStream(model, async () => {
           const payload = { model: record(model).id, messages: record(context).messages,
             tools: ai.getCurrentTools(record(context).messages) };
           if (typeof options?.onPayload === 'function') await options.onPayload(payload, model);
-          collector.payload(Buffer.byteLength(JSON.stringify(payload))); collector.payloadTools(payload);
-          return faux.provider.streamSimple(model, context, options);
+          collector.payload(Buffer.byteLength(JSON.stringify(payload))); capturePayload(payload);
+          const upstream = faux.provider.streamSimple(model, context, options);
+          const attach = (message: unknown) => {
+            for (const call of Array.isArray(record(message).content) ? record(message).content as unknown[] : []) {
+              if (record(call).type === 'toolCall' && presentationToolNames.has(String(record(call).name)))
+                ai.setToolCallArgumentSource(call, { raw: rawOverrides.get(String(record(call).id)) ?? JSON.stringify(record(call).arguments), state: 'complete', source: 'terminal_response' });
+            }
+          };
+          // faux的clone不会携带WeakMap证据；只在离线生产Pi链路注入明确登记的raw参数。
+          return { async *[Symbol.asyncIterator]() {
+            for await (const event of upstream) { attach(record(event).partial); attach(record(event).message); yield event; }
+          }, async result() { const message = await upstream.result(); attach(message); return message; } };
         }) });
       await modelRuntime.setRuntimeApiKey('faux', 'benchmark-offline-placeholder');
     }
@@ -131,7 +212,7 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
         if (config.offline) throw new Error('BENCHMARK_OFFLINE_NETWORK_BLOCKED');
         const count = collector.value.providerHttpRequests ?? 0;
         if (reason || count >= config.case.budget.modelRequests) { stop('budget_exceeded'); throw new Error('BENCHMARK_BUDGET_EXCEEDED'); }
-        collector.value.providerHttpRequests = count + 1;
+        collector.providerHttpRequest();
         const headers = new Headers(init?.headers);
         for (const key of ['authorization', 'x-api-key', 'api-key']) {
           const value = headers.get(key); if (value) registerCredentials([value, value.replace(/^Bearer\s+/i, '')]);
@@ -139,7 +220,9 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
         checkpoint();
         if (typeof init?.body === 'string') {
           collector.payload(Buffer.byteLength(init.body));
-          try { collector.payloadTools(JSON.parse(init.body)); } catch { captureIssues.push('provider_payload_unreadable'); }
+          try {
+            capturePayload(JSON.parse(init.body));
+          } catch { captureIssues.push('provider_payload_unreadable'); }
         }
         const timeoutSignal = AbortSignal.timeout(config.case.budget.timeoutMs);
         return networkTransport.fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal });
@@ -147,13 +230,83 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     }) as AgentSessionRuntime;
     runtime.session.sessionManager.appendSessionInfo('Benchmark');
     runtime.session.setAutoRetryEnabled(recoveryEnabled);
+    if (existsSync(join(config.runtimeRoot, 'bangumi/dist/src/output/presentation-history.js'))) {
+      const history = await sourceModule('output/model-context'), contract = await sourceModule('output/presentation-contract');
+      const originalStream = runtime.session.agent.streamFunction;
+      runtime.session.agent.streamFunction = (model, context, options) => {
+        const manager = runtime!.session.sessionManager;
+        const snapshots = manager.buildContextEntries().flatMap(entry => entry.type === 'custom' && entry.customType === 'bangumi/presentation' ? [entry.data] : []);
+        const transcript = manager.getBranch().flatMap(entry => entry.type === 'message' ? [entry.message] : []);
+        const sources = manager.getBranch().flatMap(entry => entry.type === 'message' && entry.message.role === 'assistant'
+          && entry.message.diagnostics?.some(item => item.type === 'bangumi_presentation_source') ? [entry.message] : []);
+        // 原上下文另建信封做纯复算；生产stream重新绑定自己的来源，不修改正文或加入审计消息。
+        const observed = { ...context, messages: [...context.messages] };
+        history.bindPresentationHistory(observed, snapshots, { sourceMessages: sources, sourceTranscript: transcript,
+          model, toolRoles: contract.PRESENTATION_MODEL_TOOL_ROLES });
+        pendingHistoryAudits = history.inspectPresentationHistory(observed);
+        return originalStream(model, context, options);
+      };
+    }
     unsubscribe = runtime.session.subscribe(event => {
       collector.event(event);
       const row = record(event), message = record(row.message);
+      if (row.type === 'message_end' && message.role === 'assistant') {
+        lastAssistant = message; batchResults.clear();
+      }
+      if (row.type === 'message_end' && message.role === 'toolResult') batchResults.set(String(message.toolCallId), message.isError !== true);
+      const entry = record(row.entry), presentation = record(entry.data);
+      if (row.type === 'entry_appended' && entry.type === 'custom' && entry.customType === 'bangumi/presentation' && currentTurn) {
+        presentationSeen = true;
+        const content = canonicalBenchmarkContent(Array.isArray(presentation.content) ? presentation.content : []);
+        const visible = content.filter(part => record(part).type === 'text').map(part => String(record(part).text ?? '')).join('');
+        if (!visible.startsWith(visiblePrefix)) collector.value.prefixMonotonic = false;
+        else visiblePrefix = visible;
+        if (['completed', 'error', 'aborted'].includes(String(presentation.status))) {
+          currentTurn.presentationStatus = presentation.status as 'completed' | 'error' | 'aborted';
+          try { validateMixedContent({ content }); } catch { invalidOutput = true; }
+          currentTurn.final = traceRedact({ content }); currentTurn.text = outputText({ content });
+          if (presentation.status === 'completed') { collector.value.validatedFinals++; finalMessages++; }
+          if (presentation.status === 'completed') {
+            const calls = Array.isArray(lastAssistant?.content) ? lastAssistant.content.filter(part => record(part).type === 'toolCall') : [];
+            const resultsSuccessful = calls.every(call => batchResults.get(String(record(call).id)) === true);
+            completedReplyId = String(presentation.replyId);
+            currentTurn.completionProof = { source: 'native_stop',
+              finalToolCallId: null, batchCallCount: calls.length, batchResultCount: batchResults.size,
+              allBatchResultsSuccessful: resultsSuccessful && calls.length === batchResults.size,
+              httpAtCommit: collector.value.providerHttpRequests ?? 0, httpAtSettled: null,
+              modelAtCommit: collector.value.modelRequests, modelAtSettled: null };
+          }
+          if (presentation.status === 'completed') content.forEach((part, partIndex) => {
+            const row = record(part);
+            if (row.type === 'text' && typeof row.text === 'string' && row.text.length) {
+              const replyId = String(presentation.replyId);
+              canonicalTexts.set(replyId + ':' + partIndex, { userTurn: turns.length, replyId, partIndex, text: row.text });
+            }
+          });
+        }
+      }
+      if (row.type === 'entry_appended' && entry.type === 'custom' && entry.customType === 'bangumi/presentation_commit' && currentTurn) {
+        const batch = Array.isArray(presentation.batch) ? presentation.batch.map(record) : [];
+        const calls = Array.isArray(lastAssistant?.content) ? lastAssistant.content.filter(part => record(part).type === 'toolCall').map(record) : [];
+        const valid = presentation.version === 1 && presentation.evidence === 'all_tools_succeeded'
+          && presentation.replyId === completedReplyId && currentTurn.presentationStatus === 'completed'
+          && batch.length > 0 && batch.length === calls.length && batch.length === batchResults.size
+          && batch.every((call, index) => call.id === calls[index]?.id && call.name === calls[index]?.name && batchResults.get(String(call.id)) === true)
+          && presentation.operationId === batch.at(-1)?.id && lastAssistant?.stopReason === 'toolUse';
+        if (!valid) captureIssues.push('invalid_presentation_commit_evidence');
+        else if (currentTurn.completionProof) {
+          currentTurn.completionProof.source = 'tool_finish_turn';
+          currentTurn.completionProof.finalToolCallId = String(presentation.operationId);
+        }
+      }
+      if (row.type === 'agent_settled' && currentTurn?.completionProof) {
+        currentTurn.completionProof.httpAtSettled = collector.value.providerHttpRequests ?? 0;
+        currentTurn.completionProof.modelAtSettled = collector.value.modelRequests;
+      }
       if (row.type === 'message_start' && message.role === 'assistant' || row.type === 'tool_execution_start') checkpoint();
       if (collector.value.modelRequests > config.case.budget.modelRequests || collector.value.toolExecutions > config.case.budget.toolExecutions) stop('budget_exceeded');
       if (row.type === 'tool_execution_start') pendingCalls.set(String(row.toolCallId), traceRedact(row.args));
-      if (row.type === 'message_update' && currentTurn) {
+      if (!nativePresentation && row.type === 'message_update' && currentTurn) {
         const parts = Array.isArray(message.content) ? message.content : [];
         const visible = parts.filter(part => record(part).type === 'text').map(part => String(record(part).text ?? '')).join('');
         if (visible) { if (!visible.startsWith(visiblePrefix)) collector.value.prefixMonotonic = false; else visiblePrefix = visible; }
@@ -173,7 +326,8 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
           if (typeof message.errorMessage === 'string') error ??= String(traceRedact(message.errorMessage));
         }
         const parts = Array.isArray(message.content) ? message.content : [];
-        if (message.stopReason === 'stop' && !parts.some(part => record(part).type === 'toolCall') && currentTurn) {
+        const source = Array.isArray(message.diagnostics) && message.diagnostics.some(item => record(item).type === 'bangumi_presentation_source');
+        if (!nativePresentation && !presentationSeen && !source && message.stopReason === 'stop' && !parts.some(part => record(part).type === 'toolCall') && currentTurn) {
           const content = canonicalBenchmarkContent(parts);
           try { validateMixedContent({ content }); collector.value.validatedFinals++; } catch { invalidOutput = true; }
           currentTurn.final = traceRedact({ content }); currentTurn.text = outputText({ content }); finalMessages++;
@@ -185,15 +339,19 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     deadline = setTimeout(() => stop('timeout'), config.case.budget.timeoutMs);
     for (const prompt of config.case.turns) {
       const start = performance.now();
+      collector.startUserTurn(turns.length + 1);
       visiblePrefix = '';
+      presentationSeen = false;
+      lastAssistant = undefined; batchResults.clear();
+      completedReplyId = undefined;
       currentTurn = { prompt, final: null, text: '', tools: [], durationMs: 0 }; turns.push(currentTurn);
       await runtime.session.prompt(prompt); await runtime.session.waitForIdle();
       currentTurn.durationMs = performance.now() - start;
       if (reason) break;
     }
-    const terminalError = turns.some(turn => turn.final === null);
-    collector.value.terminalModelErrors = turns.filter(turn => turn.final === null).length;
-    outcome = reason ?? ((recoveryEnabled ? terminalError : modelErrors > 0) ? 'errored' : 'failed');
+    const terminalError = turns.some(turn => turn.final === null || turn.presentationStatus && turn.presentationStatus !== 'completed');
+    collector.value.terminalModelErrors = turns.filter(turn => turn.final === null || turn.presentationStatus && turn.presentationStatus !== 'completed').length;
+    outcome = reason ?? ((terminalError || !recoveryEnabled && modelErrors > 0) ? 'errored' : 'failed');
     if (recoveryEnabled && !terminalError) error = null;
   } catch (caught) { error = String(traceRedact(caught instanceof Error ? caught.message : 'BENCHMARK_ERROR')); outcome = reason ?? 'errored'; }
   finally {
@@ -211,7 +369,7 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
   }
   if (!traceDirectories.length) captureIssues.push('trace_missing');
   if (config.case.offlineScript === 'prefix_then_invalid') collector.value.prefixDuplications = Math.max(0, (turns.at(-1)?.text.split('保留前缀。').length ?? 1) - 2);
-  const gradingCase: WorkerConfig['case'] = config.case.offlineScript ? { ...config.case, rules: [...config.case.rules, {
+  const gradingCase: WorkerConfig['case'] = config.case.offlineScript && !config.case.offlineScript.startsWith('native_') ? { ...config.case, rules: [...config.case.rules, {
     kind: 'recovery' as const, expectedTerminal: config.case.expectedTerminal ?? 'success',
     ...(config.case.offlineScript === 'prefix_then_invalid' ? { prefix: '保留前缀。' } : {}),
   }] } : config.case;
@@ -227,7 +385,7 @@ export async function executeCase(config: WorkerConfig): Promise<RunObservation>
     variant: config.variant, repeat: config.repeat, protocolHash: config.protocolHash, versionHash: config.versionHash,
     model: config.model, thinking: config.thinking, mode: config.mode, outcome, error, turns,
     metrics: collector.finish(network, config.mode === 'fixture' || existsSync(join(config.outputDir, 'network.jsonl'))),
-    grade, confirmations, network, traceDirectories, captureIssues };
+    grade, confirmations, network, traceDirectories, captureIssues, historyProofs };
   if (result.outcome === 'passed' && !config.offline && result.metrics.providerHttpRequests !== result.metrics.modelRequests) {
     result.outcome = 'incomplete_capture'; result.captureIssues.push('provider_request_usage_incomplete');
   }
