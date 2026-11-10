@@ -31,7 +31,7 @@
 | 页面 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | 主界面 | 会话流 + 外壳 + 输入区 + 弹窗 | `web/docs/agents/page/mainPage/index.md` | 改主界面（会话流、侧栏、输入区、弹窗、首屏） |
-| 调试页 | 手输 event / frame 预览 | `web/docs/agents/page/debug/index.md` | 改调试页（模拟器、播放、预览） |
+| 卡片实验室 | 逐字段编辑内容块载荷、实时预览 | `web/docs/agents/page/lab/index.md` | 改实验室（字段表单、预览、生成物） |
 | 文档页 | 内容组件库文档站 | `web/docs/agents/page/library/index.md` | 改文档页（导航、页内目录、搜索、样例数据） |
 
 **新增一个页面时**：建 `web/docs/agents/page/<页面>/` 目录并写该页 `index.md`，在 [router.md](router.md)（加路由）与 [constants.md](constants.md)（加地址常量）两处登记，并在本表补一行。

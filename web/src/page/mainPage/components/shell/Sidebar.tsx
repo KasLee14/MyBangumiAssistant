@@ -18,13 +18,13 @@ type OpenMenu = { kind: 'row'; sessionId: string } | null;
  * C01 删掉顶栏之后，原来挂在顶栏上的
  * 四件事 + 一条栏目槽全部落到这里（C43 定稿 D）：
  *
- * - 顶部一行：品牌（双击进调试页）· 连接状态点（8px，常态可见）· 折叠按钮；
+ * - 顶部一行：品牌（双击进卡片实验室）· 连接状态点（8px，常态可见）· 折叠按钮；
  * - 第二行：实心主色整行「开启新对话」——**侧栏唯一的主色实心操作**
  *   （首屏那枚设置入口取同一组颜色，见 C45 的 2026-10-10 修订）；
  * - 列表：置顶 / 今天 / 昨天 / 7 天内 / 更早（C44）；
  * - 底部一行：头像 + 用户名 + 齿轮「设置」入口（C45
  *   定稿 B：原来这里是一枚「···」，点开是「设置 + 目录 / 调试页」浮层菜单；现在齿轮**单击直达设置**，
- *   菜单与那三个入口一并删掉——调试页仍可双击上面的品牌进入）。
+ *   菜单与那三个入口一并删掉——卡片实验室仍可双击上面的品牌进入）。
  *
  * 行的形态来自共享基类 `.appNavRow`（`styles/common.css`）——文档页左导航用的是同一个类，
  * 所以「当前项是粉底 + 主色描边 + 主色字」这件事只有一处定义。置顶按钮与它的菜单是
@@ -118,10 +118,10 @@ export function Sidebar(): ReactNode {
           data-debug-toggle="true"
           role="button"
           tabIndex={0}
-          title="双击进入调试页"
-          onDoubleClick={() => { void navigate(PATH.debug); }}
+          title="双击进入卡片实验室"
+          onDoubleClick={() => { void navigate(PATH.lab); }}
           onKeyDown={event => {
-            if (event.key === 'Enter' || event.key === ' ') void navigate(PATH.debug);
+            if (event.key === 'Enter' || event.key === ' ') void navigate(PATH.lab);
           }}
         >
           Bangumi 助手

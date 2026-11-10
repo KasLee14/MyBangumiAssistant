@@ -1,72 +1,35 @@
-import type { ServerEvent } from '../../../types/protocol';
 import type { ContentBlockView } from '../../../components/content';
 import type { ContentKind } from '../../../types/content';
 import type { LibrarySection } from '../types/sections';
 
-type StateFrame = Extract<ServerEvent, { type: 'state' }>;
-
 /**
- * 示例载荷 → 块 / event / frame 的转换。
+ * 示例载荷 → 块 / JSON 的转换。
  *
- * 页面上的 UI 预览、event 代码块、frame 代码块都由**同一份载荷**现场生成，
- * 所以"预览所见 = 粘进调试页所得"，不存在手抄的第二份数据。
+ * 页面上的 UI 预览与「复制载荷」都由**同一份载荷**现场生成，所以「预览所见 = 粘进卡片
+ * 实验室所得」，不存在手抄的第二份数据。
  */
-
-/** 帧里的标量：文档页不连宿主，全部是固定模拟值（与调试页的样例同形）。 */
-export const FRAME_STATE: StateFrame['state'] = {
-  ready: true, busy: false, cancelling: false, startedAt: 0, status: '',
-  modelLabel: 'debug/mock-model', sessionId: 'library-preview', sessionName: '组件库预览',
-  thinking: { current: 'off', currentLabel: '关闭', available: [], supported: false },
-  tokenUsage: null, contextUsage: null, liveContent: [], liveThinking: '',
-  pending: null, loginPrompt: null, loginBusy: false, loginStatus: '',
-  loginText: '未登录（组件库不访问账户）', loginState: 'signed-out', loginUsername: '',
-  proxyLabel: '直连', proxyMode: 'direct', proxyAddress: '',
-};
 
 /**
  * 把示例载荷包成一个内容块。
  *
- * 形状与宿主 `message-blocks.ts` 的投影完全一致：`{ type, props }`——**定制组件的参数一律
- * 写在 `props` 里**，块上没有随 kind 变化的字段名。所以"文档页看到的形状"就是"粘进调试页
- * 之后宿主投影出来的形状"。
+ * 形状与宿主 `message-blocks.ts` 的投影完全一致：`{ type, props }`——定制组件的参数一律
+ * 写在 `props` 里。所以文档页看到的形状就是会话里渲染的形状。
  */
 export function blockOf(kind: ContentKind, payload: unknown): ContentBlockView {
   return { type: kind, props: payload } as ContentBlockView;
 }
 
-/** 一条可直接粘进调试页「event 输入」框的 assistant 消息（正文是一个内容块）。 */
-export function eventTextOf(kind: ContentKind, payload: unknown): string {
-  return JSON.stringify({
-    type: 'message_end',
-    message: { role: 'assistant', stopReason: 'stop', content: [blockOf(kind, payload)] },
-  }, null, 2);
-}
-
 /**
- * 主载荷对应的 event JSON。
+ * 一份可直接粘进卡片实验室「原始 JSON」的载荷。
  *
- * 形态变体（`section.variants`）也各自走 `eventTextOf`——同一个函数、同一份载荷，
- * 所以变体预览卡上的「复制 event」给的不是手抄的第二份数据。
+ * 只给 `props` 本体（实验室直接编辑的是它），不包 `{ type, props }` 信封——信封由实验室
+ * 按当前选中的 kind 补上。
  */
-export function eventText(section: LibrarySection): string {
-  return eventTextOf(section.kind, section.payload);
+export function payloadText(payload: unknown): string {
+  return JSON.stringify(payload, null, 2);
 }
 
-/** 一条可直接粘进调试页「frame 输入」框的完整 state 帧。 */
-export function frameText(section: LibrarySection): string {
-  const frame: StateFrame = {
-    type: 'state',
-    instanceId: 'debug-instance',
-    revision: 1,
-    full: true,
-    items: [
-      // 轮次条目 + user + assistant 的组合与真实会话一致：这三样缺一，粘进调试页
-      // 就看不到「一个轮次」的完整形态（`projectTurns` 按轮次条目切分）。
-      { id: 1, version: 1, kind: 'turn', turn: 1, startedAt: 0, endedAt: 0, status: 'completed', messageCount: 1, toolCallCount: 0 },
-      { id: 2, version: 1, kind: 'user', text: `查看${section.title}` },
-      { id: 3, version: 1, kind: 'assistant', content: [blockOf(section.kind, section.payload)], turn: 1, step: 1 },
-    ],
-    state: FRAME_STATE,
-  };
-  return JSON.stringify(frame, null, 2);
+/** 主载荷对应的 JSON 文本；形态变体也走同一个函数，所以变体卡上的「复制」不是手抄数据。 */
+export function payloadTextOf(section: LibrarySection): string {
+  return payloadText(section.payload);
 }

@@ -33,8 +33,25 @@ export interface LibraryVariant {
   note?: string;
 }
 
+/**
+ * 左侧导航的分组键。
+ *
+ * 定义成联合而不是自由字符串：`sections.ts` 里的 `group` 与 `GROUP_LABELS` 的键互相约束，
+ * 写错分组名是编译错误。新增一个**分组**要在这里加成员并补一条标签；新增一个**组件**不需要
+ * 碰它（在它自己那条 `LibrarySection` 里写 `group` 即可）。
+ */
+export type LibraryGroupKey = 'entries' | 'data' | 'text';
+
 export interface LibrarySection {
   kind: ContentKind;
+  /**
+   * 左侧导航的分组归属。
+   *
+   * 放在条目里而不是另建一张「分组 → kinds」的表：那样每加一种组件要改两处，而两处之间
+   * 没有任何编译期约束（漏改只会让它从导航里消失）。现在分组是条目自身的一部分，
+   * `LIBRARY_GROUPS` 由它派生（见 `constants/sections.ts`）。
+   */
+  group: LibraryGroupKey;
   title: string;
   summary: string;
   /**

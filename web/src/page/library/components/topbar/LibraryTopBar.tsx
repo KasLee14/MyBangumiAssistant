@@ -55,7 +55,7 @@ export function LibraryTopBar({ query, onQueryChange, sections }: LibraryTopBarP
             }}
           />
           <Link className="libHeaderLink" to={PATH.home}>主界面</Link>
-          <Link className="libHeaderLink" to={PATH.debug}>调试页</Link>
+          <Link className="libHeaderLink" to={PATH.lab}>卡片实验室</Link>
           <Pill>v1.0.0</Pill>
         </>
       )}

@@ -15,9 +15,9 @@
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `index.tsx` | 唯一装配点：模块作用域建 `createBrowserRouter(routes)`，导出 `AppRouter`（`web/src/main.tsx` 只引用它） | `web/src/router/index.tsx` | 改路由实例的创建位置 |
-| `routes.tsx` | 路由表：`RootLayout` + `/`、`/debug`、`/library`（索引路由 + `components/:kind`）、`*`；含文档页两个子路由组件与标题口径 | `web/src/router/routes.tsx` | 加一个页面路由；改路由结构或页面标题口径 |
+| `routes.tsx` | 路由表：`RootLayout` + `/`、`/lab`、`/library`（索引路由 + `components/:kind`）、`*`；含文档页两个子路由组件与标题口径 | `web/src/router/routes.tsx` | 加一个页面路由；改路由结构或页面标题口径 |
 | `NotFound.tsx` | 全局未命中页（`*` 分支）：显示出错路径 + 一条明确出口，形态复用 `.appFallbackPage` / `.appEmpty*` / `.button` | `web/src/router/NotFound.tsx` | 改全局未命中页 |
-| `paths.ts`（在 `constants/`，非本层） | `PATH` 与 `LIBRARY_COMPONENT_PATTERN`：地址字面量与匹配模式的唯一来源 | `web/src/constants/paths.ts` | 改地址（如 `/debug` 换成别的）或文档页详情模式 |
+| `paths.ts`（在 `constants/`，非本层） | `PATH` 与 `LIBRARY_COMPONENT_PATTERN`：地址字面量与匹配模式的唯一来源 | `web/src/constants/paths.ts` | 改地址（如 `/lab` 换成别的）或文档页详情模式 |
 | `server.ts`（在宿主，非本层） | SPA 回落：为无扩展名的未知路径返回 `index.html` | `bangumi/src/web/server.ts` | 深链或刷新 404 时排查 |
 
 ## 规则
@@ -50,6 +50,6 @@
 
 **4. 用 History 模式，不用 hash。**
 
-- **规则**：地址形如 `/debug`、`/library/components/DataTable`；代价由宿主承担——`bangumi/src/web/server.ts` 必须为无扩展名的未知路径回落 `index.html`。
+- **规则**：地址形如 `/lab`、`/library/components/DataTable`；代价由宿主承担——`bangumi/src/web/server.ts` 必须为无扩展名的未知路径回落 `index.html`。
 - **为什么**：地址可读、可分享、可深链。
 - **后果**：宿主侧漏掉 SPA 回落时，深链与刷新都是 404，而应用内跳转一切正常（极易误判为前端 bug）。

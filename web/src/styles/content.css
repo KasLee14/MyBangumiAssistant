@@ -1440,13 +1440,6 @@ a.contentSubjectRowLink:focus-visible { outline: 0; box-shadow: var(--bgm-focus)
   color: var(--bgm-danger);
 }
 .contentFallbackText { min-width: 0; overflow-wrap: anywhere; }
-.contentFallbackIssues {
-  margin: 4px 0 0;
-  padding-left: 18px;
-  font: var(--app-font-note);
-  line-height: 1.6;
-  color: var(--bgm-text-weak);
-}
 .contentFallbackRaw {
   margin-top: var(--app-space-6);
   font: var(--app-font-note);

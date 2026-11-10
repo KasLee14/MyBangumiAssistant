@@ -50,8 +50,8 @@
 **1. 组件不直接碰 store。**
 
 - **规则**：组件用 `web/src/store/hooks.ts` 的 `useAppSelector` / `useAppDispatch` / `useActions` 与 `web/src/store/selectors.ts` 的 selector；不在组件里 `store.getState()` 或自建 selector 泛型。
-- **为什么**：类型化 hooks 让 `RootState` / `AppDispatch` 只有一处来源；`useActions` 保证动作与当前 store 实例绑定（调试页有独立 store）。
-- **后果**：绕过 `useActions` 拿主 store 的动作，会让调试页的按钮作用到主界面状态上。
+- **为什么**：类型化 hooks 让 `RootState` / `AppDispatch` 只有一处来源；`useActions` 保证动作与当前 store 实例绑定（将来若有页面自建 store，也靠它隔离）。
+- **后果**：绕过 `useActions` 拿主 store 的动作，会让页面里的按钮作用到主界面状态上。
 
 ### 单一真相源
 

@@ -1,0 +1,835 @@
+{
+  "version": 1,
+  "cards": [
+    {
+      "kind": "SubjectCards",
+      "name": "条目集合",
+      "componentFile": "SubjectCards.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "搜索结果",
+          "hint": "区块标题"
+        },
+        {
+          "key": "items",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "id",
+              "kind": "number",
+              "required": true,
+              "optional": false,
+              "value": "1424",
+              "hint": "条目 ID，用作列表 key"
+            },
+            {
+              "key": "name",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "けいおん!",
+              "hint": "原名"
+            },
+            {
+              "key": "nameCn",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "轻音少女",
+              "hint": "中文名；缺失或与原名相同时不重复显示"
+            },
+            {
+              "key": "kind",
+              "kind": "select",
+              "options": [
+                "book",
+                "anime",
+                "music",
+                "game",
+                "real"
+              ],
+              "required": true,
+              "optional": false,
+              "value": "anime",
+              "hint": "媒体类型，决定角标"
+            },
+            {
+              "key": "image",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "https://lain.bgm.tv/pic/cover/l/48/9d/1424_q8FMQ.jpg",
+              "hint": "封面地址"
+            },
+            {
+              "key": "score",
+              "kind": "number",
+              "required": false,
+              "optional": true,
+              "value": "8.2",
+              "hint": "全站评分，保留一位小数"
+            },
+            {
+              "key": "scoreCount",
+              "kind": "number",
+              "required": false,
+              "optional": true,
+              "value": "12480",
+              "hint": "评分人数"
+            },
+            {
+              "key": "rank",
+              "kind": "number",
+              "required": false,
+              "optional": true,
+              "value": "128",
+              "hint": "站内排名"
+            },
+            {
+              "key": "date",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "2009-04-03",
+              "hint": "放送/发售日期，宿主已格式化"
+            },
+            {
+              "key": "summary",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "樱丘高中轻音部的日常。",
+              "hint": "简介"
+            },
+            {
+              "key": "tags",
+              "kind": "json",
+              "required": false,
+              "optional": true,
+              "value": "[\"音乐\",\"日常\"]",
+              "hint": "标签名"
+            },
+            {
+              "key": "url",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "https://bgm.tv/subject/1424",
+              "hint": "条目页地址"
+            }
+          ],
+          "required": true,
+          "optional": false,
+          "value": "[{\"id\":1424,\"name\":\"けいおん!\",\"nameCn\":\"轻音少女\",\"kind\":\"anime\",\"score\":8.2,\"image\":\"https://lain.bgm.tv/pic/cover/l/48/9d/1424_q8FMQ.jpg\",\"url\":\"https://bgm.tv/subject/1424\"},{\"id\":876,\"name\":\"CLANNAD\",\"nameCn\":\"团子大家族\",\"kind\":\"anime\",\"score\":8.7,\"image\":\"https://lain.bgm.tv/pic/cover/l/67/d1/876_dCfrd.jpg\",\"url\":\"https://bgm.tv/subject/876\"},{\"id\":2747,\"name\":\"涼宮ハルヒの憂鬱\",\"nameCn\":\"凉宫春日的忧郁\",\"kind\":\"anime\",\"score\":8,\"url\":\"https://bgm.tv/subject/2747\"}]",
+          "hint": "条目卡"
+        },
+        {
+          "key": "layout",
+          "kind": "select",
+          "options": [
+            "grid",
+            "list"
+          ],
+          "required": true,
+          "optional": false,
+          "value": "grid",
+          "hint": "`grid` 封面墙、`list` 紧凑行"
+        },
+        {
+          "key": "total",
+          "kind": "number",
+          "required": false,
+          "optional": true,
+          "value": "24",
+          "hint": "结果总数；大于 items.length 时提示还有多少条"
+        },
+        {
+          "key": "hint",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "按匹配度排序",
+          "hint": "排序口径一类的补充说明"
+        }
+      ]
+    },
+    {
+      "kind": "StatsCard",
+      "name": "统计",
+      "componentFile": "StatsCard.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "评分分布",
+          "hint": "区块标题"
+        },
+        {
+          "key": "headline",
+          "kind": "json",
+          "required": false,
+          "optional": true,
+          "value": "{\"value\":\"8.2\",\"label\":\"平均分\"}",
+          "hint": "主数字与说明；两者都在才生效"
+        },
+        {
+          "key": "entries",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "label",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "9",
+              "hint": "分档名"
+            },
+            {
+              "key": "value",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "3860",
+              "hint": "展示值，宿主已格式化的字符串"
+            },
+            {
+              "key": "ratio",
+              "kind": "number",
+              "required": false,
+              "optional": true,
+              "value": "0.31",
+              "hint": "相对量 0–1，决定条形/柱高；越界由组件夹取"
+            },
+            {
+              "key": "hint",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "占比 31%",
+              "hint": "数值旁的弱说明"
+            },
+            {
+              "key": "tone",
+              "kind": "select",
+              "options": [
+                "default",
+                "primary",
+                "muted"
+              ],
+              "required": false,
+              "optional": true,
+              "value": "primary",
+              "hint": "强调层级"
+            }
+          ],
+          "required": true,
+          "optional": false,
+          "value": "[{\"label\":\"10\",\"value\":\"1420\",\"ratio\":0.11},{\"label\":\"9\",\"value\":\"3860\",\"ratio\":0.31},{\"label\":\"8\",\"value\":\"4210\",\"ratio\":0.34}]",
+          "hint": "分布项"
+        },
+        {
+          "key": "mode",
+          "kind": "select",
+          "options": [
+            "list",
+            "bars",
+            "histogram"
+          ],
+          "required": true,
+          "optional": false,
+          "value": "histogram",
+          "hint": "分布编码方式"
+        },
+        {
+          "key": "note",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "共 12480 人评分",
+          "hint": "脚注"
+        }
+      ]
+    },
+    {
+      "kind": "ProgressView",
+      "name": "进度",
+      "componentFile": "ProgressView.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "观看进度",
+          "hint": "区块标题"
+        },
+        {
+          "key": "current",
+          "kind": "number",
+          "required": false,
+          "optional": true,
+          "value": "7",
+          "hint": "已看到第几"
+        },
+        {
+          "key": "total",
+          "kind": "number",
+          "required": false,
+          "optional": true,
+          "value": "13",
+          "hint": "总共多少"
+        },
+        {
+          "key": "unit",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "话",
+          "hint": "单位"
+        },
+        {
+          "key": "episodes",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "id",
+              "kind": "number",
+              "required": true,
+              "optional": false,
+              "value": "7",
+              "hint": "章节 ID，用作列表 key"
+            },
+            {
+              "key": "label",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "7",
+              "hint": "短标签"
+            },
+            {
+              "key": "state",
+              "kind": "select",
+              "options": [
+                "done",
+                "current",
+                "todo"
+              ],
+              "required": true,
+              "optional": false,
+              "value": "current",
+              "hint": "三态"
+            }
+          ],
+          "required": false,
+          "optional": true,
+          "value": "[{\"id\":1,\"label\":\"1\",\"state\":\"done\"},{\"id\":2,\"label\":\"2\",\"state\":\"done\"},{\"id\":3,\"label\":\"3\",\"state\":\"done\"},{\"id\":4,\"label\":\"4\",\"state\":\"current\"},{\"id\":5,\"label\":\"5\",\"state\":\"todo\"},{\"id\":6,\"label\":\"6\",\"state\":\"todo\"}]",
+          "hint": "章节网格；与数值进度可同时出现"
+        },
+        {
+          "key": "note",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "上次观看：2026-04-12",
+          "hint": "脚注"
+        }
+      ]
+    },
+    {
+      "kind": "InfoBox",
+      "name": "信息栏",
+      "componentFile": "InfoBox.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "作品信息",
+          "hint": "区块标题"
+        },
+        {
+          "key": "rows",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "label",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "中文名",
+              "hint": "名称"
+            },
+            {
+              "key": "value",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "轻音少女",
+              "hint": "值"
+            },
+            {
+              "key": "tone",
+              "kind": "select",
+              "options": [
+                "default",
+                "muted"
+              ],
+              "required": false,
+              "optional": true,
+              "value": "muted",
+              "hint": "次要信息降调"
+            }
+          ],
+          "required": true,
+          "optional": false,
+          "value": "[{\"label\":\"中文名\",\"value\":\"轻音少女\"},{\"label\":\"话数\",\"value\":\"13 话 + OVA\"},{\"label\":\"放送开始\",\"value\":\"2009-04-03\"}]",
+          "hint": "键值行"
+        }
+      ]
+    },
+    {
+      "kind": "DataTable",
+      "name": "数据表格",
+      "componentFile": "DataTable.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "章节列表",
+          "hint": "区块标题"
+        },
+        {
+          "key": "columns",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "key",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "ep",
+              "hint": "取值键，同时是 React key"
+            },
+            {
+              "key": "label",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "话",
+              "hint": "表头文字"
+            },
+            {
+              "key": "align",
+              "kind": "select",
+              "options": [
+                "left",
+                "right"
+              ],
+              "required": false,
+              "optional": true,
+              "value": "right",
+              "hint": "对齐方式"
+            }
+          ],
+          "required": true,
+          "optional": false,
+          "value": "[{\"key\":\"ep\",\"label\":\"话\",\"align\":\"right\"},{\"key\":\"title\",\"label\":\"标题\"}]",
+          "hint": "列定义"
+        },
+        {
+          "key": "rows",
+          "kind": "json",
+          "required": true,
+          "optional": false,
+          "value": "[{\"ep\":\"1\",\"title\":\"轻音部！\"},{\"ep\":\"2\",\"title\":\"乐器！\"},{\"ep\":\"10\",\"title\":\"合宿！\"}]",
+          "hint": "每行按列 key 取值"
+        },
+        {
+          "key": "keyColumn",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "ep",
+          "hint": "关键列：该列的值走主色深字"
+        },
+        {
+          "key": "currentRow",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "2",
+          "hint": "当前行：按关键列的值匹配"
+        },
+        {
+          "key": "note",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "共 13 话，展示前 3 话",
+          "hint": "脚注"
+        }
+      ]
+    },
+    {
+      "kind": "Timeline",
+      "name": "时间线",
+      "componentFile": "Timeline.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "最近动态",
+          "hint": "区块标题"
+        },
+        {
+          "key": "entries",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "time",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "",
+              "hint": "时间（宿主已格式化，例：2026-04-12 21:40）"
+            },
+            {
+              "key": "text",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "看到第 7 话",
+              "hint": "事件文字"
+            },
+            {
+              "key": "actor",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "我",
+              "hint": "动作发出者"
+            }
+          ],
+          "required": true,
+          "optional": false,
+          "value": "[{\"time\":\"2026-04-12 21:40\",\"text\":\"看到第 7 话\",\"actor\":\"我\"},{\"time\":\"2026-04-05 22:10\",\"text\":\"收藏了条目\",\"actor\":\"我\"},{\"time\":\"2026-03-28 19:02\",\"text\":\"评分 8 分\"}]",
+          "hint": "按宿主给出的顺序渲染，组件不重排"
+        }
+      ]
+    },
+    {
+      "kind": "TagCloud",
+      "name": "标签云",
+      "componentFile": "TagCloud.tsx",
+      "root": "array",
+      "fields": [
+        {
+          "key": "name",
+          "kind": "text",
+          "required": true,
+          "optional": false,
+          "value": "音乐",
+          "hint": "标签名"
+        },
+        {
+          "key": "count",
+          "kind": "number",
+          "required": false,
+          "optional": true,
+          "value": "1820",
+          "hint": "使用人数"
+        },
+        {
+          "key": "selected",
+          "kind": "select",
+          "options": [
+            "true",
+            "false"
+          ],
+          "required": false,
+          "optional": true,
+          "value": "true",
+          "hint": "选中态"
+        }
+      ]
+    },
+    {
+      "kind": "Gallery",
+      "name": "横向列表",
+      "componentFile": "Gallery.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "主要声优",
+          "hint": "区块标题"
+        },
+        {
+          "key": "items",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "id",
+              "kind": "number",
+              "required": true,
+              "optional": false,
+              "value": "1",
+              "hint": "唯一 id，用作列表 key"
+            },
+            {
+              "key": "name",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "丰崎爱生",
+              "hint": "名称"
+            },
+            {
+              "key": "image",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "https://lain.bgm.tv/pic/crt/l/1f/6b/1_x.jpg",
+              "hint": "封面地址，http(s) 绝对地址"
+            },
+            {
+              "key": "subtitle",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "平泽唯",
+              "hint": "副标题"
+            },
+            {
+              "key": "url",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "https://bgm.tv/person/1",
+              "hint": "卡片地址"
+            }
+          ],
+          "required": true,
+          "optional": false,
+          "value": "[{\"id\":1,\"name\":\"丰崎爱生\",\"subtitle\":\"平泽唯\",\"image\":\"https://lain.bgm.tv/pic/crt/l/1f/6b/1_x.jpg\",\"url\":\"https://bgm.tv/person/1\"},{\"id\":2,\"name\":\"日笠阳子\",\"subtitle\":\"秋山澪\",\"url\":\"https://bgm.tv/person/2\"},{\"id\":3,\"name\":\"佐藤聪美\",\"subtitle\":\"田井中律\"}]",
+          "hint": "横向卡片"
+        }
+      ]
+    },
+    {
+      "kind": "CompareTable",
+      "name": "修改对比",
+      "componentFile": "CompareTable.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "写入结果",
+          "hint": "区块标题"
+        },
+        {
+          "key": "rows",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "label",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "评分",
+              "hint": "字段名"
+            },
+            {
+              "key": "before",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "8",
+              "hint": "修改前"
+            },
+            {
+              "key": "after",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "9",
+              "hint": "修改后"
+            },
+            {
+              "key": "changed",
+              "kind": "select",
+              "options": [
+                "true",
+                "false"
+              ],
+              "required": true,
+              "optional": false,
+              "value": "true",
+              "hint": "是否真的变了；决定这一行是否强调"
+            }
+          ],
+          "required": true,
+          "optional": false,
+          "value": "[{\"label\":\"评分\",\"before\":\"8\",\"after\":\"9\",\"changed\":true},{\"label\":\"短评\",\"before\":\"（空）\",\"after\":\"神作\",\"changed\":true},{\"label\":\"标签\",\"before\":\"音乐\",\"after\":\"音乐\",\"changed\":false}]",
+          "hint": "逐字段对照"
+        },
+        {
+          "key": "note",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "只列出被写入的字段",
+          "hint": "脚注"
+        }
+      ]
+    },
+    {
+      "kind": "QuoteBlock",
+      "name": "引用块",
+      "componentFile": "QuoteBlock.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "接口原始响应",
+          "hint": "区块标题"
+        },
+        {
+          "key": "text",
+          "kind": "text",
+          "required": true,
+          "optional": false,
+          "value": "{\"subject_id\":1424}",
+          "hint": "正文，保留换行与空白"
+        },
+        {
+          "key": "mono",
+          "kind": "select",
+          "options": [
+            "true",
+            "false"
+          ],
+          "required": true,
+          "optional": false,
+          "value": "true",
+          "hint": "是否等宽呈现"
+        }
+      ]
+    },
+    {
+      "kind": "Callout",
+      "name": "状态提示",
+      "componentFile": "Callout.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "tone",
+          "kind": "select",
+          "options": [
+            "progress",
+            "success",
+            "warning",
+            "error"
+          ],
+          "required": true,
+          "optional": false,
+          "value": "success",
+          "hint": "语义色调"
+        },
+        {
+          "key": "text",
+          "kind": "text",
+          "required": true,
+          "optional": false,
+          "value": "已写入 3 项修改",
+          "hint": "主文案"
+        },
+        {
+          "key": "detail",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "这一步由宿主执行，界面只反映状态",
+          "hint": "补充说明"
+        }
+      ]
+    },
+    {
+      "kind": "LinkList",
+      "name": "链接列表",
+      "componentFile": "LinkList.tsx",
+      "root": "object",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "text",
+          "required": false,
+          "optional": true,
+          "value": "相关链接",
+          "hint": "区块标题"
+        },
+        {
+          "key": "links",
+          "kind": "list",
+          "itemFields": [
+            {
+              "key": "label",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "条目页",
+              "hint": "链接文字"
+            },
+            {
+              "key": "url",
+              "kind": "text",
+              "required": true,
+              "optional": false,
+              "value": "https://bgm.tv/subject/1424",
+              "hint": "必须是 http(s) 绝对地址"
+            },
+            {
+              "key": "hint",
+              "kind": "text",
+              "required": false,
+              "optional": true,
+              "value": "官方",
+              "hint": "同行弱文本"
+            }
+          ],
+          "required": true,
+          "optional": false,
+          "value": "[{\"label\":\"条目页\",\"url\":\"https://bgm.tv/subject/1424\",\"hint\":\"官方\"},{\"label\":\"角色列表\",\"url\":\"https://bgm.tv/subject/1424/characters\"},{\"label\":\"制作人员\",\"url\":\"https://bgm.tv/subject/1424/persons\"}]",
+          "hint": "链接"
+        }
+      ]
+    }
+  ]
+}

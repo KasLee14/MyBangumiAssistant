@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import {
   Outlet, useLocation, useNavigate, useOutletContext, useParams, type RouteObject,
 } from 'react-router';
-import { DebugPage } from '../page/debug';
+import { LabPage } from '../page/lab';
 import { MainPage } from '../page/mainPage';
 import { LibraryPage } from '../page/library';
 import type { LibraryOutletContext } from '../page/library/types/sections';
@@ -17,7 +17,7 @@ import { PATH } from '../constants/paths';
  *
  * 改造前分支散在三处手写路由里（`main.tsx` 的 hash 分流、`page/library/router.ts` 的
  * `#/components/<kind>`、文档页组件里的 `unknown` 兜底）。现在都在这一张表里：
- * 主界面 `/`、调试页 `/debug`、文档页 `/library`（总览为索引路由）与其详情
+ * 主界面 `/`、卡片实验室 `/lab`、文档页 `/library`（总览为索引路由）与其详情
  * `/library/components/:kind`，外加全局未命中 `*`。
  *
  * 只有页面级分流进 URL；会话、弹窗、过程区开合仍在 store（见 `web/docs/agents/router.md` 规则 4）。
@@ -73,7 +73,7 @@ function RootLayout(): ReactNode {
 
   useEffect(() => {
     // 标题口径沿用改造前的两个 HTML：文档页是「Bangumi 助手 · 内容组件库」，
-    // 其余（主界面 / 调试页 / 未命中）用 `index.html` 的原标题——调试页本来就没有独立标题，
+    // 其余（主界面 / 卡片实验室 / 未命中）用 `index.html` 的原标题——实验室本来就没有独立标题，
     // 这里也不为它新增一个。
     document.title = pathname === PATH.library || pathname.startsWith(`${PATH.library}/`)
       ? 'Bangumi 助手 · 内容组件库'
@@ -89,7 +89,7 @@ export const routes: RouteObject[] = [
     element: <RootLayout />,
     children: [
       { path: PATH.home, element: <MainPage /> },
-      { path: PATH.debug, element: <DebugPage /> },
+      { path: PATH.lab, element: <LabPage /> },
       {
         path: PATH.library,
         element: <LibraryPage />,

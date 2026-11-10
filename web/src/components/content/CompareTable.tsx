@@ -1,21 +1,63 @@
 import type { ReactNode } from 'react';
 import type { CompareView } from '../../types/protocol';
+import { ContentRaw } from './ContentRaw';
+import { type AssertTrue, type Equal, isRecord, readFlag, readMaybeText, readText, reading } from './payload';
+
+/** 一行对照。等价性由 `_A` 把住。 */
+export interface CompareTableRowProps {
+  /** 字段名（例：评分） */
+  label: string;
+  /** 修改前（例：8） */
+  before: string;
+  /** 修改后（例：9） */
+  after: string;
+  /** 是否真的变了；决定这一行是否强调（例：true） */
+  changed: boolean;
+}
+
+/** 入参。 */
+export interface CompareTableProps {
+  /** 区块标题（例：写入结果） */
+  title?: string;
+  /** 逐字段对照（例：[{"label":"评分","before":"8","after":"9","changed":true},{"label":"短评","before":"（空）","after":"神作","changed":true},{"label":"标签","before":"音乐","after":"音乐","changed":false}]） */
+  rows: CompareTableRowProps[];
+  /** 脚注（例：只列出被写入的字段） */
+  note?: string;
+}
+export type _A = AssertTrue<Equal<CompareTableRowProps, CompareView['rows'][number]>>;
+export type _B = AssertTrue<Equal<CompareTableProps, CompareView>>;
 
 /**
- * 修改前后对比（V3 · 点睛对比）。
- *
- * 结构取自 V3 列：**每行一条 flex 线**，
- * 没有表头——字段名是行首的弱色小标签，值只呈现「旧 → 新」。
- *
- * 为什么不留表头：三列表头会把每条记录压成窄格，中文字段名与长值都容易被截；
- * 而中间那支箭头本身已经把列义说清楚了。
+ * 修改前后对比（V3 · 点睛对比）。每行一条 flex 线、没有表头：三列表头会把每条记录压成
+ * 窄格，而中间那支箭头已经把列义说清楚了。
  *
  * 「修改后」是权威状态，所以 `<ins>` 常驻；「修改前」只在 `changed` 为真时套 `<del>`——
- * 即使完全去掉颜色，删除线仍然说明「这个值被替换过」，不把可读性押在颜色上。
- * 行尾的「已修改」标签是**第二通道**，只有 `changed` 的行才有。
+ * 即使去掉颜色，删除线仍然说明「这个值被替换过」。
  */
-export function CompareTable({ view }: { view: CompareView }): ReactNode {
-  const { title, rows, note } = view;
+export function CompareTable({ view }: { view: CompareTableProps }): ReactNode {
+  if (!isRecord(view)) return <ContentRaw kind="CompareTable" data={view} />;
+  if (!Array.isArray(view.rows)) return <ContentRaw kind="CompareTable" data={view} />;
+
+  const r = reading('CompareTable');
+  const rows: CompareTableRowProps[] = [];
+  view.rows.forEach((row, index) => {
+    if (!isRecord(row)) {
+      r.miss(`rows[${index}]`, '不是一个对象');
+      return;
+    }
+    // 局部降级：字段名取不到的整行剔除；`changed` 不是布尔时按 true（保守：当成改过）。
+    const label = readText(r, row.label, `rows[${index}].label`);
+    if (label === '') return;
+    rows.push({
+      label,
+      before: readText(r, row.before, `rows[${index}].before`),
+      after: readText(r, row.after, `rows[${index}].after`),
+      changed: readFlag(r, row.changed, `rows[${index}].changed`, true),
+    });
+  });
+
+  const title = readMaybeText(r, view.title, 'title');
+  const note = readMaybeText(r, view.note, 'note');
   return (
     <section className="contentBlock contentCompare" aria-label={title === undefined || title === '' ? '修改对比' : title}>
       {title === undefined || title === '' ? null : <h3 className="contentBlockTitle">{title}</h3>}
@@ -31,7 +73,6 @@ export function CompareTable({ view }: { view: CompareView }): ReactNode {
               </span>
               <span className="contentCompareArrow" aria-hidden="true">→</span>
               <span className="contentCompareAfter"><ins>{row.after}</ins></span>
-              {/* 只有 changed 的行给「已修改」标签：它是第二通道，不是每行都贴的装饰 */}
               {row.changed ? <span className="contentCompareTag">已修改</span> : null}
             </li>
           ))}

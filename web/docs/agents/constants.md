@@ -16,7 +16,7 @@
 
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
-| `paths.ts` | `PATH`（`home` / `debug` / `library`）与 `LIBRARY_COMPONENT_PATTERN`（给 `useMatch` 用的带 `:kind` 模式）；**零 import 的叶子模块**——它被 router / page / components 三层消费，所以从 `web/src/router/` 提到 `web/src/constants/`，依赖环随之消失；路径**拼接函数**在 `web/src/utils/paths.ts` | `web/src/constants/paths.ts` | 加 / 改页面地址，或文档页详情的匹配模式 |
+| `paths.ts` | `PATH`（`home` / `lab` / `library`）与 `LIBRARY_COMPONENT_PATTERN`（给 `useMatch` 用的带 `:kind` 模式）；**零 import 的叶子模块**——它被 router / page / components 三层消费，所以从 `web/src/router/` 提到 `web/src/constants/`，依赖环随之消失；路径**拼接函数**在 `web/src/utils/paths.ts` | `web/src/constants/paths.ts` | 加 / 改页面地址，或文档页详情的匹配模式 |
 
 ### 工具行视觉表
 
@@ -37,7 +37,7 @@
 **1. `paths.ts` 不 import 任何东西。**
 
 - **规则**：这个文件只导出字符串常量，不引用路由模块、不引用页面或组件。
-- **为什么**：它被 router / page / components 三层消费，是唯一能同时服务三层的叶子模块（组件里要知道「调试页在哪」，而组件不能引路由）。
+- **为什么**：它被 router / page / components 三层消费，是唯一能同时服务三层的叶子模块（组件里要知道「卡片实验室在哪」，而组件不能引路由）。
 - **后果**：一旦它依赖路由模块，`router → page → components → constants → router` 的环立刻成立，模块初始化顺序问题会变成随机崩溃。
 
 ### 模块边界

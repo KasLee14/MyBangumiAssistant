@@ -1,9 +1,8 @@
 import { memo, type ReactNode } from 'react';
 import { warnUnknownBlockType } from '../../../../bangumi/src/web/message-blocks';
-import { ContentFallback } from './ContentFallback';
+import { ContentErrorBoundary } from './ContentErrorBoundary';
 import { ContentSkeleton } from './ContentSkeleton';
 import { contentRenderer, type ContentBlockView } from './registry';
-import { validateMessageBlock } from './validate';
 
 /**
  * 内容块联合类型。
@@ -16,30 +15,31 @@ export type { ContentBlockView } from './registry';
 /**
  * 内容块分发器。
  *
- * 分发本身由注册表完成（`registry.tsx` 的 `type → 渲染器`），这里只做四件事：
- * `pending` 走骨架、接收侧校验、未知 type 丢弃 + 告警、非法载荷降级。
+ * 只做**信封**层面的三件事，与载荷语义无关：
+ * 1. `pending` → 骨架（载荷还在传，此时不判定——载荷本来就不全）；
+ * 2. `type` 未登记 → 整块丢弃 + 开发期告警（未知类型没有可依据的载荷语义）；
+ * 3. 其余交给组件，外面套一层 `ContentErrorBoundary`。
  *
- * 为什么在渲染前再校验一次：宿主映射、历史回放、调试面板粘贴的数据都可能与当前协议有出入，
- * 接收侧这道检查是唯一能兜住版本漂移的地方。`memo` 保证它只在块引用变化时执行——流式帧里
- * 文本增长不会带来额外的校验开销（配合 `MessageBlocks` 的块级比较与宿主侧的结构共享）。
+ * **载荷判定与降级不在这一层**：每个组件自己带 `readXxx`，自己决定「丢哪一项、回落到
+ * 什么、还是整块不可渲染」。改造前这里是「校验 → 骨架 / 降级卡 / 渲染」三分支，代价是
+ * 一份 643 行的中央规则表和一张通用的降级卡——任何一条脏数据都会把整块换成 JSON 转储，
+ * 而 12 种载荷真正需要的是各自不同的降级方式。
  *
- * 失败不回退成「什么都不显示」——那会让上游以为渲染成功——而是换成可读提示加折叠的原始数据；
- * 只有 `type` 未登记才整块丢弃（未知类型没有可依据的载荷语义）。
+ * `memo` 保证它只在块引用变化时重算：流式期宿主侧对未变的块做了结构共享，文本增长不会
+ * 带来额外的判定开销。
  */
 export const ContentBlock = memo(function ContentBlock({ block }: { block: ContentBlockView }): ReactNode {
-  // `pending`：载荷还在传，此时**不校验**——载荷本来就不全，校验必然报 degraded，
-  // 那会把"还没到"显示成"数据有问题"。骨架与降级卡的边界就划在这里。
-  if (block.pending === true) return <ContentSkeleton />;
-  const outcome = validateMessageBlock(block);
-  if (outcome.status === 'dropped') {
-    // 开发期告警：上游下发了本组件库未覆盖的块。丢弃是刻意的（未知类型没有可依据的
-    // 载荷语义），但静默丢弃会让上游的映射错误一直没人发现。
-    warnUnknownBlockType(outcome.kind);
+  const render = contentRenderer(block.type);
+  if (render === undefined) {
+    // 丢弃是刻意的（未知类型没有可依据的载荷语义），但静默丢弃会让上游的映射错误
+    // 一直没人发现，所以保留一条开发期告警。
+    warnUnknownBlockType(block.type);
     return null;
   }
-  if (outcome.status === 'degraded') {
-    return <ContentFallback kind={outcome.kind} issues={outcome.issues} raw={block} />;
-  }
-  const render = contentRenderer(block.type);
-  return render === undefined ? null : render(block);
+
+  return (
+    <ContentErrorBoundary kind={block.type} data={block.props}>
+      {block.pending === true ? <ContentSkeleton /> : render(block)}
+    </ContentErrorBoundary>
+  );
 });

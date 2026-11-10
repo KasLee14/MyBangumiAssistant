@@ -1,0 +1,325 @@
+/* ============================================================
+ * 卡片实验室皮肤（web/src/page/lab）
+ * ------------------------------------------------------------
+ * 版式对齐卡片工作台：**三列**——左 200px 卡片列表 / 中「模拟聊天栏」预览 / 右 424px 配置项。
+ * 中间那列自带一条 44px 的工具条（模拟聊天栏 · 当前卡 + 右侧动作），页面本身不再套 `AppTopBar`
+ * （工作台就是这样：没有全局顶栏，工具条长在预览列上）。
+ *
+ * 只新增 `lab*` 前缀的类，不覆写任何既有类；颜色 / 间距 / 圆角一律取 `--bgm-*` / `--app-*` 令牌。
+ * ============================================================ */
+
+.labFrame {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 424px;
+  height: 100vh;
+  background: var(--bgm-surface-alt);
+}
+
+/* ---------------------------------------------------------------- 左列 */
+
+.labSide {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--app-space-12) var(--app-space-8);
+  background: var(--bgm-surface);
+  border-right: 1px solid var(--bgm-border-soft);
+}
+
+.labSideTitle { padding: 0 10px var(--app-space-8); font: var(--app-font-note); color: var(--bgm-text-muted); }
+.labSideCount { float: right; color: var(--bgm-text-weak); }
+
+.labList { display: grid; gap: 2px; min-height: 0; overflow-y: auto; }
+
+.labCardRow {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-cell);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.labCardRow:hover { background: var(--bgm-surface-alt); }
+
+/* 选中态：品牌色浅底 + 描边，与文档页左导航同一套语汇 */
+.labCardRow[data-current='true'] {
+  background: color-mix(in srgb, var(--bgm-primary) 8%, #fff);
+  border-color: var(--bgm-border);
+}
+
+.labCardName { display: block; font: var(--app-font-body); font-weight: 600; color: var(--bgm-text-strong); }
+.labCardKind { display: block; font: var(--app-font-tiny); color: var(--bgm-text-weak); }
+
+
+/* ---------------------------------------------------------------- 中列：模拟聊天栏 */
+
+.labStage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+.labTop {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  height: 44px;
+  padding: 0 var(--app-space-16);
+  background: var(--bgm-surface);
+  border-bottom: 1px solid var(--bgm-border-soft);
+  font: var(--app-font-note);
+  color: var(--bgm-text-muted);
+}
+
+.labTopCrumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.labSpacer { flex: 1; }
+
+.labGhost {
+  padding: 5px 10px;
+  cursor: pointer;
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface);
+  color: var(--bgm-text);
+  font: var(--app-font-note);
+  text-decoration: none;
+}
+
+.labGhost:hover { border-color: var(--bgm-border); }
+.labGhost[data-on='true'] {
+  border-color: var(--bgm-border);
+  background: color-mix(in srgb, var(--bgm-primary) 8%, #fff);
+  color: var(--bgm-text-strong);
+}
+
+/* 会话面板是白底（真实界面里 `.appConversation` 就是 `#fff`），不是页面底色 */
+.labChat { flex: 1; min-height: 0; overflow: auto; padding: var(--app-space-24); background: var(--bgm-surface); }
+
+/* 会话列：与 `.appStageColumn` 实测一致（max-width 900px、居中）。不加气泡与头像——
+   助手消息在真实会话里就是裸内容块，套气泡会让预览宽度与真实不一致。 */
+.labColumn { width: 100%; max-width: 900px; margin: 0 auto; }
+
+/* 助手正文外壳：左边框 + 左内距，数值取自真实会话的 `.assistantBody` */
+.labAssistant {
+  padding-left: 10px;
+  border-left: 1.5px solid var(--bgm-border-soft);
+}
+
+.labProblem {
+  max-width: 560px;
+  padding: var(--app-space-12) var(--app-space-16);
+  border: 1px solid var(--bgm-danger-border);
+  border-radius: var(--app-radius-cell);
+  background: var(--bgm-danger-soft);
+  font: var(--app-font-note);
+  line-height: 1.7;
+  color: var(--bgm-danger);
+}
+
+
+/* ---------------------------------------------------------------- 右列：配置项 */
+
+.labConfig {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bgm-surface);
+  border-left: 1px solid var(--bgm-border-soft);
+}
+
+.labConfigHead {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-6);
+  padding: var(--app-space-12) var(--app-space-16);
+  border-bottom: 1px solid var(--bgm-border-soft);
+  font: var(--app-font-strong);
+  color: var(--bgm-text-strong);
+}
+
+.labConfigBody { flex: 1; min-height: 0; overflow-y: auto; padding: var(--app-space-12) var(--app-space-16); }
+
+.labCaseSelect {
+  padding: 3px 6px;
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface);
+  color: var(--bgm-text-muted);
+  font: var(--app-font-tiny);
+}
+
+.labIconButton {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-sm);
+  background: var(--bgm-surface);
+  color: var(--bgm-text-muted);
+  font: var(--app-font-tiny);
+  line-height: 1;
+}
+
+.labIconButton:hover:not(:disabled) { border-color: var(--bgm-border); color: var(--bgm-text-strong); }
+.labIconButton:disabled { color: var(--bgm-text-disabled); cursor: default; }
+
+/* ---- 字段 ---- */
+
+.labField { margin-bottom: var(--app-space-16); }
+
+.labFieldHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-8);
+  margin-bottom: var(--app-space-6);
+}
+
+.labFieldKey {
+  font: var(--app-font-note);
+  font-weight: 500;
+  color: var(--bgm-text);
+}
+
+.labFieldKey[data-required='true']::after {
+  content: '必填';
+  margin-left: 4px;
+  font: var(--app-font-tiny);
+  color: var(--bgm-text-weak);
+}
+
+.labOptional {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font: var(--app-font-tiny);
+  color: var(--bgm-text-muted);
+}
+
+.labFieldInput,
+.labFieldSelect,
+.labFieldArea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 9px;
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-surface);
+  color: var(--bgm-text);
+  font: var(--app-font-body);
+}
+
+.labFieldArea {
+  min-height: 64px;
+  resize: vertical;
+  font-family: var(--bgm-mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.labFieldInput:focus,
+.labFieldSelect:focus,
+.labFieldArea:focus,
+.labCaseSelect:focus {
+  outline: 2px solid color-mix(in srgb, var(--bgm-interactive) 40%, transparent);
+  outline-offset: 1px;
+}
+
+.labFieldInput[data-invalid='true'],
+.labFieldArea[data-invalid='true'] { border-color: var(--bgm-danger-border); }
+
+.labFieldHint { display: block; margin-top: 4px; font: var(--app-font-tiny); color: var(--bgm-text-weak); }
+.labFieldError { display: block; margin-top: 4px; font: var(--app-font-tiny); color: var(--bgm-danger); }
+
+/* ---- 列表字段：一组子卡 + 添加一项 ---- */
+
+.labGroup {
+  padding: var(--app-space-10);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--app-radius-cell);
+  background: var(--bgm-surface-alt);
+}
+
+.labItem {
+  padding: var(--app-space-8);
+  margin-bottom: var(--app-space-8);
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--app-radius-cell);
+  background: var(--bgm-surface);
+}
+
+.labItemHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--app-space-6);
+  font: var(--app-font-tiny);
+  color: var(--bgm-text-muted);
+}
+
+.labItemGrid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--app-space-8); }
+.labItemCell { display: block; min-width: 0; }
+
+.labItemLabel {
+  display: block;
+  margin-bottom: 3px;
+  font: var(--app-font-tiny);
+  color: var(--bgm-text-muted);
+}
+
+.labItemLabel em {
+  margin-left: 3px;
+  font-style: normal;
+  color: var(--bgm-text-weak);
+}
+
+.labDelete {
+  padding: 2px 8px;
+  cursor: pointer;
+  border: 1px solid var(--bgm-border-soft);
+  border-radius: var(--bgm-r-sm);
+  background: var(--bgm-surface);
+  color: var(--bgm-text-muted);
+  font: var(--app-font-tiny);
+}
+
+.labDelete:hover { border-color: var(--bgm-danger-border); color: var(--bgm-danger); }
+
+/* 「添加一项」用正文色：它是常规动作，不该和「可点的链接」抢注意力 */
+.labAdd {
+  width: 100%;
+  padding: 6px;
+  cursor: pointer;
+  border: 1px dashed var(--bgm-border);
+  border-radius: var(--app-radius-cell);
+  background: transparent;
+  color: var(--bgm-text);
+  font: var(--app-font-note);
+}
+
+.labAdd:hover { border-color: var(--bgm-primary); }
+
+.labGroupEmpty { margin: 0 0 var(--app-space-8); font: var(--app-font-tiny); color: var(--bgm-text-weak); }
+
+/* ---- 底部主按钮 ---- */
+
+.labFooter { padding: var(--app-space-12) var(--app-space-16); border-top: 1px solid var(--bgm-border-soft); }
+
+.labPrimary {
+  width: 100%;
+  padding: 9px 12px;
+  cursor: pointer;
+  border: 1px solid var(--bgm-primary);
+  border-radius: var(--app-radius-control);
+  background: var(--bgm-primary);
+  color: #fff;
+  font: var(--app-font-strong);
+}
+
+.labPrimary:hover:not(:disabled) { filter: brightness(1.05); }
+.labPrimary:disabled { opacity: 0.5; cursor: default; }
+

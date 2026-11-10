@@ -1,13 +1,17 @@
 import type { ContentKind } from '../../../types/content';
-import type { LibrarySection, ParamRow } from '../types/sections';
+import type { LibraryGroupKey, LibrarySection, ParamRow } from '../types/sections';
 
 /**
  * 内容组件库的示例数据。
  *
  * 每个 section 描述一个 `kind`：**一份主载荷 + 一份空载荷**，页面据此渲染真实预览，
- * 并现场生成「可直接粘进调试页」的 event 与 frame JSON（同一份数据，保证所见即所粘）。
+ * 并现场生成「可直接粘进卡片实验室」的载荷 JSON（同一份数据，保证所见即所粘）。
  * 参数表写的是协议契约，字段名与 `bangumi/src/web/protocol.ts` 一一对应，取值枚举与
- * 前端校验器 `components/content/validate.ts` 一致——改协议时这里要跟着改，否则文档会说谎。
+ * 各组件自己的 `readXxx`（`components/content/` 下）一致——改协议时这里要跟着改，否则文档会说谎。
+ *
+ * `kind` 与 `group` 是本页的**登记点**：新增一种内容块时，除了本文件加一条 section，
+ * 前端只剩两处（`components/content/registry.tsx` 的注册表、该组件内的 `readXxx`）。
+ * 分组不另建表——左导航由本文件的 `group` 派生（见文件末尾的 `LIBRARY_GROUPS`）。
  *
  * 形状类型（`LibrarySection` 等）在 `../types/sections`：它们是页面模块的公开契约，
  * `router/routes.tsx` 也要用；数据留在这里，因为只有本页与宿主测试 fixture 消费。
@@ -67,6 +71,7 @@ const SUBJECT_SAMPLE_META = { title: '搜索结果', total: 24, hint: '按匹配
 export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   {
     kind: 'SubjectCards',
+    group: 'entries',
     title: '条目集合 SubjectCards',
     summary: '封面墙（grid）与紧凑行（list）两种密度，共用同一份元信息。总数多于本帧条目时显式提示还有多少条未展示。',
     payload: { layout: 'grid', ...SUBJECT_SAMPLE_META, items: SUBJECT_SAMPLE_ITEMS },
@@ -92,6 +97,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'StatsCard',
+    group: 'data',
     title: '统计 StatsCard',
     summary: '一个主数字加一组分布。三种编码：横向条形（bars）、竖向柱状（histogram）、纯列表（list）；不画坐标轴与网格线。',
     payload: {
@@ -126,6 +132,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'ProgressView',
+    group: 'data',
     title: '进度 ProgressView',
     summary: '数值进度条与章节网格可同时出现。章节三态（已看/当前/未看）用颜色与描边区分，不靠图例说明。',
     payload: {
@@ -152,6 +159,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'InfoBox',
+    group: 'text',
     title: '信息栏 InfoBox',
     summary: '键值对列表，语义是 `dl`（名称–值成对读出）。宽窄自适应：窄宽度下标签与值叠成两行。',
     payload: {
@@ -180,6 +188,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'DataTable',
+    group: 'data',
     title: '数据表格 DataTable',
     summary: '可点表头本地排序：`localeCompare(..., { numeric: true })` 让「第 10 话」排在「第 9 话」之后，空单元格始终排末尾，`aria-sort` 同步给读屏器。窄宽度下表体横向滚动。',
     payload: {
@@ -217,6 +226,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'Timeline',
+    group: 'data',
     title: '时间线 Timeline',
     summary: '按时间排列的事件。`actor` 有值时单独成列，用弱文本呈现。',
     payload: {
@@ -242,6 +252,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'TagCloud',
+    group: 'entries',
     title: '标签云 TagCloud',
     summary: '唯一一个**载荷就是数组本身**的 kind。标签是纯展示，不带点击行为，因此用 `span` 而不是伪装成按钮。',
     payload: [
@@ -266,6 +277,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'Gallery',
+    group: 'entries',
     title: '横向列表 Gallery',
     summary: '角色、关联条目、图集。`overflow-x: auto` 且**不隐藏滚动条**——滚动条是键盘与触屏之外唯一能说明「右边还有内容」的信号；轨道可聚焦，方向键可滚动。',
     payload: {
@@ -290,6 +302,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'CompareTable',
+    group: 'data',
     title: '修改对比 CompareTable',
     summary: '写入前后的字段对照。`changed` 为 false 的行不强调，避免把「值没变」读成「改成了这样」。',
     payload: {
@@ -313,6 +326,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'QuoteBlock',
+    group: 'text',
     title: '引用块 QuoteBlock',
     summary: '需要保真的文本：工具原始输出、日志、JSON。`mono` 为真时用等宽字体，横向可滚动而不换行折断。',
     payload: {
@@ -332,6 +346,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'Callout',
+    group: 'text',
     title: '状态提示 Callout',
     summary: '三段式反馈：进行中 / 成功 / 警告 / 失败。只有标记着色，不做整条彩色横幅。主预览给的是 **progress** 态——只有它会流动边框（`StarBorder` 的落点）；想看其余三态把 `tone` 换成 success / warning / error。',
     payload: {
@@ -354,6 +369,7 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
   },
   {
     kind: 'LinkList',
+    group: 'entries',
     title: '链接列表 LinkList',
     summary: '相关条目与参考资料。每个链接都是真实可聚焦的 `<a>`，`target="_blank"` 必然配 `rel="noreferrer"`。',
     payload: {
@@ -376,14 +392,31 @@ export const LIBRARY_SECTIONS: readonly LibrarySection[] = [
 ];
 
 /**
- * 左侧导航的分组：**数组顺序即渲染顺序**，组内 `kinds` 的顺序即导航里的排列顺序。
+ * 左侧导航的分组标签：**键集合即分组集合，声明顺序即渲染顺序**。
  *
- * 为什么和 `LIBRARY_SECTIONS` 分开：分组是「导航怎么组织」，不是条目契约的一部分；
- * 但两者都是**表**——新增一个 kind 改的是数据（这里加进某一组 + `LIBRARY_SECTIONS` 加一项），
- * 而不是往组件的 JSX 里加分支。`App.tsx` 完全从这两张表派生导航，不硬编码任何 kind。
+ * 分组归属不在这里写——每条 `LibrarySection` 自己带 `group`，下面是派生的。改造前这里是
+ * 一张手写的「分组 → kinds」表，新增一个 kind 要改两处（数据表 + 这里），而两处之间没有
+ * 任何编译期约束：漏改这里只会让它从导航里消失，页面照常构建。
+ *
+ * 现在只有两类改动：
+ * - **新增一个组件**：在它自己的 section 里写 `group: '…'`，本文件末尾一行都不用碰；
+ * - **新增一个分组**：在 `types/sections.ts` 的 `LibraryGroupKey` 加成员（编译会逼你在
+ *   这里补标签，因为下面是 `Record<LibraryGroupKey, string>`）。
+ *
+ * 组内顺序 = `LIBRARY_SECTIONS` 里的出现顺序（与详情页/总览页的排列一致）。
  */
-export const LIBRARY_GROUPS = [
-  { key: 'entries', label: '条目与集合', kinds: ['SubjectCards', 'Gallery', 'TagCloud', 'LinkList'] },
-  { key: 'data', label: '数据与统计', kinds: ['StatsCard', 'ProgressView', 'DataTable', 'CompareTable', 'Timeline'] },
-  { key: 'text', label: '文本与提示', kinds: ['InfoBox', 'QuoteBlock', 'Callout'] },
-] as const satisfies readonly { key: string; label: string; kinds: readonly ContentKind[] }[];
+const GROUP_LABELS: Record<LibraryGroupKey, string> = {
+  entries: '条目与集合',
+  data: '数据与统计',
+  text: '文本与提示',
+};
+
+export const LIBRARY_GROUPS: readonly {
+  key: LibraryGroupKey;
+  label: string;
+  kinds: readonly ContentKind[];
+}[] = (Object.keys(GROUP_LABELS) as LibraryGroupKey[]).map(key => ({
+  key,
+  label: GROUP_LABELS[key],
+  kinds: LIBRARY_SECTIONS.filter(section => section.group === key).map(section => section.kind),
+}));

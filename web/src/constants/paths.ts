@@ -2,7 +2,7 @@
  * 路径常量：**全应用路径字面量的唯一来源**。
  *
  * 为什么单独一个文件、且**不 import 任何东西**：路由表（`router/routes.tsx`）要 import 页面，
- * 页面 import 组件，而组件里需要知道「调试页在哪」（侧栏品牌行双击进调试页）。只要这些常量从
+ * 页面 import 组件，而组件里需要知道「卡片实验室在哪」（侧栏品牌行双击进实验室）。只要这些常量从
  * `routes.tsx` 或 `router/index.tsx` 导出，依赖环就成立了：`router → page → components → router`。
  * 这个文件是**叶子模块**——只导出字符串，谁都可以 import，永远不成环。
  *
@@ -19,7 +19,7 @@
  */
 export const PATH = {
   home: '/',
-  debug: '/debug',
+  lab: '/lab',
   library: '/library',
 } as const;
 

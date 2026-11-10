@@ -41,7 +41,7 @@
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `main.tsx`（在 `web/src/`） | 样式引入链的**唯一**定义处 | `web/src/main.tsx` | 改样式引入顺序（顺序是契约） |
-| `page/<页面>/styles/` | 页面专有皮肤（`lib*` / `debug*` 前缀，只新增自己的类） | `web/src/page/<页面>/styles/` | 改某个页面的皮肤 |
+| `page/<页面>/styles/` | 页面专有皮肤（`lib*` / `lab*` 前缀，只新增自己的类） | `web/src/page/<页面>/styles/` | 改某个页面的皮肤 |
 
 ## 规则
 
@@ -63,7 +63,7 @@
 
 **3. 类名按前缀分区。**
 
-- **规则**：共享原语用 `app*`（如 `.appTopBar`、`.appEmpty`、`.appFallbackPage`），内容块用 `content*`，各页皮肤用自己页面的前缀（`lib*` / `debug*`）。令牌用 `--bgm-*`（品牌）与 `--app-*`（外观层）；唯一的例外是从上游继承的 `--dsw-corner-shape`（超椭圆曲率，见 `web/src/styles/base/shape/shape.css`）。
+- **规则**：共享原语用 `app*`（如 `.appTopBar`、`.appEmpty`、`.appFallbackPage`），内容块用 `content*`，各页皮肤用自己页面的前缀（`lib*` / `lab*`）。令牌用 `--bgm-*`（品牌）与 `--app-*`（外观层）；唯一的例外是从上游继承的 `--dsw-corner-shape`（超椭圆曲率，见 `web/src/styles/base/shape/shape.css`）。
 - **为什么**：页面皮肤只应新增自己的类，不覆写既有组件的类——两个入口才能共用同一批组件而不互相污染。
 - **后果**：跨页覆写会导致「改文档页样式、主界面跟着变」，而且很难定位。
 
@@ -90,7 +90,7 @@
 - **规则**：顺序由 `web/src/main.tsx` 决定，改动要在那里进行：
 
   ```
-  base 七族令牌 → common.css → 主界面四件（frame / composer / cards / modal）→ content.css → debug.css → library.css
+  base 七族令牌 → common.css → 主界面四件（frame / composer / cards / modal）→ content.css → lab.css → library.css
   ```
 
 - **为什么**：令牌层只写变量（顺序不影响取值），形态层则依赖先后覆盖；`content.css` 必须在文档页皮肤之前（文档页要展示内容条目）。

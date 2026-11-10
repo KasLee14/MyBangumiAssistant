@@ -26,7 +26,7 @@
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `turns.ts` | `ProcessItem`（思考行 `ReasoningItemView` \| 工具行 `ToolItemView`）、`TurnGroup`（`meta` + `user` + `process` + `body`）；内部的 `TextItem` 只含 `user` / `notice` / `error`，**助手条目不在其中**（它的正文是内容块数组 `content: MessageBlock[]`） | `web/src/types/turns.ts` | 改「平铺条目 → 轮次」的产物形状 |
-| `content.ts` | `ContentKind`：12 个成员，取值就是**组件名**（与 `web/src/components/content/` 的文件名一致），因此不需要「语义名 → 组件」的对照表 | `web/src/types/content.ts` | 加 / 改一种内容块（同时要改 `web/src/components/content/registry.tsx` 的渲染表） |
+| `content.ts` | `ContentKind`：**从协议派生**（`ContentBlockView['type']`），取值就是**组件名**（与 `web/src/components/content/` 的文件名一致），因此不需要「语义名 → 组件」的对照表，也不需要在协议加成员时同步改这里 | `web/src/types/content.ts` | 加 / 改一种内容块（实际要改的是 `registry.tsx` 的注册表与该组件内的 `readXxx`） |
 | `process.ts` | `ProcessKind`（`ToolFamily \| 'reasoning'`）、`ProcessSummary`（`total` / `counts` 按数量降序 / `active` 为进行中的项或 `null`） | `web/src/types/process.ts` | 改过程区汇总（计数、活跃项） |
 | `tools.ts` | `ToolBodyKind`：工具行展开体渲染什么——`'blocks' \| 'text' \| 'empty'` | `web/src/types/tools.ts` | 改工具行展开体的三种类型 |
 

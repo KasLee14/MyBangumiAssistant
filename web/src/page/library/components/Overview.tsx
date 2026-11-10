@@ -64,7 +64,7 @@ export function Overview({ sections }: { sections: LibrarySection[] }): ReactNod
     <>
       <h2 className="libPageTitle">内容组件库</h2>
       <p className="libPageSummary">
-        {`${LIBRARY_SECTIONS.length} 种内容条目：真实组件渲染、参数契约，以及可直接粘进调试页的 event 与 frame。`}
+        {`${LIBRARY_SECTIONS.length} 种内容条目：真实组件渲染、参数契约，以及可直接粘进卡片实验室的载荷 JSON。`}
         {sections.length === LIBRARY_SECTIONS.length
           ? null
           : ` 当前筛选出 ${sections.length} 个。`}

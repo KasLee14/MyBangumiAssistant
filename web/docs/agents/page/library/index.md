@@ -4,7 +4,7 @@
 
 ## 功能介绍
 
-`web/src/page/library/` 是**内容组件库文档页**（`/library`）：顶栏横跨全宽（复用共享组件 `AppTopBar`），下面是「左导航 | 内容 | 页内目录」。它展示 12 种内容块的真实渲染、参数契约，以及可直接粘进调试页的 event / frame JSON。
+`web/src/page/library/` 是**内容组件库文档页**（`/library`）：顶栏横跨全宽（复用共享组件 `AppTopBar`），下面是「左导航 | 内容 | 页内目录」。它展示 12 种内容块的真实渲染、参数契约，以及可直接粘进卡片实验室的载荷 JSON。
 
 内容区是 `<Outlet />`：「总览」与「某个 kind 的详情」是两条子路由（见 [../../router.md](../../router.md)），骨架只负责搜索过滤、左导航与页内目录；过滤结果 `sections` 经 `<Outlet context>` 下发，两个子页面自己仍是 props 驱动。
 
@@ -19,7 +19,7 @@
 | 要改什么 | 在哪 | 先读哪篇 |
 |---|---|---|
 | 页面骨架装配、搜索过滤下发 | `web/src/page/library/index.tsx` | 本页「规则」 |
-| 单个 kind 的详情四块、总览卡片、胶囊 | `web/src/page/library/components/` | [components.md](components.md) |
+| 单个 kind 的详情三块、总览卡片、胶囊 | `web/src/page/library/components/` | [components.md](components.md) |
 | 左导航（总览入口 + 分组列表） | `web/src/page/library/components/nav/` | [components.md](components.md) |
 | 页内目录与滚动高亮 | `web/src/page/library/components/toc/` | [components.md](components.md) |
 | 顶栏栏目、搜索框位置、入口链接 | `web/src/page/library/components/topbar/` | [components.md](components.md) |

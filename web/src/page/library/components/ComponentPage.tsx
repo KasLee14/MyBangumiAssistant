@@ -1,35 +1,35 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { Pill } from './Pill';
 import { ContentBlock, type ContentBlockView } from '../../../components/content';
-import { eventText, eventTextOf, frameText, blockOf } from '../utils/items';
+import { PATH } from '../../../constants/paths';
+import { blockOf, payloadText, payloadTextOf } from '../utils/items';
 import type { LibrarySection } from '../types/sections';
 
 /**
  * 单个 kind 的详情页（**自绘**）。
  *
- * 内容严格只有四块（这是产品定的边界，别往里加第五块）：
+ * 内容严格只有三块：
  * 1. UI 预览——真实 `ContentBlock` 渲染主载荷、若干**形态变体**（`section.variants`，可空）、
  *    以及一张「空数据」变体；三种卡都是同构的自绘 `.libCard`；
  * 2. 参数——字段表，**下面一行参考附注**；
- * 3. 调试页 event 输入——可直接复制粘贴的 JSON；
- * 4. 调试页 frame 输入——同上。
+ * 3. 卡片实验室——一句说明加两个动作（进实验室 / 复制可直接粘贴的载荷 JSON）。
  *
- * 形态变体**不是第五块**：它只让第 1 块里多出几张同构预览卡（`SubjectCards` 的 `layout: 'list'`
- * 就是这么补上的），四块的契约与 `PAGE_ANCHORS` 完全不变。
+ * 形态变体**不是第四块**：它只让第 1 块里多出几张同构预览卡（`SubjectCards` 的
+ * `layout: 'list'` 就是这么补上的）。
  *
- * 页内目录由 `App` 指向这四块的 id，所以 id 命名是契约（见 `PAGE_ANCHORS`）。
+ * 页内目录由 `App` 指向这三块的 id，所以 id 命名是契约（见 `PAGE_ANCHORS`）。
  *
  * 骨架与卡片全部自绘：按钮用 `.button`（cards.css 的按钮基元）、标签用 `<Pill>`、
  * **参数表直接复用内容条目的表格皮肤 `.contentTable`**——同一张表的形态在一处定义，
  * 文档页只补「表头没有排序按钮」这一处差异。
  */
 
-/** 四个块的锚点 id 与标题；`App` 的右侧目录按这份清单生成。 */
+/** 三个块的锚点 id 与标题；`App` 的右侧目录按这份清单生成。 */
 export const PAGE_ANCHORS = [
   { id: 'ui-preview', title: 'UI 预览' },
   { id: 'params', title: '参数' },
-  { id: 'event', title: 'event 输入' },
-  { id: 'frame', title: 'frame 输入' },
+  { id: 'lab', title: '卡片实验室' },
 ] as const;
 
 /** 参数表五列；宽度按内容比例给，最后一列吃掉剩余宽度。 */
@@ -89,17 +89,15 @@ function ReferenceLine({ section }: { section: LibrarySection }): ReactNode {
 export function ComponentPage({ section }: { section: LibrarySection }): ReactNode {
   const main = useMemo(() => blockOf(section.kind, section.payload), [section]);
   const empty = useMemo(() => blockOf(section.kind, section.empty), [section]);
-  const event = useMemo(() => eventText(section), [section]);
-  const frame = useMemo(() => frameText(section), [section]);
-  // 形态变体：块与 event 都从**同一份载荷**现场生成（与主载荷同一条路径），
-  // 所以变体卡上的预览与「复制 event」给出的 JSON 不会各说一套。
+  const payload = useMemo(() => payloadTextOf(section), [section]);
+  // 形态变体：块与 JSON 都从**同一份载荷**现场生成（与主载荷同一条路径）。
   const variants = useMemo(
-    (): readonly { label: string; note: string | undefined; block: ContentBlockView; event: string }[] =>
+    (): readonly { label: string; note: string | undefined; block: ContentBlockView; payload: string }[] =>
       (section.variants ?? []).map(variant => ({
         label: variant.label,
         note: variant.note,
         block: blockOf(section.kind, variant.payload),
-        event: eventTextOf(section.kind, variant.payload),
+        payload: payloadText(variant.payload),
       })),
     [section],
   );
@@ -120,10 +118,10 @@ export function ComponentPage({ section }: { section: LibrarySection }): ReactNo
             <button
               type="button"
               className="button sm"
-              title="把这类的 event JSON 复制走"
-              onClick={() => { void navigator.clipboard.writeText(event); }}
+              title="把这类的载荷 JSON 复制走，粘进卡片实验室的「原始 JSON」"
+              onClick={() => { void navigator.clipboard.writeText(payload); }}
             >
-              复制 event
+              复制载荷
             </button>
           </header>
           <div className="libCardBody"><ContentBlock block={main} /></div>
@@ -136,10 +134,10 @@ export function ComponentPage({ section }: { section: LibrarySection }): ReactNo
               <button
                 type="button"
                 className="button sm"
-                title="把这一形态的 event JSON 复制走"
-                onClick={() => { void navigator.clipboard.writeText(variant.event); }}
+                title="把这一形态的载荷 JSON 复制走"
+                onClick={() => { void navigator.clipboard.writeText(variant.payload); }}
               >
-                复制 event
+                复制载荷
               </button>
             </header>
             <div className="libCardBody"><ContentBlock block={variant.block} /></div>
@@ -189,19 +187,16 @@ export function ComponentPage({ section }: { section: LibrarySection }): ReactNo
         <ReferenceLine section={section} />
       </section>
 
-      <section id="event" className="libBlock">
-        <h3 className="libBlockDivider">调试页 event 输入</h3>
-        <CodeBlock hint="粘进调试页的「event 输入」框" code={event} />
-      </section>
-
-      <section id="frame" className="libBlock">
-        <h3 className="libBlockDivider">调试页 frame 输入</h3>
-        <CodeBlock hint="粘进「frame 输入」框（先把 event 框清空）" code={frame} />
+      <section id="lab" className="libBlock">
+        <h3 className="libBlockDivider">卡片实验室</h3>
+        <p className="libReferenceLine">
+          实验室可逐字段改这份载荷，实时看真实组件渲染（含局部降级）。
+        </p>
+        <p className="libReferenceLine">
+          <Link className="libHeaderLink" to={PATH.lab}>打开卡片实验室 →</Link>
+        </p>
+        <CodeBlock hint="粘进卡片实验室的「原始 JSON」" code={payload} />
       </section>
     </>
   );
 }
-
-// 这里原本有一个 `payloadFieldOf(kind)`：它回答「这个 kind 的载荷挂在块上的哪个字段名」。
-// 定制组件的块形状统一为 `{ type, pending?, props }` 之后，块上的载荷字段恒为 `props`，
-// 这个问题不再存在，函数与 `registry.tsx` 的 `field` 表一并移除。

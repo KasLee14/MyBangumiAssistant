@@ -1,20 +1,50 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { StatEntryView, StatsView } from '../../types/protocol';
 import { Counter } from '../motion/vendor/Counter';
+import { ContentRaw } from './ContentRaw';
+import { type AssertTrue, type Equal, isRecord, readChoice, readMaybeText, readNumber, readText, reading } from './payload';
+
+/** 一个分布项。等价性由 `_A` 把住。 */
+export interface StatEntryProps {
+  /** 分档名（例：9） */
+  label: string;
+  /** 展示值，宿主已格式化的字符串（例：3860） */
+  value: string;
+  /** 相对量 0–1，决定条形/柱高；越界由组件夹取（例：0.31） */
+  ratio?: number;
+  /** 数值旁的弱说明（例：占比 31%） */
+  hint?: string;
+  /** 强调层级（例：primary） */
+  tone?: 'default' | 'primary' | 'muted';
+}
+
+/** 入参。 */
+export interface StatsCardProps {
+  /** 区块标题（例：评分分布） */
+  title?: string;
+  /** 主数字与说明；两者都在才生效（例：{"value":"8.2","label":"平均分"}） */
+  headline?: { value: string; label: string };
+  /** 分布项（例：[{"label":"10","value":"1420","ratio":0.11},{"label":"9","value":"3860","ratio":0.31},{"label":"8","value":"4210","ratio":0.34}]） */
+  entries: StatEntryProps[];
+  /** 分布编码方式（例：histogram） */
+  mode: 'list' | 'bars' | 'histogram';
+  /** 脚注（例：共 12480 人评分） */
+  note?: string;
+}
+export type _A = AssertTrue<Equal<StatEntryProps, StatEntryView>>;
+export type _B = AssertTrue<Equal<StatsCardProps, StatsView>>;
+
+const MODES = ['list', 'bars', 'histogram'] as const;
+const TONES = ['default', 'primary', 'muted'] as const;
 
 /** 条形/柱形长度：ratio 缺失或越界时给出可预期的兜底，不让 NaN 进到样式里。 */
-function ratioOf(entry: StatEntryView): number {
+function ratioOf(entry: StatEntryProps): number {
   const value = entry.ratio;
   if (typeof value !== 'number' || Number.isNaN(value)) return 0;
   return Math.min(1, Math.max(0, value));
 }
 
-function toneOf(entry: StatEntryView): string {
-  return entry.tone ?? 'default';
-}
-
-/** 一项的数值与可选说明；条形与列表两种模式共用。 */
-function EntryValue({ entry }: { entry: StatEntryView }): ReactNode {
+function EntryValue({ entry }: { entry: StatEntryProps }): ReactNode {
   return (
     <span className="contentStatValue">
       {entry.value}
@@ -23,17 +53,14 @@ function EntryValue({ entry }: { entry: StatEntryView }): ReactNode {
   );
 }
 
-/** 横向条形：长度编码占比，数字保持可读，不靠 tooltip 说明数值。 */
-function Bars({ entries }: { entries: StatEntryView[] }): ReactNode {
+function Bars({ entries }: { entries: StatEntryProps[] }): ReactNode {
   return (
     <ul className="contentStatBars">
       {entries.map((entry, index) => (
-        <li key={`${entry.label}-${index}`} className="contentStatBarRow" data-tone={toneOf(entry)}>
+        <li key={`${entry.label}-${index}`} className="contentStatBarRow" data-tone={entry.tone ?? 'default'}>
           <span className="contentStatLabel">{entry.label}</span>
           <span className="contentStatTrack">
-            {/* 长度用 **CSS 变量**交给样式层（不写内联 `transform`）：
-                keyframes 的 `to` 帧会盖掉内联值，动画一结束横条就被拉到满格。
-                几何与入场动画都在 `content.css` 的 `.contentStatBar` 上。 */}
+            {/* 长度用 CSS 变量交给样式层：keyframes 的 `to` 帧会盖掉内联 transform。 */}
             <span className="contentStatBar" style={{ '--content-bar': ratioOf(entry).toFixed(4) } as CSSProperties} />
           </span>
           <EntryValue entry={entry} />
@@ -43,38 +70,28 @@ function Bars({ entries }: { entries: StatEntryView[] }): ReactNode {
   );
 }
 
-/**
- * 竖向柱状（评分分布）。
- *
- * 站点原型的直方图是 10→1 倒序，宿主按 `entries` 给出的顺序原样渲染：
- * 顺序属于数据语义，组件不替宿主重排。
- */
-function Histogram({ entries }: { entries: StatEntryView[] }): ReactNode {
+/** 竖向柱状（评分分布）：柱高即占比，顺序按宿主给的原样渲染（10→1 属于数据语义）。 */
+function Histogram({ entries }: { entries: StatEntryProps[] }): ReactNode {
   return (
     <ul className="contentStatHistogram" aria-label="分布柱状图">
-      {entries.map((entry, index) => {
-        const ratio = ratioOf(entry);
-        return (
-          <li key={`${entry.label}-${index}`} className="contentStatColumn" data-tone={toneOf(entry)}>
-            <span className="contentStatColumnValue">{entry.value}</span>
-            <span className="contentStatColumnTrack">
-              {/* 柱高用 scaleY（transform-origin: bottom），不写 height */}
-              <span className="contentStatColumnBar" style={{ transform: `scaleY(${ratio.toFixed(4)})` }} />
-            </span>
-            <span className="contentStatColumnLabel">{entry.label}</span>
-          </li>
-        );
-      })}
+      {entries.map((entry, index) => (
+        <li key={`${entry.label}-${index}`} className="contentStatColumn" data-tone={entry.tone ?? 'default'}>
+          <span className="contentStatColumnValue">{entry.value}</span>
+          <span className="contentStatColumnTrack">
+            <span className="contentStatColumnBar" style={{ transform: `scaleY(${ratioOf(entry).toFixed(4)})` }} />
+          </span>
+          <span className="contentStatColumnLabel">{entry.label}</span>
+        </li>
+      ))}
     </ul>
   );
 }
 
-/** 纯列表：只有标签与数值，适合平均值、计数这类不构成分布的数据。 */
-function List({ entries }: { entries: StatEntryView[] }): ReactNode {
+function List({ entries }: { entries: StatEntryProps[] }): ReactNode {
   return (
     <dl className="contentStatList">
       {entries.map((entry, index) => (
-        <div key={`${entry.label}-${index}`} className="contentStatListRow" data-tone={toneOf(entry)}>
+        <div key={`${entry.label}-${index}`} className="contentStatListRow" data-tone={entry.tone ?? 'default'}>
           <dt className="contentStatLabel">{entry.label}</dt>
           <dd className="contentStatListValue"><EntryValue entry={entry} /></dd>
         </div>
@@ -83,20 +100,51 @@ function List({ entries }: { entries: StatEntryView[] }): ReactNode {
   );
 }
 
-/**
- * 统计卡：一个主数字 + 一组分布。
- *
- * `headline` 是视觉重心（平均分、总数），`mode` 决定分布的编码方式。这里不画
- * 坐标系与网格线——预览稿的结论是「用细柱承担信息，不要图表库式的装饰」。
- */
-export function StatsCard({ view }: { view: StatsView }): ReactNode {
-  const { title, headline, entries, mode, note } = view;
-  // 只在「纯数字字符串」上启用滚轮读数：带单位或千分位的值（75.9%、12,480）交给静态文本，
-  // 否则会把它显示成 75.9 / 12480 这种丢掉语义的数。
-  const headlineNumber =
-    headline !== undefined && /^-?\d+(\.\d+)?$/.test(headline.value.trim())
-      ? Number(headline.value)
-      : null;
+/** 统计卡：一个主数字 + 一组分布。不画坐标轴与网格线——用细柱承担信息。 */
+export function StatsCard({ view }: { view: StatsCardProps }): ReactNode {
+  if (!isRecord(view)) return <ContentRaw kind="StatsCard" data={view} />;
+  if (!Array.isArray(view.entries)) return <ContentRaw kind="StatsCard" data={view} />;
+
+  const r = reading('StatsCard');
+  const entries: StatEntryProps[] = [];
+  view.entries.forEach((entry, index) => {
+    if (!isRecord(entry)) {
+      r.miss(`entries[${index}]`, '不是一个对象');
+      return;
+    }
+    // 局部降级：名与值都取不到的项剔除；ratio 越界由 ratioOf 夹取，不算非法。
+    const label = readText(r, entry.label, `entries[${index}].label`);
+    const value = readText(r, entry.value, `entries[${index}].value`);
+    if (label === '' && value === '') return;
+    const ratio = readNumber(r, entry.ratio, `entries[${index}].ratio`);
+    const hint = readMaybeText(r, entry.hint, `entries[${index}].hint`);
+    entries.push({
+      label,
+      value,
+      tone: readChoice(r, entry.tone, `entries[${index}].tone`, TONES, 'default'),
+      ...(ratio === undefined ? {} : { ratio }),
+      ...(hint === undefined ? {} : { hint }),
+    });
+  });
+
+  // headline 不是对象就当没有（不编造一个 0），主数字与说明都取不到也当没有。
+  let headline: StatsCardProps['headline'];
+  if (isRecord(view.headline)) {
+    const value = readText(r, view.headline.value, 'headline.value');
+    const label = readText(r, view.headline.label, 'headline.label');
+    if (value !== '' || label !== '') headline = { value, label };
+  } else if (view.headline !== undefined) {
+    r.miss('headline', '不是一个对象');
+  }
+
+  const mode = readChoice(r, view.mode, 'mode', MODES, 'list');
+  const title = readMaybeText(r, view.title, 'title');
+  const note = readMaybeText(r, view.note, 'note');
+  // 只在纯数字字符串上启用滚轮读数：带单位或千分位的值交给静态文本，否则会丢掉语义。
+  const headlineNumber = headline !== undefined && /^-?\d+(\.\d+)?$/.test(headline.value.trim())
+    ? Number(headline.value)
+    : null;
+
   return (
     <section className="contentBlock contentStats" aria-label={title === undefined || title === '' ? '统计' : title}>
       {title === undefined || title === '' ? null : <h3 className="contentBlockTitle">{title}</h3>}
@@ -104,10 +152,6 @@ export function StatsCard({ view }: { view: StatsView }): ReactNode {
         <p className="contentStatHeadline">
           <span className="contentStatHeadlineValue">
             {headlineNumber === null ? headline.value : (
-              // ReactBits Counter（参考 https://www.reactbits.dev/components/counter）：数字首次出现时滚到位。
-              // 关掉官方那两层上下渐隐（gradientHeight=0）——它服务的是整屏大字，这里是 28px 的行内读数。
-              // fontSize 必须与 `content.css` 的 `.contentStatHeadlineValue` 一致（C06
-              // 定稿 28px）：它以**内联样式**下发，会盖掉 CSS 里那一档——写 30 就等于 CSS 的 28px 从未生效。
               <Counter
                 value={headlineNumber}
                 fontSize={28}

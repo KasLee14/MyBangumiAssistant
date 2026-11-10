@@ -16,7 +16,7 @@
 
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
-| `AppTopBar.tsx` | 顶栏骨架：调试页与文档页共用（主界面已删顶栏，功能迁进侧栏）；样式在 `web/src/styles/common.css` 的 `.appTopBar*` | `web/src/components/AppTopBar.tsx` | 改顶栏骨架 |
+| `AppTopBar.tsx` | 顶栏骨架：卡片实验室与文档页共用（主界面已删顶栏，功能迁进侧栏）；样式在 `web/src/styles/common.css` 的 `.appTopBar*` | `web/src/components/AppTopBar.tsx` | 改顶栏骨架 |
 
 ### content/ —— 内容块与正文
 
@@ -26,14 +26,17 @@
 
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
-| `index.tsx` | 内容块分发器：校验 → 骨架 / 降级 / 渲染器；并转出 `ContentBlockView` | `web/src/components/content/index.tsx` | 改内容块的分发与容错 |
-| `registry.tsx` | 「type → 渲染器」注册表；`satisfies { [K in ContentKind]: … }` 要求 12 键齐全，末尾 `ContentRegistryCoverage` 断言兜住协议里的未登记 type | `web/src/components/content/registry.tsx` | 加 / 改 12 种内容块之一；查某个 type 由哪个组件渲染 |
+| `index.tsx` | 内容块分发器：只做信封三件事——`pending` → 骨架、`type` 未登记 → 丢弃 + 告警、其余交给组件并套 `ContentErrorBoundary`；并转出 `ContentBlockView`。**载荷判定不在这里** | `web/src/components/content/index.tsx` | 改内容块的分发与容错出口 |
+| `registry.tsx` | 「type → 组件」注册表：`satisfies { [K in ContentKind]: … }` 要求每个 kind 都有组件；`CONTENT_KINDS` **由本表的键序派生**；`render` 的入参是 `unknown`（逼组件自己收窄） | `web/src/components/content/registry.tsx` | 加 / 改 12 种内容块之一；查某个 type 由哪个组件渲染 |
 
-#### 载荷校验
+#### 载荷判定与降级
+
+**判定与降级在各自组件里**，没有中央校验表。共享的只有收窄原语。
 
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
-| `validate.ts` | 零依赖手写运行时校验：只管载荷形状，不校验信封字段、不做换算/文案/排序 | `web/src/components/content/validate.ts` | 加 / 改内容块时对齐校验规则；排查「为什么这块显示降级卡」 |
+| `payload.ts` | 12 种载荷共用的**收窄原语**（取字符串/数字/枚举/数组、按元素过滤、`miss` 记一次降级）。**不含任何 kind 知识**：一旦出现「哪几种 kind 共用一个规则」，规则就又回到了中心化 | `web/src/components/content/payload.ts` | 加 / 改某个数值或数组的收窄方式 |
+| 各 `Xxx.tsx` 里的 `readXxx` | 该 kind 自己的判定与局部降级策略（丢哪一项、回落到什么、什么时候整块不可渲染）。模块私有，只有本组件的 `view: unknown` 入口会调 | 同目录 12 个组件 | 改某一种载荷「坏了怎么显示」 |
 
 #### 正文入口与 Markdown
 
@@ -42,12 +45,13 @@
 | `MessageBlocks.tsx` | **助手正文唯一渲染入口**（文本 + 内容块），带块级 `memo` 比较以压住流式期的重渲染 | `web/src/components/content/MessageBlocks.tsx` | 改助手正文（文本 + 内容块）的排布与重渲染规则 |
 | `markdown.tsx` | 手写 Markdown 子集渲染：粗体、行内码、链接、表格、分隔线 | `web/src/components/content/markdown.tsx` | 改助手正文里的 Markdown 渲染 |
 
-#### 加载骨架与降级卡
+#### 骨架、兜底与原始数据
 
 | 文件 | 含义 | 路径 | 场景 |
 |---|---|---|---|
 | `ContentSkeleton.tsx` | `pending` 骨架：与 kind 无关；扫光由 `aria-busy` 开关，不要求与真实块等高 | `web/src/components/content/ContentSkeleton.tsx` | 改「加载中」骨架 |
-| `ContentFallback.tsx` | 降级块：「数据到了但不合法」，附问题清单（最多 4 条）与原始数据折叠区 | `web/src/components/content/ContentFallback.tsx` | 改「数据非法」降级卡 |
+| `ContentRaw.tsx` | 「整块不可渲染」的出口：一句说明 + 折叠的原始 JSON。**由各组件决定何时调**，分发器不判断 | `web/src/components/content/ContentRaw.tsx` | 改原始数据兜底块 |
+| `ContentErrorBoundary.tsx` | 最后一道兜底：catch 组件渲染期抛错，回落成 `ContentRaw`；载荷引用变化即重试 | `web/src/components/content/ContentErrorBoundary.tsx` | 改「判定漏了」时的兜底行为 |
 
 #### 内容块渲染器
 
@@ -119,8 +123,8 @@
 **1. 状态由调用方传入，组件不读 store。**
 
 - **规则**：`Stage` / `Turn` / `Streaming` / `ProcessRows` 一律 props 驱动，展开状态、开合状态由上层传入；本层组件内不做 `useSelector`。
-- **为什么**：宿主每 40ms 合并下发一帧，重渲染范围必须能按 props 收窄；调试页也要用同一批组件渲染模拟数据。
-- **后果**：组件一旦绑死全局 store，调试页无法复用，流式期会出现整树重渲染。
+- **为什么**：宿主每 40ms 合并下发一帧，重渲染范围必须能按 props 收窄；卡片实验室也要用同一批组件渲染同一份数据。
+- **后果**：组件一旦绑死全局 store，实验室无法复用，流式期会出现整树重渲染。
 
 ### 单一真相源
 
@@ -132,24 +136,31 @@
 
 ### 模块边界
 
-**3. 内容块组件是纯展示。**
+**3. 内容块组件是纯展示（判定只回答「能不能渲染」）。**
 
-- **规则**：载荷由宿主给——组件不换算单位、不生成业务文案、不重排数据顺序（`web/src/components/content/validate.ts` 顶部写着同样三条边界）。
+- **规则**：载荷由宿主给——组件不换算单位、不生成业务文案、不重排数据顺序；组件内的 `readXxx` 同理，只做类型收窄与降级选择，**不做业务裁决**（不判断 URL 可达、不判断交叉引用是否成立）。这条与 `web/src/components/content/payload.ts` 顶部写的三条边界一致。
 - **为什么**：宿主已经算好并校验过；前端再算一次就是第二份真相。
 - **后果**：同一件事出现两个数，且不一致时无人知道该信哪个。
 
 ### 改动联动
 
-**4. 新增第 13 种内容块要三处同改。**
+**4. 新增第 13 种内容块改三处，且全部有护栏。**
 
-- **规则**：宿主协议加成员 → `web/src/types/content.ts` 的 `ContentKind` 扩一项 → `web/src/components/content/registry.tsx` 的渲染表加一项（渲染器文件放在 `web/src/components/content/` 下）。
-- **为什么**：注册表的 `satisfies` 穷尽检查与 `ContentRegistryCoverage` 断言是「清单 ↔ 渲染函数」同一张表的守卫。
-- **后果**：漏登记会**编译失败**（这是有意的）；若把断言删掉换静默兜底，界面会永远显示降级卡而无人发现。
+- **规则**：宿主协议加成员 → `web/src/components/content/registry.tsx` 的渲染表加一项（组件文件放在 `web/src/components/content/` 下）→ 该组件自己写 `readXxx`（判定 + 局部降级 + `view: unknown` 入口）→ `web/src/page/library/constants/sections.ts` 加一条 section（带 `group`）。
+- **为什么**：`kind` 清单只剩两处「表」——注册表与文档页数据表；`ContentKind` 由协议派生（`web/src/types/content.ts`）、`CONTENT_KINDS` 由注册表键序派生、左导航分组由 section 的 `group` 派生，**这三样都不再手写**。原来还有一张中央校验规则表，已于改造中删除。
+- **后果**：漏改注册表 → `satisfies { [K in ContentKind]: ContentRenderer }` **编译失败**；组件漏写 `view: unknown` 的收窄、或直接对 `unknown` 取字段 → **编译失败**；漏写 `group` → `LibrarySection` 的字面量**编译失败**。只有样式（`content.css`）与文档索引没有编译护栏。
+- **另**：新增 kind 追加到注册表表尾（`CONTENT_KINDS` 的键序 = 文档页章节顺序）。
 
 ### 失败与降级
 
-**5. 骨架与降级卡分工不可混用。**
+**5. 三种「不完美」各有归属，不能混用。**
 
-- **规则**：`pending`（载荷还没到）用 `ContentSkeleton`，不校验载荷、不提示；数据到了但不合法用 `ContentFallback`。
-- **为什么**：两者对用户意味着完全不同的事——「还没到」和「到了但不合法」。
-- **后果**：混用会把传输中的正常状态显示成错误，或把真正的数据问题藏成转圈。
+- **规则**：`pending`（载荷还没到）→ 分发器的 `ContentSkeleton`；**载荷坏了** → 由该组件的 `readXxx` 就地降级（丢坏项、字段回落、格子留空），用户侧不显示任何问题痕迹，诊断只进开发期 `console.warn`；**结构性失败**（载荷根不是对象、必填数组不是数组）→ 该组件渲染 `ContentRaw`；**渲染期抛错** → `ContentErrorBoundary` 兜成 `ContentRaw`。
+- **为什么**：这四件事对用户意味着完全不同的东西——「还没到」「有一条数据缺字段」「整块给的东西完全不对」「组件自己崩了」。改造前它们被压成一张通用降级卡（kind + 问题清单 + 原始 JSON），任何一条脏数据都会让整块变成转储。
+- **后果**：把坏数据整块换成 `ContentRaw`，会让 5 张正常卡片陪一条坏数据殉葬；反过来把结构性失败渲染成空态，则会让「上游发了个数组给我」这种错误静默无害地过去。
+
+**6. 空态与降级是两件事。**
+
+- **规则**：数组是空数组 → 正常空态（`.contentEmpty` 文案，不留任何问题痕迹）；数组根本不是数组 → `ContentRaw`。判定依据是「结构对不对」，不是「有没有内容」。
+- **为什么**：空是业务事实（还没有收藏、章节未同步），坏是数据事故；两者混用会让事故伪装成正常。
+- **后果**：全部子项都被剔除时走空态，是刻意的——那说明宿主给的都是坏项，但用户只需要知道「这里没有可显示的东西」，细节在控制台。
